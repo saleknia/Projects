@@ -404,7 +404,7 @@ class UCTransNet_GT(nn.Module):
         # x5 = self.Maxpool(x4)
         # x5 = self.Conv5(x5)
 
-        x1,x2,x3,x4,att_weights = self.mtc(x1,x2,x3,x4)
+        x1,x2,x3,x4,att_weights, probs1, probs2, probs3, probs4 = self.mtc(x1,x2,x3,x4)
 
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
@@ -414,11 +414,11 @@ class UCTransNet_GT(nn.Module):
             logits = self.last_activation(self.outc(x))
         else:
             logits = self.outc(x) # if nusing BCEWithLogitsLoss or class>1
-        if self.vis: # visualize the attention maps
-            return logits, att_weights
+
+        if self.training:
+            return logits, probs1, probs2, probs3, probs4
         else:
             return logits
-
 
 
 

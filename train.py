@@ -97,7 +97,7 @@ def main(args):
 
     elif MODEL_NAME=='UCTransNet_GT':
         config_vit = get_CTranS_config()
-        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=224).to(DEVICE)
+        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
 
     elif MODEL_NAME=='GT_UNet':
         model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
