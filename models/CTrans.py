@@ -378,7 +378,7 @@ class ChannelTransformer(nn.Module):
         self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//4, in_channels=channel_num[2])
         self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//8, in_channels=channel_num[3])
 
-        self.M_return = True
+        self.M_return = False
         self.encoder = Encoder(config, vis, channel_num, M_return=self.M_return)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))

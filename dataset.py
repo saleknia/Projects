@@ -257,11 +257,11 @@ class COVID_19(Dataset):
 class Synapse_dataset(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
         if split == 'train': 
-            base_dir = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/train_npz'
+            base_dir = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/train_npz'
         if split == 'val':
-            base_dir = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_npz'
+            base_dir = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_npz'
         if split == 'val_test':
-            base_dir = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'        
+            base_dir = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'        
 
         self.joint_transform = joint_transform
 
