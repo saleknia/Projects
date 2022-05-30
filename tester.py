@@ -44,7 +44,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
             predictions = torch.argmax(input=outputs,dim=1).long()
             Eval.add_batch(gt_image=targets,pre_image=predictions)
-            hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
+            # hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
+            hd95_acc = 0.0
             if not np.isnan(hd95_acc):
                 hd95_total.update(hd95_acc)
             accuracy.update(Eval.Pixel_Accuracy())
@@ -70,7 +71,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
         logger.info(f'Epoch: {epoch_num} ---> Valid , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , hd95: {hd95_total.avg:.4f} , Pixel Accuracy: {acc:.2f}') 
         logger.info(f'Dice Per Class: {Dice_per_class}') 
-    
     # # Save checkpoint
     # if ckpt is not None:
     #     ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
