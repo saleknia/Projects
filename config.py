@@ -46,7 +46,7 @@ if log:
 LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 6
-NUM_EPOCHS = 45
+NUM_EPOCHS = 30
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -345,8 +345,8 @@ def get_CTranS_config():
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.3
-    config.transformer.attention_dropout_rate  = 0.3
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
     # config.transformer.embeddings_dropout_rate = 0.1
     # config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0

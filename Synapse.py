@@ -441,19 +441,19 @@ def making_test_npz(path='/content/data/Synapse/test_vol_h5',
 def synapse_prepare(combine=False, test_index=[1,2,3,4,8,22,25,29,32,35,36,38]):
     if os.path.isdir(s='/content/project_TransUNet')==False:
         os.system('unzip -qq /content/drive/MyDrive/project_TransUNet.zip -d /content')
-    os.system('mkdir /content/UNet/MICCAI_2015_Multi_Atlas_Abdomen')
-    os.system('cp -r /content/project_TransUNet/data/Synapse/train_npz /content/UNet/MICCAI_2015_Multi_Atlas_Abdomen')
-    os.system('cp -r /content/project_TransUNet/data/Synapse/test_vol_h5 /content/UNet/MICCAI_2015_Multi_Atlas_Abdomen')
+    os.system('mkdir /content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen')
+    os.system('cp -r /content/project_TransUNet/data/Synapse/train_npz /content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen')
+    os.system('cp -r /content/project_TransUNet/data/Synapse/test_vol_h5 /content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen')
 
     pwd = os.getcwd()
     
     if combine:
-        os.chdir(path='/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/train_npz')
+        os.chdir(path='/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/train_npz')
     else:
-        os.system('mkdir /content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
-        os.chdir(path='/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
+        os.system('mkdir /content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
+        os.chdir(path='/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
 
-    files_path = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'
+    files_path = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'
     files = os.listdir(path=files_path)
 
     for file_name in files:
@@ -475,9 +475,9 @@ def synapse_prepare(combine=False, test_index=[1,2,3,4,8,22,25,29,32,35,36,38]):
 
             np.savez(file=slice_name,image=slice_2d,label=label_2d)
     if combine:
-        os.system('mkdir /content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
-        train_files_path = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/train_npz'
-        test_files_path = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_npz'
+        os.system('mkdir /content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_npz')
+        train_files_path = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/train_npz'
+        test_files_path = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_npz'
         all_files = os.listdir(path=train_files_path)
         for f in all_files:
             index = int(f.split('_slice')[0].split('case')[1])
