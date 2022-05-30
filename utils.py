@@ -858,7 +858,6 @@ class prototype_loss(nn.Module):
                     if torch.sum(bin_mask[t])!=0:
                         v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        # temp = temp + self.softmax(nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None) / self.temp)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp

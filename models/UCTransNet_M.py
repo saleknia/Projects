@@ -463,7 +463,7 @@ class UpBlock_attention(nn.Module):
         return self.nConvs(x)
 
 class UCTransNet_M(nn.Module):
-    def __init__(self, config,n_channels=3, n_classes=1,img_size=224,vis=False):
+    def __init__(self, config,n_channels=3, n_classes=1,img_size=256,vis=False):
         super().__init__()
         self.vis = vis
         self.n_channels = n_channels
