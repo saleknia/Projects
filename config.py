@@ -345,8 +345,8 @@ def get_CTranS_config():
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.embeddings_dropout_rate = 0.3
+    config.transformer.attention_dropout_rate  = 0.3
     # config.transformer.embeddings_dropout_rate = 0.1
     # config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0
