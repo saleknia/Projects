@@ -42,7 +42,7 @@ from models.GT_CTrans import GT_CTrans
 import utils
 from utils import color
 from utils import Save_Checkpoint
-from trainer import trainer
+from trainer_s import trainer_s
 from tester_s import tester_s
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
@@ -344,7 +344,7 @@ def main(args):
         # loss_function = prototype_loss_kd()
         for epoch in range(start_epoch,end_epoch+1):
             # set_epoch(epoch,g)
-            trainer(
+            trainer_s(
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
