@@ -43,7 +43,7 @@ import utils
 from utils import color
 from utils import Save_Checkpoint
 from trainer import trainer
-from tester import tester
+from tester_s import tester_s
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
@@ -298,7 +298,8 @@ def main(args):
     elif TASK_NAME=='CT-1K':
 
         train_dataset=CT_1K(split='train', joint_transform=train_tf)
-        valid_dataset=CT_1K(split='test', joint_transform=val_tf)
+        valid_dataset=CT_1K(split='valid', joint_transform=val_tf)
+        test_dataset=CT_1K(split='test', joint_transform=val_tf)
 
         # g = torch.Generator()
         # g.manual_seed(0)
@@ -312,15 +313,23 @@ def main(args):
                                 drop_last=True,
                                 )
         valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
                                 batch_size=1,
-                                shuffle=True,
+                                shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
 
-        data_loader={'train':train_loader,'valid':valid_loader}
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
@@ -339,7 +348,7 @@ def main(args):
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
-                dataloader=data_loader['train'],
+                dataloader=data_loader,
                 optimizer=optimizer,
                 device=DEVICE,
                 ckpt=checkpoint,                
@@ -348,7 +357,7 @@ def main(args):
                 writer=writer,
                 logger=logger,
                 loss_function=loss_function)
-            # tester(
+            # tester_s(
             #     end_epoch=end_epoch,
             #     epoch_num=epoch,
             #     model=model,
@@ -362,7 +371,7 @@ def main(args):
             #     lr_scheduler=lr_scheduler,
             #     early_stopping=early_stopping)
 
-            if True:#epoch==end_epoch:
+            if epoch==end_epoch:
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
                     # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
                     # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
@@ -389,11 +398,11 @@ def main(args):
                         logger.info('Inference Phase')
                         logger.info(50*'*')
                         inference(model=model,logger=logger)
-                        tester(
+                        tester_s(
                             end_epoch=1,
                             epoch_num=1,
                             model=copy.deepcopy(model),
-                            dataloader=data_loader['valid'],
+                            dataloader=data_loader['test'],
                             device=DEVICE,
                             ckpt=None,
                             num_class=NUM_CLASS,

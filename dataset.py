@@ -375,9 +375,11 @@ class ACDC(Dataset):
 class CT_1K(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
         if split == 'train': 
-            base_dir = '/content/UNet/CT-1K/train'
+            base_dir = '/content/UNet_V2/CT-1K/train'
+        if split == 'valid': 
+            base_dir = '/content/UNet_V2/CT-1K/valid'
         if split == 'test':
-            base_dir = '/content/UNet/CT-1K/test'
+            base_dir = '/content/UNet_V2/CT-1K/test'
 
 
         self.joint_transform = joint_transform
@@ -403,8 +405,6 @@ class CT_1K(Dataset):
         data = np.load(data_path)
         image, mask = data['image'], data['label']
 
-        # image = zoom(image, (256.0 / image.shape[0], 256.0 / image.shape[1]))
-        # mask = zoom(mask, (256.0 / mask.shape[0], 256.0 / mask.shape[1]))
 
         sample = {'image': image, 'label': mask}
 
