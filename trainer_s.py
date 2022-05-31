@@ -9,6 +9,7 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
+from valid_s import valid_s
 warnings.filterwarnings("ignore")
 
 def loss_kd_regularization(outputs, masks):
@@ -87,8 +88,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     ##################################################################
     # kd_loss = loss_function
     ##################################################################
-    total_batchs = len(dataloader)
-    loader = dataloader 
+    total_batchs = len(dataloader['train'])
+    loader = dataloader['train'] 
 
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
@@ -182,12 +183,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         lr_scheduler.step()        
         
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
-
+    valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
     # Save checkpoint
-    if ckpt is not None:
-        ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    if ckpt is not None:
-        ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
+    # if ckpt is not None:
+    #     ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
+    # if ckpt is not None:
+    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
     # if ckpt is not None and (epoch_num==end_epoch):
     #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
     # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
