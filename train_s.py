@@ -384,7 +384,7 @@ def main(args):
                     model.load_state_dict(model2_dict)
 
                     acc=loaded_data['acc']
-                    acc_per_class=loaded_data['acc_per_class'].tolist()
+                    acc_per_class=loaded_data['acc_per_class']
                     acc_per_class=[round(x,2) for x in acc_per_class]
                     best_epoch=loaded_data['best_epoch']
 
@@ -397,7 +397,7 @@ def main(args):
                         logger.info(50*'*')
                         logger.info('Inference Phase')
                         logger.info(50*'*')
-                        inference(model=model,logger=logger)
+                        # inference(model=model,logger=logger)
                         tester_s(
                             end_epoch=1,
                             epoch_num=1,

@@ -47,7 +47,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Valid {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} , mIoU= {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice= {Eval.Dice()*100:.2f} , hd95= {hd95_total.avg:.4f}',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} , mIoU= {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice= {Eval.Dice()*100:.2f} ',
                 bar_length=45
             )  
 
