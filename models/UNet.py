@@ -413,7 +413,7 @@ class UpBlock(nn.Module):
         # self.up_2 = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         # self.gamma = nn.parameter.Parameter(torch.zeros(1))
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
-        self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
+        # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
         # self.se = SEAttention(channel=in_channels, reduction=8)
         # self.CA_skip = CAM_Module()
         # self.CA_x = CAM_Module()
@@ -421,7 +421,7 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
