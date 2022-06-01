@@ -28,7 +28,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             inputs, targets = inputs.to(device), targets.to(device)
 
-            targets[targets>8]=0.0
+            # targets[targets>8]=0.0
 
             targets = targets.float()
             outputs = model(inputs)

@@ -100,14 +100,14 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
 
-        targets[targets>8]=0.0
+        # targets[targets>8]=0.0
 
         targets = targets.float()
 
 
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
-        outputs, up4, up3, up2, up1 = model(inputs)
+        # outputs, up4, up3, up2, up1 = model(inputs)
 
         masks = targets.long()
         preds = torch.argmax(input=outputs,dim=1).long()
