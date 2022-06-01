@@ -96,7 +96,7 @@ elif task_id==3:
     TASK_NAME = 'ACDC'
 
 elif task_id==4:
-    NUM_CLASS = 13
+    NUM_CLASS = 8
     TASK_NAME = 'CT-1K'
 
 # CONTINUE_ids = ['1','2']
