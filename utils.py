@@ -824,7 +824,7 @@ class prototype_loss(nn.Module):
 
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.9)
-        self.iteration = -1
+        self.iteration = 0
         self.max_iteration = 368 * 30.0
 
         self.momentum_schedule = cosine_scheduler(0.9, 1.0, 24, 477)
@@ -882,8 +882,7 @@ class prototype_loss(nn.Module):
 
             # l = l + (1.0 / torch.mean(distances))
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (torch.mean(diagonal)-1.0)
-
+            l = l + (0.1*(torch.mean(diagonal)))
             loss = loss + l
             # self.update(prototypes, mask_unique_value, k)
         # self.iteration = self.iteration + 1
