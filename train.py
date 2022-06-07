@@ -254,7 +254,7 @@ def main(args):
                                 # generator=g
                                 )
         valid_loader = DataLoader(valid_dataset,
-                                batch_size=BATCH_SIZE,
+                                batch_size=1,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
@@ -379,28 +379,28 @@ def main(args):
 
             # cuda_state = torch.cuda.get_rng_state()
             # torch.save(cuda_state, '/content/drive/MyDrive/checkpoint/cuda_state.pth')
-            if True:#epoch==end_epoch:
+            if epoch==end_epoch:
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    # # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
-                    # # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_last.pth'
-                    # loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-                    # pretrained = loaded_data['net']
-                    # model2_dict = model.state_dict()
-                    # state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-                    # # logger.info(state_dict.keys())
-                    # model2_dict.update(state_dict)
-                    # model.load_state_dict(model2_dict)
+                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
+                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+                    pretrained = loaded_data['net']
+                    model2_dict = model.state_dict()
+                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+                    # logger.info(state_dict.keys())
+                    model2_dict.update(state_dict)
+                    model.load_state_dict(model2_dict)
 
-                    # acc=loaded_data['acc']
-                    # acc_per_class=loaded_data['acc_per_class'].tolist()
-                    # acc_per_class=[round(x,2) for x in acc_per_class]
-                    # best_epoch=loaded_data['best_epoch']
+                    acc=loaded_data['acc']
+                    acc_per_class=loaded_data['acc_per_class'].tolist()
+                    acc_per_class=[round(x,2) for x in acc_per_class]
+                    best_epoch=loaded_data['best_epoch']
 
-                    # logger.info(50*'*')
-                    # logger.info(f'Best Accuracy over training: {acc:.2f}')
-                    # logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
-                    # logger.info(f'Epoch Number: {best_epoch}')
+                    logger.info(50*'*')
+                    logger.info(f'Best Accuracy over training: {acc:.2f}')
+                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+                    logger.info(f'Epoch Number: {best_epoch}')
 
                     if args.inference=='True':
                         logger.info(50*'*')

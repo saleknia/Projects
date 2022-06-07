@@ -44,8 +44,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
             predictions = torch.argmax(input=outputs,dim=1).long()
             Eval.add_batch(gt_image=targets,pre_image=predictions)
-            # hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
-            hd95_acc = 0.0
+            hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
+            # hd95_acc = 0.0
             if not np.isnan(hd95_acc):
                 hd95_total.update(hd95_acc)
             accuracy.update(Eval.Pixel_Accuracy())
