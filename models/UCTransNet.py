@@ -167,17 +167,17 @@ class UCTransNet(nn.Module):
 
         x1,x2,x3,x4,att_weights, probs1, probs2, probs3, probs4 = self.mtc(x1,x2,x3,x4)
 
-        x = self.up4(x5, x4)
-        x = self.up3(x, x3)
-        x = self.up2(x, x2)
-        x = self.up1(x, x1)
+        # x = self.up4(x5, x4)
+        # x = self.up3(x, x3)
+        # x = self.up2(x, x2)
+        # x = self.up1(x, x1)
 
-        # up4 = self.up4(x5, x4)
-        # up3 = self.up3(up4, x3)
-        # up2 = self.up2(up3, x2)
-        # up1 = self.up1(up2, x1)
+        up4 = self.up4(x5, x4)
+        up3 = self.up3(up4, x3)
+        up2 = self.up2(up3, x2)
+        up1 = self.up1(up2, x1)
 
-        logits = self.outc(x)
+        logits = self.outc(up1)
         # logits = self.outc_1(up1)
         # # logits = logits + self.att_2(F.interpolate(self.outc_2(up2), x.size()[2:], mode='bilinear', align_corners=False))
         # # logits = logits + self.att_3(F.interpolate(self.outc_3(up3), x.size()[2:], mode='bilinear', align_corners=False)) 
@@ -186,7 +186,7 @@ class UCTransNet(nn.Module):
         # # logits = logits + F.interpolate(self.outc_4(up4), x.size()[2:], mode='bilinear', align_corners=False) 
 
         if self.training:
-            return logits, probs1, probs2, probs3, probs4
+            return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
         else:
             return logits
 

@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -82,7 +82,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
     loss_proto_total = utils.AverageMeter()
-    # loss_kd_total = utils.AverageMeter()
+    loss_kd_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -94,7 +94,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
-    # IMD_loss = IM_loss()
+    MM_loss = M_loss()
     proto_loss = loss_function
     ##################################################################
     ##################################################################
@@ -123,7 +123,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         # outputs = model(inputs)
 
-        outputs, up4, up3, up2, up1 = model(inputs)
+        outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
         # outputs, up3, up2, up1 = model(inputs)
 
 
@@ -134,16 +134,17 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
-        # loss_proto = proto_loss(masks=targets, outputs=proto)
         loss_proto = proto_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_MM = MM_loss(probs1=probs1, probs2=probs2, probs3=probs3, probs4=probs4)
+
         # loss_proto = 0.0
         # loss_proto = proto_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.01
-        beta = 0.0
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
+        beta = 0.001
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_MM
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
         ###############################################
@@ -169,7 +170,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
         loss_proto_total.update(loss_proto)
-        # loss_kd_total.update(loss_kd)
+        loss_kd_total.update(loss_MM)
         ###############################################
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -183,8 +184,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
