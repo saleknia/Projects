@@ -113,12 +113,12 @@ class AttentionUNet(nn.Module):
         self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
         self.UpConv2 = ConvBlock(128, 64)
 
-        # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
+        self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
 
-        self.Conv_2 = nn.Conv2d(128, output_ch, kernel_size=1, stride=1, padding=0)
-        self.Conv_2 = nn.Conv2d(128, output_ch, kernel_size=1, stride=1, padding=0)
-        self.Conv_3 = nn.Conv2d(256, output_ch, kernel_size=1, stride=1, padding=0)
-        self.Conv_4 = nn.Conv2d(512, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv_2 = nn.Conv2d(128, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv_2 = nn.Conv2d(128, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv_3 = nn.Conv2d(256, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv_4 = nn.Conv2d(512, output_ch, kernel_size=1, stride=1, padding=0)
 
 
 
@@ -164,7 +164,7 @@ class AttentionUNet(nn.Module):
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
 
-        # out = self.Conv(d2)
+        out = self.Conv(d2)
 
 
         # if self.training:
@@ -172,10 +172,10 @@ class AttentionUNet(nn.Module):
         # else:
         #     return out
         # return out, d2
-        out = self.Conv_1(d2)
-        out = out + F.sigmoid(F.interpolate(self.Conv_2(d3), x.size()[2:], mode='bilinear', align_corners=False)) 
-        out = out + F.sigmoid(F.interpolate(self.Conv_3(d4), x.size()[2:], mode='bilinear', align_corners=False)) 
-        out = out + F.sigmoid(F.interpolate(self.Conv_4(d5), x.size()[2:], mode='bilinear', align_corners=False)) 
+        # out = self.Conv_1(d2)
+        # out = out + F.sigmoid(F.interpolate(self.Conv_2(d3), x.size()[2:], mode='bilinear', align_corners=False)) 
+        # out = out + F.sigmoid(F.interpolate(self.Conv_3(d4), x.size()[2:], mode='bilinear', align_corners=False)) 
+        # out = out + F.sigmoid(F.interpolate(self.Conv_4(d5), x.size()[2:], mode='bilinear', align_corners=False)) 
 
         return out
 
