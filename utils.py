@@ -16,6 +16,7 @@ import pickle
 import warnings
 import torch.nn.functional as F
 from torch.nn.parameter import Parameter
+from torch.nn import Dropout, Softmax, Conv2d, LayerNorm
 warnings.filterwarnings("ignore")
 
 SEED = 666
@@ -974,22 +975,42 @@ class IM_loss(nn.Module):
 class M_loss(nn.Module):
     def __init__(self):
         super(M_loss, self).__init__()
-        self.Ci_num = [64, 128, 256, 512]
-    def forward(self, probs1, probs2, probs3, probs4):
-        loss = 0.0
-        probs_total = [probs1, probs2, probs3, probs4]
-        for i , prob in enumerate(probs_total):
-            prob = prob.to('cpu')
-            B, H, Ci, Csigma = prob.shape
-            if i==0:
-                prob = prob[:,:,:,0:self.Ci_num[0]]
-            else:
-                prob = prob[:,:,:,self.Ci_num[i-1]:(self.Ci_num[i-1]+self.Ci_num[i])]
-            prob = prob.sum(dim=0).sum(dim=1)
-            diag = prob * (torch.eye(prob.shape[0],prob.shape[1]))
-            prob = prob - diag
-            loss = loss + torch.norm(prob)
+        self.softmax = Softmax(dim=2)
+    def forward(self, e5):
+        B, C, H, W = e5.shape # (B, C, H, W) ---> H=W=16, C=1024
+        x = e5.flatten(2) # (B, C, n_patches) ---> n_patches=256
+        Q = x
+        K = x.transpose(0, 2, 1)  # (B, n_patches, C)
+        attention_scores = torch.matmul(Q, K) # (B, C, C)
+        attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+        attention_probs = self.softmax(attention_scores) # (B, C, C)
+        probs = attention_probs # (B, C, C)
+        probs = probs.sum(dim=0) # (C, C)
+        diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
+        probs = probs - diag
+        loss = torch.norm(probs)
         return loss
+
+
+# class M_loss(nn.Module):
+#     def __init__(self):
+#         super(M_loss, self).__init__()
+#         self.Ci_num = [64, 128, 256, 512]
+#     def forward(self, probs1, probs2, probs3, probs4):
+#         loss = 0.0
+#         probs_total = [probs1, probs2, probs3, probs4]
+#         for i , prob in enumerate(probs_total):
+#             prob = prob.to('cpu')
+#             B, H, Ci, Csigma = prob.shape
+#             if i==0:
+#                 prob = prob[:,:,:,0:self.Ci_num[0]]
+#             else:
+#                 prob = prob[:,:,:,self.Ci_num[i-1]:(self.Ci_num[i-1]+self.Ci_num[i])]
+#             prob = prob.sum(dim=0).sum(dim=1)
+#             diag = prob * (torch.eye(prob.shape[0],prob.shape[1]))
+#             prob = prob - diag
+#             loss = loss + torch.norm(prob)
+#         return loss
 
 
 # class prototype_loss(nn.Module):
