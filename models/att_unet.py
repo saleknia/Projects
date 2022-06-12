@@ -142,9 +142,9 @@ class AttentionUNet(nn.Module):
         self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
         self.UpConv2 = ConvBlock(128, 64)
 
-        self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
 
-        # self.head = seg_head()
+        self.head = seg_head()
 
 
 
@@ -190,8 +190,8 @@ class AttentionUNet(nn.Module):
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
 
-        out = self.Conv(d2)
-        # out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
+        # out = self.Conv(d2)
+        out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
 
         # if self.training:
         #     return out, d5, d4, d3, d2
