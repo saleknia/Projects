@@ -81,7 +81,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_proto_total = utils.AverageMeter()
+    # loss_proto_total = utils.AverageMeter()
     loss_kd_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
@@ -95,7 +95,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss = DiceLoss(num_class)
     ##################################################################
     kd_loss = M_loss()    
-    proto_loss = loss_function
+    # proto_loss = loss_function
     ##################################################################
     ##################################################################
     # kd_loss = loss_function
@@ -134,7 +134,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
-        loss_proto = proto_loss(masks=targets.clone(), up4=up4, up3=up3, up2=up2, up1=up1)
+        # loss_proto = proto_loss(masks=targets.clone(), up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_MM = MM_loss(probs1=probs1, probs2=probs2, probs3=probs3, probs4=probs4)
 
         # loss_proto = 0.0
@@ -142,10 +142,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
-        alpha = 0.005
+        # alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
         ###############################################
 
@@ -169,7 +170,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_proto_total.update(loss_proto)
+        # loss_proto_total.update(loss_proto)
         loss_kd_total.update(loss_kd)
         ###############################################
         targets = targets.long()
@@ -185,8 +186,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
   
