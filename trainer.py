@@ -124,7 +124,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        outputs, up3, up2, up1, e5 = model(inputs)
+        outputs, up4, up3, up2, up1, e5 = model(inputs)
 
 
         # print(activation['up4'].shape)
@@ -143,7 +143,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.01
-        beta = 0.01
+        beta = 0.005
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
         loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
