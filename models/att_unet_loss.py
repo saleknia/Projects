@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-
+import torchvision
 
 class ConvBlock(nn.Module):
 
@@ -83,6 +83,35 @@ class AttentionBlock(nn.Module):
         out = skip_connection * psi
         return out
 
+class seg_head(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.scale_4 = nn.Upsample(scale_factor=2)
+        self.scale_3 = nn.Upsample(scale_factor=2)
+        self.scale_2 = nn.Upsample(scale_factor=2)
+        self.conv_4 =  nn.Conv2d(512, 256, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
+        self.conv_2 = nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
+        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.BN = nn.BatchNorm2d(64)
+        self.RELU6 = nn.ReLU6()
+        self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
+    def forward(self, up4, up3, up2, up1):
+        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        up4 = self.scale_4(self.conv_4(up4))
+        up3 = up3 + up4
+        up3 = self.scale_3(self.conv_3(up3))
+        up2 = up3 + up2
+        up2 = self.scale_2(self.conv_2(up2))
+        up = up2 + up1
+        up = self.conv(up)
+        up = self.BN(up)
+        up = self.RELU6(up)
+        up = self.out(up)
+        return up
+
 
 class AttentionUNet_loss(nn.Module):
 
@@ -113,7 +142,8 @@ class AttentionUNet_loss(nn.Module):
         self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
         self.UpConv2 = ConvBlock(128, 64)
 
-        self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
+        self.head = seg_head()
 
     def forward(self, x):
         """
@@ -156,8 +186,9 @@ class AttentionUNet_loss(nn.Module):
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
 
-        out = self.Conv(d2)
-
+        # out = self.Conv(d2)
+        out = self.head(d2)
+        
         if self.training:
             return out, d5, d4, d3, d2, e5
             # return out, d4, d3, d2

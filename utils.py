@@ -972,53 +972,53 @@ class IM_loss(nn.Module):
 #         return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
 
 
-# class M_loss(nn.Module):
-#     def __init__(self):
-#         super(M_loss, self).__init__()
-#         self.softmax = Softmax(dim=2)
-#     def forward(self, e5):
-#         e5 = e5.to('cpu')
-#         B, C, H, W = e5.shape # (B, C, H, W) ---> H=W=16, C=1024
-#         x = e5.flatten(2) # (B, C, n_patches) ---> n_patches=256
-#         Q = x
-#         K = x.transpose(2, 1)  # (B, n_patches, C)
-#         attention_scores = torch.matmul(Q, K) # (B, C, C)
-#         attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
-#         attention_probs = self.softmax(attention_scores) # (B, C, C)
-#         probs = attention_probs # (B, C, C)
-#         probs = torchvision.ops.stochastic_depth(probs, p=0.5, mode='row', training = True)
-#         probs = probs.sum(dim=0) # (C, C)
-#         diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
-#         probs = probs - diag
-#         loss = torch.norm(probs)
-#         return loss
-
-
 class M_loss(nn.Module):
     def __init__(self):
         super(M_loss, self).__init__()
         self.softmax = Softmax(dim=2)
-        self.scales = [0.5, 0.25, 0.125, 0.0625]
-    def forward(self, up4, up3, up2, up1):
-        up = [up4, up3, up2, up1]
-        loss_net = 0.0
-        for i in range(3):
-            E = up[i].to('cpu')
-            E = nn.functional.interpolate(E, scale_factor=self.scales[i], mode='nearest')
-            B, C, H, W = E.shape # (B, C, H, W) ---> H=W=16, C=1024
-            x = E.flatten(2) # (B, C, n_patches) ---> n_patches=256
-            Q = x
-            K = x.transpose(2, 1)  # (B, n_patches, C)
-            attention_scores = torch.matmul(Q, K) # (B, C, C)
-            attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
-            attention_probs = self.softmax(attention_scores) # (B, C, C)
-            probs = attention_probs # (B, C, C)
-            probs = probs.sum(dim=0) # (C, C)
-            diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
-            probs = probs - diag
-            loss = torch.norm(probs)
-            loss_net = loss_net + loss
-        return loss_net
+    def forward(self, e5):
+        e5 = e5.to('cpu')
+        B, C, H, W = e5.shape # (B, C, H, W) ---> H=W=16, C=1024
+        x = e5.flatten(2) # (B, C, n_patches) ---> n_patches=256
+        Q = x
+        K = x.transpose(2, 1)  # (B, n_patches, C)
+        attention_scores = torch.matmul(Q, K) # (B, C, C)
+        attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+        attention_probs = self.softmax(attention_scores) # (B, C, C)
+        probs = attention_probs # (B, C, C)
+        probs = torchvision.ops.stochastic_depth(probs, p=0.5, mode='row', training = True)
+        probs = probs.sum(dim=0) # (C, C)
+        diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
+        probs = probs - diag
+        loss = torch.norm(probs)
+        return loss
+
+
+# class M_loss(nn.Module):
+#     def __init__(self):
+#         super(M_loss, self).__init__()
+#         self.softmax = Softmax(dim=2)
+#         self.scales = [0.5, 0.25, 0.125, 0.0625]
+#     def forward(self, up4, up3, up2, up1):
+#         up = [up4, up3, up2, up1]
+#         loss_net = 0.0
+#         for i in range(3):
+#             E = up[i].to('cpu')
+#             E = nn.functional.interpolate(E, scale_factor=self.scales[i], mode='nearest')
+#             B, C, H, W = E.shape # (B, C, H, W) ---> H=W=16, C=1024
+#             x = E.flatten(2) # (B, C, n_patches) ---> n_patches=256
+#             Q = x
+#             K = x.transpose(2, 1)  # (B, n_patches, C)
+#             attention_scores = torch.matmul(Q, K) # (B, C, C)
+#             attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+#             attention_probs = self.softmax(attention_scores) # (B, C, C)
+#             probs = attention_probs # (B, C, C)
+#             probs = probs.sum(dim=0) # (C, C)
+#             diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
+#             probs = probs - diag
+#             loss = torch.norm(probs)
+#             loss_net = loss_net + loss
+#         return loss_net
 
 # class M_loss(nn.Module):
 #     def __init__(self):
