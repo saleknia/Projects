@@ -95,7 +95,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss = DiceLoss(num_class)
     ##################################################################
     kd_loss = M_loss()    
-    proto_loss = loss_function
+    # proto_loss = loss_function
     ##################################################################
     ##################################################################
     # kd_loss = loss_function
@@ -138,7 +138,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_MM = MM_loss(probs1=probs1, probs2=probs2, probs3=probs3, probs4=probs4)
 
         loss_proto = 0.0
-        loss_kd = kd_loss(e5=e5)
+        # loss_kd = kd_loss(e5=e5)
+        loss_kd = kd_loss(up4, up3, up2, up1)
         # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
