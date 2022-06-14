@@ -977,19 +977,25 @@ class M_loss(nn.Module):
         super(M_loss, self).__init__()
         self.softmax = Softmax(dim=2)
     def forward(self, e5):
+        loss = 0
         e5 = e5.to('cpu')
         B, C, H, W = e5.shape # (B, C, H, W) ---> H=W=16, C=1024
-        x = e5.flatten(2) # (B, C, n_patches) ---> n_patches=256
-        Q = x
-        K = x.transpose(2, 1)  # (B, n_patches, C)
-        attention_scores = torch.matmul(Q, K) # (B, C, C)
-        attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
-        attention_probs = self.softmax(attention_scores) # (B, C, C)
-        probs = attention_probs # (B, C, C)
-        probs = probs.sum(dim=0) # (C, C)
-        diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
-        probs = probs - diag
-        loss = torch.norm(probs)
+        C_step = C//4
+        for i in range(3):
+            base = i * C_step
+            end = (i+1) * C_step
+            x = e5[:,base:end,:,:].flatten(2) # (B, C, n_patches) ---> n_patches=256
+            Q = x
+            K = x.transpose(2, 1)  # (B, n_patches, C)
+            attention_scores = torch.matmul(Q, K) # (B, C, C)
+            attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+            attention_probs = self.softmax(attention_scores) # (B, C, C)
+            probs = attention_probs # (B, C, C)
+            probs = probs.sum(dim=0) # (C, C)
+            diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
+            probs = probs - diag # (C, C)
+            l = torch.norm(probs)
+            loss = loss + l
         return loss
 
 
