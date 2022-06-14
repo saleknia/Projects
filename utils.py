@@ -986,7 +986,6 @@ class M_loss(nn.Module):
         attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
         attention_probs = self.softmax(attention_scores) # (B, C, C)
         probs = attention_probs # (B, C, C)
-        probs = torchvision.ops.stochastic_depth(probs, p=0.5, mode='row', training = True)
         probs = probs.sum(dim=0) # (C, C)
         diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
         probs = probs - diag
