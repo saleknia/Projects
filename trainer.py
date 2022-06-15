@@ -135,10 +135,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
-        # loss_proto = proto_loss(masks=targets.clone(), up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_proto = proto_loss(masks=targets.clone(), up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_MM = MM_loss(probs1=probs1, probs2=probs2, probs3=probs3, probs4=probs4)
 
-        loss_proto = 0.0
+        # loss_proto = 0.0
         # loss_kd = kd_loss(e5=e5)
         loss_kd = kd_loss(e5)
         # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
@@ -146,8 +146,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 0.01
         beta = 0.01
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
         ###############################################
 
