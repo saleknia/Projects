@@ -1002,7 +1002,7 @@ class M_loss(nn.Module):
     def __init__(self):
         super(M_loss, self).__init__()
         self.softmax = Softmax(dim=2)
-        self.scales = [1.0, 0.5, 0.25, 0.125]
+        self.scales = [0.5, 0.5, 0.25, 0.125]
     def forward(self, e5, e4, e3, e2):
         e = [e5, e4, e3, e2]
         loss_net = 0.0
