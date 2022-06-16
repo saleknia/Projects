@@ -142,13 +142,14 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_proto = 0.0
         # loss_kd = 0.0
 
-        # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
+        loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.01
         beta = 0.01
+        gamma = 0.2
         # loss = 0.4 * loss_ce + 0.6 * loss_dice 
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd 
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * loss_kd_out
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
