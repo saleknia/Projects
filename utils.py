@@ -805,12 +805,12 @@ class prototype_loss(nn.Module):
         # # ENet
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
-        num_class = 9
+        num_class = 8
         
-        # self.proto_1 = torch.zeros(num_class, 64 )
-        # self.proto_2 = torch.zeros(num_class, 128)
-        # self.proto_3 = torch.zeros(num_class, 256)
-        # self.proto_4 = torch.zeros(num_class, 512)
+        self.proto_1 = torch.zeros(num_class, 64 )
+        self.proto_2 = torch.zeros(num_class, 128)
+        self.proto_3 = torch.zeros(num_class, 256)
+        self.proto_4 = torch.zeros(num_class, 512)
 
         # # ENet
         # self.proto_1 = torch.zeros(num_class, 16)
@@ -818,13 +818,13 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 128)
 
-        self.proto_1 = torch.zeros(num_class, 64)
-        self.proto_2 = torch.zeros(num_class, 64)
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 256)
+        # self.proto_1 = torch.zeros(num_class, 64)
+        # self.proto_2 = torch.zeros(num_class, 64)
+        # self.proto_3 = torch.zeros(num_class, 128)
+        # self.proto_4 = torch.zeros(num_class, 256)
 
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
-        self.momentum = torch.tensor(0.9)
+        self.momentum = torch.tensor(0.85)
         self.iteration = -1
         self.max_iteration = 368 * 30.0
 
