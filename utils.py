@@ -844,8 +844,8 @@ class prototype_loss(nn.Module):
             # mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
             
-            # if unique_num<2:
-            #     return 0
+            if unique_num<2:
+                return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
 
