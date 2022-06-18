@@ -129,8 +129,9 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = torch.int(predictions==targets)
+        overlap = (predictions==targets).float()
         t_masks = targets * overlap
+        targets = targets.float()
 
         # print(activation['up4'].shape)
         # print(activation['up3'].shape)
@@ -153,7 +154,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta = 0.01
         gamma = 0.2
         # loss = 0.4 * loss_ce + 0.6 * loss_dice 
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto # + beta * loss_kd + gamma * loss_kd_out
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
