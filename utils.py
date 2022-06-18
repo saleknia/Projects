@@ -865,9 +865,10 @@ class prototype_loss(nn.Module):
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
-            indexs_all = [x for x in range(9)]
+            indexs_all = [x for x in range(8)]
             temp_indexs = [x for x in indexs_all if x not in indexs]
             indexs = [*indexs,*temp_indexs]
+            indexs = [float(x) for x in indexs]
 
             #####################################################
             #####################################################
@@ -899,7 +900,6 @@ class prototype_loss(nn.Module):
             #####################################################
 
             l = 0.0
-
             proto = self.protos[k][indexs].unsqueeze(dim=0)
             prototypes = prototypes.unsqueeze(dim=0)
             distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
@@ -913,7 +913,7 @@ class prototype_loss(nn.Module):
 
             l = l + (1.0 / torch.mean(distances))
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (1.0 * (torch.mean(diagonal)))
+            l = l + (0.1 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes_t, t_mask_unique_value, k)
 
