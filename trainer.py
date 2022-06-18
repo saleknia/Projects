@@ -47,8 +47,11 @@ def prediction_map_distillation(y, masks, T=2.0) :
 
     teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
 
-    y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
-    teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+    # y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
+    # teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+
+    y_prime = y
+    teacher_scores_prime = teacher_scores 
 
     p = F.log_softmax(y_prime / T , dim=1)
     q = F.softmax(teacher_scores_prime / T, dim=1)
@@ -141,20 +144,20 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
-        loss_kd = kd_loss(e5=e5)
+        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
+        # loss_kd = kd_loss(e5=e5)
 
-        # loss_proto = 0.0
+        loss_proto = 0.0
         # loss_kd = 0.0
 
-        # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
+        loss_kd = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.01
         beta = 0.01
-        gamma = 0.2
-        # loss = 0.4 * loss_ce + 0.6 * loss_dice 
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd
+        gamma = 1.0
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
+        # loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
