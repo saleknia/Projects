@@ -186,7 +186,9 @@ class UCTransNet(nn.Module):
         # # logits = logits + F.interpolate(self.outc_4(up4), x.size()[2:], mode='bilinear', align_corners=False) 
 
         if self.training:
-            return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
+            # return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
+            return logits, up4, up3, up2, up1, x5
+
         else:
             return logits
 
