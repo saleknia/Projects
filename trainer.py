@@ -15,7 +15,7 @@ def loss_kd_regularization(outputs, masks):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
-    correct_prob = 0.9    # the probability for correct class in u(k)
+    correct_prob = 0.95    # the probability for correct class in u(k)
     K = outputs.size(1)
 
     teacher_scores = torch.ones_like(outputs).cuda()
