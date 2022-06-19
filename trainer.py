@@ -25,7 +25,7 @@ def loss_kd_regularization(outputs, masks):
 
     return teacher_scores
 
-def prediction_map_distillation(y, masks, T=2.0) :
+def prediction_map_distillation(y, masks, T=4.0) :
     """
     basic KD loss function based on "Distilling the Knowledge in a Neural Network"
     https://arxiv.org/abs/1503.02531
@@ -47,8 +47,8 @@ def prediction_map_distillation(y, masks, T=2.0) :
 
     teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
 
-    y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
-    teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+    # y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
+    # teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
 
     y_prime = y
     teacher_scores_prime = teacher_scores 
