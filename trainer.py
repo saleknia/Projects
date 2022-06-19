@@ -15,7 +15,7 @@ def loss_kd_regularization(outputs, masks):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
-    correct_prob = 0.95    # the probability for correct class in u(k)
+    correct_prob = 0.9    # the probability for correct class in u(k)
     K = outputs.size(1)
 
     teacher_scores = torch.ones_like(outputs).cuda()
@@ -47,8 +47,8 @@ def prediction_map_distillation(y, masks, T=2.0) :
 
     teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
 
-    # y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
-    # teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+    y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
+    teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
 
     y_prime = y
     teacher_scores_prime = teacher_scores 
