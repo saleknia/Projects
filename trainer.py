@@ -97,6 +97,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
+    kd_out_loss = IM_loss()
     kd_loss = M_loss()    
     proto_loss = loss_function
     ##################################################################
@@ -151,7 +152,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
-        loss_kd_out = IM_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
+        loss_kd_out = kd_out_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.01
         beta = 0.01
