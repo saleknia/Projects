@@ -179,7 +179,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 0.01
         beta = 0.01
-        gamma = 0.001
+        gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
         loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * loss_kd_out
         ###############################################
