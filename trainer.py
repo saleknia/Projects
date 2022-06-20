@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss,CriterionPixelWise
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -15,7 +15,7 @@ def loss_kd_regularization(outputs, masks):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
-    correct_prob = 0.9    # the probability for correct class in u(k)
+    correct_prob = 0.95    # the probability for correct class in u(k)
     K = outputs.size(1)
 
     teacher_scores = torch.ones_like(outputs).cuda()
@@ -25,7 +25,7 @@ def loss_kd_regularization(outputs, masks):
 
     return teacher_scores
 
-def prediction_map_distillation(y, masks, T=4.0) :
+def prediction_map_distillation(y, masks) :
     """
     basic KD loss function based on "Distilling the Knowledge in a Neural Network"
     https://arxiv.org/abs/1503.02531
@@ -38,29 +38,50 @@ def prediction_map_distillation(y, masks, T=4.0) :
     masks = masks.long()
     masks = masks.cuda()
 
-    bin_masks = masks
-    bin_masks[bin_masks!=0] = 1.0 
-
     masks_temp = F.one_hot(masks, num_classes=9)
     masks_temp = torch.permute(masks_temp, (0, 3, 1, 2))
     masks_temp = masks_temp.bool()
 
     teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
 
-    # y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
-    # teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+    return teacher_scores
 
-    y_prime = y
-    teacher_scores_prime = teacher_scores 
+# def prediction_map_distillation(y, masks, T=4.0) :
+#     """
+#     basic KD loss function based on "Distilling the Knowledge in a Neural Network"
+#     https://arxiv.org/abs/1503.02531
+#     :param y: student score map
+#     :param teacher_scores: teacher score map
+#     :param T:  for softmax
+#     :return: loss value
+#     """
+#     y = y.cuda()
+#     masks = masks.long()
+#     masks = masks.cuda()
 
-    p = F.log_softmax(y_prime / T , dim=1)
-    q = F.softmax(teacher_scores_prime / T, dim=1)
+#     bin_masks = masks
+#     bin_masks[bin_masks!=0] = 1.0 
 
-    p = p.view(-1, 2)
-    q = q.view(-1, 2)
+#     masks_temp = F.one_hot(masks, num_classes=9)
+#     masks_temp = torch.permute(masks_temp, (0, 3, 1, 2))
+#     masks_temp = masks_temp.bool()
 
-    l_kl = F.kl_div(p, q, reduction='batchmean') * (T ** 2)
-    return l_kl
+#     teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
+
+#     # y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
+#     # teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
+
+#     y_prime = y
+#     teacher_scores_prime = teacher_scores 
+
+#     p = F.log_softmax(y_prime / T , dim=1)
+#     q = F.softmax(teacher_scores_prime / T, dim=1)
+
+#     p = p.view(-1, 2)
+#     q = q.view(-1, 2)
+
+#     l_kl = F.kl_div(p, q, reduction='batchmean') * (T ** 2)
+#     return l_kl
 
 
 def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
@@ -97,7 +118,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
-    kd_out_loss = IM_loss()
+    # kd_out_loss = IM_loss()
+    kd_out_loss = CriterionPixelWise()
     kd_loss = M_loss()    
     proto_loss = loss_function
     ##################################################################
@@ -131,11 +153,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         outputs, up4, up3, up2, up1, e5 = model(inputs)
         # outputs, x4, x3, x2, x1 = model(inputs)
 
-        targets = targets.long()
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = (predictions==targets).float()
-        t_masks = targets * overlap
-        targets = targets.float()
+        # targets = targets.long()
+        # predictions = torch.argmax(input=outputs,dim=1).long()
+        # overlap = (predictions==targets).float()
+        # t_masks = targets * overlap
+        # targets = targets.float()
 
         # print(activation['up4'].shape)
         # print(activation['up3'].shape)
@@ -145,18 +167,19 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1)
         loss_kd = kd_loss(e5=e5)
 
         # loss_proto = 0.0
         # loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
-        loss_kd_out = kd_out_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
+        # loss_kd_out = kd_out_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
+        loss_kd_out = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
         ###############################################
         alpha = 0.01
         beta = 0.01
-        gamma = 0.05
+        gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
         loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * loss_kd_out
         ###############################################

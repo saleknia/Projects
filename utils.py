@@ -797,6 +797,21 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 ###################################################################################
 ###################################################################################
 
+class CriterionPixelWise(nn.Module):
+    def __init__(self):
+        super(CriterionPixelWise, self).__init__()
+
+    def forward(self, preds_S, preds_T):
+        preds_T.detach()
+        assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S.shape
+        softmax_pred_T = F.softmax(preds_T.permute(0,2,3,1).contiguous().view(-1,C), dim=1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        return loss
+
+
+
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
