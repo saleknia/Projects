@@ -951,7 +951,7 @@ class IM_loss(nn.Module):
         loss = loss + self.IMD(t=up1, s=e1)
         loss = loss + self.IMD(t=up2, s=e2)
         loss = loss + self.IMD(t=up3, s=e3)
-        loss = loss + self.IMD(t=up4, s=e4)
+        # loss = loss + self.IMD(t=up4, s=e4)
         return loss
 
     def at(self, x, exp):
