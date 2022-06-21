@@ -946,22 +946,24 @@ class IM_loss(nn.Module):
     def __init__(self):
         super(IM_loss, self).__init__()
 
-    def forward(self, up3, up2, up1,):
+    def forward(self, up4, up3, up2, up1, e4, e3, e2, e1):
         loss = 0.0
-        loss = loss + self.IMD(t=up1, s=up2, masks=masks, scale_factor=0.5)
-        loss = loss + self.IMD(t=up2, s=up3, masks=masks, scale_factor=0.25)
+        loss = loss + self.IMD(t=up1, s=e1)
+        loss = loss + self.IMD(t=up2, s=e2)
+        loss = loss + self.IMD(t=up3, s=e3)
+        loss = loss + self.IMD(t=up4, s=e4)
         return loss
 
-    def at(self, x, exp, masks):
+    def at(self, x, exp):
         """
         attention value of a feature map
         :param x: feature
         :return: attention value
         """
-        attention = x.pow(exp).mean(1) * masks
+        attention = x.pow(exp).mean(1) 
         return F.normalize(attention.view(attention.size(0), -1))
 
-    def IMD(self, s, t, masks, scale_factor, exp=2):
+    def IMD(self, s, t, exp=2):
         """
         importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
         Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -971,10 +973,6 @@ class IM_loss(nn.Module):
         :param t: teacher feature maps
         :return: imd loss value
         """
-        masks = F.interpolate(masks.unsqueeze(dim=1), scale_factor=scale_factor, mode='nearest')
-        masks = masks.squeeze(dim=1)
-        if s.shape[2] != t.shape[2]:
-            t = F.interpolate(t, s.size()[-2:], mode='bilinear')
         return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
         
 

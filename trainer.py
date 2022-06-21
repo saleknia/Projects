@@ -118,8 +118,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
-    # kd_out_loss = IM_loss()
-    kd_out_loss = CriterionPixelWise()
+    kd_out_loss = IM_loss()
+    # kd_out_loss = CriterionPixelWise()
     kd_loss = M_loss()    
     proto_loss = loss_function
     ##################################################################
@@ -150,7 +150,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        outputs, up4, up3, up2, up1, e5, e4, e3, e2 = model(inputs)
+        outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
         # outputs, x4, x3, x2, x1 = model(inputs)
 
         # targets = targets.long()
@@ -174,12 +174,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
-        # loss_kd_out = kd_out_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
-        loss_kd_out = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
+        loss_kd_out = kd_out_loss(up4=up4, up3=up3, up2=up2, up1=up1, e4=e4, e3=e3, e2=e2, e1=e1)
+        # loss_kd_out = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
         ###############################################
         alpha = 0.01
         beta = 0.01
-        gamma = 0.005
+        gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
         loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * loss_kd_out
         ###############################################
