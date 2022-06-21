@@ -150,7 +150,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        outputs, up4, up3, up2, up1, e5 = model(inputs)
+        outputs, up4, up3, up2, up1, e5, e4, e3, e2 = model(inputs)
         # outputs, x4, x3, x2, x1 = model(inputs)
 
         # targets = targets.long()
