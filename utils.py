@@ -973,7 +973,7 @@ class IM_loss(nn.Module):
         :param t: teacher feature maps
         :return: imd loss value
         """
-        return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
+        return torch.sum((self.at(s, exp) - self.at(t, exp)).pow(2), dim=1).mean()
         
 
 # class IM_loss(nn.Module):
