@@ -102,11 +102,11 @@ class seg_head(nn.Module):
         up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
         up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
         up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-        up4 = self.scale_4(self.conv_4(up4))
+        up4 = torch.nn.functional.relu6(self.scale_4(self.conv_4(up4)))
         up3 = up3 + up4
-        up3 = self.scale_3(self.conv_3(up3))
+        up3 = torch.nn.functional.relu6(self.scale_3(self.conv_3(up3)))
         up2 = up3 + up2
-        up2 = self.scale_2(self.conv_2(up2))
+        up2 = torch.nn.functional.relu6(self.scale_2(self.conv_2(up2)))
         up = up2 + up1
 
         # up = self.conv(up)
@@ -114,7 +114,7 @@ class seg_head(nn.Module):
         # up = self.RELU6_out(up)
         
         up = self.out(up)
-        
+
         return up
 
 
@@ -147,8 +147,8 @@ class AttentionUNet_loss(nn.Module):
         self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
         self.UpConv2 = ConvBlock(128, 64)
 
-        # self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
-        self.head = seg_head()
+        self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
+        # self.head = seg_head()
 
     def forward(self, x):
         """
@@ -191,8 +191,8 @@ class AttentionUNet_loss(nn.Module):
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
 
-        # out = self.Conv(d2)
-        out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
+        out = self.Conv(d2)
+        # out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
         
         if self.training:
             return out, d5, d4, d3, d2, e5, e4, e3, e2, e1

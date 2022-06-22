@@ -153,11 +153,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
         # outputs, x4, x3, x2, x1 = model(inputs)
 
-        # targets = targets.long()
-        # predictions = torch.argmax(input=outputs,dim=1).long()
-        # overlap = (predictions==targets).float()
-        # t_masks = targets * overlap
-        # targets = targets.float()
+        targets = targets.long()
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        overlap = (predictions==targets).float()
+        t_masks = targets * overlap
+        targets = targets.float()
 
         # print(activation['up4'].shape)
         # print(activation['up3'].shape)
@@ -168,10 +168,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
         loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1)
-        loss_kd = kd_loss(e5=e5)
+        # loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1)
+        # loss_kd = kd_loss(e5=e5)
 
         # loss_proto = 0.0
-        # loss_kd = 0.0
+        loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd_out = kd_out_loss(up4=up4, up3=up3, up2=up2, up1=up1, e4=e4, e3=e3, e2=e2, e1=e1)
