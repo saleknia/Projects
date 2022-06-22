@@ -97,11 +97,11 @@ class seg_head(nn.Module):
         self.RELU6 = nn.ReLU6()
         self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
     def forward(self, up4, up3, up2, up1):
-        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-        # up4 = torchvision.ops.stochastic_depth(input=up4, p=0.4, mode='batch')
-        # up4 = self.scale_4(self.conv_4(up4))
-        # up3 = up3 + up4
+        up2 = torchvision.ops.stochastic_depth(input=up1, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = self.scale_4(self.conv_4(up4))
+        up3 = up3 + up4
         up3 = self.scale_3(self.conv_3(up3))
         up2 = up3 + up2
         up2 = self.scale_2(self.conv_2(up2))
