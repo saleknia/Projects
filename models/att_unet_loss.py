@@ -93,24 +93,35 @@ class seg_head(nn.Module):
         self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
         self.conv_2 = nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
         self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
-        self.BN = nn.BatchNorm2d(64)
-        self.RELU6 = nn.ReLU6()
+
+        self.BN_4 = nn.BatchNorm2d(256)
+        self.RELU6_4 = nn.ReLU6()
+
+        self.BN_3 = nn.BatchNorm2d(128)
+        self.RELU6_3 = nn.ReLU6()
+
+        self.BN_2 = nn.BatchNorm2d(64)
+        self.RELU6_2 = nn.ReLU6()
+
+        self.BN_out = nn.BatchNorm2d(64)
+        self.RELU6_out = nn.ReLU6()
+
         self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
     def forward(self, up4, up3, up2, up1):
-        up22 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-        up33 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-        up44 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-        up4 = self.scale_4(self.conv_4(up44))
-        up3 = up33 + up4
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = up3 + up22
-        up2 = self.scale_2(self.conv_2(up2))
+        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        up4 = self.scale_4(self.RELU6_4(self.BN_4(self.conv_4(up4))))
+        up3 = up3 + up4
+        up3 = self.scale_3(self.RELU6_3(self.BN_3(self.conv_3(up3))))
+        up2 = up3 + up2
+        up2 = self.scale_2(self.RELU6_2(self.BN_2(self.conv_2(up2))))
         up = up2 + up1
         up = self.conv(up)
-        up = self.BN(up)
-        up = self.RELU6(up)
+        up = self.BN_out(up)
+        up = self.RELU6_out(up)
         up = self.out(up)
-        return up, up4, up3, up2, up1 
+        return up
 
 
 class AttentionUNet_loss(nn.Module):
@@ -187,7 +198,7 @@ class AttentionUNet_loss(nn.Module):
         d2 = self.UpConv2(d2)
 
         # out = self.Conv(d2)
-        out, d5, d4, d3, d2 = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
+        out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
         
         if self.training:
             return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
