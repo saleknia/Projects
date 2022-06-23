@@ -159,8 +159,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        t_targets = targets.clone()
-
         # print(activation['up4'].shape)
         # print(activation['up3'].shape)
         # print(activation['up2'].shape)
@@ -184,7 +182,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta = 0.01
         gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd #+ gamma * loss_kd_out
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto #+ beta * loss_kd #+ gamma * loss_kd_out
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
