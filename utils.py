@@ -851,6 +851,7 @@ class prototype_loss(nn.Module):
         up = [up1, up2, up3, up4]
 
         for k in range(4):
+            indexs = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
@@ -888,7 +889,9 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-            indexs = [x.item()-1 for x in mask_unique_value]
+                if p in mask_unique_value and x in t_mask_unique_value:
+                    indexs.append(count)
+            indexs.sort()
 
             for count,p in enumerate(t_mask_unique_value):
                 p = p.long()
