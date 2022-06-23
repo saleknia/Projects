@@ -861,19 +861,19 @@ class prototype_loss(nn.Module):
 
             t_mask_unique_value = torch.unique(temp_t_masks)
             t_mask_unique_value = t_mask_unique_value[1:]
+            unique_num_t = len(t_mask_unique_value)
 
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
-            mask_unique_value = [x for x in mask_unique_value if x in t_mask_unique_value]
-            mask_unique_value.sort()
-
+            # mask_unique_value = [x for x in mask_unique_value if x in t_mask_unique_value]
+            # mask_unique_value.sort()
             unique_num = len(mask_unique_value)
             
             if unique_num<2:
                 return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
-            prototypes_t = torch.zeros(size=(unique_num,C))
+            prototypes_t = torch.zeros(size=(unique_num_t,C))
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
@@ -888,6 +888,7 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
+            indexs = [x.item()-1 for x in mask_unique_value]
 
             for count,p in enumerate(t_mask_unique_value):
                 p = p.long()
@@ -947,13 +948,13 @@ class prototype_loss(nn.Module):
             # prototypes = prototypes.squeeze(dim=0)
             # diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
 
-            prototypes = prototypes.unsqueeze(dim=0)
-            prototypes_t = prototypes_t.unsqueeze(dim=0)
-            distances = torch.cdist(prototypes.clone().detach(), prototypes, p=2.0)
-            distances_t = torch.cdist(prototypes_t.clone().detach(), prototypes, p=2.0)
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+
+            proto = prototypes[indexs].unsqueeze(dim=0)
+            proto_t = prototypes_t.unsqueeze(dim=0)           
+            distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
             diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-            prototypes = prototypes.squeeze(dim=0)
-            prototypes_t = prototypes_t.squeeze(dim=0)
 
             l = l + (1.0 / torch.mean(distances))
             l = l + torch.mean(diagonal)
