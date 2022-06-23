@@ -889,7 +889,7 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                if p in mask_unique_value and x in t_mask_unique_value:
+                if p in mask_unique_value and p in t_mask_unique_value:
                     indexs.append(count)
             indexs.sort()
 
@@ -953,14 +953,15 @@ class prototype_loss(nn.Module):
 
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-
-            proto = prototypes[indexs].unsqueeze(dim=0)
-            proto_t = prototypes_t.unsqueeze(dim=0)           
-            distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
-            diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-
             l = l + (1.0 / torch.mean(distances))
-            l = l + torch.mean(diagonal)
+
+            if 0<len(indexs):
+                proto = prototypes[indexs].unsqueeze(dim=0)
+                proto_t = prototypes_t.unsqueeze(dim=0)        
+                distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
+                diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
+                l = l + torch.mean(diagonal)
+                
             # l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             # l = l + (0.1 * (torch.mean(diagonal)))
             loss = loss + l
