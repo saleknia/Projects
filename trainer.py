@@ -169,10 +169,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_kd = kd_loss(e5=e5)
+        loss_kd = kd_loss(e5=e5)
 
         # loss_proto = 0.0
-        loss_kd = 0.0
+        # loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd_out = kd_out_loss(up4=up4, up3=up3, up2=up2, up1=up1, e4=e4, e3=e3, e2=e2, e1=e1)
@@ -182,7 +182,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta = 0.01
         gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto #+ beta * loss_kd #+ gamma * loss_kd_out
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd #+ gamma * loss_kd_out
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
