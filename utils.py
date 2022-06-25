@@ -846,7 +846,6 @@ class prototype_loss(nn.Module):
         self.momentum_schedule = cosine_scheduler(0.0, 1.0, 30, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
-        self.iteration = self.iteration + 1
         loss = 0.0
         up = [up1, up2, up3, up4]
 
@@ -890,12 +889,15 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                if p in mask_unique_value and p in t_mask_unique_value:
-                    indexs.append(count)
+                # if p in mask_unique_value and p in t_mask_unique_value:
+                #     indexs.append(count)
+                
+                if p in mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
                     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    weights.append(num/den)
+                    weights.append(1.0-(num/den))
 
+            indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
             weights = torch.FloatTensor(weights)
             weights = torch.diag(weights)
@@ -913,6 +915,11 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes_t[count] = temp
+                if p in t_mask_unique_value:
+                    num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
+                    den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
+                    if 0.9 <= num/den:
+                        self.protos[k][p-1] = prototypes_t[count]
 
             # indexs = [x.item()-1 for x in mask_unique_value]
             # indexs.sort()
@@ -963,8 +970,8 @@ class prototype_loss(nn.Module):
             l = l + (1.0 / torch.mean(distances))
 
             if 0<len(indexs):
-                proto = prototypes[indexs].unsqueeze(dim=0)
-                proto_t = prototypes_t.unsqueeze(dim=0)        
+                proto = prototypes.unsqueeze(dim=0)
+                proto_t = self.protos[k][indexs].unsqueeze(dim=0)        
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
                 diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
                 l = l + (torch.mean(diagonal*weights))
