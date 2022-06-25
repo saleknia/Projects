@@ -811,7 +811,11 @@ class CriterionPixelWise(nn.Module):
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
-
+def ind(x):
+    if x==8:
+        return 0
+    else:
+        return x+1
 
 class prototype_loss(nn.Module):
     def __init__(self):
@@ -822,11 +826,19 @@ class prototype_loss(nn.Module):
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
         num_class = 8
+        memory_size = 8
         
-        self.proto_1 = torch.zeros(num_class, 64 )
-        self.proto_2 = torch.zeros(num_class, 128)
-        self.proto_3 = torch.zeros(num_class, 256)
-        self.proto_4 = torch.zeros(num_class, 512)
+        self.proto_1 = torch.zeros(memory_size, num_class, 64)
+        self.proto_1_index = torch.zeros(num_class)
+
+        self.proto_2 = torch.zeros(memory_size, num_class, 128)
+        self.proto_2_index = torch.zeros(num_class)
+
+        self.proto_3 = torch.zeros(memory_size, num_class, 256)
+        self.proto_3_index = torch.zeros(num_class)
+
+        self.proto_4 = torch.zeros(memory_size, num_class, 512)
+        self.proto_4_index = torch.zeros(num_class)
 
         # # ENet
         # self.proto_1 = torch.zeros(num_class, 16)
@@ -839,7 +851,11 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 256)
 
-        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [{'proto':self.proto_1,'index':self.proto_1_index}, 
+                       {'proto':self.proto_2,'index':self.proto_2_index},
+                       {'proto':self.proto_3,'index':self.proto_3_index},
+                       {'proto':self.proto_4,'index':self.proto_4_index}]
+
         self.momentum = torch.tensor(0.0)
         self.iteration = -1
 
@@ -870,8 +886,8 @@ class prototype_loss(nn.Module):
             # mask_unique_value.sort()
             unique_num = len(mask_unique_value)
             
-            if unique_num<2:
-                return 0
+            # if unique_num<2:
+            #     return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
             prototypes_t = torch.zeros(size=(unique_num_t,C))
@@ -895,12 +911,9 @@ class prototype_loss(nn.Module):
                 if p in mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
                     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    weights.append(1.0-(num/den))
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
-            weights = torch.FloatTensor(weights)
-            weights = torch.diag(weights)
 
             for count,p in enumerate(t_mask_unique_value):
                 p = p.long()
@@ -918,7 +931,7 @@ class prototype_loss(nn.Module):
                 if p in t_mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
                     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    if 0.3 <= num/den:
+                    if 0.9 <= num/den:
                         self.update(prototypes_t[count], k=k, p=p)
 
             # indexs = [x.item()-1 for x in mask_unique_value]
@@ -965,16 +978,17 @@ class prototype_loss(nn.Module):
             # prototypes = prototypes.squeeze(dim=0)
             # diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
 
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
-
-            if 0<len(indexs):
+            if 1<unique_num:
                 proto = prototypes.unsqueeze(dim=0)
-                proto_t = self.protos[k][indexs].unsqueeze(dim=0)        
+                distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+                l = l + (1.0 / torch.mean(distances))
+
+            if 0<unique_num:
+                proto = prototypes.unsqueeze(dim=0)
+                proto_t = self.protos[k]['proto'].mean(dim=0)[indexs].unsqueeze(dim=0)        
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
                 diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-                l = l + (torch.mean(diagonal*weights))
+                l = l + torch.mean(diagonal)
                 
             # l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             # l = l + (0.1 * (torch.mean(diagonal)))
@@ -985,7 +999,9 @@ class prototype_loss(nn.Module):
 
     @torch.no_grad()
     def update(self, prototypes, k, p):
-        self.protos[k][p-1] = prototypes
+        index = self.protos[k]['index'][p-1]
+        self.protos[k]['proto'][index][p-1] = prototypes
+        self.protos[k]['index'][p-1] = ind(index)
 
     # @torch.no_grad()
     # def update(self, prototypes, mask_unique_value, k):
