@@ -852,6 +852,7 @@ class prototype_loss(nn.Module):
 
         for k in range(4):
             indexs = []
+            weights = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
@@ -891,7 +892,13 @@ class prototype_loss(nn.Module):
                 prototypes[count] = temp
                 if p in mask_unique_value and p in t_mask_unique_value:
                     indexs.append(count)
+                    num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
+                    den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
+                    weights.append(num/den)
+
             indexs.sort()
+            weights = torch.FloatTensor(weights)
+            weights = torch.diag(weights)
 
             for count,p in enumerate(t_mask_unique_value):
                 p = p.long()
@@ -960,7 +967,7 @@ class prototype_loss(nn.Module):
                 proto_t = prototypes_t.unsqueeze(dim=0)        
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
                 diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-                l = l + (0.5 * torch.mean(diagonal))
+                l = l + (torch.mean(diagonal*weights))
                 
             # l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             # l = l + (0.1 * (torch.mean(diagonal)))
