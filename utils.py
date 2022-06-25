@@ -918,8 +918,8 @@ class prototype_loss(nn.Module):
                 if p in t_mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
                     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    if 0.9 <= num/den:
-                        self.protos[k][p-1] = prototypes_t[count]
+                    if 0.5 <= num/den:
+                        self.update(prototypes_t[count], k=k, p=p)
 
             # indexs = [x.item()-1 for x in mask_unique_value]
             # indexs.sort()
@@ -984,11 +984,15 @@ class prototype_loss(nn.Module):
         return loss
 
     @torch.no_grad()
-    def update(self, prototypes, mask_unique_value, k):
-        for count, p in enumerate(mask_unique_value):
-            p = p.long().item()
-            self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+    def update(self, prototypes, k, p):
+        self.protos[k][p-1] = prototypes
+
+    # @torch.no_grad()
+    # def update(self, prototypes, mask_unique_value, k):
+    #     for count, p in enumerate(mask_unique_value):
+    #         p = p.long().item()
+    #         self.momentum = self.momentum_schedule[self.iteration] 
+    #         self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
 
 # class IM_loss(nn.Module):
 #     def __init__(self):
