@@ -815,7 +815,7 @@ def ind(x):
     if x==8:
         return 0
     else:
-        return x+1
+        return int(x+1)
 
 class prototype_loss(nn.Module):
     def __init__(self):
@@ -829,16 +829,16 @@ class prototype_loss(nn.Module):
         memory_size = 8
         
         self.proto_1 = torch.zeros(memory_size, num_class, 64)
-        self.proto_1_index = torch.zeros(num_class)
+        self.proto_1_index = torch.zeros(num_class, dtype=torch.int8)
 
         self.proto_2 = torch.zeros(memory_size, num_class, 128)
-        self.proto_2_index = torch.zeros(num_class)
+        self.proto_2_index = torch.zeros(num_class, dtype=torch.int8)
 
         self.proto_3 = torch.zeros(memory_size, num_class, 256)
-        self.proto_3_index = torch.zeros(num_class)
+        self.proto_3_index = torch.zeros(num_class, dtype=torch.int8)
 
         self.proto_4 = torch.zeros(memory_size, num_class, 512)
-        self.proto_4_index = torch.zeros(num_class)
+        self.proto_4_index = torch.zeros(num_class, dtype=torch.int8)
 
         # # ENet
         # self.proto_1 = torch.zeros(num_class, 16)
