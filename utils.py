@@ -918,7 +918,7 @@ class prototype_loss(nn.Module):
                 if p in t_mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
                     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    if 0.5 <= num/den:
+                    if 0.3 <= num/den:
                         self.update(prototypes_t[count], k=k, p=p)
 
             # indexs = [x.item()-1 for x in mask_unique_value]
