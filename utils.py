@@ -960,7 +960,7 @@ class prototype_loss(nn.Module):
                 proto_t = prototypes_t.unsqueeze(dim=0)        
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
                 diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-                l = l + torch.mean(diagonal)
+                l = l + (0.5 * torch.mean(diagonal))
                 
             # l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             # l = l + (0.1 * (torch.mean(diagonal)))
