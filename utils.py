@@ -812,10 +812,11 @@ class CriterionPixelWise(nn.Module):
         return loss
 
 def ind(x):
+    x=x+1
     if x==8:
         return 0
     else:
-        return int(x+1)
+        return x
 
 class prototype_loss(nn.Module):
     def __init__(self):
