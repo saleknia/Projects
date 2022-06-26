@@ -906,8 +906,6 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                # if p in mask_unique_value and p in t_mask_unique_value:
-                #     indexs.append(count)
                 
                 if p in mask_unique_value:
                     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
