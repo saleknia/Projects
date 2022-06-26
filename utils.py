@@ -892,7 +892,8 @@ class prototype_loss(nn.Module):
             #     return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
-            prototypes_t = torch.zeros(size=(unique_num_t,C))
+            # prototypes_t = torch.zeros(size=(unique_num_t,C))
+            prototypes_t = torch.zeros(size=(unique_num,C))
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
@@ -908,31 +909,33 @@ class prototype_loss(nn.Module):
                 temp = temp / batch_counter
                 prototypes[count] = temp
                 
-                if p in mask_unique_value:
-                    num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
-                    den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
+                # if p in mask_unique_value:
+                #     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
+                #     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
 
-            indexs = [x.item()-1 for x in mask_unique_value]
-            indexs.sort()
+            # indexs = [x.item()-1 for x in mask_unique_value]
+            # indexs.sort()
 
-            for count,p in enumerate(t_mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes_t[count] = temp
+            for count,p in enumerate(mask_unique_value):
                 if p in t_mask_unique_value:
-                    num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
-                    den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-                    if 0.9 <= num/den:
-                        self.update(prototypes_t[count], k=k, p=p)
+                    p = p.long()
+                    bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+                    bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+                    temp = 0.0
+                    batch_counter = 0
+                    for t in range(B):
+                        if torch.sum(bin_mask[t])!=0:
+                            v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                            temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                            batch_counter = batch_counter + 1
+                    temp = temp / batch_counter
+                    prototypes_t[count] = temp
+                
+                # if p in t_mask_unique_value:
+                #     num = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum()
+                #     den = torch.tensor(temp_masks==p,dtype=torch.int8).sum()
+                #     if 0.9 <= num/den:
+                #         self.update(prototypes_t[count], k=k, p=p)
 
             # indexs = [x.item()-1 for x in mask_unique_value]
             # indexs.sort()
@@ -985,7 +988,8 @@ class prototype_loss(nn.Module):
 
             if 0<unique_num:
                 proto = prototypes.unsqueeze(dim=0)
-                proto_t = self.protos[k]['proto'].mean(dim=0)[indexs].unsqueeze(dim=0)        
+                # proto_t = self.protos[k]['proto'].mean(dim=0)[indexs].unsqueeze(dim=0)  
+                proto_t = prototypes_t.unsqueeze(dim=0)      
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
                 diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
                 l = l + torch.mean(diagonal)
