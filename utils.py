@@ -1,3 +1,4 @@
+from operator import index
 import sys
 import os
 import torch
@@ -1004,7 +1005,7 @@ class prototype_loss(nn.Module):
                 distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
                 l = l + (1.0 / torch.mean(distances))
 
-            if 0<unique_num:
+            if 0<len(indexs):
                 proto = prototypes[indexs].unsqueeze(dim=0)
                 proto_t = prototypes_t.unsqueeze(dim=0)      
                 distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
