@@ -827,7 +827,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
         num_class = 8
-        memory_size = 4
+        memory_size = 16
         self.memory_size = memory_size
         
         self.proto_1 = torch.zeros(memory_size, num_class, 64)
