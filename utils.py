@@ -821,19 +821,17 @@ def ind(x, top):
 def one_hot_loss(unique_num, unique_num_t):
     xp = []
     yp = []
-    for i in range(1,9):
+    for i in range(9):
         if i in unique_num:
             yp.append(1.0)
         else:
             yp.append(0.0)
-
         if i in unique_num_t:
             xp.append(1.0)
         else:
             xp.append(0.0)
-
-        xp = torch.tensor(xp)
-        yp = torch.tensor(yp)
+    xp = torch.tensor(xp)
+    yp = torch.tensor(yp)
     loss = torch.nn.functional.binary_cross_entropy(input=xp, target=yp)
     return loss
 
@@ -911,7 +909,7 @@ class prototype_loss(nn.Module):
             #     return 0
 
             if k==1:
-                loss = loss + one_hot_loss(unique_num=mask_unique_value, unique_num_t=t_mask_unique_value)
+                loss = loss + one_hot_loss(unique_num=torch.unique(temp_masks), unique_num_t=torch.unique(temp_t_masks))
                 
 
             prototypes = torch.zeros(size=(unique_num,C))
