@@ -911,7 +911,7 @@ class prototype_loss(nn.Module):
             #     return 0
 
             if k==1:
-                loss = loss + one_hot_loss(unique_num, unique_num_t)
+                loss = loss + one_hot_loss(unique_num=mask_unique_value, unique_num_t=t_mask_unique_value)
                 
 
             prototypes = torch.zeros(size=(unique_num,C))
