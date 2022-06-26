@@ -811,9 +811,9 @@ class CriterionPixelWise(nn.Module):
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
-def ind(x):
+def ind(x, top):
     x=x+1
-    if x==8:
+    if x==top:
         return 0
     else:
         return x
@@ -827,7 +827,8 @@ class prototype_loss(nn.Module):
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
         num_class = 8
-        memory_size = 8
+        memory_size = 4
+        self.memory_size = memory_size
         
         self.proto_1 = torch.zeros(memory_size, num_class, 64)
         self.proto_1_index = torch.zeros(num_class, dtype=torch.int8)
@@ -1000,7 +1001,7 @@ class prototype_loss(nn.Module):
     def update(self, prototypes, k, p):
         index = self.protos[k]['index'][p-1]
         self.protos[k]['proto'][index][p-1] = prototypes
-        self.protos[k]['index'][p-1] = ind(index)
+        self.protos[k]['index'][p-1] = ind(index, top=self.memory_size)
 
     # @torch.no_grad()
     # def update(self, prototypes, mask_unique_value, k):
