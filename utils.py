@@ -834,7 +834,7 @@ def one_hot_loss(unique_num, unique_num_t):
     xp = torch.tensor(xp)
     yp = torch.tensor(yp)
     loss = torch.nn.functional.binary_cross_entropy(input=xp, target=yp)
-    return loss
+    return loss * 0.1
 
 class prototype_loss(nn.Module):
     def __init__(self):
