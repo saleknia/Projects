@@ -11,6 +11,23 @@ import torch.nn.functional as F
 import warnings
 warnings.filterwarnings("ignore")
 
+def one_hot_loss(unique_num, unique_num_t):
+    xp = []
+    yp = []
+    for i in range(9):
+        if i in unique_num:
+            yp.append(1.0)
+        else:
+            yp.append(0.0)
+        if i in unique_num_t:
+            xp.append(1.0)
+        else:
+            xp.append(0.0)
+    xp = torch.tensor(xp)
+    yp = torch.tensor(yp)
+    loss = torch.nn.functional.binary_cross_entropy(input=xp, target=yp)
+    return loss
+    
 def loss_kd_regularization(outputs, masks):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
