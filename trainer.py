@@ -196,7 +196,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta = 0.01
         gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * one_hot_loss(exist_pred=exist_pred, targets=targets)
+        exist_loss = one_hot_loss(exist_pred=exist_pred, targets=targets)
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * exist_loss
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
