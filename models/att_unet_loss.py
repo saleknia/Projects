@@ -149,8 +149,9 @@ class AttentionUNet_loss(nn.Module):
 
         self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
         # self.head = seg_head()
-        self.fc_input_feature = 12 * int(256 / 16) * int(256 / 16)
-        self.exist = nn.Sequential(nn.Conv2d(1024, 12, 1),
+        self.fc_input_feature = 12 * 8 * 8
+        self.exist = nn.Sequential(nn.AvgPool2d(32, 32),
+                                   nn.Conv2d(64, 12, 1),
                                    nn.Softmax(dim=1))
         self.fc = nn.Sequential(nn.Linear(self.fc_input_feature, 128),
                                 nn.ReLU(),
@@ -200,7 +201,7 @@ class AttentionUNet_loss(nn.Module):
         out = self.Conv(d2)
         # out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
 
-        y = self.exist(e5)
+        y = self.exist(d2)
         y = y.view(-1, self.fc_input_feature)
         exist_pred = self.fc(y)
 

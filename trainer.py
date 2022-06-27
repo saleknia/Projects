@@ -12,14 +12,16 @@ import warnings
 warnings.filterwarnings("ignore")
 
 def one_hot_loss(exist_pred, targets):
-    unique_num = torch.unique(targets)
-    yp = []
-    for i in range(9):
-        if i in unique_num:
-            yp.append(1.0)
-        else:
-            yp.append(0.0)
-    yp = torch.tensor(yp)
+    targets=targets.cpu()
+    exist_pred=exist_pred.cpu()
+    yp = torch.zeros(6,9)
+    for i in range(6):
+        unique_num = torch.unique(targets[i])
+        for j in range(9):
+            if j in unique_num:
+                yp[i,j] = 1.0
+            else:
+                yp[i,j] = 0.0
     loss = torch.nn.functional.binary_cross_entropy(input=exist_pred, target=yp)
     return loss
 
