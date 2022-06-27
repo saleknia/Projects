@@ -11,23 +11,18 @@ import torch.nn.functional as F
 import warnings
 warnings.filterwarnings("ignore")
 
-def one_hot_loss(unique_num, unique_num_t):
-    xp = []
+def one_hot_loss(exist_pred, targets):
+    unique_num = torch.unique(targets)
     yp = []
     for i in range(9):
         if i in unique_num:
             yp.append(1.0)
         else:
             yp.append(0.0)
-        if i in unique_num_t:
-            xp.append(1.0)
-        else:
-            xp.append(0.0)
-    xp = torch.tensor(xp)
     yp = torch.tensor(yp)
-    loss = torch.nn.functional.binary_cross_entropy(input=xp, target=yp)
+    loss = torch.nn.functional.binary_cross_entropy(input=exist_pred, target=yp)
     return loss
-    
+
 def loss_kd_regularization(outputs, masks):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
@@ -167,7 +162,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        outputs, up4, up3, up2, up1, e5 = model(inputs)
+        outputs, up4, up3, up2, up1, e5, exist_pred = model(inputs)
         # outputs, x4, x3, x2, x1 = model(inputs)
 
         targets = targets.long()
@@ -199,7 +194,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta = 0.01
         gamma = 0.01
         # loss = 0.4 * loss_ce + 0.6 * loss_dice + gamma * loss_kd
-        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd #+ gamma * loss_kd_out
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto + beta * loss_kd + gamma * one_hot_loss(exist_pred=exist_pred, targets=targets)
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
