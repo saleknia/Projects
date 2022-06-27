@@ -327,9 +327,9 @@ class Synapse_dataset(Dataset):
 class ACDC(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
         if split == 'train': 
-            base_dir = '/content/UNet/ACDC/train'
+            base_dir = '/content/UNet_V2/ACDC/train'
         if split == 'test':
-            base_dir = '/content/UNet/ACDC/test'
+            base_dir = '/content/UNet_V2/ACDC/test'
 
 
         self.joint_transform = joint_transform
