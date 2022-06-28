@@ -185,16 +185,16 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = kd_loss(e5=up4)
 
         # loss_proto = 0.0
-        # loss_kd = 0.0
+        loss_kd = 0.0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
-        loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
+        # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
         # loss_kd = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
         ###############################################
         alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto + beta * loss_kd_out
+        loss = 0.4 * loss_ce + 0.6 * loss_dice + alpha * loss_proto 
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -218,7 +218,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
         loss_proto_total.update(loss_proto)
-        loss_kd_total.update(loss_kd_out)
+        loss_kd_total.update(loss_kd)
         ###############################################
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()

@@ -1274,8 +1274,8 @@ class IM_loss(nn.Module):
         masks[masks!=0] = 1.0
 
         loss = 0.0
-        loss = loss + self.IMD(s=x4, masks=masks, scale_factor=0.125)
-        loss = loss + self.IMD(s=x3, masks=masks, scale_factor=0.125)
+        # loss = loss + self.IMD(s=x4, masks=masks, scale_factor=0.125)
+        # loss = loss + self.IMD(s=x3, masks=masks, scale_factor=0.125)
         loss = loss + self.IMD(s=x2, masks=masks, scale_factor=0.250)
         loss = loss + self.IMD(s=x1, masks=masks, scale_factor=0.500)
 
