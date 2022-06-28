@@ -841,12 +841,12 @@ class prototype_loss(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_t_masks = temp_t_masks.squeeze(dim=1)
+            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            # temp_t_masks = temp_t_masks.squeeze(dim=1)
 
-            t_mask_unique_value = torch.unique(temp_t_masks)
-            t_mask_unique_value = t_mask_unique_value[1:]
-            unique_num_t = len(t_mask_unique_value)
+            # t_mask_unique_value = torch.unique(temp_t_masks)
+            # t_mask_unique_value = t_mask_unique_value[1:]
+            # unique_num_t = len(t_mask_unique_value)
 
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
@@ -858,7 +858,7 @@ class prototype_loss(nn.Module):
                 return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
-            prototypes_t = torch.zeros(size=(unique_num_t,C))
+            # prototypes_t = torch.zeros(size=(unique_num_t,C))
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
@@ -876,25 +876,22 @@ class prototype_loss(nn.Module):
             #     if p in mask_unique_value and p in t_mask_unique_value:
             #         indexs.append(count)
             # indexs.sort()
+
+            # for count,p in enumerate(t_mask_unique_value):
+            #     p = p.long()
+            #     bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+            #     temp = 0.0
+            #     batch_counter = 0
+            #     for t in range(B):
+            #         if torch.sum(bin_mask[t])!=0:
+            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+            #             batch_counter = batch_counter + 1
+            #     temp = temp / batch_counter
+            #     prototypes_t[count] = temp
+
             indexs = [x.item()-1 for x in mask_unique_value]
-            indexs.sort()
-
-
-            for count,p in enumerate(t_mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes_t[count] = temp
-
-            # indexs = [x.item()-1 for x in mask_unique_value]
             # indexs.sort()
             # indexs_all = [x for x in range(8)]
             # temp_indexs = [x for x in indexs_all if x not in indexs]
@@ -930,26 +927,29 @@ class prototype_loss(nn.Module):
             #####################################################
             #####################################################
 
-            # l = 0.0
-            # proto = self.protos[k][indexs].unsqueeze(dim=0)
-            # prototypes = prototypes.unsqueeze(dim=0)
-            # distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            # proto = self.protos[k][indexs].squeeze(dim=0)
-            # prototypes = prototypes.squeeze(dim=0)
-            # diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+            l = 0.0
+            proto = self.protos[k][indexs].unsqueeze(dim=0)
+            prototypes = prototypes.unsqueeze(dim=0)
+            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            proto = self.protos[k][indexs].squeeze(dim=0)
+            prototypes = prototypes.squeeze(dim=0)
+            diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
 
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
+            # proto = prototypes.unsqueeze(dim=0)
+            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            # l = l + (1.0 / torch.mean(distances))
 
-            proto_t = self.protos[k][indexs].unsqueeze(dim=0)
-            distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
-            diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))               
-            l = l + (1.0 / torch.mean(distances_t[0]-diagonal))
+            # if 0<len(indexs):
+            #     proto = prototypes[indexs].unsqueeze(dim=0)
+            #     proto_t = prototypes_t.unsqueeze(dim=0)        
+            #     distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
+            #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
+            #     l = l + torch.mean(diagonal)
+                
+            l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             l = l + (1.0 * (torch.mean(diagonal)))
-
             loss = loss + l
-            self.update(prototypes_t, t_mask_unique_value, k)
+            self.update(prototypes, mask_unique_value, k)
 
         return loss
 
@@ -1228,43 +1228,6 @@ def one_hot_loss(unique_num, unique_num_t):
 #         return torch.sum((self.at(s, exp) - self.at(t, exp)).pow(2), dim=1).mean()
         
 
-class IM_loss(nn.Module):
-    def __init__(self):
-        super(IM_loss, self).__init__()
-
-    def forward(self, masks, up3, up2, up1):
-        masks[masks!=0] = 1
-        loss = 0.0
-        loss = loss + self.IMD(t=up1, s=up2, masks=masks, scale_factor=0.5)
-        loss = loss + self.IMD(t=up2, s=up3, masks=masks, scale_factor=0.25)
-        return loss
-
-    def at(self, x, exp):
-        """
-        attention value of a feature map
-        :param x: feature
-        :return: attention value
-        """
-        attention = x.pow(exp).mean(1)
-        return F.normalize(attention.view(attention.size(0), -1))
-
-    def IMD(self, s, t, masks, scale_factor, exp=2):
-        """
-        importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
-        Improving the Performance of Convolutional Neural Networks via Attention Transfer"
-        https://arxiv.org/abs/1612.03928
-        :param exp: exponent
-        :param s: student feature maps
-        :param t: teacher feature maps
-        :return: imd loss value
-        """
-        masks = F.interpolate(masks.unsqueeze(dim=1), scale_factor=scale_factor, mode='nearest')
-        masks = masks.squeeze(dim=1)
-        if s.shape[2] != t.shape[2]:
-            t = F.interpolate(t, s.size()[-2:], mode='bilinear')
-        return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
-        
-
 # class IM_loss(nn.Module):
 #     def __init__(self):
 #         super(IM_loss, self).__init__()
@@ -1272,17 +1235,17 @@ class IM_loss(nn.Module):
 #     def forward(self, masks, up3, up2, up1):
 #         masks[masks!=0] = 1
 #         loss = 0.0
-#         loss = loss + self.IMD(t=up2, s=up3, masks=masks, scale_factor=0.5)
-#         loss = loss + self.IMD(t=up1, s=up2, masks=masks, scale_factor=1.0)
+#         loss = loss + self.IMD(t=up1, s=up2, masks=masks, scale_factor=0.5)
+#         loss = loss + self.IMD(t=up2, s=up3, masks=masks, scale_factor=0.25)
 #         return loss
 
-#     def at(self, x, exp, masks):
+#     def at(self, x, exp):
 #         """
 #         attention value of a feature map
 #         :param x: feature
 #         :return: attention value
 #         """
-#         attention = x.pow(exp).mean(1) * masks
+#         attention = x.pow(exp).mean(1)
 #         return F.normalize(attention.view(attention.size(0), -1))
 
 #     def IMD(self, s, t, masks, scale_factor, exp=2):
@@ -1298,8 +1261,69 @@ class IM_loss(nn.Module):
 #         masks = F.interpolate(masks.unsqueeze(dim=1), scale_factor=scale_factor, mode='nearest')
 #         masks = masks.squeeze(dim=1)
 #         if s.shape[2] != t.shape[2]:
-#             s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+#             t = F.interpolate(t, s.size()[-2:], mode='bilinear')
 #         return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
+        
+
+class IM_loss(nn.Module):
+    def __init__(self):
+        super(IM_loss, self).__init__()
+
+    def forward(self, masks, x4, x3, x2, x1):
+
+        masks[masks!=0] = 1.0
+
+        loss = 0.0
+        loss = loss + self.IMD(s=x4, masks=masks, scale_factor=0.125)
+        loss = loss + self.IMD(s=x3, masks=masks, scale_factor=0.125)
+        loss = loss + self.IMD(s=x2, masks=masks, scale_factor=0.250)
+        loss = loss + self.IMD(s=x1, masks=masks, scale_factor=0.500)
+
+        return loss
+
+    def at(self, x, exp, masks):
+        """
+        attention value of a feature map
+        :param x: feature
+        :return: attention value
+        """
+        attention = x.pow(exp).mean(1) * masks 
+        return F.normalize(attention.view(attention.size(0), -1))
+
+
+    def IMD(self, s, masks, scale_factor, exp=2):
+        """
+        importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+        Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+        https://arxiv.org/abs/1612.03928
+        :param exp: exponent
+        :param s: student feature maps
+        :param t: teacher feature maps
+        :return: imd loss value
+        """
+        masks = F.interpolate(masks.unsqueeze(dim=1), scale_factor=scale_factor, mode='nearest')
+        masks = masks.squeeze(dim=1)
+
+        masks_attention = F.normalize(masks.view(masks.size(0), -1))
+        masks_attention = masks_attention.squeeze(dim=1)        
+
+        return torch.sum((self.at(s, exp, masks) - masks_attention).pow(2), dim=1).mean()
+
+    # def IMD(self, s, t, masks, scale_factor, exp=2):
+    #     """
+    #     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+    #     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+    #     https://arxiv.org/abs/1612.03928
+    #     :param exp: exponent
+    #     :param s: student feature maps
+    #     :param t: teacher feature maps
+    #     :return: imd loss value
+    #     """
+    #     masks = F.interpolate(masks.unsqueeze(dim=1), scale_factor=scale_factor, mode='nearest')
+    #     masks = masks.squeeze(dim=1)
+    #     if t.shape[2] != s.shape[2]:
+    #         t = F.interpolate(t, s.size()[-2:], mode='bilinear')
+    #     return torch.sum((self.at(s, exp, masks) - self.at(t, exp, masks)).pow(2), dim=1).mean()
 
 
 # class M_loss(nn.Module):
