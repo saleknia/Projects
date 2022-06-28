@@ -893,10 +893,10 @@ class prototype_loss(nn.Module):
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
-            indexs_all = [x for x in range(8)]
-            temp_indexs = [x for x in indexs_all if x not in indexs]
-            indexs = [*indexs,*temp_indexs]
-            indexs = [float(x) for x in indexs]
+            # indexs_all = [x for x in range(8)]
+            # temp_indexs = [x for x in indexs_all if x not in indexs]
+            # indexs = [*indexs,*temp_indexs]
+            # indexs = [float(x) for x in indexs]
 
             #####################################################
             #####################################################
