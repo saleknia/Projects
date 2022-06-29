@@ -162,10 +162,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
 
         # outputs = model(inputs)
+        outputs, up3, up2, up1  = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
         # outputs, up4, up3, up2, up1, e5 = model(inputs)
-        outputs, up4, up3, up2, up1 = model(inputs)
+        # outputs, up4, up3, up2, up1 = model(inputs)
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -181,7 +182,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=None, up3=up3, up2=up2, up1=up1)
         # loss_kd = kd_loss(e5=up4)
 
         loss_proto = 0.0
