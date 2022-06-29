@@ -834,7 +834,7 @@ class prototype_loss(nn.Module):
         loss = 0.0
         up = [up1, up2, up3, up4]
 
-        for k in range(4):
+        for k in range(1,4):
             indexs = []
             B,C,H,W = up[k].shape
             
@@ -947,7 +947,7 @@ class prototype_loss(nn.Module):
             #     l = l + torch.mean(diagonal)
                 
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (0.5 * (torch.mean(diagonal)))
+            l = l + (2.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
 
