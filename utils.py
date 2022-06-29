@@ -827,14 +827,14 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.0)
         self.iteration = -1
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30, 213)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60, 213)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         self.iteration = self.iteration + 1
         loss = 0.0
         up = [up1, up2, up3, up4]
 
-        for k in range(1,4):
+        for k in range(4):
             indexs = []
             B,C,H,W = up[k].shape
             
