@@ -129,8 +129,10 @@ class Decoder(nn.Module):
                 output_2 = output
 
         output = self.output_conv(output)
-
-        return output, output_0, output_1, output_2
+        if self.training:
+            return output, output_0, output_1, output_2
+        else:
+            return output
 
 
 # ERFNet
