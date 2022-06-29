@@ -138,8 +138,8 @@ model_table = tabulate(
                         ['U_loss', 14],
                         ['ENet', 15],
                         ['ENet_loss', 16],
-                        ['DABNet', 17],
-                        ['DABNet_loss', 18]],
+                        ['ERFNet', 17],
+                        ['ERFNet_loss', 18]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -199,10 +199,10 @@ elif model_id==16:
     MODEL_NAME = 'ENet_loss'
 
 elif model_id==17:
-    MODEL_NAME = 'DABNet'
+    MODEL_NAME = 'ERFNet'
 
 elif model_id==18:
-    MODEL_NAME = 'DABNet_loss'
+    MODEL_NAME = 'ERFNet_loss'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 

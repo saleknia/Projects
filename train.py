@@ -29,6 +29,7 @@ from models.att_unet_loss import AttentionUNet_loss
 from models.multi_res_unet import MultiResUnet
 from models.U import U
 from models.U_loss import U_loss
+from models.ERFNet import ERFNet
 from models.multi_res_unet_loss import MultiResUnet_loss
 from models.UCTransNet import UCTransNet
 from models.GT_UNet import GT_U_Net
@@ -131,8 +132,8 @@ def main(args):
     elif MODEL_NAME == 'ENet_loss':
         model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME == 'DABNet':
-        model = DABNet(classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME == 'ERFNet':
+        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
