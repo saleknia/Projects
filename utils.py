@@ -805,7 +805,7 @@ class prototype_loss(nn.Module):
         # ENet
         self.down_scales = [0.5,0.25,0.125,0.125]
 
-        num_class = 8
+        num_class = 3
         
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 128)
@@ -947,7 +947,7 @@ class prototype_loss(nn.Module):
             #     l = l + torch.mean(diagonal)
                 
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (2.0 * (torch.mean(diagonal)))
+            l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
 
