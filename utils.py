@@ -803,8 +803,8 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [0.5,0.25,0.125,0.125]
-        self.down_scales = [0.5,0.25,0.125]
+        self.down_scales = [0.5,0.25,0.125,0.125]
+        # self.down_scales = [0.5,0.25,0.125]
         num_class = 8
         
         # self.proto_1 = torch.zeros(num_class, 64 )

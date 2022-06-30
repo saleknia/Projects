@@ -13,13 +13,14 @@ class seg_head(nn.Module):
 
 
     def forward(self, x4, x3, x2, x1):
-        x4 = self.scale_4(self.conv_4(x4))
-        x3 = self.scale_3(self.conv_3(x3))
-        x2 = self.scale_2(self.conv_2(x2))
+        x4 = torch.nn.functional.sigmoid(self.scale_4(self.conv_4(x4)))  
+        x3 = torch.nn.functional.sigmoid(self.scale_3(self.conv_3(x3)))
+        x2 = torch.nn.functional.sigmoid(self.scale_2(self.conv_2(x2)))
         
         out = x1 + x2 + x3 + x4
 
         return out
+
 
 class ENet_loss(nn.Module):
     """Efficient Neural Network"""
