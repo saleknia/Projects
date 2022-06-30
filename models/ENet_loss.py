@@ -1,6 +1,25 @@
 import torch
 import torch.nn as nn
 
+class seg_head(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.scale_4 = nn.Upsample(scale_factor=4)
+        self.scale_3 = nn.Upsample(scale_factor=4)
+        self.scale_2 = nn.Upsample(scale_factor=2)
+        self.conv_4 =  nn.Conv2d(128, 16, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(128, 16, kernel_size=(1,1), stride=(1,1))
+        self.conv_2 = nn.Conv2d(64, 16, kernel_size=(1,1), stride=(1,1))
+
+
+    def forward(self, x4, x3, x2, x1):
+        x4 = self.scale_4(self.conv_4(x4))
+        x3 = self.scale_3(self.conv_3(x3))
+        x2 = self.scale_2(self.conv_2(x2))
+        
+        out = x1 +
+
+        return out
 
 class ENet_loss(nn.Module):
     """Efficient Neural Network"""

@@ -108,10 +108,6 @@ class seg_head(nn.Module):
         up2 = up3 + up2
         up2 = torch.nn.functional.relu6(self.scale_2(self.conv_2(up2)))
         up = up2 + up1
-
-        # up = self.conv(up)
-        # up = self.BN_out(up)
-        # up = self.RELU6_out(up)
         
         up = self.out(up)
 
