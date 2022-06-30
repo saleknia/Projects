@@ -60,7 +60,7 @@ class ENet_loss(nn.Module):
         self.bottleneck5_0 = UpsamplingBottleneck(64, 4, 16, **kwargs)
         self.bottleneck5_1 = Bottleneck(16, 4, 16, **kwargs)
 
-        self.head() = seg_head()
+        self.head = seg_head()
         self.fullconv = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
 
         self.__setattr__('exclusive', ['bottleneck1_0', 'bottleneck1_1', 'bottleneck1_2', 'bottleneck1_3',
