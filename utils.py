@@ -834,7 +834,7 @@ class prototype_loss(nn.Module):
         loss = 0.0
         up = [up1, up2, up3, up4]
 
-        for k in range(3):
+        for k in range(4):
             indexs = []
             B,C,H,W = up[k].shape
             
