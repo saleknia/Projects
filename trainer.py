@@ -165,8 +165,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs, up3, up2, up1  = model(inputs)
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        # outputs, up4, up3, up2, up1, e5 = model(inputs)
-        outputs, up4, up3, up2, up1 = model(inputs)
+        outputs, up4, up3, up2, up1, e5 = model(inputs)
+        # outputs, up4, up3, up2, up1 = model(inputs)
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
