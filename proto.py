@@ -144,7 +144,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
             protos_des[i] = protos[i][indexs].mean(dim=1)
     
     protos_des = torch.tensor(protos_des)
-
+    torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     
 
 def get_CTranS_config(NUM_CLASS=NUM_CLASS):
