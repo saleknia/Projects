@@ -68,10 +68,6 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
-    # proto_1, proto_2, proto_3, proto_4 = [] , [] , [] , [] 
-    # label_1, label_2, label_3, label_4 = [] , [] , [] , []
-    # protos = [proto_1, proto_2, proto_3, proto_4]
-    # labels = [label_1, label_2, label_3, label_4]
 
     # ENet
     proto_des_1 = torch.zeros(num_class, 16 )
@@ -79,67 +75,70 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     proto_des_3 = torch.zeros(num_class, 128)
     proto_des_4 = torch.zeros(num_class, 128)
     protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+    with torch.no_grad():
+        for k in range(4):
+            protos=[]
+            labels=[]
+            for batch_idx, (inputs, targets) in enumerate(loader):
+                inputs, targets = inputs.to(device), targets.to(device)
+                targets = targets.float()
+                outputs, up4, up3, up2, up1 = model(inputs)
 
-    for k in range(4):
-        protos=[]
-        labels=[]
-        for batch_idx, (inputs, targets) in enumerate(loader):
-            inputs, targets = inputs.to(device), targets.to(device)
-            targets = targets.float()
-            outputs, up4, up3, up2, up1 = model(inputs)
+                print_progress(
+                    iteration=batch_idx+1,
+                    total=total_batchs,
+                    prefix=f'Extract Proto / Level {k} : Batch {batch_idx+1}/{total_batchs} ',
+                    suffix=f'',
+                    bar_length=45
+                )  
+                masks=targets.clone()
+                up = [up1, up2, up3, up4]
 
-            print_progress(
-                iteration=batch_idx+1,
-                total=total_batchs,
-                prefix=f'Extract Proto : Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'',
-                bar_length=45
-            )  
-            masks=targets.clone()
-            up = [up1, up2, up3, up4]
+                B,C,H,W = up[k].shape
+                
+                temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=down_scales[k], mode='nearest')
+                temp_masks = temp_masks.squeeze(dim=1)
 
-            B,C,H,W = up[k].shape
-            
-            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=down_scales[k], mode='nearest')
-            temp_masks = temp_masks.squeeze(dim=1)
+                mask_unique_value = torch.unique(temp_masks)
+                mask_unique_value = mask_unique_value[1:]
+                unique_num = len(mask_unique_value)
+                
+                if unique_num<1:
+                    continue
 
-            mask_unique_value = torch.unique(temp_masks)
-            mask_unique_value = mask_unique_value[1:]
-            unique_num = len(mask_unique_value)
-            
-            if unique_num<1:
-                continue
-
-            for count,p in enumerate(mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                protos.append(temp)
-                labels.append(p) 
+                for count,p in enumerate(mask_unique_value):
+                    p = p.long()
+                    bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+                    bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+                    temp = 0.0
+                    batch_counter = 0
+                    for t in range(B):
+                        if torch.sum(bin_mask[t])!=0:
+                            v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                            temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                            batch_counter = batch_counter + 1
+                    temp = temp / batch_counter
+                    protos.append(np.array(temp.detach().cpu()))
+                    labels.append(p.item()) 
     
-        protos = np.array(protos) 
-        labels = np.array(labels)
+            protos = np.array(protos) 
+            labels = np.array(labels)
+            print(protos.shape)
 
-        pca = PCA(n_components = des_shapes[k])
-        pca.fit(protos)
-        protos = pca.transform(protos)
+            pca = PCA(n_components = des_shapes[k])
+            pca.fit(protos)
+            protos = pca.transform(protos)
+            print(protos.shape)
+            protos = torch.tensor(protos)
+            labels = torch.tensor(labels)
 
-        protos = torch.tensor(protos)
-        labels = torch.tensor(labels)
-
-        for i in range(1, num_class+1):
-            indexs = (labels==i)
-            protos_des = protos[indexs].mean(dim=1)
+            for i in range(1, num_class+1):
+                indexs = (labels==i)
+                print(protos[indexs].mean(dim=0).shape)
+                protos_des[k] = protos[indexs].mean(dim=0)
     
     protos_des = torch.tensor(protos_des)
+    print(protos_des.shape)
     torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     
 
