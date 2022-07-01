@@ -1,0 +1,360 @@
+# Instaling Libraries
+import os
+import copy
+import torch
+import torchvision
+import torch.nn as nn
+from PIL import Image
+from torch.utils.data import Dataset
+from torch.utils.data import DataLoader
+import numpy as np
+import random
+import pickle
+import argparse
+from torch.backends import cudnn
+# from albumentations.pytorch.transforms import ToTensorV2
+# import albumentations as A
+import matplotlib.pyplot as plt
+from torchvision import transforms
+import torchvision.transforms.functional as TF
+from torch.utils.data import random_split
+from tqdm.notebook import tqdm
+import torch.optim as optim
+from models.UNet import UNet
+from models.UNet_loss import UNet_loss
+from models.UNet_plus import NestedUNet
+from models.UNet_plus_loss import NestedUNet_loss
+from models.att_unet import AttentionUNet
+from models.att_unet_loss import AttentionUNet_loss
+from models.multi_res_unet import MultiResUnet
+from models.U import U
+from models.U_loss import U_loss
+from models.ERFNet import ERFNet
+from models.ERFNet_loss import ERFNet_loss
+from models.multi_res_unet_loss import MultiResUnet_loss
+from models.UCTransNet import UCTransNet
+from models.GT_UNet import GT_U_Net
+from models.ENet import ENet
+from models.DABNet import DABNet
+from models.DABNet_loss import DABNet_loss
+from models.ENet_loss import ENet_loss
+from models.UCTransNet_GT import UCTransNet_GT
+from models.GT_CTrans import GT_CTrans
+import ml_collections
+import utils
+from utils import color
+from utils import Save_Checkpoint
+from trainer import trainer
+from tester import tester
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
+from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
+from tabulate import tabulate
+from tensorboardX import SummaryWriter
+import warnings
+warnings.filterwarnings('ignore')
+from sklearn.decomposition import PCA  
+
+
+def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
+    model.train()
+    self.down_scales = [1.0,0.5,0.25,0.125]
+    num_class = 8
+    loader = dataloader['train']
+    total_batchs = len(loader)
+    proto_1, proto_2, proto_3, proto_4 = [] , [] , [] , [] 
+    label_1, label_2, label_3, label_4 = [] , [] , [] , []
+    protos = [proto_1, proto_2, proto_3, proto_4]
+    labels = [label_1, label_2, label_3, label_4]
+
+    # ENet
+    proto_des_1 = torch.zeros(num_class, 16 )
+    proto_des_2 = torch.zeros(num_class, 64 )
+    proto_des_3 = torch.zeros(num_class, 128)
+    proto_des_4 = torch.zeros(num_class, 128)
+    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+
+    for batch_idx, (inputs, targets) in enumerate(loader):
+        inputs, targets = inputs.to(device), targets.to(device)
+        targets = targets.float()
+        outputs, up4, up3, up2, up1 = model(inputs)
+
+        print_progress(
+            iteration=batch_idx+1,
+            total=total_batchs,
+            prefix=f'Extract Proto : Batch {batch_idx+1}/{total_batchs} ',
+            suffix=f'',
+            bar_length=45
+        )  
+        masks=targets.clone()
+        up = [up1, up2, up3, up4]
+
+        for k in range(4):
+
+            B,C,H,W = up[k].shape
+            
+            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks = temp_masks.squeeze(dim=1)
+
+            mask_unique_value = torch.unique(temp_masks)
+            mask_unique_value = mask_unique_value[1:]
+            unique_num = len(mask_unique_value)
+            
+            if unique_num<2:
+                continue
+
+            for count,p in enumerate(mask_unique_value):
+                p = p.long()
+                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+                temp = 0.0
+                batch_counter = 0
+                for t in range(B):
+                    if torch.sum(bin_mask[t])!=0:
+                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                        batch_counter = batch_counter + 1
+                temp = temp / batch_counter
+                protos[k].append(temp)
+                labels[k].append(p) 
+    
+    proto_1 = np.array(protos[0]) # 64
+    proto_2 = np.array(protos[1]) # 128
+    proto_3 = np.array(protos[2]) # 256
+    proto_4 = np.array(protos[3]) # 512
+
+    label_1 = np.array(labels[0])
+    label_2 = np.array(labels[1])
+    label_3 = np.array(labels[2])
+    label_4 = np.array(labels[3])
+
+    protos = [proto_1, proto_2, proto_3, proto_4]
+    labels = [label_1, label_2, label_3, label_4]
+
+    for i in range(len(des_shapes)):
+        pca = PCA(n_components = des_shapes[i])
+        pca.fit(protos[i])
+        protos[i] = pca.transform(protos[i])
+
+    protos = torch.tensor(protos)
+    labels = torch.tensor(labels)
+
+    for i in range(4):
+        for j in range(1, num_class+1):
+            indexs = (labels[i]==i)
+            proto_des_1 = protos[i][indexs].mean(dim=1)
+    
+
+def get_CTranS_config(NUM_CLASS=NUM_CLASS):
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    # config.transformer.embeddings_dropout_rate = 0.3
+    # config.transformer.attention_dropout_rate  = 0.3
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0
+    config.patch_sizes = [16,8,4,2]
+    # config.patch_sizes = [8,4,2,1]
+    config.base_channel = 64 # base channel of U-Net
+    config.n_classes = NUM_CLASS
+    return config
+
+def main(args):
+    MODEL_NAME = args.model_name
+    NUM_CLASS = args.num_class
+    IMAGE_HEIGHT = args.image_size
+    IMAGE_WIDTH = args.image_size
+    DEVICE = args.device
+
+    train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
+    val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
+# LOAD_MODEL
+
+    if MODEL_NAME=='UNet':
+        model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='UNet_loss':
+        model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='U':
+        model = U(bilinear=False).to(DEVICE)
+
+    elif MODEL_NAME=='U_loss':
+        model = U_loss(bilinear=False).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet':
+        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet_GT':
+        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='GT_UNet':
+        model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='GT_CTrans':
+        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet':
+        model = AttentionUNet(img_ch=1, output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet_loss':
+        model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
+
+    elif MODEL_NAME == 'MultiResUnet':
+        model = MultiResUnet().to(DEVICE)
+
+    elif MODEL_NAME == 'MultiResUnet_loss':
+        model = MultiResUnet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++':
+        model = NestedUNet().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++_loss':
+        model = NestedUNet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'ENet':
+        model = ENet(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ENet_loss':
+        model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet':
+        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet_loss':
+        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+        
+    else: 
+        raise TypeError('Please enter a valid name for the model type')
+
+    TASK_NAME = args.task
+
+    num_parameters = utils.count_parameters(model)
+
+    model_table = tabulate(
+        tabular_data=[[MODEL_NAME, f'{num_parameters:.2f} M', DEVICE]],
+        headers=['Builded Model', '#Parameters', 'Device'],
+        tablefmt="fancy_grid"
+        )
+
+
+    CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
+
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
+    print('Loading Checkpoint...')
+    if os.path.isfile(checkpoint_path):
+        pretrained_model_path = checkpoint_path
+        loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+        pretrained = loaded_data['net']
+        model2_dict = model.state_dict()
+        state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+        model2_dict.update(state_dict)
+        model.load_state_dict(model2_dict)
+
+        initial_best_acc=loaded_data['best_acc']
+        loaded_acc=loaded_data['acc']
+        initial_best_epoch=loaded_data['best_epoch']
+        last_num_epoch=loaded_data['num_epoch']
+
+        table = tabulate(
+                        tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+                        headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                        tablefmt="fancy_grid"
+                        )
+        print(table)
+    else:
+        print(f'No Such file : {checkpoint_path}')
+        
+    print('\n')
+
+    start_epoch = last_num_epoch + 1
+    end_epoch =  NUM_EPOCHS
+
+
+    if TASK_NAME=='Synapse':
+
+        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+
+        train_loader = DataLoader(
+                                train_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        data_loader={'train':train_loader}
+
+    elif TASK_NAME=='ACDC':
+
+        train_dataset=ACDC(split='train', joint_transform=train_tf)
+
+        train_loader = DataLoader(
+                                train_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader}
+
+    elif TASK_NAME=='CT-1K':
+
+        train_dataset=CT_1K(split='train', joint_transform=train_tf)
+
+        train_loader = DataLoader(
+                                train_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader}
+    
+    extract_prototype(model,dataloader)
+
+
+            
+
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--model_name', type=str)
+parser.add_argument('--device', type=str, default='cuda')
+parser.add_argument('--image_size', default=256)
+parser.add_argument('--task_name',type=str, default='synapse')
+parser.add_argument('--num_class', default=9)
+args = parser.parse_args()
+
+
+if __name__ == "__main__":
+    
+    deterministic = True
+    if not deterministic:
+        cudnn.benchmark = True
+        cudnn.deterministic = False
+    else:
+        cudnn.benchmark = False
+        cudnn.deterministic = True
+    
+    random.seed(666)    
+    np.random.seed(666)  
+    torch.manual_seed(666)
+    torch.cuda.manual_seed(666)
+    torch.cuda.manual_seed_all(666) 
+
+    main(args)
+    
