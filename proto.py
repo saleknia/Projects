@@ -335,7 +335,7 @@ def main(args):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_name', type=str)
+parser.add_argument('--model_name', type=str, default='AttUNet_loss')
 parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--image_size', default=256)
 parser.add_argument('--task_name',type=str, default='synapse')
