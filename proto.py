@@ -54,6 +54,12 @@ import warnings
 warnings.filterwarnings('ignore')
 from sklearn.decomposition import PCA  
 
+NUM_WORKERS = 4
+PIN_MEMORY = True
+SEED = 666
+
+def worker_init(worker_id):
+    random.seed(SEED + worker_id)
 
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
     model.train()
@@ -327,7 +333,7 @@ def main(args):
 
         data_loader={'train':train_loader}
     
-    extract_prototype(model,dataloader)
+    extract_prototype(model,data_loader)
 
 
             
