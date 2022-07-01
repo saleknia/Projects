@@ -54,6 +54,7 @@ import warnings
 warnings.filterwarnings('ignore')
 from sklearn.decomposition import PCA  
 
+BATCH_SIZE = 1
 NUM_WORKERS = 4
 PIN_MEMORY = True
 SEED = 666
@@ -123,19 +124,16 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     
             protos = np.array(protos) 
             labels = np.array(labels)
-            print(protos.shape)
 
             pca = PCA(n_components = des_shapes[k])
             pca.fit(protos)
             protos = pca.transform(protos)
-            print(protos.shape)
             protos = torch.tensor(protos)
             labels = torch.tensor(labels)
 
             for i in range(1, num_class+1):
                 indexs = (labels==i)
-                print(protos[indexs].mean(dim=0).shape)
-                protos_des[k] = protos[indexs].mean(dim=0)
+                protos_des[k][i-1] = protos[indexs].mean(dim=0)
     
     protos_des = torch.tensor(protos_des)
     print(protos_des.shape)
@@ -274,7 +272,7 @@ def main(args):
 
         train_loader = DataLoader(
                                 train_dataset,
-                                batch_size=6,
+                                batch_size=BATCH_SIZE,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
@@ -289,7 +287,7 @@ def main(args):
 
         train_loader = DataLoader(
                                 train_dataset,
-                                batch_size=1,
+                                batch_size=BATCH_SIZE,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
@@ -305,7 +303,7 @@ def main(args):
 
         train_loader = DataLoader(
                                 train_dataset,
-                                batch_size=1,
+                                batch_size=BATCH_SIZE,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
