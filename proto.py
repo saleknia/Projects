@@ -75,9 +75,9 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     proto_des_2 = torch.zeros(num_class, 64 )
     proto_des_3 = torch.zeros(num_class, 128)
     proto_des_4 = torch.zeros(num_class, 128)
-    protos_des = nn.ModuleList([proto_des_1, proto_des_2, proto_des_3, proto_des_4])
+    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
     with torch.no_grad():
-        for k in range(4):
+        for k in range(1):
             protos=[]
             labels=[]
             for batch_idx, (inputs, targets) in enumerate(loader):
