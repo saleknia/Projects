@@ -42,7 +42,7 @@ from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
 import ml_collections
 import utils
-from utils import color
+from utils import color, print_progress
 from utils import Save_Checkpoint
 from trainer import trainer
 from tester import tester
@@ -153,7 +153,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     
 
-def get_CTranS_config(NUM_CLASS=NUM_CLASS):
+def get_CTranS_config(NUM_CLASS=None):
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
@@ -242,7 +242,7 @@ def main(args):
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
-    TASK_NAME = args.task
+    TASK_NAME = args.task_name
 
     num_parameters = utils.count_parameters(model)
 
@@ -266,14 +266,12 @@ def main(args):
         model2_dict.update(state_dict)
         model.load_state_dict(model2_dict)
 
-        initial_best_acc=loaded_data['best_acc']
         loaded_acc=loaded_data['acc']
         initial_best_epoch=loaded_data['best_epoch']
-        last_num_epoch=loaded_data['num_epoch']
 
         table = tabulate(
-                        tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-                        headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                        tabular_data=[[loaded_acc, initial_best_epoch]],
+                        headers=['Loaded Model Acc', 'Best Epoch Number'],
                         tablefmt="fancy_grid"
                         )
         print(table)
@@ -281,9 +279,6 @@ def main(args):
         print(f'No Such file : {checkpoint_path}')
         
     print('\n')
-
-    start_epoch = last_num_epoch + 1
-    end_epoch =  NUM_EPOCHS
 
 
     if TASK_NAME=='Synapse':
@@ -344,7 +339,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--model_name', type=str, default='AttUNet_loss')
 parser.add_argument('--device', type=str, default='cuda')
 parser.add_argument('--image_size', default=256)
-parser.add_argument('--task_name',type=str, default='synapse')
+parser.add_argument('--task_name',type=str, default='Synapse')
 parser.add_argument('--num_class', default=9)
 args = parser.parse_args()
 
