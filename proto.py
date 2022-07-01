@@ -68,10 +68,10 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
-    proto_1, proto_2, proto_3, proto_4 = [] , [] , [] , [] 
-    label_1, label_2, label_3, label_4 = [] , [] , [] , []
-    protos = [proto_1, proto_2, proto_3, proto_4]
-    labels = [label_1, label_2, label_3, label_4]
+    # proto_1, proto_2, proto_3, proto_4 = [] , [] , [] , [] 
+    # label_1, label_2, label_3, label_4 = [] , [] , [] , []
+    # protos = [proto_1, proto_2, proto_3, proto_4]
+    # labels = [label_1, label_2, label_3, label_4]
 
     # ENet
     proto_des_1 = torch.zeros(num_class, 16 )
@@ -81,6 +81,8 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
 
     for k in range(4):
+        protos=[]
+        labels=[]
         for batch_idx, (inputs, targets) in enumerate(loader):
             inputs, targets = inputs.to(device), targets.to(device)
             targets = targets.float()
@@ -120,22 +122,22 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
-                protos[k].append(temp)
-                labels[k].append(p) 
+                protos.append(temp)
+                labels.append(p) 
     
-        protos[k] = np.array(protos[k]) 
-        labels[k] = np.array(labels[k])
+        protos = np.array(protos) 
+        labels = np.array(labels)
 
         pca = PCA(n_components = des_shapes[k])
-        pca.fit(protos[k])
-        protos[k] = pca.transform(protos[k])
+        pca.fit(protos)
+        protos = pca.transform(protos)
 
-        protos[k] = torch.tensor(protos[k])
-        labels[k] = torch.tensor(labels[k])
+        protos = torch.tensor(protos)
+        labels = torch.tensor(labels)
 
         for i in range(1, num_class+1):
-            indexs = (labels[k]==i)
-            protos_des[k] = protos[k][indexs].mean(dim=1)
+            indexs = (labels==i)
+            protos_des = protos[indexs].mean(dim=1)
     
     protos_des = torch.tensor(protos_des)
     torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
@@ -273,7 +275,7 @@ def main(args):
 
         train_loader = DataLoader(
                                 train_dataset,
-                                batch_size=1,
+                                batch_size=6,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
