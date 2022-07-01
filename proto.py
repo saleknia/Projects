@@ -57,7 +57,7 @@ from sklearn.decomposition import PCA
 
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
     model.train()
-    self.down_scales = [1.0,0.5,0.25,0.125]
+    down_scales = [1.0,0.5,0.25,0.125]
     num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
@@ -92,7 +92,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
 
             B,C,H,W = up[k].shape
             
-            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
             mask_unique_value = torch.unique(temp_masks)
@@ -140,8 +140,11 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
 
     for i in range(4):
         for j in range(1, num_class+1):
-            indexs = (labels[i]==i)
-            proto_des_1 = protos[i][indexs].mean(dim=1)
+            indexs = (labels[i]==j)
+            protos_des[i] = protos[i][indexs].mean(dim=1)
+    
+    protos_des = torch.tensor(protos_des)
+
     
 
 def get_CTranS_config(NUM_CLASS=NUM_CLASS):
