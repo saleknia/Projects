@@ -116,7 +116,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                     for t in range(B):
                         if torch.sum(bin_mask[t])!=0:
                             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                            temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                            temp = temp + v
                             batch_counter = batch_counter + 1
                     temp = temp / batch_counter
                     protos.append(np.array(temp.detach().cpu()))
