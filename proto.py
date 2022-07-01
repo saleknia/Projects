@@ -63,7 +63,7 @@ def worker_init(worker_id):
     random.seed(SEED + worker_id)
 
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
-    model.train()
+    model.eval()
     model.to(device)
     down_scales = [1.0,0.5,0.25,0.125]
     num_class = 8
@@ -75,7 +75,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     proto_des_2 = torch.zeros(num_class, 64 )
     proto_des_3 = torch.zeros(num_class, 128)
     proto_des_4 = torch.zeros(num_class, 128)
-    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+    protos_des = nn.ModuleList([proto_des_1, proto_des_2, proto_des_3, proto_des_4])
     with torch.no_grad():
         for k in range(4):
             protos=[]
@@ -136,7 +136,6 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                 protos_des[k][i-1] = protos[indexs].mean(dim=0)
     
     protos_des = torch.tensor(protos_des)
-    print(protos_des.shape)
     torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     
 

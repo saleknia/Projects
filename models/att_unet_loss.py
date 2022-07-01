@@ -205,4 +205,4 @@ class AttentionUNet_loss(nn.Module):
             return out, d5, d4, d3, d2
             # return out, d4, d3, d2
         else:
-            return out
+            return out, d5, d4, d3, d2
