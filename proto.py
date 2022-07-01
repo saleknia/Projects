@@ -63,6 +63,7 @@ def worker_init(worker_id):
 
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
     model.train()
+    model.to(device)
     down_scales = [1.0,0.5,0.25,0.125]
     num_class = 8
     loader = dataloader['train']
@@ -79,22 +80,21 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     proto_des_4 = torch.zeros(num_class, 128)
     protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
 
-    for batch_idx, (inputs, targets) in enumerate(loader):
-        inputs, targets = inputs.to(device), targets.to(device)
-        targets = targets.float()
-        outputs, up4, up3, up2, up1 = model(inputs)
+    for k in range(4):
+        for batch_idx, (inputs, targets) in enumerate(loader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            targets = targets.float()
+            outputs, up4, up3, up2, up1 = model(inputs)
 
-        print_progress(
-            iteration=batch_idx+1,
-            total=total_batchs,
-            prefix=f'Extract Proto : Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'',
-            bar_length=45
-        )  
-        masks=targets.clone()
-        up = [up1, up2, up3, up4]
-
-        for k in range(4):
+            print_progress(
+                iteration=batch_idx+1,
+                total=total_batchs,
+                prefix=f'Extract Proto : Batch {batch_idx+1}/{total_batchs} ',
+                suffix=f'',
+                bar_length=45
+            )  
+            masks=targets.clone()
+            up = [up1, up2, up3, up4]
 
             B,C,H,W = up[k].shape
             
@@ -105,7 +105,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
             mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
             
-            if unique_num<2:
+            if unique_num<1:
                 continue
 
             for count,p in enumerate(mask_unique_value):
@@ -123,31 +123,19 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                 protos[k].append(temp)
                 labels[k].append(p) 
     
-    proto_1 = np.array(protos[0]) # 64
-    proto_2 = np.array(protos[1]) # 128
-    proto_3 = np.array(protos[2]) # 256
-    proto_4 = np.array(protos[3]) # 512
+        protos[k] = np.array(protos[k]) 
+        labels[k] = np.array(labels[k])
 
-    label_1 = np.array(labels[0])
-    label_2 = np.array(labels[1])
-    label_3 = np.array(labels[2])
-    label_4 = np.array(labels[3])
+        pca = PCA(n_components = des_shapes[k])
+        pca.fit(protos[k])
+        protos[k] = pca.transform(protos[k])
 
-    protos = [proto_1, proto_2, proto_3, proto_4]
-    labels = [label_1, label_2, label_3, label_4]
+        protos[k] = torch.tensor(protos[k])
+        labels[k] = torch.tensor(labels[k])
 
-    for i in range(len(des_shapes)):
-        pca = PCA(n_components = des_shapes[i])
-        pca.fit(protos[i])
-        protos[i] = pca.transform(protos[i])
-
-    protos = torch.tensor(protos)
-    labels = torch.tensor(labels)
-
-    for i in range(4):
-        for j in range(1, num_class+1):
-            indexs = (labels[i]==j)
-            protos_des[i] = protos[i][indexs].mean(dim=1)
+        for i in range(1, num_class+1):
+            indexs = (labels[k]==i)
+            protos_des[k] = protos[k][indexs].mean(dim=1)
     
     protos_des = torch.tensor(protos_des)
     torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
@@ -277,8 +265,6 @@ def main(args):
         print(table)
     else:
         print(f'No Such file : {checkpoint_path}')
-        
-    print('\n')
 
 
     if TASK_NAME=='Synapse':
