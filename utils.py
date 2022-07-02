@@ -828,7 +828,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.0)
         self.iteration = -1
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         self.iteration = self.iteration + 1
@@ -881,22 +881,22 @@ class prototype_loss(nn.Module):
                     indexs_t.append(count)
             indexs_t.sort()
 
-            for count,p in enumerate(t_mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes_t[count] = temp
+            # for count,p in enumerate(t_mask_unique_value):
+            #     p = p.long()
+            #     bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+            #     temp = 0.0
+            #     batch_counter = 0
+            #     for t in range(B):
+            #         if torch.sum(bin_mask[t])!=0:
+            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+            #             batch_counter = batch_counter + 1
+            #     temp = temp / batch_counter
+            #     prototypes_t[count] = temp
 
             indexs = [x.item()-1 for x in mask_unique_value]
-            indexs_t = [x.item()-1 for x in mask_unique_value if x in t_mask_unique_value]
+            # indexs_t = [x.item()-1 for x in mask_unique_value if x in t_mask_unique_value]
             # indexs.sort()
             # indexs_all = [x for x in range(8)]
             # temp_indexs = [x for x in indexs_all if x not in indexs]
@@ -940,17 +940,9 @@ class prototype_loss(nn.Module):
             prototypes = prototypes.squeeze(dim=0)
             diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
 
-            if 0<len(indexs):
-                proto = self.protos[k][indexs_t].unsqueeze(dim=0)
-                prototypes_t = prototypes_t.unsqueeze(dim=0)
-                distances_t = torch.cdist(proto.clone().detach(), prototypes_t, p=2.0)
-                proto = self.protos[k][indexs_t].squeeze(dim=0)
-                prototypes_t = prototypes_t.squeeze(dim=0)
-                diagonal_t = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-                l = l + (1.0 * (torch.mean(diagonal_t)))
-            # proto = prototypes.unsqueeze(dim=0)
-            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            # l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
 
             # if 0<len(indexs):
             #     proto = prototypes[indexs].unsqueeze(dim=0)
