@@ -76,6 +76,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     proto_des_3 = torch.zeros(num_class, 128)
     proto_des_4 = torch.zeros(num_class, 128)
     protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+    protos_out = []
     with torch.no_grad():
         for k in range(4):
             protos=[]
@@ -116,7 +117,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                     for t in range(B):
                         if torch.sum(bin_mask[t])!=0:
                             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                            temp = temp + v
+                            temp = temp + temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                             batch_counter = batch_counter + 1
                     temp = temp / batch_counter
                     protos.append(np.array(temp.detach().cpu()))
@@ -125,17 +126,21 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
             protos = np.array(protos) 
             labels = np.array(labels)
 
-            pca = PCA(n_components = des_shapes[k])
+            # pca = PCA(n_components = des_shapes[k])
+            pca = PCA(n_components = 2)
             pca.fit(protos)
             protos = pca.transform(protos)
             protos = torch.tensor(protos)
-            labels = torch.tensor(labels)
 
-            for i in range(1, num_class+1):
-                indexs = (labels==i)
-                protos_des[k][i-1] = protos[indexs].mean(dim=0)
+            protos = torch.tensor(protos) 
+            labels = torch.tensor(labels)
+            protos_out.append([protos,labels])
+            # for i in range(1, num_class+1):
+            #     indexs = (labels==i)
+            #     protos_des[k][i-1] = protos[indexs].mean(dim=0)
     
-    torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
+    # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
+    torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
     
 
 def get_CTranS_config(NUM_CLASS=None):
