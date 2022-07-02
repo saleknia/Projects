@@ -65,7 +65,8 @@ def worker_init(worker_id):
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
     model.eval()
     model.to(device)
-    down_scales = [1.0,0.5,0.25,0.125]
+    # down_scales = [1.0,0.5,0.25,0.125]
+    down_scales = [0.5,0.25,0.125,0.125]
     num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
@@ -245,7 +246,9 @@ def main(args):
 
     CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
+    # checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
+
     print('Loading Checkpoint...')
     if os.path.isfile(checkpoint_path):
         pretrained_model_path = checkpoint_path
