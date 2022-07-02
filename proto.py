@@ -53,6 +53,7 @@ from tensorboardX import SummaryWriter
 import warnings
 warnings.filterwarnings('ignore')
 from sklearn.decomposition import PCA  
+from sklearn.manifold import TSNE
 
 BATCH_SIZE = 1
 NUM_WORKERS = 4
@@ -62,7 +63,7 @@ SEED = 666
 def worker_init(worker_id):
     random.seed(SEED + worker_id)
 
-def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
+def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128], method='TSNE'):
     model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
@@ -127,18 +128,23 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
             protos = np.array(protos) 
             labels = np.array(labels)
 
-            # pca = PCA(n_components = des_shapes[k])
-            pca = PCA(n_components = 2)
-            pca.fit(protos)
-            protos = pca.transform(protos)
-            protos = torch.tensor(protos)
+            if method=='PCA':
+                # pca = PCA(n_components = des_shapes[k])
+                pca = PCA(n_components = 2)
+                pca.fit(protos)
+                protos = pca.transform(protos)
+                protos = torch.tensor(protos)
 
-            protos = torch.tensor(protos) 
-            labels = torch.tensor(labels)
-            protos_out.append([protos,labels])
-            # for i in range(1, num_class+1):
-            #     indexs = (labels==i)
-            #     protos_des[k][i-1] = protos[indexs].mean(dim=0)
+                protos = torch.tensor(protos) 
+                labels = torch.tensor(labels)
+                protos_out.append([protos,labels])
+                # for i in range(1, num_class+1):
+                #     indexs = (labels==i)
+                #     protos_des[k][i-1] = protos[indexs].mean(dim=0)
+            elif method=='TSNE':
+                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state='int').fit_transform(protos)
+            else:
+                assert f"{method} method hasn't been implemented."
     
     # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
