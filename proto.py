@@ -63,7 +63,7 @@ def worker_init(worker_id):
     random.seed(SEED + worker_id)
 
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128]):
-    model.eval()
+    model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
     down_scales = [0.5,0.25,0.125,0.125]
