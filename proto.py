@@ -142,7 +142,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                 #     indexs = (labels==i)
                 #     protos_des[k][i-1] = protos[indexs].mean(dim=0)
             elif method=='TSNE':
-                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state='int').fit_transform(protos)
+                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
             else:
                 assert f"{method} method hasn't been implemented."
     
