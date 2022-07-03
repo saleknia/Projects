@@ -826,7 +826,7 @@ class prototype_loss(nn.Module):
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.9)
-        self.iteration = 0.0
+        self.iteration = 0
 
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
