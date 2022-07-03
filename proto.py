@@ -66,8 +66,8 @@ def worker_init(worker_id):
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128], method='TSNE'):
     model.train()
     model.to(device)
-    # down_scales = [1.0,0.5,0.25,0.125]
-    down_scales = [0.5,0.25,0.125,0.125]
+    down_scales = [1.0,0.5,0.25,0.125]
+    # down_scales = [0.5,0.25,0.125,0.125]
     num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
@@ -129,28 +129,32 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
             labels = np.array(labels)
 
             if method=='PCA':
-                # pca = PCA(n_components = des_shapes[k])
-                pca = PCA(n_components = 2)
+                pca = PCA(n_components = des_shapes[k])
+                # pca = PCA(n_components = 2)
                 pca.fit(protos)
                 protos = pca.transform(protos)
                 protos = torch.tensor(protos)
 
                 protos = torch.tensor(protos) 
                 labels = torch.tensor(labels)
-                protos_out.append([protos,labels])
-                # for i in range(1, num_class+1):
-                #     indexs = (labels==i)
-                #     protos_des[k][i-1] = protos[indexs].mean(dim=0)
+                # protos_out.append([protos,labels])
+                for i in range(1, num_class+1):
+                    indexs = (labels==i)
+                    protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
             elif method=='TSNE':
-                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+                protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+                # protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
                 protos = torch.tensor(protos) 
                 labels = torch.tensor(labels)
-                protos_out.append([protos,labels])
+                # protos_out.append([protos,labels])
+                for i in range(1, num_class+1):
+                    indexs = (labels==i)
+                    protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
             else:
                 assert f"{method} method hasn't been implemented."
     
-    # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
-    torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
+    torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
+    # torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
     
 
 def get_CTranS_config(NUM_CLASS=None):
@@ -255,8 +259,8 @@ def main(args):
 
     CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
-    # checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
+    # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
 
     print('Loading Checkpoint...')
     if os.path.isfile(checkpoint_path):
