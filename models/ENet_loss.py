@@ -81,8 +81,6 @@ class ENet_loss(nn.Module):
         # self.head = seg_head()
         self.fullconv = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
 
-        self.CGC_1 = CGC(input_channels=16 )
-        self.CGC_2 = CGC(input_channels=64 )
         self.CGC_3 = CGC(input_channels=128)
         self.CGC_4 = CGC(input_channels=128)
 
@@ -132,13 +130,11 @@ class ENet_loss(nn.Module):
         x = self.bottleneck4_0(x, max_indices2)
         x = self.bottleneck4_1(x)
         x = self.bottleneck4_2(x)
-        # x2 = x
-        x2 = self.CGC_2(x)
+        x2 = x
         # stage 5
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
-        # x1 = x
-        x1 = self.CGC_1(x)
+        x1 = x
         # out
         # x = self.head(x4, x3, x2, x1)
         x = self.fullconv(x)
