@@ -113,8 +113,7 @@ class ENet_loss(nn.Module):
         x = self.bottleneck2_6(x)
         x = self.bottleneck2_7(x)
         x = self.bottleneck2_8(x)
-        # x4 = x
-        x4 = self.CGC_4(x)
+        x4 = x
         # stage 3
         x = self.bottleneck3_1(x)
         x = self.bottleneck3_2(x)
@@ -123,8 +122,7 @@ class ENet_loss(nn.Module):
         x = self.bottleneck3_6(x)
         x = self.bottleneck3_7(x)
         x = self.bottleneck3_8(x)
-        # x3 = x
-        x3 = self.CGC_3(x)
+        x3 = x
 
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
