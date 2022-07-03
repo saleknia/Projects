@@ -828,7 +828,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.0)
         self.iteration = -1
 
-        self.momentum_schedule = cosine_scheduler(0.95, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         self.iteration = self.iteration + 1
@@ -877,9 +877,9 @@ class prototype_loss(nn.Module):
             #     weight = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum() / torch.tensor(temp_masks==p,dtype=torch.int8).sum()
             #     weights.append(1.0-weight)
             # weights = torch.diag(torch.tensor(weights))
-                if p in mask_unique_value and p in t_mask_unique_value:
-                    indexs_t.append(count)
-            indexs_t.sort()
+            #     if p in mask_unique_value and p in t_mask_unique_value:
+            #         indexs_t.append(count)
+            # indexs_t.sort()
 
             # for count,p in enumerate(t_mask_unique_value):
             #     p = p.long()
@@ -951,7 +951,7 @@ class prototype_loss(nn.Module):
             #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
             #     l = l + torch.mean(diagonal)
                 
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
+            # l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
