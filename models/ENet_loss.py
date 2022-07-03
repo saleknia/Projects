@@ -26,13 +26,13 @@ class CGC(nn.Module):
     def __init__(self,input_channels):
         super().__init__()
         self.layers = nn.ModuleList()
-        groups_channels = input_channels // 8
-        if _ in range(8):
-            layer = nn.Conv2d(128, groups_channels, kernel_size=(1,1), stride=(1,1))
-            self.layer.append(copy.deepcopy(layer))
+        groups_channels = input_channels // 4
+        for _ in range(4):
+            layer = nn.Conv2d(input_channels, groups_channels, kernel_size=(1,1), stride=(1,1))
+            self.layers.append(copy.deepcopy(layer))
 
     def forward(self, x):
-        for i in range(8):
+        for i in range(4):
             if i==0:
                 out = self.layers[i](x)
             else:
