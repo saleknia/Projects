@@ -813,22 +813,22 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 64 )
-        # self.proto_3 = torch.zeros(num_class, 128)
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 64 )
+        self.proto_3 = torch.zeros(num_class, 128)
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 64 )
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 256)
 
-        self.protos = torch.load('/content/UNet_V2/protos_file.pth')
-        # self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
-        # self.momentum = torch.tensor(0.9)
-        # self.iteration = 0
+        # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
+        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.momentum = torch.tensor(0.9)
+        self.iteration = 0
 
-        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
@@ -953,8 +953,8 @@ class prototype_loss(nn.Module):
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
-            # self.update(prototypes, mask_unique_value, k)
-        # self.iteration = self.iteration + 1
+            self.update(prototypes, mask_unique_value, k)
+        self.iteration = self.iteration + 1
         return loss
 
     @torch.no_grad()
