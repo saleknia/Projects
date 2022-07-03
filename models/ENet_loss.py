@@ -81,9 +81,6 @@ class ENet_loss(nn.Module):
         # self.head = seg_head()
         self.fullconv = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
 
-        self.CGC_3 = CGC(input_channels=128)
-        self.CGC_4 = CGC(input_channels=128)
-
         self.__setattr__('exclusive', ['bottleneck1_0', 'bottleneck1_1', 'bottleneck1_2', 'bottleneck1_3',
                                        'bottleneck1_4', 'bottleneck2_0', 'bottleneck2_1', 'bottleneck2_2',
                                        'bottleneck2_3', 'bottleneck2_4', 'bottleneck2_5', 'bottleneck2_6',
