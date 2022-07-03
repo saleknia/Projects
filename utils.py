@@ -843,12 +843,12 @@ class prototype_loss(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_t_masks = temp_t_masks.squeeze(dim=1)
+            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            # temp_t_masks = temp_t_masks.squeeze(dim=1)
 
-            t_mask_unique_value = torch.unique(temp_t_masks)
-            t_mask_unique_value = t_mask_unique_value[1:]
-            unique_num_t = len(t_mask_unique_value)
+            # t_mask_unique_value = torch.unique(temp_t_masks)
+            # t_mask_unique_value = t_mask_unique_value[1:]
+            # unique_num_t = len(t_mask_unique_value)
 
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
@@ -858,7 +858,7 @@ class prototype_loss(nn.Module):
                 return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
-            prototypes_t = torch.zeros(size=(unique_num_t,C))
+            # prototypes_t = torch.zeros(size=(unique_num_t,C))
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
