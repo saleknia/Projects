@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import copy
 
 class seg_head(nn.Module):
     def __init__(self):
@@ -21,6 +22,22 @@ class seg_head(nn.Module):
 
         return out
 
+class CGC(nn.Module):
+    def __init__(self,input_channels):
+        super().__init__()
+        self.layers = nn.ModuleList()
+        groups_channels = input_channels // 8
+        if _ in range(8):
+            layer = nn.Conv2d(128, groups_channels, kernel_size=(1,1), stride=(1,1))
+            self.layer.append(copy.deepcopy(layer))
+
+    def forward(self, x):
+        for i in range(8):
+            if i==0:
+                out = self.layers[i](x)
+            else:
+                out = torch.cat([out, self.layers[i](x)], dim=1)
+        return out
 
 class ENet_loss(nn.Module):
     """Efficient Neural Network"""
@@ -64,6 +81,11 @@ class ENet_loss(nn.Module):
         # self.head = seg_head()
         self.fullconv = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
 
+        self.CGC_1 = CGC(input_channels=16 )
+        self.CGC_2 = CGC(input_channels=64 )
+        self.CGC_3 = CGC(input_channels=128)
+        self.CGC_4 = CGC(input_channels=128)
+
         self.__setattr__('exclusive', ['bottleneck1_0', 'bottleneck1_1', 'bottleneck1_2', 'bottleneck1_3',
                                        'bottleneck1_4', 'bottleneck2_0', 'bottleneck2_1', 'bottleneck2_2',
                                        'bottleneck2_3', 'bottleneck2_4', 'bottleneck2_5', 'bottleneck2_6',
@@ -93,7 +115,8 @@ class ENet_loss(nn.Module):
         x = self.bottleneck2_6(x)
         x = self.bottleneck2_7(x)
         x = self.bottleneck2_8(x)
-        x4 = x
+        # x4 = x
+        x4 = self.CGC_4(x)
         # stage 3
         x = self.bottleneck3_1(x)
         x = self.bottleneck3_2(x)
@@ -102,17 +125,20 @@ class ENet_loss(nn.Module):
         x = self.bottleneck3_6(x)
         x = self.bottleneck3_7(x)
         x = self.bottleneck3_8(x)
-        x3 = x
+        # x3 = x
+        x3 = self.CGC_3(x)
 
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
         x = self.bottleneck4_1(x)
         x = self.bottleneck4_2(x)
-        x2 = x
+        # x2 = x
+        x2 = self.CGC_2(x)
         # stage 5
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
-        x1 = x
+        # x1 = x
+        x1 = self.CGC_1(x)
         # out
         # x = self.head(x4, x3, x2, x1)
         x = self.fullconv(x)
