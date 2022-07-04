@@ -800,23 +800,23 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
-        # self.down_scales = [1.0,0.5,0.25,0.125]
+        self.down_scales = [1.0,0.5,0.25,0.125]
 
         # ENet
-        self.down_scales = [0.5,0.25,0.125,0.125]
+        # self.down_scales = [0.5,0.25,0.125,0.125]
         
         num_class = 8
         
-        # self.proto_1 = torch.zeros(num_class, 64 )
-        # self.proto_2 = torch.zeros(num_class, 128)
-        # self.proto_3 = torch.zeros(num_class, 256)
-        # self.proto_4 = torch.zeros(num_class, 512)
+        self.proto_1 = torch.zeros(num_class, 64 )
+        self.proto_2 = torch.zeros(num_class, 128)
+        self.proto_3 = torch.zeros(num_class, 256)
+        self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 64 )
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 64 )
+        # self.proto_3 = torch.zeros(num_class, 128)
+        # self.proto_4 = torch.zeros(num_class, 128)
 
 
         # self.proto_1 = torch.zeros(num_class, 64 )
