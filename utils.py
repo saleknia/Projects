@@ -813,10 +813,15 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 64 )
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 64 )
+        # self.proto_3 = torch.zeros(num_class, 128)
+        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_1 = torch.eye(num_class, 16 )
+        self.proto_2 = torch.eye(num_class, 64 )
+        self.proto_3 = torch.eye(num_class, 128)
+        self.proto_4 = torch.eye(num_class, 128)
+
 
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 64 )
@@ -834,15 +839,13 @@ class prototype_loss(nn.Module):
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.signs = [self.sign_1, self.sign_2, self.sign_3, self.sign_4]
         self.momentum = torch.tensor(0.9)
-        self.iteration = -1
+        self.iteration = 0
 
-        self.momentum_schedule_loss = cosine_scheduler(0.0 , 1.0, 60.0, 368)
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
-        self.iteration = self.iteration + 1        
         up = [up1, up2, up3, up4]
 
         for k in range(4):
@@ -962,21 +965,19 @@ class prototype_loss(nn.Module):
             #     l = l + torch.mean(diagonal)
                 
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (self.momentum_schedule_loss[self.iteration] * (torch.mean(diagonal)))
+            l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
+
+        self.iteration = self.iteration + 1        
         return loss
 
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value, k):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
-            if self.signs[k][p-1]==0:
-                self.protos[k][p-1] = prototypes[count] 
-                self.signs[k][p-1] = 1.0
-            else:
-                self.momentum = self.momentum_schedule[self.iteration] 
-                self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+            self.momentum = self.momentum_schedule[self.iteration] 
+            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
