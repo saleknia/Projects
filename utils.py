@@ -834,12 +834,15 @@ class prototype_loss(nn.Module):
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.signs = [self.sign_1, self.sign_2, self.sign_3, self.sign_4]
         self.momentum = torch.tensor(0.9)
-        self.iteration = 0
+        self.iteration = -1
 
+        self.momentum_schedule_loss = cosine_scheduler(0.0 , 1.0, 60.0, 368)
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
+        self.iteration = self.iteration + 1        
         up = [up1, up2, up3, up4]
 
         for k in range(4):
@@ -861,8 +864,8 @@ class prototype_loss(nn.Module):
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
-            
-            if unique_num<2 or (self.iteration < 20 * 368):
+
+            if unique_num<2:
                 return 0
 
             prototypes = torch.zeros(size=(unique_num,C))
@@ -959,10 +962,9 @@ class prototype_loss(nn.Module):
             #     l = l + torch.mean(diagonal)
                 
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (1.0 * (torch.mean(diagonal)))
+            l = l + (self.momentum_schedule_loss[self.iteration] * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
-        self.iteration = self.iteration + 1
         return loss
 
     @torch.no_grad()
