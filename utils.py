@@ -800,7 +800,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
-        self.down_scales = [1.0,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.25,0.125]
 
         # ENet
         self.down_scales = [0.5,0.25,0.125,0.125]
@@ -812,43 +812,28 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 256)
         # self.proto_4 = torch.zeros(num_class, 512)
 
-
         # ENet
         self.proto_1 = torch.zeros(num_class, 16 )
         self.proto_2 = torch.zeros(num_class, 64 )
         self.proto_3 = torch.zeros(num_class, 128)
         self.proto_4 = torch.zeros(num_class, 128)
 
-
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 64 )
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 256)
 
-
-        self.sign_1 = torch.zeros(num_class)
-        self.sign_2 = torch.zeros(num_class)
-        self.sign_3 = torch.zeros(num_class)
-        self.sign_4 = torch.zeros(num_class)
-
-
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
-        self.signs = [self.sign_1, self.sign_2, self.sign_3, self.sign_4]
-
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
-        self.count = -1
 
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
-
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
         up = [up1, up2, up3, up4]
-        self.count = self.count + 1
-        if self.count//368 == 0:
-            self.count = 0.0
+
         for k in range(4):
             indexs = []
             indexs_t = []
@@ -868,7 +853,7 @@ class prototype_loss(nn.Module):
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
-
+            
             if unique_num<2:
                 return 0
 
@@ -888,6 +873,7 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
+
             #     weight = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum() / torch.tensor(temp_masks==p,dtype=torch.int8).sum()
             #     weights.append(1.0-weight)
             # weights = torch.diag(torch.tensor(weights))
@@ -969,8 +955,7 @@ class prototype_loss(nn.Module):
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
-
-        self.iteration = self.iteration + 1        
+        self.iteration = self.iteration + 1
         return loss
 
     @torch.no_grad()
@@ -979,7 +964,7 @@ class prototype_loss(nn.Module):
             p = p.long().item()
             self.momentum = self.momentum_schedule[self.iteration] 
             self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
-
+            
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
