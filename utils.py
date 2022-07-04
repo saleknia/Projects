@@ -950,8 +950,8 @@ class prototype_loss(nn.Module):
             #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
             #     l = l + torch.mean(diagonal)
                 
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            l = l + (1.0 * (torch.mean(diagonal)))
+            l = l + (1.0 / torch.sum(distances_c[0]-diagonal))
+            l = l + (1.0 / (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
         self.iteration = self.iteration + 1
