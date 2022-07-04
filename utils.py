@@ -803,20 +803,21 @@ class prototype_loss(nn.Module):
         self.down_scales = [1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [0.5,0.25,0.125,0.125]
+        self.down_scales = [0.5,0.25,0.125,0.125]
         
         num_class = 8
         
-        self.proto_1 = torch.zeros(num_class, 64 )
-        self.proto_2 = torch.zeros(num_class, 128)
-        self.proto_3 = torch.zeros(num_class, 256)
-        self.proto_4 = torch.zeros(num_class, 512)
+        # self.proto_1 = torch.zeros(num_class, 64 )
+        # self.proto_2 = torch.zeros(num_class, 128)
+        # self.proto_3 = torch.zeros(num_class, 256)
+        # self.proto_4 = torch.zeros(num_class, 512)
+
 
         # ENet
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 64 )
-        # self.proto_3 = torch.zeros(num_class, 128)
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 64 )
+        self.proto_3 = torch.zeros(num_class, 128)
+        self.proto_4 = torch.zeros(num_class, 128)
 
 
         # self.proto_1 = torch.zeros(num_class, 64 )
@@ -834,16 +835,20 @@ class prototype_loss(nn.Module):
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.signs = [self.sign_1, self.sign_2, self.sign_3, self.sign_4]
+
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
+        self.count = -1
 
-        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
         up = [up1, up2, up3, up4]
-
+        self.count = self.count + 1
+        if self.count//368 == 0:
+            self.count = 0.0
         for k in range(4):
             indexs = []
             indexs_t = []
@@ -972,10 +977,8 @@ class prototype_loss(nn.Module):
     def update(self, prototypes, mask_unique_value, k):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
-            # self.momentum = self.momentum_schedule[self.iteration] 
-            # self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
-            self.signs[k][p-1] = self.signs[k][p-1] + 1
-            self.protos[k][p-1] = (self.protos[k][p-1] + prototypes[count]) / self.signs[k][p-1]
+            self.momentum = self.momentum_schedule[self.iteration] 
+            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
