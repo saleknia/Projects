@@ -937,7 +937,10 @@ class prototype_loss(nn.Module):
             weight = torch.cdist(proto.clone().detach(), proto.clone().detach(), p=2.0)
             weight = weight[:,:,0:length]
             weight = weight - weight.min()
-            weight = 1.0 + (weight / weight.max())
+            if weight.max()!=0:
+                weight = 1.0 - (weight / weight.max())
+            else:
+                weight = 1.0 - weight
             prototypes = prototypes.unsqueeze(dim=0)
             distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
             proto = self.protos[k][indexs].squeeze(dim=0)
@@ -955,7 +958,7 @@ class prototype_loss(nn.Module):
             #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
             #     l = l + torch.mean(diagonal)
 
-            l = l + (1.0 / torch.mean(weight[0]*(distances_c[0]-diagonal)))
+            l = l + (1.0 / torch.mean(weight[0].clone().detach()*(distances_c[0]-diagonal)))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
