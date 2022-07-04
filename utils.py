@@ -823,8 +823,16 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 256)
 
+
+        self.sign_1 = torch.zeros(num_class, 1)
+        self.sign_2 = torch.zeros(num_class, 1)
+        self.sign_3 = torch.zeros(num_class, 1)
+        self.sign_4 = torch.zeros(num_class, 1)
+
+
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.signs = [self.sign_1, self.sign_2, self.sign_3, self.sign_4]
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
 
@@ -951,7 +959,7 @@ class prototype_loss(nn.Module):
             #     l = l + torch.mean(diagonal)
                 
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
-            # l = l + (1.0 / (torch.mean(diagonal)))
+            l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
         self.iteration = self.iteration + 1
@@ -960,9 +968,14 @@ class prototype_loss(nn.Module):
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value, k):
         for count, p in enumerate(mask_unique_value):
-            p = p.long().item()
-            self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+            if self.signs[k][p-1]==0:
+                p = p.long().item()
+                self.protos[k][p-1] = prototypes[count] 
+                self.signs[k][p-1] = 1.0
+            else:
+                p = p.long().item()
+                self.momentum = self.momentum_schedule[self.iteration] 
+                self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
