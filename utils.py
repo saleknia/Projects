@@ -813,14 +813,10 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 64 )
-        # self.proto_3 = torch.zeros(num_class, 128)
-        # self.proto_4 = torch.zeros(num_class, 128)
-        self.proto_1 = torch.eye(num_class, 16 )
-        self.proto_2 = torch.eye(num_class, 64 )
-        self.proto_3 = torch.eye(num_class, 128)
-        self.proto_4 = torch.eye(num_class, 128)
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 64 )
+        self.proto_3 = torch.zeros(num_class, 128)
+        self.proto_4 = torch.zeros(num_class, 128)
 
 
         # self.proto_1 = torch.zeros(num_class, 64 )
@@ -829,10 +825,10 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 256)
 
 
-        self.sign_1 = torch.zeros(num_class, 1)
-        self.sign_2 = torch.zeros(num_class, 1)
-        self.sign_3 = torch.zeros(num_class, 1)
-        self.sign_4 = torch.zeros(num_class, 1)
+        self.sign_1 = torch.zeros(num_class)
+        self.sign_2 = torch.zeros(num_class)
+        self.sign_3 = torch.zeros(num_class)
+        self.sign_4 = torch.zeros(num_class)
 
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
@@ -841,7 +837,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 60.0, 368)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
@@ -976,8 +972,10 @@ class prototype_loss(nn.Module):
     def update(self, prototypes, mask_unique_value, k):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
-            self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+            # self.momentum = self.momentum_schedule[self.iteration] 
+            # self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+            self.signs[k][p-1] = self.signs[k][p-1] + 1
+            self.protos[k][p-1] = (self.protos[k][p-1] + prototypes[count]) / self.signs[k][p-1]
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
