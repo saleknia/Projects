@@ -951,7 +951,7 @@ class prototype_loss(nn.Module):
             #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
             #     l = l + torch.mean(diagonal)
                 
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal))
+            l = l + (1.0 / torch.sum(distances_c[0]-diagonal))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
@@ -964,7 +964,7 @@ class prototype_loss(nn.Module):
             p = p.long().item()
             self.momentum = self.momentum_schedule[self.iteration] 
             self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
-            
+
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
