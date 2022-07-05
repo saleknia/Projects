@@ -846,12 +846,12 @@ class prototype_loss(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            # temp_t_masks = temp_t_masks.squeeze(dim=1)
+            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_t_masks = temp_t_masks.squeeze(dim=1)
 
-            # t_mask_unique_value = torch.unique(temp_t_masks)
-            # t_mask_unique_value = t_mask_unique_value[1:]
-            # unique_num_t = len(t_mask_unique_value)
+            t_mask_unique_value = torch.unique(temp_t_masks)
+            t_mask_unique_value = t_mask_unique_value[1:]
+            unique_num_t = len(t_mask_unique_value)
 
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
@@ -897,9 +897,9 @@ class prototype_loss(nn.Module):
             cosine_loss_s = self.cosine_loss_s(self.protos[k][batch_indexs].clone().detach(), prototypes,torch.ones(prototypes.shape[0]))
 
 
-            # proto = prototypes.unsqueeze(dim=0)
-            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            # l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
 
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
             # l = l + (1.0 * (torch.mean(diagonal)))
