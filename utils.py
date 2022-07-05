@@ -894,7 +894,7 @@ class prototype_loss(nn.Module):
             prototypes = prototypes.squeeze(dim=0)
             diagonal = distances_c[0] * (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
 
-            cosine_loss_s = self.cosine_loss_s(self.protos[k][batch_indexs].clone().detach(), prototypes,torch.ones(proto.shape[0]))
+            cosine_loss_s = self.cosine_loss_s(self.protos[k][batch_indexs].clone().detach(), prototypes,torch.ones(prototypes.shape[0]))
 
 
             # proto = prototypes.unsqueeze(dim=0)
