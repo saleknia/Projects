@@ -887,7 +887,7 @@ class prototype_loss(nn.Module):
             # indexs = [float(x) for x in indexs]
 
 
-            # l = 0.0
+            l = 0.0
             # proto = self.protos[k][indexs].unsqueeze(dim=0)
             # prototypes = prototypes.unsqueeze(dim=0)
             # distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
@@ -914,7 +914,7 @@ class prototype_loss(nn.Module):
         #     l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
         #     # l = l + (1.0 * (torch.mean(diagonal)))
         #     l = l + cosine_loss_s
-        #     loss = loss + l
+            loss = loss + l
         #     self.update(prototypes, mask_unique_value, k)
         # self.iteration = self.iteration + 1
         return loss
