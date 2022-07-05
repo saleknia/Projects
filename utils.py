@@ -829,7 +829,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.count = -1
-        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
         self.cosine_loss = torch.nn.CosineEmbeddingLoss()
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
