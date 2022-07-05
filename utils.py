@@ -806,6 +806,7 @@ class prototype_loss(nn.Module):
         self.down_scales = [0.5,0.25,0.125,0.125]
         
         num_class = 8
+        self.num_class = num_class
         
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 128)
@@ -827,8 +828,8 @@ class prototype_loss(nn.Module):
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
-
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.count = -1
+        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
@@ -874,73 +875,16 @@ class prototype_loss(nn.Module):
                 temp = temp / batch_counter
                 prototypes[count] = temp
 
-            #     weight = torch.tensor(temp_t_masks==p,dtype=torch.int8).sum() / torch.tensor(temp_masks==p,dtype=torch.int8).sum()
-            #     weights.append(1.0-weight)
-            # weights = torch.diag(torch.tensor(weights))
-            #     if p in mask_unique_value and p in t_mask_unique_value:
-            #         indexs_t.append(count)
-            # indexs_t.sort()
-
-            # for count,p in enumerate(t_mask_unique_value):
-            #     p = p.long()
-            #     bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-            #     temp = 0.0
-            #     batch_counter = 0
-            #     for t in range(B):
-            #         if torch.sum(bin_mask[t])!=0:
-            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-            #             batch_counter = batch_counter + 1
-            #     temp = temp / batch_counter
-            #     prototypes_t[count] = temp
-
             indexs = [x.item()-1 for x in mask_unique_value]
-            length = len(indexs)
             indexs.sort()
             indexs_all = [x for x in range(8)]
             temp_indexs = [x for x in indexs_all if x not in indexs]
             indexs = [*indexs,*temp_indexs]
             indexs = [float(x) for x in indexs]
 
-            #####################################################
-            #####################################################
-
-            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            # temp_t_masks = temp_t_masks.squeeze(dim=1)
-
-            # t_mask_unique_value = torch.unique(temp_t_masks)
-            # t_mask_unique_value = t_mask_unique_value[1:]
-            # t_unique_num = len(t_mask_unique_value)
-            
-            # prototypes_t = torch.zeros(size=(t_unique_num,C))
-
-            # for count,p in enumerate(t_mask_unique_value):
-            #     p = p.long()
-            #     bin_mask = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-            #     temp = 0.0
-            #     batch_counter = 0
-            #     for t in range(B):
-            #         if torch.sum(bin_mask[t])!=0:
-            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-            #             batch_counter = batch_counter + 1
-            #     temp = temp / batch_counter
-            #     prototypes_t[count] = temp
-
-            #####################################################
-            #####################################################
 
             l = 0.0
             proto = self.protos[k][indexs].unsqueeze(dim=0)
-            weight = torch.cdist(proto.clone().detach(), proto.clone().detach(), p=2.0)
-            weight = weight[:,:,0:length]
-            weight = weight - weight.min()
-            if weight.max()!=0:
-                weight = 1.0 - (weight / weight.max())
-            else:
-                weight = 1.0 - weight
             prototypes = prototypes.unsqueeze(dim=0)
             distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
             proto = self.protos[k][indexs].squeeze(dim=0)
@@ -951,14 +895,7 @@ class prototype_loss(nn.Module):
             # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             # l = l + (1.0 / torch.mean(distances))
 
-            # if 0<len(indexs):
-            #     proto = prototypes[indexs].unsqueeze(dim=0)
-            #     proto_t = prototypes_t.unsqueeze(dim=0)        
-            #     distances_t = torch.cdist(proto_t.clone().detach(), proto, p=2.0)
-            #     diagonal = distances_t[0] * (torch.eye(distances_t[0].shape[0],distances_t[0].shape[1]))
-            #     l = l + torch.mean(diagonal)
-
-            l = l + (1.0 / torch.mean(weight[0].clone().detach()*(distances_c[0]-diagonal)))
+            l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
@@ -971,6 +908,7 @@ class prototype_loss(nn.Module):
             p = p.long().item()
             self.momentum = self.momentum_schedule[self.iteration] 
             self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
