@@ -800,10 +800,10 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
-        self.down_scales = [1.0,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [0.5,0.25,0.125,0.125]
+        self.down_scales = [0.5,0.25,0.125,0.125]
         
         num_class = 8
         self.num_class = num_class
