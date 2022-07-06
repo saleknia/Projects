@@ -805,7 +805,7 @@ class prototype_loss(nn.Module):
         # ENet
         self.down_scales = [0.5,0.25,0.125,0.125]
         
-        num_class = 9
+        num_class = 8
         self.num_class = num_class
         
         # Attention UNet
@@ -831,8 +831,6 @@ class prototype_loss(nn.Module):
         self.iteration = 0
 
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
-        self.cosine_loss_s = torch.nn.CosineEmbeddingLoss()
-        # self.cosine_loss_d = torch.nn.CosineEmbeddingLoss()
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
@@ -854,7 +852,7 @@ class prototype_loss(nn.Module):
             unique_num_t = len(t_mask_unique_value)
 
             mask_unique_value = torch.unique(temp_masks)
-            # mask_unique_value = mask_unique_value[1:]
+            mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
             
             if unique_num<2:
@@ -878,7 +876,7 @@ class prototype_loss(nn.Module):
                 prototypes[count] = temp
 
 
-            indexs = [x.item() for x in mask_unique_value]
+            indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
 
             # indexs = [x.item()-1 for x in mask_unique_value]
@@ -898,18 +896,13 @@ class prototype_loss(nn.Module):
             proto = self.protos[k][indexs].squeeze(dim=0)
             prototypes = prototypes.squeeze(dim=0)
             x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            x[0,0] = 0.0
             diagonal = distances_c[0] * x
-
-            # cosine_loss_s = self.cosine_loss_s(self.protos[k][batch_indexs].clone().detach(), prototypes,torch.ones(prototypes.shape[0]))
-
 
             # proto = prototypes.unsqueeze(dim=0)
             # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             # l = l + (1.0 / torch.mean(distances))
         
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
-            # l = l + (1.0 * (torch.mean(diagonal)))
             l = l + (1.0 * (torch.mean(diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)

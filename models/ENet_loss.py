@@ -63,10 +63,10 @@ class ENet_loss(nn.Module):
         # proto_des_4 = torch.zeros(9, 128)
         # self.protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
 
-        self.protos_des = torch.load('/content/UNet_V2/protos_file.pth')
-        self.protos_des = np.array(self.protos_des)
-        self.protos_out = torch.load('/content/UNet_V2/protos_out_file.pth')
-        self.protos_out = np.array(self.protos_out)
+        # self.protos_des = torch.load('/content/UNet_V2/protos_file.pth')
+        # self.protos_des = np.array(self.protos_des)
+        # self.protos_out = torch.load('/content/UNet_V2/protos_out_file.pth')
+        # self.protos_out = np.array(self.protos_out)
 
         # self.neigh_x1 = KNeighborsClassifier(n_neighbors=11)
         # X_1, y_1 = self.protos_out[0]
@@ -76,13 +76,13 @@ class ENet_loss(nn.Module):
         # X_2, y_2 = self.protos_out[1]
         # self.neigh_x2.fit(X_2, y_2)
 
-        self.neigh_x3 = KNeighborsClassifier(n_neighbors=11)
-        self.X_3, self.y_3 = self.protos_out[2]
-        self.neigh_x3.fit(self.X_3, self.y_3)
+        # self.neigh_x3 = KNeighborsClassifier(n_neighbors=11)
+        # self.X_3, self.y_3 = self.protos_out[2]
+        # self.neigh_x3.fit(self.X_3, self.y_3)
 
-        self.neigh_x4 = KNeighborsClassifier(n_neighbors=11)
-        X_4, y_4 = self.protos_out[3]
-        self.neigh_x4.fit(X_4, y_4)
+        # self.neigh_x4 = KNeighborsClassifier(n_neighbors=11)
+        # X_4, y_4 = self.protos_out[3]
+        # self.neigh_x4.fit(X_4, y_4)
 
 
     def forward(self, x):
@@ -129,15 +129,15 @@ class ENet_loss(nn.Module):
         x = self.bottleneck3_8(x)
         x3 = x
 
-        if self.training==False:
-            B, C, H, W = x3.shape
-            x3_p = x3.reshape(B * H * W ,C).detach().cpu().numpy()
-            labels = self.neigh_x3.predict(x3_p)
-            for i in range(B * H * W):
-                if labels[i]!=0:
-                    index = self.neigh_x3.kneighbors(X=np.array([x3_p[i]]), n_neighbors=1, return_distance=False)
-                    x3_p[i] = self.X_3[index[0,0]]
-            x = torch.tensor(x3_p).reshape(B, C, H, W).cuda()
+        # if self.training==False:
+        #     B, C, H, W = x3.shape
+        #     x3_p = x3.reshape(B * H * W ,C).detach().cpu().numpy()
+        #     labels = self.neigh_x3.predict(x3_p)
+        #     for i in range(B * H * W):
+        #         if labels[i]!=0:
+        #             index = self.neigh_x3.kneighbors(X=np.array([x3_p[i]]), n_neighbors=1, return_distance=False)
+        #             x3_p[i] = self.X_3[index[0,0]]
+        #     x = torch.tensor(x3_p).reshape(B, C, H, W).cuda()
 
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
