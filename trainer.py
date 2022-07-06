@@ -166,27 +166,31 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs, e5 = model(inputs)
         # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
         # outputs, up4, up3, up2, up1, e5 = model(inputs)
-        outputs, up4, up3, up2, up1 = model(inputs)
+        # outputs, up4, up3, up2, up1 = model(inputs)
+        e5 = model(inputs, pretrain=True)
 
-        targets = targets.long()
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = (predictions==targets).float()
-        t_masks = targets * overlap
-        targets = targets.float()
+
+        # targets = targets.long()
+        # predictions = torch.argmax(input=outputs,dim=1).long()
+        # overlap = (predictions==targets).float()
+        # t_masks = targets * overlap
+        # targets = targets.float()
 
         # print(activation['up4'].shape)
         # print(activation['up3'].shape)
         # print(activation['up2'].shape)
         # print(activation['up1'].shape)
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(outputs, targets, softmax=True)
+        # loss_ce = ce_loss(outputs, targets[:].long())
+        # loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_kd = kd_loss(e5=up4)
+        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_kd = kd_loss(e5=e5)
 
-        # loss_proto = 0.0
-        loss_kd = 0.0
+        loss_proto = 0.0
+        # loss_kd = 0.0
+        loss_ce = 0
+        loss_dice = 0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
@@ -195,7 +199,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
+        loss = loss_kd 
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -222,8 +227,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_kd_total.update(loss_kd)
         ###############################################
         targets = targets.long()
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        Eval.add_batch(gt_image=targets,pre_image=predictions)
+        # predictions = torch.argmax(input=outputs,dim=1).long()
+        # Eval.add_batch(gt_image=targets,pre_image=predictions)
 
         accuracy.update(Eval.Pixel_Accuracy())
 
