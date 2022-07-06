@@ -192,7 +192,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
         # loss_kd = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
         ###############################################
-        alpha = 0.1
+        alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
