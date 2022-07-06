@@ -313,16 +313,18 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
+        # valid_loader = DataLoader(valid_dataset,
+        #                         batch_size=1,
+        #                         shuffle=True,
+        #                         worker_init_fn=worker_init,
+        #                         num_workers=NUM_WORKERS,
+        #                         pin_memory=PIN_MEMORY,
+        #                         drop_last=True,
+        #                         )
 
-        data_loader={'train':train_loader,'valid':valid_loader}
+        # data_loader={'train':train_loader,'valid':valid_loader}
+        data_loader={'train':train_loader,'valid':train_loader}
+
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)

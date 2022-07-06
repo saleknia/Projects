@@ -153,7 +153,7 @@ class AttentionUNet_loss(nn.Module):
         #                         nn.ReLU(),
         #                         nn.Linear(128, 9),
         #                         nn.Sigmoid())
-    def forward(self, x, pretrain=True):
+    def forward(self, x, pretrain=False):
         """
         e : encoder layers
         d : decoder layers

@@ -830,7 +830,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.8, 1.0, 60.0, 368)
         self.cosine_loss_s = torch.nn.CosineEmbeddingLoss()
         # self.cosine_loss_d = torch.nn.CosineEmbeddingLoss()
 
@@ -840,7 +840,6 @@ class prototype_loss(nn.Module):
 
         for k in range(4):
             indexs = []
-            indexs_t = []
             weights = []
             B,C,H,W = up[k].shape
             
@@ -899,31 +898,12 @@ class prototype_loss(nn.Module):
             # cosine_loss_s = self.cosine_loss_s(self.protos[k][batch_indexs].clone().detach(), prototypes,torch.ones(prototypes.shape[0]))
 
 
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
-
-
-            # weights = distances.detach().clone()
-            # weights = weights - weights.min()
-            # if weights.max()!=0:
-            #     weights = weights / weights.max()
-            # weights = 1.0 - weights 
-            # l = l + (torch.mean(weights * distances)) + (1.0 / torch.mean(distances))
-            
-            x = self.protos[k][batch_indexs].unsqueeze(dim=0).clone().detach()
-            weights = torch.cdist(x, x, p=2.0)[0]
-            weights = weights - weights.min()
-            if weights.max()!=0:
-                weights = weights / weights.max()
-            weights = 1.0 - weights
-            weights = weights[:,0:length] 
-
-            if weights.shape!=(distances_c[0]-diagonal).shape:
-                assert "Matrix Shape's Are Different"
-            l = l + (torch.mean(weights * (distances_c[0]-diagonal))) # + (1.0 / torch.mean(distances_c[0]-diagonal)) 
+            # proto = prototypes.unsqueeze(dim=0)
+            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            # l = l + (1.0 / torch.mean(distances))
+        
+            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
             l = l + (1.0 * (torch.mean(diagonal)))
-            # l = l + cosine_loss_s
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
         self.iteration = self.iteration + 1
