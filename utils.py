@@ -830,7 +830,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.8, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
@@ -915,7 +915,7 @@ class prototype_loss(nn.Module):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
             self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[k][p] = self.protos[k][p] * self.momentum + prototypes[count] * (1 - self.momentum)
+            self.protos[k][p-1] = self.protos[k][p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
 
     # @torch.no_grad()
     # def update(self, prototypes, mask_unique_value, k):
