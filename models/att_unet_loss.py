@@ -153,56 +153,72 @@ class AttentionUNet_loss(nn.Module):
         #                         nn.ReLU(),
         #                         nn.Linear(128, 9),
         #                         nn.Sigmoid())
-    def forward(self, x):
+    def forward(self, x, pretrain=True):
         """
         e : encoder layers
         d : decoder layers
         s : skip-connections from encoder layers to decoder layers
         """
-        e1 = self.Conv1(x)
+        if pretrain:
+            e1 = self.Conv1(x)
 
-        e2 = self.MaxPool(e1)
-        e2 = self.Conv2(e2)
+            e2 = self.MaxPool(e1)
+            e2 = self.Conv2(e2)
 
-        e3 = self.MaxPool(e2)
-        e3 = self.Conv3(e3)
+            e3 = self.MaxPool(e2)
+            e3 = self.Conv3(e3)
 
-        e4 = self.MaxPool(e3)
-        e4 = self.Conv4(e4)
+            e4 = self.MaxPool(e3)
+            e4 = self.Conv4(e4)
 
-        e5 = self.MaxPool(e4)
-        e5 = self.Conv5(e5)
-
-        d5 = self.Up5(e5)
-
-        s4 = self.Att5(gate=d5, skip_connection=e4)
-        d5 = torch.cat((s4, d5), dim=1) # concatenate attention-weighted skip connection with previous layer output
-        d5 = self.UpConv5(d5)
-
-        d4 = self.Up4(d5)
-        s3 = self.Att4(gate=d4, skip_connection=e3)
-        d4 = torch.cat((s3, d4), dim=1)
-        d4 = self.UpConv4(d4)
-
-        d3 = self.Up3(d4)
-        s2 = self.Att3(gate=d3, skip_connection=e2)
-        d3 = torch.cat((s2, d3), dim=1)
-        d3 = self.UpConv3(d3)
-
-        d2 = self.Up2(d3)
-        s1 = self.Att2(gate=d2, skip_connection=e1)
-        d2 = torch.cat((s1, d2), dim=1)
-        d2 = self.UpConv2(d2)
-
-        out = self.Conv(d2)
-        # out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
-
-        # y = self.exist(d2)
-        # y = y.view(-1, self.fc_input_feature)
-        # exist_pred = self.fc(y)
-
-        if self.training:
-            return out, d5, d4, d3, d2
-            # return out, d4, d3, d2
+            e5 = self.MaxPool(e4)
+            e5 = self.Conv5(e5)
+            return e5
+        
         else:
-            return out
+            e1 = self.Conv1(x)
+
+            e2 = self.MaxPool(e1)
+            e2 = self.Conv2(e2)
+
+            e3 = self.MaxPool(e2)
+            e3 = self.Conv3(e3)
+
+            e4 = self.MaxPool(e3)
+            e4 = self.Conv4(e4)
+
+            e5 = self.MaxPool(e4)
+            e5 = self.Conv5(e5)
+            d5 = self.Up5(e5)
+
+            s4 = self.Att5(gate=d5, skip_connection=e4)
+            d5 = torch.cat((s4, d5), dim=1) # concatenate attention-weighted skip connection with previous layer output
+            d5 = self.UpConv5(d5)
+
+            d4 = self.Up4(d5)
+            s3 = self.Att4(gate=d4, skip_connection=e3)
+            d4 = torch.cat((s3, d4), dim=1)
+            d4 = self.UpConv4(d4)
+
+            d3 = self.Up3(d4)
+            s2 = self.Att3(gate=d3, skip_connection=e2)
+            d3 = torch.cat((s2, d3), dim=1)
+            d3 = self.UpConv3(d3)
+
+            d2 = self.Up2(d3)
+            s1 = self.Att2(gate=d2, skip_connection=e1)
+            d2 = torch.cat((s1, d2), dim=1)
+            d2 = self.UpConv2(d2)
+
+            out = self.Conv(d2)
+            # out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
+
+            # y = self.exist(d2)
+            # y = y.view(-1, self.fc_input_feature)
+            # exist_pred = self.fc(y)
+
+            if self.training:
+                return out, d5, d4, d3, d2
+                # return out, d4, d3, d2
+            else:
+                return out  
