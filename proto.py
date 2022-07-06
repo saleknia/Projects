@@ -128,7 +128,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     
             # protos = np.array(protos) 
             # labels = np.array(labels)
-
+            
             protos = torch.tensor(protos)
             labels = torch.tensor(labels)
             protos_out.append([protos,labels])

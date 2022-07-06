@@ -57,22 +57,28 @@ class ENet_loss(nn.Module):
 
         
 
+        # proto_des_1 = torch.zeros(9, 16 )
+        # proto_des_2 = torch.zeros(9, 64 )
+        # proto_des_3 = torch.zeros(9, 128)
+        # proto_des_4 = torch.zeros(9, 128)
+        # self.protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+
         self.protos_des = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos_des = np.array(self.protos_des)
         self.protos_out = torch.load('/content/UNet_V2/protos_out_file.pth')
         self.protos_out = np.array(self.protos_out)
 
-        self.neigh_x1 = KNeighborsClassifier(n_neighbors=11)
-        X_1, y_1 = self.protos_out[0]
-        self.neigh_x1.fit(X_1, y_1)
+        # self.neigh_x1 = KNeighborsClassifier(n_neighbors=11)
+        # X_1, y_1 = self.protos_out[0]
+        # self.neigh_x1.fit(X_1, y_1)
 
-        self.neigh_x2 = KNeighborsClassifier(n_neighbors=11)
-        X_2, y_2 = self.protos_out[1]
-        self.neigh_x2.fit(X_2, y_2)
+        # self.neigh_x2 = KNeighborsClassifier(n_neighbors=11)
+        # X_2, y_2 = self.protos_out[1]
+        # self.neigh_x2.fit(X_2, y_2)
 
         self.neigh_x3 = KNeighborsClassifier(n_neighbors=11)
-        X_3, y_3 = self.protos_out[2]
-        self.neigh_x3.fit(X_3, y_3)
+        self.X_3, self.y_3 = self.protos_out[2]
+        self.neigh_x3.fit(self.X_3, self.y_3)
 
         self.neigh_x4 = KNeighborsClassifier(n_neighbors=11)
         X_4, y_4 = self.protos_out[3]
@@ -102,13 +108,16 @@ class ENet_loss(nn.Module):
         x = self.bottleneck2_8(x)
         x4 = x
 
-        if self.training==False:
-            B, C, H, W = x4.shape
-            x4_p = x4.reshape(B * H * W ,C).detach().cpu().numpy()
-            labels = self.neigh_x4.predict(x4_p)
-            for count,label in enumerate(labels):
-                x4_p[count] = self.protos_des[3][label]
-            x4 = torch.tensor(x4_p).reshape(B, C, H, W)
+        # if self.training==False:
+        #     B, C, H, W = x4.shape
+        #     x4_p = x4.reshape(B * H * W ,C).detach().cpu().numpy()
+        #     labels = self.neigh_x4.predict(x4_p)
+        #     for count,label in enumerate(labels):
+        #         if label!=0:
+        #             x4_p[count] = self.protos_des[3][label]
+        #         else:
+        #             x4_p[count] = np.zeros(C)
+        #     x = torch.tensor(x4_p).reshape(B, C, H, W).cuda()
 
         # stage 3
         x = self.bottleneck3_1(x)
@@ -124,9 +133,11 @@ class ENet_loss(nn.Module):
             B, C, H, W = x3.shape
             x3_p = x3.reshape(B * H * W ,C).detach().cpu().numpy()
             labels = self.neigh_x3.predict(x3_p)
-            for count,label in enumerate(labels):
-                x3_p[count] = self.protos_des[2][label]
-            x3 = torch.tensor(x3_p).reshape(B, C, H, W)
+            for i in range(B * H * W):
+                if labels[i]!=0:
+                    index = self.neigh_x3.kneighbors(X=np.array([x3_p[i]]), n_neighbors=1, return_distance=False)
+                    x3_p[i] = self.X_3[index[0,0]]
+            x = torch.tensor(x3_p).reshape(B, C, H, W).cuda()
 
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
