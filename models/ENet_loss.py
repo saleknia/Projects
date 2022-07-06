@@ -1,43 +1,9 @@
 import torch
 import torch.nn as nn
 import copy
+import numpy as np
+from sklearn.neighbors import KNeighborsClassifier
 
-class seg_head(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.scale_4 = nn.Upsample(scale_factor=4)
-        self.scale_3 = nn.Upsample(scale_factor=4)
-        self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(128, 16, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(128, 16, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 = nn.Conv2d(64, 16, kernel_size=(1,1), stride=(1,1))
-
-
-    def forward(self, x4, x3, x2, x1):
-        x4 = torch.nn.functional.sigmoid(self.scale_4(self.conv_4(x4)))  
-        x3 = torch.nn.functional.sigmoid(self.scale_3(self.conv_3(x3)))
-        x2 = torch.nn.functional.sigmoid(self.scale_2(self.conv_2(x2)))
-        
-        out = x1 + x2 + x3 + x4
-
-        return out
-
-class CGC(nn.Module):
-    def __init__(self,input_channels):
-        super().__init__()
-        self.layers = nn.ModuleList()
-        groups_channels = input_channels // 4
-        for _ in range(4):
-            layer = nn.Conv2d(input_channels, groups_channels, kernel_size=(1,1), stride=(1,1))
-            self.layers.append(copy.deepcopy(layer))
-
-    def forward(self, x):
-        for i in range(4):
-            if i==0:
-                out = self.layers[i](x)
-            else:
-                out = torch.cat([out, self.layers[i](x)], dim=1)
-        return out
 
 class ENet_loss(nn.Module):
     """Efficient Neural Network"""
@@ -89,6 +55,30 @@ class ENet_loss(nn.Module):
                                        'bottleneck3_7', 'bottleneck3_8', 'bottleneck4_0', 'bottleneck4_1',
                                        'bottleneck4_2', 'bottleneck5_0', 'bottleneck5_1', 'fullconv'])
 
+        
+
+        self.protos_des = torch.load('/content/UNet_V2/protos_file.pth')
+        self.protos_des = np.array(self.protos_des)
+        self.protos_out = torch.load('/content/UNet_V2/protos_out_file.pth')
+        self.protos_out = np.array(self.protos_out)
+
+        neigh_x1 = KNeighborsClassifier(n_neighbors=11)
+        X_1, y_1 = self.protos_out[0]
+        neigh_x1.fit(X_1, y_1)
+
+        neigh_x2 = KNeighborsClassifier(n_neighbors=11)
+        X_2, y_2 = self.protos_out[1]
+        neigh_x2.fit(X_2, y_2)
+
+        neigh_x3 = KNeighborsClassifier(n_neighbors=11)
+        X_3, y_3 = self.protos_out[2]
+        neigh_x3.fit(X_3, y_3)
+
+        neigh_x4 = KNeighborsClassifier(n_neighbors=11)
+        X_4, y_4 = self.protos_out[3]
+        neigh_x4.fit(X_4, y_4)
+
+
     def forward(self, x):
         # init
         x = self.initial(x)
@@ -111,6 +101,15 @@ class ENet_loss(nn.Module):
         x = self.bottleneck2_7(x)
         x = self.bottleneck2_8(x)
         x4 = x
+
+        if self.training==False:
+            B, C, H, W = x4.shape
+            x4_p = x4.reshape(B * H * W ,C).detach().cpu().numpy()
+            labels = self.neigh_X4.predict(x4_p)
+            for count,label in enumerate(labels):
+                x4_p[count] = self.protos_des[3][label]
+            x4 = torch.tensor(x4_p).reshape(B, C, H, W)
+
         # stage 3
         x = self.bottleneck3_1(x)
         x = self.bottleneck3_2(x)
@@ -121,15 +120,42 @@ class ENet_loss(nn.Module):
         x = self.bottleneck3_8(x)
         x3 = x
 
+        if self.training==False:
+            B, C, H, W = x3.shape
+            x3_p = x3.reshape(B * H * W ,C).detach().cpu().numpy()
+            labels = self.neigh_X3.predict(x3_p)
+            for count,label in enumerate(labels):
+                x3_p[count] = self.protos_des[2][label]
+            x3 = torch.tensor(x3_p).reshape(B, C, H, W)
+
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
         x = self.bottleneck4_1(x)
         x = self.bottleneck4_2(x)
         x2 = x
+
+        if self.training==False:
+            B, C, H, W = x2.shape
+            x2_p = x2.reshape(B * H * W ,C).detach().cpu().numpy()
+            labels = self.neigh_X2.predict(x2_p)
+            for count,label in enumerate(labels):
+                x2_p[count] = self.protos_des[1][label]
+            x2 = torch.tensor(x2_p).reshape(B, C, H, W)
+
         # stage 5
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
         x1 = x
+
+        if self.training==False:
+            B, C, H, W = x1.shape
+            x1_p = x1.reshape(B * H * W ,C).detach().cpu().numpy()
+            labels = self.neigh_X1.predict(x1_p)
+            for count,label in enumerate(labels):
+                x1_p[count] = self.protos_des[0][label]
+            x1 = torch.tensor(x1_p).reshape(B, C, H, W)
+
+
         # out
         # x = self.head(x4, x3, x2, x1)
         x = self.fullconv(x)

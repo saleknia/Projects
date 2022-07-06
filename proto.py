@@ -135,7 +135,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
 
             for i in range(num_class):
                 indexs = (labels==i)
-                protos_des[k][i-1] = protos[indexs].mean(dim=0)
+                protos_des[k][i] = protos[indexs].mean(dim=0)
 
             # if method=='PCA':
             #     # pca = PCA(n_components = des_shapes[k])
