@@ -909,15 +909,15 @@ class prototype_loss(nn.Module):
             # weights = 1.0 - weights 
             # l = l + (torch.mean(weights * distances)) + (1.0 / torch.mean(distances))
             
-            x = self.protos[k][batch_indexs].unsqueeze(dim=0).clone().detach()
+            x = self.protos[k][indexs].unsqueeze(dim=0).clone().detach()
             weights = torch.cdist(x, x, p=2.0)[0]
             weights = weights - weights.min()
             if weights.max()!=0:
                 weights = weights / weights.max()
             weights = 1.0 - weights 
-            weights = weights[:,0:length]
+            # weights = weights[:,0:length]
 
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) + (torch.mean(weights * distances_c[0]))
+            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) + (torch.mean(weights * (distances_c[0]-diagonal)))
             l = l + (1.0 * (torch.mean(diagonal)))
             # l = l + cosine_loss_s
             loss = loss + l
