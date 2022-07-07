@@ -404,6 +404,7 @@ class CT_1K(Dataset):
         data_path = os.path.join(self.data_dir, slice_name)
         data = np.load(data_path)
         image, mask = data['image'], data['label']
+        mask[mask==12] = 0
 
 
         sample = {'image': image, 'label': mask}
