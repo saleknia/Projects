@@ -421,79 +421,17 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
     def forward(self, x, skip_x):
-        # if self.PA:
-        #     out = self.PA(x)
-        #     out = self.up(out)
-        # else:
-        #     out = self.up(x)
-        # out = self.up_1(x) * self.gamma + self.up_2(x)
-        out = self.up_1(x) #+ self.up_2(x)
-        out = self.att(out)
+        out = self.up_1(x)
+        # out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
 
-# class ASPP(nn.Module):
-
-#     def __init__(self, in_channels, n_classes):
-#         super(ASPP, self).__init__()
-#         self.outc_0 = nn.Conv2d(in_channels, n_classes, kernel_size=(3,3), dilation=1, padding=1)
-#         self.outc_1 = nn.Conv2d(in_channels, n_classes, kernel_size=(3,3), dilation=2, padding=2)
-#         self.outc_2 = nn.Conv2d(in_channels, n_classes, kernel_size=(3,3), dilation=3, padding=3)
-#         self.outc_3 = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-#         # self.outc_3 = nn.Conv2d(in_channels, n_classes, kernel_size=(3,3), dilation=4, padding=4)
-#         # self.drop_out = torch.nn.Dropout(p=0.5, inplace=False)
-#     def forward(self, x):
-
-#         out_0 = self.outc_0(x)
-#         # out_0 = torch.nn.functional.sigmoid(out_0)
-
-#         out_1 = self.outc_1(x)
-#         # out_1 = torch.nn.functional.sigmoid(out_1)
-
-#         out_2 = self.outc_2(x)
-#         # out_2 = torch.nn.functional.sigmoid(out_2)
-
-#         # out_3 = self.outc_2(x)
-#         # out_3 = torch.nn.functional.sigmoid(out_3)
-
-#         out_3 = self.outc_3(x)
-#         # out_3 = torch.nn.functional.sigmoid(out_3)
-
-#         # out_3 = self.outc_3(x)
-#         # out_3 = torch.nn.functional.sigmoid(out_3)
-
-#         out = out_0 + out_1 + out_2 + out_3
-
-#         return out
-
-class ASPP(nn.Module):
-
-    def __init__(self, in_channels, n_classes):
-        super(ASPP, self).__init__()
-        self.outc_0 = nn.Conv2d(n_classes, n_classes, kernel_size=(3,3), dilation=1, padding=1)
-        self.outc_1 = nn.Conv2d(n_classes, n_classes, kernel_size=(3,3), dilation=2, padding=2)
-        self.outc_2 = nn.Conv2d(n_classes, n_classes, kernel_size=(3,3), dilation=3, padding=3)
-        self.outc_3 = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-
-    def forward(self, x):
-
-        out_3 = self.outc_3(x)
-
-        out_0 = self.outc_0(out_3)
-
-        out_1 = self.outc_1(out_3)
-
-        out_2 = self.outc_2(out_3)
-
-        out = out_0 + out_1 + out_2 
-
-        return out
 
 
 class UNet(nn.Module):
@@ -529,9 +467,8 @@ class UNet(nn.Module):
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, PA=False)
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, PA=False)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
-        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        self.outc_1 = nn.Conv2d(in_channels*1, n_classes, kernel_size=(1,1))
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -541,21 +478,6 @@ class UNet(nn.Module):
     def forward(self, x):
         # Question here
         x = x.float()
-
-        # x1 = self.Conv1(x)
-
-        # x2 = self.Maxpool(x1)
-        # x2 = self.Conv2(x2)
-        
-        # x3 = self.Maxpool(x2)
-        # x3 = self.Conv3(x3)
-
-        # x4 = self.Maxpool(x3)
-        # x4 = self.Conv4(x4)
-
-        # x5 = self.Maxpool(x4)
-        # x5 = self.Conv5(x5)
-
 
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -572,7 +494,7 @@ class UNet(nn.Module):
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(up1))
         else:
-            logits = self.outc_1(up1)
+            logits = self.outc(up1)
 
 
         return logits
