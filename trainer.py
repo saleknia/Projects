@@ -154,7 +154,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets = targets.float()
         # targets[targets!=6.0] = 0.0
-        # targets[targets==6.0] = 1.0
+        targets[targets==12.0] = 0.0
         ##################################################################
         # masks = nn.functional.interpolate(targets.clone().unsqueeze(dim=1), scale_factor=0.125, mode='nearest')
         # masks = masks.squeeze(dim=1)
