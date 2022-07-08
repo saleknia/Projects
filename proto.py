@@ -126,43 +126,35 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                     protos.append(np.array(temp.detach().cpu()))
                     labels.append(p.item()) 
     
-            # protos = np.array(protos) 
-            # labels = np.array(labels)
-            
-            protos = torch.tensor(protos)
-            labels = torch.tensor(labels)
-            protos_out.append([protos,labels])
+            protos = np.array(protos) 
+            labels = np.array(labels)
 
-            for i in range(num_class):
-                indexs = (labels==i)
-                protos_des[k][i] = protos[indexs].mean(dim=0)
+            if method=='PCA':
+                # pca = PCA(n_components = des_shapes[k])
+                pca = PCA(n_components = 2)
+                pca.fit(protos)
+                protos = pca.transform(protos)
+                protos = torch.tensor(protos)
 
-            # if method=='PCA':
-            #     # pca = PCA(n_components = des_shapes[k])
-            #     pca = PCA(n_components = 2)
-            #     pca.fit(protos)
-            #     protos = pca.transform(protos)
-            #     protos = torch.tensor(protos)
-
-            #     protos = torch.tensor(protos) 
-            #     labels = torch.tensor(labels)
-            #     protos_out.append([protos,labels])
-            #     # for i in range(1, num_class+1):
-            #     #     indexs = (labels==i)
-            #     #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
-            # elif method=='TSNE':
-            #     # protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
-            #     protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
-            #     protos = torch.tensor(protos) 
-            #     labels = torch.tensor(labels)
-            #     protos_out.append([protos,labels])
-            #     # for i in range(1, num_class+1):
-            #     #     indexs = (labels==i)
-            #     #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
-            # else:
-            #     assert f"{method} method hasn't been implemented."
+                protos = torch.tensor(protos) 
+                labels = torch.tensor(labels)
+                protos_out.append([protos,labels])
+                # for i in range(1, num_class+1):
+                #     indexs = (labels==i)
+                #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+            elif method=='TSNE':
+                # protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+                protos = torch.tensor(protos) 
+                labels = torch.tensor(labels)
+                protos_out.append([protos,labels])
+                # for i in range(1, num_class+1):
+                #     indexs = (labels==i)
+                #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+            else:
+                assert f"{method} method hasn't been implemented."
     
-    torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
+    # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
     torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
     
 
@@ -271,7 +263,8 @@ def main(args):
 
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
+    # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
 
 
     print('Loading Checkpoint...')
