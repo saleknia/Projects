@@ -805,7 +805,7 @@ class prototype_loss(nn.Module):
         # ENet
         self.down_scales = [0.5,0.25,0.125,0.125]
         
-        num_class = 11
+        num_class = 12
         self.num_class = num_class
         
         # Attention UNet
@@ -898,9 +898,9 @@ class prototype_loss(nn.Module):
             x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
             diagonal = distances_c[0] * x
 
-            # proto = prototypes.unsqueeze(dim=0)
-            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            # l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
         
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
             l = l + (1.0 * (torch.mean(diagonal)))
