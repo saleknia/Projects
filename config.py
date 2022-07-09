@@ -119,7 +119,7 @@ elif task_id==4:
 #     CONTINUE = False
 
 
-model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18']
+model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19']
 model_table = tabulate(
                     tabular_data=[
                         ['UCTransNet', 1],
@@ -139,7 +139,8 @@ model_table = tabulate(
                         ['ENet', 15],
                         ['ENet_loss', 16],
                         ['ERFNet', 17],
-                        ['ERFNet_loss', 18]],
+                        ['ERFNet_loss', 18],
+                        ['Mobile_netV2', 19]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -203,6 +204,9 @@ elif model_id==17:
 
 elif model_id==18:
     MODEL_NAME = 'ERFNet_loss'
+
+elif model_id==19:
+    MODEL_NAME = 'Mobile_NetV2'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 

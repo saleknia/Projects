@@ -35,6 +35,7 @@ from models.multi_res_unet_loss import MultiResUnet_loss
 from models.UCTransNet import UCTransNet
 from models.GT_UNet import GT_U_Net
 from models.ENet import ENet
+from models.Mobile_netV2 import Mobile_netV2
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
@@ -138,7 +139,10 @@ def main(args):
 
     elif MODEL_NAME == 'ERFNet_loss':
         model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-        
+
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+                
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
