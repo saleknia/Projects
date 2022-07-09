@@ -806,7 +806,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
         # Mobile_netV2
-        self.down_scales = [0.125,0.125,0.125,0.125]
+        self.down_scales = [0.5,0.5,0.25,0.125]
 
         num_class = 8
         self.num_class = num_class
@@ -824,9 +824,9 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # Mobile_netV2
-        self.proto_1 = torch.zeros(num_class, 64 )
-        self.proto_2 = torch.zeros(num_class, 128)
-        self.proto_3 = torch.zeros(num_class, 128)
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 9  )
+        self.proto_3 = torch.zeros(num_class, 64 )
         self.proto_4 = torch.zeros(num_class, 128)
 
         # self.proto_1 = torch.zeros(num_class, 64 )
