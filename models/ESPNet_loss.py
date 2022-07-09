@@ -404,6 +404,6 @@ class ESPNet_loss(nn.Module):
         classifier = self.classifier(concat_features)
 
         if self.training:
-            return classifier, output0, concat_features, output1, output2
+            return classifier, output0, concat_features, output1, output2,         
         else:
             return classifier
