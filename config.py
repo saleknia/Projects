@@ -144,7 +144,8 @@ model_table = tabulate(
                         ['Mobile_netV2_loss', 20],
                         ['Fast_SCNN', 21],
                         ['Fast_SCNN_loss', 22],
-                        ['ESPNet',23]],
+                        ['ESPNet',23],
+                        ['ESPNet_loss',24]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -223,6 +224,10 @@ elif model_id==22:
 
 elif model_id==23:
     MODEL_NAME = 'ESPNet'
+
+elif model_id==24:
+    MODEL_NAME = 'ESPNet_loss'
+
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
