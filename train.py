@@ -38,6 +38,8 @@ from models.ENet import ENet
 from models.Mobile_netV2 import Mobile_netV2
 from models.Mobile_netV2_loss import Mobile_netV2_loss
 from models.Fast_SCNN import Fast_SCNN
+from models.Fast_SCNN_loss import Fast_SCNN_loss
+from models.ESPNet import ESPNet
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
@@ -150,6 +152,12 @@ def main(args):
 
     elif MODEL_NAME == 'Fast_SCNN':
         model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN_loss':
+        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')

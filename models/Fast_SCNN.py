@@ -44,7 +44,9 @@ class Fast_SCNN(nn.Module):
             auxout = self.auxlayer(higher_res_features)
             auxout = F.interpolate(auxout, size, mode='bilinear', align_corners=True)
             outputs.append(auxout)
-        return tuple(outputs)
+            return tuple(outputs)
+        else:
+            return outputs[0]
 
 
 class _ConvBNReLU(nn.Module):
