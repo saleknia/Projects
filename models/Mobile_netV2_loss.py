@@ -93,21 +93,37 @@ class Mobile_netV2_loss(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
-        self.indexs = [3, 8, 13, 18]
-        up = []
+
     def _forward_impl(self, x):
         input_size = x.shape[-2:]
         # This exists since TorchScript doesn't support inheritance, so the superclass method
         # (this one) needs to have a name other than `forward` that can be accessed in a subclass
-        for count, layer in enumerate(self.features):
-            x = self.features(x)
-            if count in self.indexs:
-                up.append(x)
+        x = self.features[0](x)
+        x = self.features[1](x)
+        x = self.features[2](x)
+        up1 = self.features[3](x)
+        x = self.features[4](up1)
+        x = self.features[5](x)
+        x = self.features[6](x)
+        x = self.features[7](x)
+        up2 = self.features[8](x)
+        x = self.features[9](up2)
+        x = self.features[10](x)
+        x = self.features[11](x)
+        x = self.features[12](x)
+        up3 = self.features[13](x)
+        x = self.features[14](up3)
+        x = self.features[15](x)
+        x = self.features[16](x)
+        x = self.features[17](x)
+        up4 = self.features[18](x)
         # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
-        x = self.last_conv(x)
+        x = self.last_conv(up4)
         x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
-        return x, self.up[3], self.up[2], self.up[1], self.up[0]
-
+        if self.training:
+            return x, up4, up3, up2, up1
+        else:
+            return x
     def forward(self, x):
         x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         return self._forward_impl(x)

@@ -839,7 +839,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
 
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
@@ -899,23 +899,23 @@ class prototype_loss(nn.Module):
 
 
             l = 0.0
-            proto = self.protos[k][indexs].unsqueeze(dim=0)
-            prototypes = prototypes.unsqueeze(dim=0)
-            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            proto = self.protos[k][indexs].squeeze(dim=0)
-            prototypes = prototypes.squeeze(dim=0)
-            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            diagonal = distances_c[0] * x
+            # proto = self.protos[k][indexs].unsqueeze(dim=0)
+            # prototypes = prototypes.unsqueeze(dim=0)
+            # distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            # proto = self.protos[k][indexs].squeeze(dim=0)
+            # prototypes = prototypes.squeeze(dim=0)
+            # x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+            # diagonal = distances_c[0] * x
 
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             l = l + (1.0 / torch.mean(distances))
         
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
-            l = l + (1.0 * (torch.mean(diagonal)))
-            loss = loss + l
-            self.update(prototypes, mask_unique_value, k)
-        self.iteration = self.iteration + 1
+            # l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
+            # l = l + (1.0 * (torch.mean(diagonal)))
+            # loss = loss + l
+            # self.update(prototypes, mask_unique_value, k)
+        # self.iteration = self.iteration + 1
         return loss
 
 
