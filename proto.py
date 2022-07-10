@@ -287,9 +287,10 @@ def main(args):
     CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_1/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
+    # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_65_12/'+CKPT_NAME+'_best.pth'
 
 
     print('Loading Checkpoint...')
