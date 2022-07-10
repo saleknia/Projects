@@ -163,6 +163,9 @@ def main(args):
     elif MODEL_NAME == 'ESPNet_loss':
         model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
+    elif MODEL_NAME == 'DABNet_loss':
+        model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
