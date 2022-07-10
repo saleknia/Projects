@@ -101,29 +101,29 @@ class Mobile_netV2_loss(nn.Module):
         x = self.features[0](x)
         x = self.features[1](x)
         x = self.features[2](x)
-        up1 = self.features[3](x)
-        x = self.features[4](up1)
+        x = self.features[3](x)
+        x = self.features[4](x)
         x = self.features[5](x)
         x = self.features[6](x)
         x = self.features[7](x)
-        up2 = self.features[8](x)
-        x = self.features[9](up2)
+        x = self.features[8](x)
+        x = self.features[9](x)
         x = self.features[10](x)
         x = self.features[11](x)
         x = self.features[12](x)
-        up3 = self.features[13](x)
-        x = self.features[14](up3)
+        up4 = self.features[13](x)
+        x = self.features[14](up4)
         x = self.features[15](x)
         x = self.features[16](x)
-        x = self.features[17](x)
-        up4 = self.features[18](x)
+        up3 = self.features[17](x)
+        x = self.features[18](up3)
         # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
-        x = self.last_conv(up4)
-        x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
+        up2 = self.last_conv(x)
+        up1 = F.interpolate(up2, size=input_size, mode='bilinear', align_corners=True)
         if self.training:
-            return x, up4, up3, up2, up1
+            return up1, up4, up3, up2, up1
         else:
-            return x
+            return up1
     def forward(self, x):
         x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         return self._forward_impl(x)

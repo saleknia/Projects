@@ -805,10 +805,13 @@ class prototype_loss(nn.Module):
         # ENet
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
-        # Mobile_netV2
-        self.down_scales = [0.5,0.5,0.25,0.125]
+        # ESPNet
+        # self.down_scales = [0.5,0.5,0.25,0.125]
 
-        num_class = 3
+        # Mobile_NetV2
+        self.down_scales = [1.0,0.125,0.125,0.25]
+
+        num_class = 8
         self.num_class = num_class
         
         # Attention UNet
@@ -823,11 +826,17 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 128)
 
-        # Mobile_netV2
-        self.proto_1 = torch.zeros(num_class, 16 )
+        # ESPNet
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 4  )
+        # self.proto_3 = torch.zeros(num_class, 64 )
+        # self.proto_4 = torch.zeros(num_class, 128)
+
+        # Mobile_NetV2
+        self.proto_1 = torch.zeros(num_class, 9  )
         self.proto_2 = torch.zeros(num_class, 9  )
-        self.proto_3 = torch.zeros(num_class, 64 )
-        self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_3 = torch.zeros(num_class, 320)
+        self.proto_4 = torch.zeros(num_class, 96 )
 
         # self.proto_1 = torch.zeros(num_class, 64 )
         # self.proto_2 = torch.zeros(num_class, 64 )
@@ -839,8 +848,8 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
-        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
