@@ -216,9 +216,9 @@ class AttentionUNet_loss(nn.Module):
             # y = self.exist(d2)
             # y = y.view(-1, self.fc_input_feature)
             # exist_pred = self.fc(y)
-
+            d1 = out
             if self.training:
-                return out, d5, d4, d3, d2
+                return out,d5, d4, d3, d2, d1
                 # return out, d4, d3, d2
             else:
                 return out  
