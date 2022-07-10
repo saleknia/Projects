@@ -38,6 +38,10 @@ from models.ENet import ENet
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
+from models.Fast_SCNN import Fast_SCNN
+from models.Fast_SCNN_loss import Fast_SCNN_loss
+from models.ESPNet import ESPNet
+from models.ESPNet_loss import ESPNet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
 import ml_collections
@@ -67,7 +71,9 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
-    down_scales = [0.5,0.25,0.125,0.125]
+    # down_scales = [0.5,0.25,0.125,0.125]
+    down_scales = [0.5,0.5,0.25,0.125]
+
     num_class = 9
     loader = dataloader['train']
     total_batchs = len(loader)
@@ -190,6 +196,7 @@ def main(args):
 
     if MODEL_NAME=='UNet':
         model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+        # model = original_UNet().to(DEVICE)
 
     elif MODEL_NAME=='UNet_loss':
         model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
@@ -201,18 +208,18 @@ def main(args):
         model = U_loss(bilinear=False).to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet':
-        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        config_vit = get_CTranS_config()
         model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet_GT':
-        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        config_vit = get_CTranS_config()
         model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
 
     elif MODEL_NAME=='GT_UNet':
         model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='GT_CTrans':
-        config_vit = get_CTranS_config(NUM_CLASS=NUM_CLASS)
+        config_vit = get_CTranS_config()
         model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
 
     elif MODEL_NAME == 'AttUNet':
@@ -244,7 +251,25 @@ def main(args):
 
     elif MODEL_NAME == 'ERFNet_loss':
         model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-        
+
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2_loss':
+        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN':
+        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN_loss':
+        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet_loss':
+        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
