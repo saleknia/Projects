@@ -808,7 +808,7 @@ class prototype_loss(nn.Module):
         # Mobile_netV2
         self.down_scales = [0.5,0.5,0.25,0.125]
 
-        num_class = 8
+        num_class = 3
         self.num_class = num_class
         
         # Attention UNet
@@ -839,7 +839,9 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
+
 
     def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
