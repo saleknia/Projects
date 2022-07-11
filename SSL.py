@@ -3,10 +3,10 @@ import numpy as np
 os.system('pip install opencv-python==4.5.5.64')
 import cv2
 
-os.system('cd /content/UNet_V2/SSL')
 
 if not os.path.isdir('/content/UNet_V2/SSL'):
     os.mkdir('/content/UNet_V2/SSL')
+os.system('cd /content/UNet_V2/SSL')
 os.system('cp /content/UNet_V2/CT-1K/train/* /content/UNet_V2/SSL')
 os.system('cp /content/UNet_V2/CT-1K/test/* /content/UNet_V2/SSL')
 os.system('cp /content/UNet_V2/CT-1K/valid/* /content/UNet_V2/SSL')
