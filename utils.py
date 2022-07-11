@@ -952,8 +952,8 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 13
-        self.num_class = 13
+        num_class = 12
+        self.num_class = num_class
         # ENet
         self.proto = torch.zeros(num_class, 13)
         self.momentum = torch.tensor(0.0)
