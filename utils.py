@@ -983,6 +983,7 @@ class CriterionPixelWise(nn.Module):
         preds_T = torch.zeros(preds_S.shape)
         mask_unique_value = torch.unique(masks)
         for i in mask_unique_value:
+            i = i.long().item()
             expand = self.proto[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(preds_S)
             temp_masks = (masks==i).unsqueeze(dim=1).expand_as(preds_S)
             pred_T = pred_T + (temp_masks * expand)
