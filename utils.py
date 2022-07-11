@@ -955,7 +955,7 @@ class CriterionPixelWise(nn.Module):
         num_class = 12
         self.num_class = num_class
         # ENet
-        self.proto = torch.zeros(num_class, 13)
+        self.proto = torch.zeros(num_class, 12)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
@@ -986,7 +986,7 @@ class CriterionPixelWise(nn.Module):
             i = i.long().item()
             expand = self.proto[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(preds_S)
             temp_masks = (masks==i).unsqueeze(dim=1).expand_as(preds_S)
-            pred_T = pred_T + (temp_masks * expand)
+            preds_T = preds_T + (temp_masks * expand)
         preds_T.detach()
         assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
         N,C,W,H = preds_S.shape
