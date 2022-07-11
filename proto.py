@@ -71,10 +71,10 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
-    # down_scales = [0.5,0.25,0.125,0.125]
-    down_scales = [0.5,0.5,0.25,0.125]
+    down_scales = [0.5,0.25,0.125,0.125]
+    # down_scales = [0.5,0.5,0.25,0.125]
 
-    num_class = 9
+    num_class = 11
     loader = dataloader['train']
     total_batchs = len(loader)
 
@@ -290,7 +290,7 @@ def main(args):
     # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_65_12/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_80_88/'+CKPT_NAME+'_best.pth'
 
 
     print('Loading Checkpoint...')
