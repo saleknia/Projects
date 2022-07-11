@@ -38,4 +38,4 @@ import os
 #     mask_temp[mask_temp!=0] = 1.0
 #     np.savez(file=f,image=image,label=mask_temp)
 
-os.system('unzip /content/drive/MyDrive/SSL.zip /content/UNet_V2')
+os.system('unzip -qq /content/drive/MyDrive/SSL.zip')
