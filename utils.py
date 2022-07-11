@@ -862,9 +862,9 @@ class prototype_loss(nn.Module):
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
 
 
-    def forward(self, masks, t_masks, up4, up3, up2, up1, up0):
+    def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
-        up = [up0, up1, up2, up3, up4]
+        up = [up1, up2, up3, up4]
 
         for k in range(5):
             indexs = []
