@@ -9,6 +9,7 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
+from utils import calc_loss
 warnings.filterwarnings("ignore")
 
 def one_hot_loss(exist_pred, targets):
