@@ -872,72 +872,72 @@ class prototype_loss(nn.Module):
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
         loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        up = [up1, up2, up3, up4]
+        # up = [up1, up2, up3, up4]
 
-        for k in range(4):
-            indexs = []
-            weights = []
-            B,C,H,W = up[k].shape
+        # for k in range(4):
+        #     indexs = []
+        #     weights = []
+        #     B,C,H,W = up[k].shape
             
-            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_masks = temp_masks.squeeze(dim=1)
+        #     temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+        #     temp_masks = temp_masks.squeeze(dim=1)
 
-            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_t_masks = temp_t_masks.squeeze(dim=1)
+        #     temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+        #     temp_t_masks = temp_t_masks.squeeze(dim=1)
 
-            t_mask_unique_value = torch.unique(temp_t_masks)
-            t_mask_unique_value = t_mask_unique_value[1:]
-            unique_num_t = len(t_mask_unique_value)
+        #     t_mask_unique_value = torch.unique(temp_t_masks)
+        #     t_mask_unique_value = t_mask_unique_value[1:]
+        #     unique_num_t = len(t_mask_unique_value)
 
-            mask_unique_value = torch.unique(temp_masks)
-            mask_unique_value = mask_unique_value[1:]
-            unique_num = len(mask_unique_value)
+        #     mask_unique_value = torch.unique(temp_masks)
+        #     mask_unique_value = mask_unique_value[1:]
+        #     unique_num = len(mask_unique_value)
             
-            if unique_num<2:
-                return 0
+        #     if unique_num<2:
+        #         return 0
 
-            prototypes = torch.zeros(size=(unique_num,C))
-            # prototypes_t = torch.zeros(size=(unique_num_t,C))
+        #     prototypes = torch.zeros(size=(unique_num,C))
+        #     # prototypes_t = torch.zeros(size=(unique_num_t,C))
 
-            for count,p in enumerate(mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes[count] = temp
+        #     for count,p in enumerate(mask_unique_value):
+        #         p = p.long()
+        #         bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+        #         bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+        #         temp = 0.0
+        #         batch_counter = 0
+        #         for t in range(B):
+        #             if torch.sum(bin_mask[t])!=0:
+        #                 v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+        #                 temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+        #                 batch_counter = batch_counter + 1
+        #         temp = temp / batch_counter
+        #         prototypes[count] = temp
 
 
-            indexs = [x.item()-1 for x in mask_unique_value]
-            indexs.sort()
+        #     indexs = [x.item()-1 for x in mask_unique_value]
+        #     indexs.sort()
 
-            l = 0.0
-            proto = self.protos[k][indexs].unsqueeze(dim=0)
-            prototypes = prototypes.unsqueeze(dim=0)
-            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            proto = self.protos[k][indexs].squeeze(dim=0)
-            prototypes = prototypes.squeeze(dim=0)
-            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            diagonal = distances_c[0] * x
+        #     l = 0.0
+        #     proto = self.protos[k][indexs].unsqueeze(dim=0)
+        #     prototypes = prototypes.unsqueeze(dim=0)
+        #     distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+        #     proto = self.protos[k][indexs].squeeze(dim=0)
+        #     prototypes = prototypes.squeeze(dim=0)
+        #     x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+        #     diagonal = distances_c[0] * x
 
-            cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
+        #     cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
+        #     proto = prototypes.unsqueeze(dim=0)
+        #     distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+        #     l = l + (1.0 / torch.mean(distances))
         
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
-            # l = l + (1.0 * (torch.mean(diagonal)))
-            l = l + cosine_loss
-            loss = loss + l
-            self.update(prototypes, mask_unique_value, k)
-        self.iteration = self.iteration + 1
+        #     l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
+        #     # l = l + (1.0 * (torch.mean(diagonal)))
+        #     l = l + cosine_loss
+        #     loss = loss + l
+        #     self.update(prototypes, mask_unique_value, k)
+        # self.iteration = self.iteration + 1
         return loss
 
 
@@ -955,12 +955,13 @@ class CriterionPixelWise(nn.Module):
         num_class = 12
         self.num_class = num_class
         # ENet
-        self.proto = torch.zeros(num_class, 12)
+        self.proto = torch.zeros(num_class, num_class)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
 
     def forward(self, preds_S, masks):
+        loss = 0.0
         B,C,H,W = preds_S.shape
         temp_masks = masks
         mask_unique_value = torch.unique(temp_masks)
@@ -992,9 +993,9 @@ class CriterionPixelWise(nn.Module):
         N,C,W,H = preds_S.shape
         softmax_pred_T = F.softmax(preds_T.permute(0,2,3,1).contiguous().view(-1,C), dim=1)
         logsoftmax = nn.LogSoftmax(dim=1)
-        loss = (torch.sum(-softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
-        self.iteration = self.iteration + 1
+        loss =  loss + (0.1 * (torch.sum(-softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H)
         self.update(prototypes, mask_unique_value)
+        self.iteration = self.iteration + 1
         return loss
 
     @torch.no_grad()
@@ -1386,20 +1387,26 @@ class M_loss(nn.Module):
     def __init__(self):
         super(M_loss, self).__init__()
         self.softmax = Softmax(dim=2)
-    def forward(self, e5):
-        E = e5.to('cpu')
-        B, C, H, W = E.shape # (B, C, H, W) ---> H=W=16, C=1024
-        x = E.flatten(2) # (B, C, n_patches) ---> n_patches=256
-        Q = x
-        K = x.transpose(2, 1)  # (B, n_patches, C)
-        attention_scores = torch.matmul(Q, K) # (B, C, C)
-        attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
-        attention_probs = self.softmax(attention_scores) # (B, C, C)
-        probs = attention_probs # (B, C, C)
-        probs = probs.sum(dim=0) # (C, C)
-        diag = probs * (torch.eye(probs.shape[0],probs.shape[1])) # (C, C)
-        probs = probs - diag
-        loss = torch.norm(probs)
+        self.down_scales = [1.0, 0.5, 0.25, 0.125]
+    def forward(self, e5, e4, e3, e2):
+        loss = 0
+        E = [e5, e4, e3, e2]
+        for i in range(4):
+            e = E[i]
+            e = nn.functional.interpolate(e, scale_factor=self.down_scales[i], mode='nearest')          
+            B, C, H, W = e.shape # (B, C, H, W) ---> H=W=16, C=1024
+            x = e.flatten(2) # (B, C, n_patches) ---> n_patches=256
+            Q = x
+            K = x.transpose(2, 1)  # (B, n_patches, C)
+            attention_scores = torch.matmul(Q, K) # (B, C, C)
+            attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+            attention_probs = self.softmax(attention_scores) # (B, C, C)
+            probs = attention_probs # (B, C, C)
+            probs = probs.sum(dim=0) # (C, C)
+            diag = probs * (torch.eye(probs.shape[0],probs.shape[1]).to('cuda')) # (C, C)
+            probs = probs - diag
+            l = torch.norm(probs) + (1/torch.sum(torch.mean(x,dim=2)))
+            loss = loss + l
         return loss
 
 

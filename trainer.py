@@ -132,9 +132,9 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
-    kd_out_loss = IM_loss()
+    # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
-    kd_loss = M_loss()    
+    # kd_loss = M_loss()    
     proto_loss = loss_function
     ##################################################################
     ##################################################################
@@ -163,7 +163,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs, up4, up3, up2, up1 = model(inputs)
         
         outputs, up4, up3, up2, up1 = model(inputs)
-        # e5 = model(inputs, pretrain=True)
+        # e5, e4, e3, e2 = model(inputs, pretrain=True)
+        # outputs = torch.zeros(inputs.shape,device='cuda')
 
 
         targets = targets.long()
@@ -172,16 +173,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        # print(activation['up4'].shape)
-        # print(activation['up3'].shape)
-        # print(activation['up2'].shape)
-        # print(activation['up1'].shape)
-
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
         loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
-        # loss_kd = kd_loss(e5=e5)
+        # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
         # loss_proto = 0.0
         loss_kd = 0.0
