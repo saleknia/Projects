@@ -980,11 +980,11 @@ class CriterionPixelWise(nn.Module):
             temp = temp / batch_counter
             prototypes[count] = temp
 
-        preds_T = torch.zeros(preds_S.shape)
+        preds_T = torch.zeros(preds_S.shape).to('cuda')
         mask_unique_value = torch.unique(masks)
         for i in mask_unique_value:
             i = i.long().item()
-            expand = self.proto[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(preds_S)
+            expand = self.proto[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(preds_S).to('cuda')
             temp_masks = (masks==i).unsqueeze(dim=1).expand_as(preds_S)
             preds_T = preds_T + (temp_masks * expand)
         preds_T.detach()
@@ -1002,7 +1002,7 @@ class CriterionPixelWise(nn.Module):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
             self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[p] = self.protos[p] * self.momentum + prototypes[count] * (1 - self.momentum)
+            self.proto[p] = self.proto[p] * self.momentum + prototypes[count] * (1 - self.momentum)
 
 def ind(x, top):
     x=x+1
