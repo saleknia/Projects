@@ -144,15 +144,7 @@ class AttentionUNet_loss(nn.Module):
         self.UpConv2 = ConvBlock(128, 64)
 
         self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
-        # self.head = seg_head()
-        # self.fc_input_feature = 12 * 16 * 16
-        # self.exist = nn.Sequential(nn.AvgPool2d(16, 16),
-        #                            nn.Conv2d(64, 12, 1),
-        #                            nn.Softmax(dim=1))
-        # self.fc = nn.Sequential(nn.Linear(self.fc_input_feature, 128),
-        #                         nn.ReLU(),
-        #                         nn.Linear(128, 9),
-        #                         nn.Sigmoid())
+
     def forward(self, x, pretrain=False):
         """
         e : encoder layers
@@ -163,17 +155,17 @@ class AttentionUNet_loss(nn.Module):
             e1 = self.Conv1(x)
 
             e2 = self.MaxPool(e1)
-            e2 = self.Conv2(e2)
+            e2 = self.Conv2(e2) # 128
 
             e3 = self.MaxPool(e2)
-            e3 = self.Conv3(e3)
+            e3 = self.Conv3(e3) # 64
 
             e4 = self.MaxPool(e3)
-            e4 = self.Conv4(e4)
+            e4 = self.Conv4(e4) # 32
 
             e5 = self.MaxPool(e4)
-            e5 = self.Conv5(e5)
-            return e5
+            e5 = self.Conv5(e5) # 16
+            return e5, e4, e3, e2
         
         else:
             e1 = self.Conv1(x)
@@ -216,9 +208,7 @@ class AttentionUNet_loss(nn.Module):
             # y = self.exist(d2)
             # y = y.view(-1, self.fc_input_feature)
             # exist_pred = self.fc(y)
-            d1 = out
             if self.training:
-                return out,d5, d4, d3, d2, d1
-                # return out, d4, d3, d2
+                return out,d5, d4, d3, d2
             else:
                 return out  
