@@ -916,7 +916,7 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        self.proto_0 = torch.zeros(num_class, num_class)
+        self.proto_0 = torch.zeros(num_class, 12)
         self.proto_1 = torch.zeros(num_class, 16 )
         self.proto_2 = torch.zeros(num_class, 64 )
         self.proto_3 = torch.zeros(num_class, 128)
@@ -1039,14 +1039,14 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 9
+        num_class = 12
         self.num_class = num_class
         # ENet
         self.proto = torch.zeros(num_class, num_class)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
-        self.momentum_schedule = cosine_scheduler(0.9, 1.0, 30.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        # self.momentum_schedule = cosine_scheduler(0.9, 1.0, 30.0, 368)
 
     def forward(self, preds_S, masks):
         loss = 0.0
