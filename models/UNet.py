@@ -443,22 +443,26 @@ class seg_head(nn.Module):
         self.conv_3 =  nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
         self.conv_2 = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
 
-        # self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
-        # self.BN_out = nn.BatchNorm2d(64)
-        # self.RELU6_out = nn.ReLU6()
+        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.BN_out = nn.BatchNorm2d(64)
+        self.RELU6_out = nn.ReLU6()
 
         self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
+
     def forward(self, up4, up3, up2, up1):
         up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
         up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
         up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-        up4 = torch.nn.functional.relu6(self.scale_4(self.conv_4(up4)))
+        up4 = self.scale_4(self.conv_4(up4))
         up3 = up3 + up4
-        up3 = torch.nn.functional.relu6(self.scale_3(self.conv_3(up3)))
+        up3 = self.scale_3(self.conv_3(up3))
         up2 = up3 + up2
-        up2 = torch.nn.functional.relu6(self.scale_2(self.conv_2(up2)))
+        up2 = self.scale_2(self.conv_2(up2))
         up = up2 + up1
         
+        up = self.conv(up)
+        up = self.BN_out(up)
+        up = self.RELU6_out(up)
         up = self.out(up)
 
         return up
