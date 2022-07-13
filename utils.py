@@ -889,7 +889,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        self.down_scales = [0.5,0.25,0.125,0.125]
+        self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
         # self.down_scales = [0.5,0.5,0.25,0.125]
@@ -916,6 +916,7 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
+        self.proto_0 = torch.zeros(num_class, num_class)
         self.proto_1 = torch.zeros(num_class, 16 )
         self.proto_2 = torch.zeros(num_class, 64 )
         self.proto_3 = torch.zeros(num_class, 128)
@@ -945,7 +946,7 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 256)
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
-        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [self.proto_0,self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
@@ -958,72 +959,72 @@ class prototype_loss(nn.Module):
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
         loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        # up = [up1, up2, up3, up4]
+        up = [outputs, up1, up2, up3, up4]
 
-        # for k in range(4):
-        #     indexs = []
-        #     weights = []
-        #     B,C,H,W = up[k].shape
+        for k in range(5):
+            indexs = []
+            weights = []
+            B,C,H,W = up[k].shape
             
-        #     temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-        #     temp_masks = temp_masks.squeeze(dim=1)
+            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks = temp_masks.squeeze(dim=1)
 
-        #     temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-        #     temp_t_masks = temp_t_masks.squeeze(dim=1)
+            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_t_masks = temp_t_masks.squeeze(dim=1)
 
-        #     t_mask_unique_value = torch.unique(temp_t_masks)
-        #     t_mask_unique_value = t_mask_unique_value[1:]
-        #     unique_num_t = len(t_mask_unique_value)
+            t_mask_unique_value = torch.unique(temp_t_masks)
+            t_mask_unique_value = t_mask_unique_value[1:]
+            unique_num_t = len(t_mask_unique_value)
 
-        #     mask_unique_value = torch.unique(temp_masks)
-        #     mask_unique_value = mask_unique_value[1:]
-        #     unique_num = len(mask_unique_value)
+            mask_unique_value = torch.unique(temp_masks)
+            mask_unique_value = mask_unique_value[1:]
+            unique_num = len(mask_unique_value)
             
-        #     if unique_num<2:
-        #         return 0
+            if unique_num<2:
+                return 0
 
-        #     prototypes = torch.zeros(size=(unique_num,C))
-        #     # prototypes_t = torch.zeros(size=(unique_num_t,C))
+            prototypes = torch.zeros(size=(unique_num,C))
+            # prototypes_t = torch.zeros(size=(unique_num_t,C))
 
-        #     for count,p in enumerate(mask_unique_value):
-        #         p = p.long()
-        #         bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-        #         bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-        #         temp = 0.0
-        #         batch_counter = 0
-        #         for t in range(B):
-        #             if torch.sum(bin_mask[t])!=0:
-        #                 v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-        #                 temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-        #                 batch_counter = batch_counter + 1
-        #         temp = temp / batch_counter
-        #         prototypes[count] = temp
+            for count,p in enumerate(mask_unique_value):
+                p = p.long()
+                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+                temp = 0.0
+                batch_counter = 0
+                for t in range(B):
+                    if torch.sum(bin_mask[t])!=0:
+                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                        batch_counter = batch_counter + 1
+                temp = temp / batch_counter
+                prototypes[count] = temp
 
 
-        #     indexs = [x.item()-1 for x in mask_unique_value]
-        #     indexs.sort()
+            indexs = [x.item()-1 for x in mask_unique_value]
+            indexs.sort()
 
-        #     l = 0.0
-        #     proto = self.protos[k][indexs].unsqueeze(dim=0)
-        #     prototypes = prototypes.unsqueeze(dim=0)
-        #     distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-        #     proto = self.protos[k][indexs].squeeze(dim=0)
-        #     prototypes = prototypes.squeeze(dim=0)
-        #     x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-        #     diagonal = distances_c[0] * x
+            l = 0.0
+            proto = self.protos[k][indexs].unsqueeze(dim=0)
+            prototypes = prototypes.unsqueeze(dim=0)
+            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            proto = self.protos[k][indexs].squeeze(dim=0)
+            prototypes = prototypes.squeeze(dim=0)
+            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+            diagonal = distances_c[0] * x
 
-        #     cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
+            cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
-        #     proto = prototypes.unsqueeze(dim=0)
-        #     distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-        #     l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
         
-        #     l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
-        #     # l = l + (1.0 * (torch.mean(diagonal)))
-        #     l = l + cosine_loss
-        #     loss = loss + l
-        #     self.update(prototypes, mask_unique_value, k)
-        # self.iteration = self.iteration + 1
+            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
+            # l = l + (1.0 * (torch.mean(diagonal)))
+            l = l + cosine_loss
+            loss = loss + l
+            self.update(prototypes, mask_unique_value, k)
+        self.iteration = self.iteration + 1
         return loss
 
 
