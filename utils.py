@@ -923,9 +923,9 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        self.proto_0 = torch.zeros(num_class, 12)
+        self.proto_0 = torch.zeros(num_class, 12 )
         self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 4  )
+        self.proto_2 = torch.zeros(num_class, 12 )
         self.proto_3 = torch.zeros(num_class, 64 )
         self.proto_4 = torch.zeros(num_class, 128)
 
