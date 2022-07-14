@@ -892,10 +892,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
-        # self.down_scales = [1.0,0.125,0.125,0.25]
+        self.down_scales = [1.0,0.125,0.125,0.25,0.25]
 
         # DABNet
         # [1.0, 0.25, 0.125, 0.125] [9, 64, 128, 9]
@@ -923,17 +923,18 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        self.proto_0 = torch.zeros(num_class, 12 )
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 12 )
-        self.proto_3 = torch.zeros(num_class, 64 )
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_0 = torch.zeros(num_class, 9 )
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 9  )
+        # self.proto_3 = torch.zeros(num_class, 64 )
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # Mobile_NetV2
-        # self.proto_1 = torch.zeros(num_class, 9  )
-        # self.proto_2 = torch.zeros(num_class, 9  )
-        # self.proto_3 = torch.zeros(num_class, 320)
-        # self.proto_4 = torch.zeros(num_class, 96 )
+        self.proto_0 = torch.zeros(num_class, 9  )
+        self.proto_1 = torch.zeros(num_class, 9  )
+        self.proto_2 = torch.zeros(num_class, 320)
+        self.proto_3 = torch.zeros(num_class, 96 )
+        self.proto_4 = torch.zeros(num_class, 64 )
 
         # DABNet
         # self.proto_1 = torch.zeros(num_class, 9  )
