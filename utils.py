@@ -902,10 +902,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0, 0.25, 0.125, 0.125]
 
         # CT-1K
-        num_class = 11
+        # num_class = 11
 
         # Synapse
-        # num_class = 8       
+        num_class = 8       
 
         self.num_class = num_class
         
@@ -951,9 +951,9 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
-        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
         self.pixel_wise = CriterionPixelWise()
 
 
@@ -1040,14 +1040,15 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 12
+        # num_class = 12
+        num_class = 9
         self.num_class = num_class
         # ENet
         self.proto = torch.zeros(num_class, num_class)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
-        # self.momentum_schedule = cosine_scheduler(0.9, 1.0, 30.0, 368)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, preds_S, masks):
         loss = 0.0
