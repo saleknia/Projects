@@ -480,7 +480,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
         # Question here
-        in_channels = 32
+        in_channels = 16
 
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
