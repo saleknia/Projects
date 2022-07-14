@@ -222,12 +222,10 @@ class Mobile_netV2_loss(nn.Module):
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
-        low = x
         x = self.maxpool(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
-        high = x
         x = self.layer3(x)
         x = self.layer4(x)
         x = self.last_conv(x)
