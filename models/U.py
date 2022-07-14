@@ -82,26 +82,20 @@ class U(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        in_channels = 16
+        self.inc = DoubleConv(n_channels, in_channels)
+        self.down1 = Down(in_channels, in_channels * 2)
+        self.down2 = Down(in_channels * 2, in_channels * 4)
+        self.down3 = Down(in_channels * 4, in_channels * 8)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        # self.outc = OutConv(64, n_classes)
+        self.down4 = Down(in_channels * 8, in_channels * 16 // factor)
+        self.up1 = Up(in_channels * 16, in_channels * 8 // factor, bilinear)
+        self.up2 = Up(in_channels * 8 , in_channels * 4 // factor, bilinear)
+        self.up3 = Up(in_channels * 4 , in_channels * 2 // factor, bilinear)
+        self.up4 = Up(in_channels * 2 , in_channels, bilinear)
+        self.outc = OutConv(in_channels, n_classes)
 
-        self.Conv_1 = nn.Conv2d(64 , n_classes, kernel_size=1, stride=1, padding=0)
-        self.Conv_2 = nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0)
-        self.Conv_3 = nn.Conv2d(256, n_classes, kernel_size=1, stride=1, padding=0)
-        self.Conv_4 = nn.Conv2d(512, n_classes, kernel_size=1, stride=1, padding=0)
-        self.up_2 = nn.Upsample(scale_factor=2)
-        self.up_3 = nn.Upsample(scale_factor=4)
-        self.up_4 = nn.Upsample(scale_factor=8)
+
     def forward(self, x):
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -112,17 +106,9 @@ class U(nn.Module):
         x = self.up2(x, x3)
         x = self.up3(x, x2)
         x = self.up4(x, x1)
-        # logits = self.outc(x)
-        up4 = self.up1(x5, x4)
-        up3 = self.up2(up4, x3)
-        up2 = self.up3(up3, x2)
-        up1 = self.up4(up2, x1)
 
-        logits = self.Conv_1(up1)
-        logits = logits + F.sigmoid(self.up_2(self.Conv_2(up2))) 
-        logits = logits + F.sigmoid(self.up_3(self.Conv_3(up3)))
-        logits = logits + F.sigmoid(self.up_4(self.Conv_4(up4))) 
-        
+        logits = self.outc(x) 
+
         return logits
 
 
