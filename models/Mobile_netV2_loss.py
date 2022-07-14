@@ -93,7 +93,7 @@ class Mobile_netV2_loss(nn.Module):
             elif isinstance(m, nn.Linear):
                 nn.init.normal_(m.weight, 0, 0.01)
                 nn.init.zeros_(m.bias)
-        self.up = nn.Upsample(scale_factor=8)
+
     def _forward_impl(self, x):
         input_size = x.shape[-2:]
         # This exists since TorchScript doesn't support inheritance, so the superclass method
@@ -108,22 +108,22 @@ class Mobile_netV2_loss(nn.Module):
         x = self.features[7](x)
         x = self.features[8](x)
         x = self.features[9](x)
-        up4 = self.features[10](x)
-        x = self.features[11](up4)
+        x = self.features[10](x)
+        x = self.features[11](x)
         x = self.features[12](x)
-        up3 = self.features[13](x)
-        x = self.features[14](up3)
+        up4 = self.features[13](x)
+        x = self.features[14](up4)
         x = self.features[15](x)
         x = self.features[16](x)
-        up2 = self.features[17](x)
-        x = self.features[18](up2)
+        up3 = self.features[17](x)
+        x = self.features[18](up3)
         # Cannot use "squeeze" as batch-size can be 1 => must use reshape with x.shape[0]
-        up1 = self.last_conv(x) 
-        out = self.up(up1)
+        up2 = self.last_conv(x)
+        up1 = F.interpolate(up2, size=input_size, mode='bilinear', align_corners=True)
         if self.training:
-            return out, up4, up3, up2, up1
+            return up1, up4, up3, up2, up1
         else:
-            return out
+            return up1
     def forward(self, x):
         x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         return self._forward_impl(x)
