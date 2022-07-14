@@ -225,12 +225,17 @@ class Mobile_netV2_loss(nn.Module):
         x = self.maxpool(x)
 
         x = self.layer1(x)
+        x1 = x
         x = self.layer2(x)
+        x2 = x
         x = self.layer3(x)
+        x3 = x
         x = self.layer4(x)
+        x4 = x
         x = self.last_conv(x)
         x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
         if self.training:
-            return x, None, None, None, None
+            return x, x4, x3, x2, x1
         else:
             return x
+
