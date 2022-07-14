@@ -288,6 +288,7 @@ class ESPNet_Encoder(nn.Module):
         self.b3 = BR(256)
 
         self.classifier = C(256, classes, 1, 1)
+        self.up = nn.Upsample(scale_factor=8)
 
     def forward(self, input):
         '''
@@ -321,7 +322,8 @@ class ESPNet_Encoder(nn.Module):
         classifier = self.classifier(output2_cat)
 
         # return classifier
-        out = F.upsample(classifier, input.size()[2:], mode='bilinear')  # Upsample score map, factor=8
+        # out = F.upsample(classifier, input.size()[2:], mode='bilinear')  # Upsample score map, factor=8
+        out = self.up(classifier)
         return out
 
 
