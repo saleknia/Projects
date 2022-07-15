@@ -886,13 +886,13 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
-        self.down_scales = [1.0,1.0,0.5,0.25,0.125]
+        # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
         # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -922,11 +922,11 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        # self.proto_0 = torch.zeros(num_class, 9 )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 9  )
-        # self.proto_3 = torch.zeros(num_class, 64 )
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_0 = torch.zeros(num_class, 13 )
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 13 )
+        self.proto_3 = torch.zeros(num_class, 64 )
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # Mobile_NetV2
         # self.proto_0 = torch.zeros(num_class, 9  )
@@ -962,7 +962,7 @@ class prototype_loss(nn.Module):
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
         self.pixel_wise = CriterionPixelWise()
 
 
@@ -1049,14 +1049,14 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 12
+        num_class = 13
         # num_class = 9
         self.num_class = num_class
         # ENet
         self.proto = torch.zeros(num_class, num_class)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, preds_S, masks):
