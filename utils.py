@@ -886,7 +886,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class prototype_loss(nn.Module):
     def __init__(self):
         super(prototype_loss, self).__init__()
-        # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
+        self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
         # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
@@ -895,13 +895,13 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
-        self.down_scales = [1.0,0.125,0.125,0.25,0.25]
+        # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
 
         # ResNet_18
-        self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
+        # self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
 
         # CT-1K
-        num_class = 11
+        num_class = 12
 
         # Synapse
         # num_class = 8       
@@ -936,11 +936,11 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 64 )
 
         # ResNet_18
-        self.proto_0 = torch.zeros(num_class, num_class+1)
-        self.proto_1 = torch.zeros(num_class, 64 )
-        self.proto_2 = torch.zeros(num_class, 128)
-        self.proto_3 = torch.zeros(num_class, 256)
-        self.proto_4 = torch.zeros(num_class, 512)
+        # self.proto_0 = torch.zeros(num_class, num_class+1)
+        # self.proto_1 = torch.zeros(num_class, 64 )
+        # self.proto_2 = torch.zeros(num_class, 128)
+        # self.proto_3 = torch.zeros(num_class, 256)
+        # self.proto_4 = torch.zeros(num_class, 512)
 
 
         # DABNet
