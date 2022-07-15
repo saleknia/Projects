@@ -189,14 +189,14 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
         # loss_kd = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
         ###############################################
-        alpha = 0.005
+        alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
         loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
         # loss = loss_kd 
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
