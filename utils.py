@@ -968,7 +968,7 @@ class prototype_loss(nn.Module):
         self.momentum = torch.tensor(0.9)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 138)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
         self.pixel_wise = CriterionPixelWise()
@@ -1071,7 +1071,7 @@ class CriterionPixelWise(nn.Module):
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 138)
 
     def forward(self, preds_S, masks):
         loss = 0.0
