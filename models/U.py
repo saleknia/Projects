@@ -82,7 +82,7 @@ class U(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        in_channels = 16
+        in_channels = 8
         self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels, in_channels * 2)
         self.down2 = Down(in_channels * 2, in_channels * 4)
@@ -102,15 +102,15 @@ class U(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        x = self.up1(x5, x4)
-        x = self.up2(x, x3)
-        x = self.up3(x, x2)
-        x = self.up4(x, x1)
+        up4 = self.up1(x5, x4)# 64
+        up3 = self.up2(x, x3) # 32
+        up2 = self.up3(x, x2) # 16
+        up1 = self.up4(x, x1) # 8
 
-        logits = self.outc(x) 
+        logits = self.outc(up1) 
 
         if self.training:
-            return logits, None, None, None, None
+            return logits, up4, up3, up2, up1
         else:
             return logits
 
