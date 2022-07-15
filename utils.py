@@ -949,11 +949,11 @@ class prototype_loss(nn.Module):
         # self.proto_3 = torch.zeros(num_class, 128)
         # self.proto_4 = torch.zeros(num_class, 9  )
 
-        self.proto_0 = torch.zeros(num_class, num_class+1)
-        self.proto_1 = torch.zeros(num_class, 32 )
-        self.proto_2 = torch.zeros(num_class, 32 )
-        self.proto_3 = torch.zeros(num_class, 64 )
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_0 = torch.zeros(num_class, num_class+1)
+        # self.proto_1 = torch.zeros(num_class, 32 )
+        # self.proto_2 = torch.zeros(num_class, 32 )
+        # self.proto_3 = torch.zeros(num_class, 64 )
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
         self.protos = [self.proto_0, self.proto_1, self.proto_2, self.proto_3, self.proto_4]
@@ -970,6 +970,12 @@ class prototype_loss(nn.Module):
         loss = 0.0
         loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [outputs, up1, up2, up3, up4]
+
+        # print(outputs.shape)
+        # print(up1.shape)
+        # print(up2.shape)
+        # print(up3.shape)
+        # print(up4.shape)
 
         for k in range(5):
             indexs = []

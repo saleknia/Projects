@@ -181,7 +181,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
         # loss_proto = 0.0
-        # loss_kd = 0.0
+        loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
 
