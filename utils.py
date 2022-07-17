@@ -889,10 +889,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
+        self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -901,7 +901,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
 
         # CT-1K
-        num_class = 11
+        num_class = 12
 
         # Synapse
         # num_class = 8       
@@ -922,9 +922,9 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        self.proto_0 = torch.zeros(num_class, 12 )
+        self.proto_0 = torch.zeros(num_class, 13 )
         self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 12 )
+        self.proto_2 = torch.zeros(num_class, 13 )
         self.proto_3 = torch.zeros(num_class, 64 )
         self.proto_4 = torch.zeros(num_class, 128)
 
@@ -971,12 +971,12 @@ class prototype_loss(nn.Module):
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
-        self.pixel_wise = CriterionPixelWise()
+        # self.pixel_wise = CriterionPixelWise()
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [outputs, up1, up2, up3, up4]
 
         # print(outputs.shape)
@@ -1029,26 +1029,26 @@ class prototype_loss(nn.Module):
             indexs.sort()
 
             l = 0.0
-            proto = self.protos[k][indexs].unsqueeze(dim=0)
-            prototypes = prototypes.unsqueeze(dim=0)
-            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            proto = self.protos[k][indexs].squeeze(dim=0)
-            prototypes = prototypes.squeeze(dim=0)
-            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            diagonal = distances_c[0] * x
+            # proto = self.protos[k][indexs].unsqueeze(dim=0)
+            # prototypes = prototypes.unsqueeze(dim=0)
+            # distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            # proto = self.protos[k][indexs].squeeze(dim=0)
+            # prototypes = prototypes.squeeze(dim=0)
+            # x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+            # diagonal = distances_c[0] * x
 
-            cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
+            # cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             l = l + (1.0 / torch.mean(distances))
         
-            l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
-            # l = l + (1.0 * (torch.mean(diagonal)))
-            l = l + cosine_loss
+            # l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
+            # # l = l + (1.0 * (torch.mean(diagonal)))
+            # l = l + cosine_loss
             loss = loss + l
-            self.update(prototypes, mask_unique_value, k)
-        self.iteration = self.iteration + 1
+            # self.update(prototypes, mask_unique_value, k)
+        # self.iteration = self.iteration + 1
         return loss
 
 
@@ -1063,7 +1063,7 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 11
+        num_class = 12
         # num_class = 8
         self.num_class = num_class
         # ENet
