@@ -104,17 +104,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
 
     model=model.to(device)
-    ##################################################################
-    # activation = {}
-    # def get_activation(name):
-    #     def hook(model, input, output):
-    #         activation[name] = output
-    #     return hook
-    # model.up4.register_forward_hook(get_activation('up4'))
-    # model.up3.register_forward_hook(get_activation('up3'))
-    # model.up2.register_forward_hook(get_activation('up2'))
-    # model.up1.register_forward_hook(get_activation('up1'))
-    ##################################################################
     model.train()
 
     loss_total = utils.AverageMeter()
@@ -154,7 +143,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        # targets[targets==6.0] = 0.0
+        # targets[targets==12.0] = 0.0
         # targets[targets>6] = targets[targets>6] - 1.0
         # targets[targets>7] = 0.0
 
@@ -193,8 +182,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 0.01
         beta = 0.01
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
+        loss = 0.5 * loss_ce + 0.5 * loss_dice 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
         # loss = loss_kd 
         ###############################################
 
