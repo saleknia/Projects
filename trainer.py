@@ -179,7 +179,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=None)
+        loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1, outputs=None)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
         # loss_proto = 0.0
