@@ -889,7 +889,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        self.down_scales = [1.0,0.5,0.25,0.125,0.125]
+        self.down_scales = [0.5,0.25,0.125,0.125]
 
         # ESPNet
         # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
@@ -977,7 +977,7 @@ class prototype_loss(nn.Module):
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
         # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        up = [outputs, up1, up2, up3, up4]
+        up = [up1, up2, up3, up4]
 
         # print(outputs.shape)
         # print(up1.shape)
@@ -985,7 +985,7 @@ class prototype_loss(nn.Module):
         # print(up3.shape)
         # print(up4.shape)
 
-        for k in range(5):
+        for k in range(4):
             indexs = []
             weights = []
             B,C,H,W = up[k].shape
