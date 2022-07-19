@@ -9,7 +9,7 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import calc_loss
+from utils import calc_loss, FocalLoss
 warnings.filterwarnings("ignore")
 
 def one_hot_loss(exist_pred, targets):
@@ -143,7 +143,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        # targets[targets==12.0] = 0.0
+
         # targets[targets>6] = targets[targets>6] - 1.0
         # targets[targets>7] = 0.0
 
@@ -158,7 +158,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # e5, e4, e3, e2 = model(inputs, pretrain=True)
         # outputs = torch.zeros(inputs.shape,device='cuda')
 
-
+         
         # targets = targets.long()
         # predictions = torch.argmax(input=outputs,dim=1).long()
         # overlap = (predictions==targets).float()
@@ -187,23 +187,18 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss = loss_kd 
         ###############################################
 
-        # lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1        
+        iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        lr_scheduler.step()
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1
 
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
@@ -225,7 +220,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f}, Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  

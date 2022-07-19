@@ -130,7 +130,7 @@ class Decoder(nn.Module):
 
         output = self.output_conv(output)
         if self.training:
-            return output, output_0, output_1, output_2
+            return output, output_0, output_1, output_2, None
         else:
             return output
 
