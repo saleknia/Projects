@@ -508,7 +508,7 @@ class UNet_loss(nn.Module):
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, up_scale=2)
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, up_scale=4)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, up_scale=8)
-        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         self.head = seg_head()
 
         if n_classes == 1:
@@ -546,14 +546,14 @@ class UNet_loss(nn.Module):
         up2 = self.up2(up3, x2)
         up1 = self.up1(up2, x1)
 
-        logits = self.head(up1)
+        logits = self.outc(self.head(up4, up3, up2, up1))
         # if self.last_activation is not None:
         #     logits = self.last_activation(self.outc(up1))
         # else:
         #     logits = self.outc(up1)
 
         if self.training:
-            return logits, up4, up3, up2, up1
+            return logits, up4, up3, up2, up1, x5
         else:
             return logits
 

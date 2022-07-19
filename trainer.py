@@ -124,7 +124,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ##################################################################
     # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
-    # kd_loss = M_loss()    
+    kd_loss = M_loss()    
     proto_loss = loss_function
     ##################################################################
     ##################################################################
@@ -154,7 +154,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs, up4, up3, up2, up1, up0 = model(inputs)
         # outputs, up4, up3, up2, up1 = model(inputs)
         
-        outputs, up4, up3, up2, up1 = model(inputs)
+        outputs, up4, up3, up2, up1, e5 = model(inputs)
         # e5, e4, e3, e2 = model(inputs, pretrain=True)
         # outputs = torch.zeros(inputs.shape,device='cuda')
 
@@ -172,18 +172,19 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
         loss_proto = 0.0
-        loss_kd = 0.0
+        # loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
-        # loss_kd = kd_out_loss(preds_S=outputs, preds_T=prediction_map_distillation(y=outputs, masks=targets))
+        loss_kd = M_loss(e5=e5)
         ###############################################
         alpha = 0.01
         beta = 0.01
-        loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * 
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
 
@@ -220,7 +221,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f}, Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , kd_loss = {beta*loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  

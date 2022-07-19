@@ -1506,26 +1506,22 @@ class M_loss(nn.Module):
     def __init__(self):
         super(M_loss, self).__init__()
         self.softmax = Softmax(dim=2)
-        self.down_scales = [1.0, 0.5, 0.25, 0.125]
-    def forward(self, e5, e4, e3, e2):
+    def forward(self, e5):
         loss = 0
-        E = [e5, e4, e3, e2]
-        for i in range(4):
-            e = E[i]
-            e = nn.functional.interpolate(e, scale_factor=self.down_scales[i], mode='nearest')          
-            B, C, H, W = e.shape # (B, C, H, W) ---> H=W=16, C=1024
-            x = e.flatten(2) # (B, C, n_patches) ---> n_patches=256
-            Q = x
-            K = x.transpose(2, 1)  # (B, n_patches, C)
-            attention_scores = torch.matmul(Q, K) # (B, C, C)
-            attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
-            attention_probs = self.softmax(attention_scores) # (B, C, C)
-            probs = attention_probs # (B, C, C)
-            probs = probs.sum(dim=0) # (C, C)
-            diag = probs * (torch.eye(probs.shape[0],probs.shape[1]).to('cuda')) # (C, C)
-            probs = probs - diag
-            l = torch.norm(probs) + (1/torch.sum(torch.mean(x,dim=2)))
-            loss = loss + l
+        e = e5
+        B, C, H, W = e.shape # (B, C, H, W) ---> H=W=16, C=1024
+        x = e.flatten(2) # (B, C, n_patches) ---> n_patches=256
+        Q = x
+        K = x.transpose(2, 1)  # (B, n_patches, C)
+        attention_scores = torch.matmul(Q, K) # (B, C, C)
+        attention_scores = attention_scores / math.sqrt(C) # (B, C, C)
+        attention_probs = self.softmax(attention_scores) # (B, C, C)
+        probs = attention_probs # (B, C, C)
+        probs = probs.sum(dim=0) # (C, C)
+        diag = probs * (torch.eye(probs.shape[0],probs.shape[1]).to('cuda')) # (C, C)
+        probs = probs - diag
+        l = torch.norm(probs) 
+        loss = loss + l
         return loss
 
 
