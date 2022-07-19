@@ -45,8 +45,8 @@ if log:
 # Hyperparameters etc.
 LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 8
-NUM_EPOCHS = 60
+BATCH_SIZE = 6
+NUM_EPOCHS = 30
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 256
 IMAGE_WIDTH = 256
@@ -97,7 +97,7 @@ elif task_id==3:
     TASK_NAME = 'ACDC'
 
 elif task_id==4:
-    NUM_CLASS = 2
+    NUM_CLASS = 13
     TASK_NAME = 'CT-1K'
 
 elif task_id==5:

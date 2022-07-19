@@ -11,6 +11,7 @@ import math
 from torch.nn import Module, Sequential, Conv2d, ReLU,AdaptiveMaxPool2d, AdaptiveAvgPool2d,NLLLoss, BCELoss, CrossEntropyLoss, AvgPool2d, MaxPool2d, Parameter, Linear, Sigmoid, Softmax, Dropout, Embedding
 from torch.nn import functional as F
 from torch.autograd import Variable
+import torchvision
 
 class ParallelPolarizedSelfAttention(nn.Module):
 
@@ -404,6 +405,39 @@ class Indentity(nn.Module):
     def forward(self, x):
         return x
 
+
+class seg_head(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.scale_4 = nn.Upsample(scale_factor=2)
+        self.scale_3 = nn.Upsample(scale_factor=2)
+        self.scale_2 = nn.Upsample(scale_factor=2)
+        self.conv_4 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(128, 64 , kernel_size=(1,1), stride=(1,1))
+        self.conv_2 =  nn.Conv2d(64 , 64 , kernel_size=(1,1), stride=(1,1))
+
+        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.BN_out = nn.BatchNorm2d(64)
+        self.RELU6_out = nn.ReLU6()
+
+        self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
+    def forward(self, up4, up3, up2, up1):
+        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        up4 = self.scale_4(self.conv_4(up4))
+        up3 = up3 + up4
+        up3 = self.scale_3(self.conv_3(up3))
+        up2 = up3 + up2
+        up2 = self.scale_2(self.conv_2(up2))
+        up = up2 + up1
+        
+        up = self.conv(up)
+        up = self.BN_out(up)
+        up = self.RELU6_out(up)
+
+        return up
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -423,7 +457,7 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
     def forward(self, x, skip_x):
@@ -434,7 +468,7 @@ class UpBlock(nn.Module):
         #     out = self.up(x)
         # out = self.up_1(x) * self.gamma + self.up_2(x)
         out = self.up(x)
-        # out = self.att(out)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x)   
         
@@ -474,7 +508,8 @@ class UNet_loss(nn.Module):
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, up_scale=2)
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, up_scale=4)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, up_scale=8)
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        self.head = seg_head()
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -511,10 +546,11 @@ class UNet_loss(nn.Module):
         up2 = self.up2(up3, x2)
         up1 = self.up1(up2, x1)
 
-        if self.last_activation is not None:
-            logits = self.last_activation(self.outc(up1))
-        else:
-            logits = self.outc(up1)
+        logits = self.head(up1)
+        # if self.last_activation is not None:
+        #     logits = self.last_activation(self.outc(up1))
+        # else:
+        #     logits = self.outc(up1)
 
         if self.training:
             return logits, up4, up3, up2, up1
