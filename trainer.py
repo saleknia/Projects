@@ -157,34 +157,33 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         outputs, up4, up3, up2, up1, e5 = model(inputs)
         # e5, e4, e3, e2 = model(inputs, pretrain=True)
         # outputs = torch.zeros(inputs.shape,device='cuda')
-
-         
-        # targets = targets.long()
-        # predictions = torch.argmax(input=outputs,dim=1).long()
-        # overlap = (predictions==targets).float()
-        # t_masks = targets * overlap
-        # targets = targets.float()
+     
+        targets = targets.long()
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        overlap = (predictions==targets).float()
+        t_masks = targets * overlap
+        targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
-        # loss_proto = proto_loss(masks=targets.clone(), t_masks=None, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
+        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
-        loss_proto = 0.0
-        # loss_kd = 0.0
+        # loss_proto = 0.0
+        loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
 
         # loss_kd_out = prediction_map_distillation(y=outputs, masks=targets)
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
-        loss_kd = kd_loss(e5)
+        # loss_kd = kd_loss(e5)
         ###############################################
-        alpha = 0.005
+        alpha = 0.01
         beta = 0.01
         # loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * 
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
 
