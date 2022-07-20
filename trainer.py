@@ -144,9 +144,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets = targets.float()
 
-        # targets[targets>6] = targets[targets>6] - 1.0
-        # targets[targets>7] = 0.0
-
         # outputs = model(inputs)
         # outputs, up3, up2, up1  = model(inputs)
         # outputs, e5 = model(inputs)
@@ -154,7 +151,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # outputs, up4, up3, up2, up1, up0 = model(inputs)
         # outputs, up4, up3, up2, up1 = model(inputs)
         
-        outputs, up4, up3, up2, up1, e5 = model(inputs)
+        outputs, up4, up3, up2, up1 = model(inputs)
         # e5, e4, e3, e2 = model(inputs, pretrain=True)
         # outputs = torch.zeros(inputs.shape,device='cuda')
      
@@ -187,7 +184,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss = loss_kd 
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.1 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
@@ -197,7 +194,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-
+        lr_scheduler.step()
 
 
         loss_total.update(loss)
