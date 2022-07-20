@@ -307,8 +307,8 @@ class Synapse_dataset(Dataset):
             data = h5py.File(filepath)
             image, mask = data['image'][:], data['label'][:]
 
-        image = image * 900.0
-        image = image - 300.0
+        image = image * 500.0
+        image = image - 200.0
 
         sample = {'image': image, 'label': mask}
 
