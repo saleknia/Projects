@@ -11,7 +11,7 @@ class color:
    END = '\033[0m'
 
 import os
-os.system('pip install synapseclient')
+# os.system('pip install synapseclient')
 import sys
 import argparse
 import wget
@@ -19,7 +19,7 @@ import nibabel as nib
 import numpy as np
 # from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
-import synapseclient 
+# import synapseclient 
 from os import listdir
 from scipy import ndimage
 from PIL import Image
