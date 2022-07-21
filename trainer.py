@@ -61,6 +61,28 @@ def prediction_map_distillation(y, masks) :
 
     return teacher_scores
 
+class WeightedCrossEntropyLoss(nn.Module):
+    """WeightedCrossEntropyLoss (WCE) as described in https://arxiv.org/pdf/1707.03237.pdf
+    """
+
+    def __init__(self, ignore_index=-1):
+        super(WeightedCrossEntropyLoss, self).__init__()
+        self.ignore_index = ignore_index
+
+    def forward(self, input, target):
+        weight = self._class_weights(input)
+        return F.cross_entropy(input, target, weight=weight, ignore_index=self.ignore_index)
+
+    @staticmethod
+    def _class_weights(input):
+        # normalize the input first
+        input = F.softmax(input, dim=1)
+        flattened = flatten(input)
+        nominator = (1. - flattened).sum(-1)
+        denominator = flattened.sum(-1)
+        class_weights = Variable(nominator / denominator, requires_grad=False)
+        return class_weights
+
 # def prediction_map_distillation(y, masks, T=4.0) :
 #     """
 #     basic KD loss function based on "Distilling the Knowledge in a Neural Network"
@@ -119,7 +141,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    ce_loss = focal_loss(gamma=2.0)
+    ce_loss = WeightedCrossEntropyLoss()
     # ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
@@ -162,7 +184,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        loss_ce = ce_loss(x=outputs, y=targets.long())
+        loss_ce = ce_loss(input=outputs, target=targets.long())
         # loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
@@ -186,17 +208,17 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss = loss_kd 
         ###############################################
 
-        # lr_ = 0.04 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.04 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1        
+        iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        lr_scheduler.step()
+        # lr_scheduler.step()
 
 
         loss_total.update(loss)
