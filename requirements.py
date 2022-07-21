@@ -1,9 +1,9 @@
 import os
-os.system('pip install --upgrade torch')
-os.system('pip install --upgrade torchvision')
+# os.system('pip install --upgrade torch')
+# os.system('pip install --upgrade torchvision')
 # os.system('pip install torch==1.10.0')
 # os.system('pip install torch==1.10.0+cu111')
-# os.system('pip install torch==1.10.0+cu111 torchvision==0.11.0+cu111 torchaudio==0.10.0 torchtext==0.11.0 -f https://download.pytorch.org/whl/torch_stable.html')
+os.system('pip install torch==1.10.0+cu111 torchvision==0.11.0+cu111 torchaudio==0.10.0 torchtext==0.11.0 -f https://download.pytorch.org/whl/torch_stable.html')
 # os.system('pip install torchvision==0.11.1')
 os.system('pip install --upgrade --force-reinstall --no-deps kaggle')
 os.system('pip install einops==0.3.0')

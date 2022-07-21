@@ -339,6 +339,7 @@ class Evaluator(object):
     def reset(self):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
 
+
 class DiceLoss(nn.Module):
     
     ''' For this loss function you should consider
@@ -367,14 +368,15 @@ class DiceLoss(nn.Module):
         Ng ---> Number of ground-truth pixels.
         '''
         target = target.float()
-        smooth = 1e-7
         intersect = torch.sum(score * target)  # No 
         y_sum = torch.sum(target * target)  # Ng
         z_sum = torch.sum(score * score)  # Np
-        w = 1.0 / smooth + (torch.sum(target * target))**2
-        loss = (2 * intersect) / (z_sum + y_sum)
-        loss = 1 - loss
-        return loss
+        num = intersect 
+        den = y_sum + z_sum
+        w = 1.0 / (torch.sum(target * target))
+        num = num * w
+        den = den * w
+        return num, den
 
     def forward(self, inputs, target, weight=None, softmax=False):
         if softmax:
@@ -391,6 +393,59 @@ class DiceLoss(nn.Module):
             loss += dice * weight[i]
             # loss += dice * (1.0 / (torch.sum(target[:, i] * target[:, i]) + 1))
         return loss / self.n_classes
+
+# class DiceLoss(nn.Module):
+    
+#     ''' For this loss function you should consider
+#         background as a one specific class '''
+
+#     ''' For this loss function score and target dims
+#         should be [B, #classes, H, W] and [B, H, W] respectively '''
+
+#     def __init__(self, n_classes):
+#         super(DiceLoss, self).__init__()
+#         self.n_classes = n_classes
+
+#     def _one_hot_encoder(self, input_tensor):
+#         tensor_list = []
+#         for i in range(self.n_classes):
+#             temp_prob = input_tensor == i  # * torch.ones_like(input_tensor)
+#             tensor_list.append(temp_prob.unsqueeze(1))
+#         output_tensor = torch.cat(tensor_list, dim=1)
+#         return output_tensor.float()
+
+#     def _dice_loss(self, score, target):
+#         ''' 
+#         According to SAD paper notation
+#         No ---> Number of overlapping pixels between predition and target.
+#         Np ---> Number of predicted pixels.
+#         Ng ---> Number of ground-truth pixels.
+#         '''
+#         target = target.float()
+#         smooth = 1e-7
+#         intersect = torch.sum(score * target)  # No 
+#         y_sum = torch.sum(target * target)  # Ng
+#         z_sum = torch.sum(score * score)  # Np
+#         w = 1.0 / smooth + (torch.sum(target * target))**2
+#         loss = (2 * intersect) / (z_sum + y_sum)
+#         loss = 1 - loss
+#         return loss
+
+#     def forward(self, inputs, target, weight=None, softmax=False):
+#         if softmax:
+#             inputs = torch.softmax(inputs, dim=1)
+#         target = self._one_hot_encoder(target)
+#         if weight is None:
+#             weight = [1] * self.n_classes
+#         assert inputs.size() == target.size(), 'predict {} & target {} shape do not match'.format(inputs.size(), target.size())
+#         class_wise_dice = []
+#         loss = 0.0
+#         for i in range(0, self.n_classes):
+#             dice = self._dice_loss(inputs[:, i], target[:, i])
+#             class_wise_dice.append(1.0 - dice.item())
+#             loss += dice * weight[i]
+#             # loss += dice * (1.0 / (torch.sum(target[:, i] * target[:, i]) + 1))
+#         return loss / self.n_classes
 
 def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epochs=0, start_warmup_value=0):
     warmup_schedule = np.array([])
