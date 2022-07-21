@@ -9,7 +9,7 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import calc_loss, focal_loss
+from utils import focal_loss
 warnings.filterwarnings("ignore")
 
 def one_hot_loss(exist_pred, targets):
@@ -162,7 +162,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        loss_ce = 
+        loss_ce = ce_loss(x=outputs, y=targets)
         # loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
 
