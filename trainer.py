@@ -61,6 +61,20 @@ def prediction_map_distillation(y, masks) :
 
     return teacher_scores
 
+def flatten(tensor):
+    """Flattens a given tensor such that the channel axis is first.
+    The shapes are transformed as follows:
+       (N, C, D, H, W) -> (C, N * D * H * W)
+    """
+    # number of channels
+    C = tensor.size(1)
+    # new axis order
+    axis_order = (1, 0) + tuple(range(2, tensor.dim()))
+    # Transpose: (N, C, D, H, W) -> (C, N, D, H, W)
+    transposed = tensor.permute(axis_order)
+    # Flatten: (C, N, D, H, W) -> (C, N * D * H * W)
+    return transposed.contiguous().view(C, -1)
+
 class WeightedCrossEntropyLoss(nn.Module):
     """WeightedCrossEntropyLoss (WCE) as described in https://arxiv.org/pdf/1707.03237.pdf
     """
