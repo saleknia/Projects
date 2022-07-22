@@ -234,11 +234,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    # ce_loss = focal_loss(gamma=2.0)
-    ce_loss = WeightedCrossEntropyLoss()
+    ce_loss = focal_loss(gamma=2.0)
+    # ce_loss = WeightedCrossEntropyLoss()
     # ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_class)
-    # dice_loss = GeneralizedDiceLoss(num_classes=num_class)
+    # dice_loss = DiceLoss(num_class)
+    dice_loss = GeneralizedDiceLoss(num_classes=num_class)
     ##################################################################
     # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
@@ -279,16 +279,16 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        # loss_ce = ce_loss(x=outputs, y=targets.long())
-        loss_ce = ce_loss(input=outputs, target=targets.long())
+        loss_ce = ce_loss(x=outputs, y=targets.long())
+        # loss_ce = ce_loss(input=outputs, target=targets.long())
         # loss_ce = ce_loss(outputs, targets[:].long())
-        # loss_dice = dice_loss(input=outputs, target=targets)
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        loss_dice = dice_loss(input=outputs, target=targets)
+        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
+        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
-        # loss_proto = 0.0
+        loss_proto = 0.0
         loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
@@ -299,23 +299,23 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 0.01
         beta = 0.01
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
+        loss = 0.5 * loss_ce + 0.5 * loss_dice 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
 
-        # lr_ = 0.04 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1        
+        iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        lr_scheduler.step()
+        # lr_scheduler.step()
 
 
         loss_total.update(loss)
