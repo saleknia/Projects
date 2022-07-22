@@ -119,8 +119,16 @@ class GeneralizedDiceLoss(_AbstractDiceLoss):
         super().__init__(weight=None, normalization=normalization)
         self.epsilon = epsilon
         self.num_classes = num_classes
+    def _one_hot_encoder(self, input_tensor):
+        tensor_list = []
+        for i in range(self.num_classes):
+            temp_prob = input_tensor == i  # * torch.ones_like(input_tensor)
+            tensor_list.append(temp_prob.unsqueeze(1))
+        output_tensor = torch.cat(tensor_list, dim=1)
+        return output_tensor.float()
 
     def dice(self, input, target, weight):
+        target = self._one_hot_encoder(target)
         assert input.size() == target.size(), "'input' and 'target' must have the same shape"
 
         input = flatten(input)
@@ -229,6 +237,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss = WeightedCrossEntropyLoss()
     # ce_loss = CrossEntropyLoss()
     # dice_loss = DiceLoss(num_class)
+    dice_loss = GeneralizedDiceLoss(num_classes=num_class)
     ##################################################################
     # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
