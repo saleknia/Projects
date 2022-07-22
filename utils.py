@@ -433,13 +433,6 @@ class Evaluator(object):
 #         return loss / self.n_classes
 
 class DiceLoss(nn.Module):
-    
-    ''' For this loss function you should consider
-        background as a one specific class '''
-
-    ''' For this loss function score and target dims
-        should be [B, #classes, H, W] and [B, H, W] respectively '''
-
     def __init__(self, n_classes):
         super(DiceLoss, self).__init__()
         self.n_classes = n_classes
@@ -453,19 +446,12 @@ class DiceLoss(nn.Module):
         return output_tensor.float()
 
     def _dice_loss(self, score, target):
-        ''' 
-        According to SAD paper notation
-        No ---> Number of overlapping pixels between predition and target.
-        Np ---> Number of predicted pixels.
-        Ng ---> Number of ground-truth pixels.
-        '''
         target = target.float()
-        smooth = 1e-7
-        intersect = torch.sum(score * target)  # No 
-        y_sum = torch.sum(target * target)  # Ng
-        z_sum = torch.sum(score * score)  # Np
-        w = 1.0 / smooth + (torch.sum(target * target))**2
-        loss = (2 * intersect) / (z_sum + y_sum)
+        smooth = 1e-5
+        intersect = torch.sum(score * target)
+        y_sum = torch.sum(target * target)
+        z_sum = torch.sum(score * score)
+        loss = (2 * intersect + smooth) / (z_sum + y_sum + smooth)
         loss = 1 - loss
         return loss
 
@@ -482,7 +468,6 @@ class DiceLoss(nn.Module):
             dice = self._dice_loss(inputs[:, i], target[:, i])
             class_wise_dice.append(1.0 - dice.item())
             loss += dice * weight[i]
-            # loss += dice * (1.0 / (torch.sum(target[:, i] * target[:, i]) + 1))
         return loss / self.n_classes
 
 def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epochs=0, start_warmup_value=0):
