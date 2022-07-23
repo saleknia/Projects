@@ -974,7 +974,7 @@ class prototype_loss(nn.Module):
         # self.down_scales = [0.5,0.25,0.125,0.125]
 
         # ESPNet
-        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        self.down_scales = [0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -1049,21 +1049,21 @@ class prototype_loss(nn.Module):
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
 
-        self.protos = [self.proto_0, self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 138)
+        self.momentum_schedule = cosine_scheduler(0.8, 1.0, 60.0, 138)
 
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 198)
-        # self.pixel_wise = CriterionPixelWise()
+        self.pixel_wise = CriterionPixelWise()
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        up = [outputs, up1, up2, up3, up4]
+        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        up = [up1, up2, up3, up4]
 
         # print(outputs.shape)
         # print(up1.shape)
@@ -1071,7 +1071,7 @@ class prototype_loss(nn.Module):
         # print(up3.shape)
         # print(up4.shape)
 
-        for k in range(5):
+        for k in range(4):
             indexs = []
             weights = []
             B,C,H,W = up[k].shape
