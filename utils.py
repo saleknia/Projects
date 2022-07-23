@@ -971,10 +971,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        self.down_scales = [0.5,0.25,0.125,0.125]
+        # self.down_scales = [0.5,0.25,0.125,0.125]
 
         # ESPNet
-        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -1000,17 +1000,17 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 64 )
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 64 )
+        # self.proto_3 = torch.zeros(num_class, 128)
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        # self.proto_0 = torch.zeros(num_class, 13 )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 13 )
-        # self.proto_3 = torch.zeros(num_class, 64 )
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_0 = torch.zeros(num_class, 9  )
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 9  )
+        self.proto_3 = torch.zeros(num_class, 64 )
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # SUNet
         # self.proto_0 = torch.zeros(num_class, self.num_class +1)
@@ -1049,7 +1049,7 @@ class prototype_loss(nn.Module):
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
 
-        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [self.proto_0, self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
@@ -1062,8 +1062,8 @@ class prototype_loss(nn.Module):
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        up = [up1, up2, up3, up4]
+        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        up = [outputs, up1, up2, up3, up4]
 
         # print(outputs.shape)
         # print(up1.shape)
@@ -1071,7 +1071,7 @@ class prototype_loss(nn.Module):
         # print(up3.shape)
         # print(up4.shape)
 
-        for k in range(4):
+        for k in range(5):
             indexs = []
             weights = []
             B,C,H,W = up[k].shape
@@ -1124,9 +1124,9 @@ class prototype_loss(nn.Module):
 
             # cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
-            # proto = prototypes.unsqueeze(dim=0)
-            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            # l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
         
             l = l + (1.0 / torch.mean(distances_c[0]-diagonal)) 
             l = l + (1.0 * (torch.mean(diagonal)))
@@ -1147,13 +1147,13 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 12
-        # num_class = 8
+        # num_class = 12
+        num_class = 8
         self.num_class = num_class
         self.proto = torch.zeros(num_class+1, num_class+1)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 148)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 138)
 
     def forward(self, preds_S, masks):
         loss = 0.0

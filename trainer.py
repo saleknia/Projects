@@ -285,10 +285,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice = dice_loss(input=outputs, target=targets)
         # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
+        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
-        loss_proto = 0.0
+        # loss_proto = 0.0
         loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
@@ -299,8 +299,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 0.01
         beta = 0.01
-        loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice 
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto 
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
