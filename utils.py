@@ -971,10 +971,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
+        self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -1000,18 +1000,18 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        # self.proto_0 = torch.zeros(num_class, 9  )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 64 )
-        # self.proto_3 = torch.zeros(num_class, 128)
-        # self.proto_4 = torch.zeros(num_class, 128)
-
-        # ESPNet
         self.proto_0 = torch.zeros(num_class, 9  )
         self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 9  )
-        self.proto_3 = torch.zeros(num_class, 64 )
+        self.proto_2 = torch.zeros(num_class, 64 )
+        self.proto_3 = torch.zeros(num_class, 128)
         self.proto_4 = torch.zeros(num_class, 128)
+
+        # ESPNet
+        # self.proto_0 = torch.zeros(num_class, 9  )
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 9  )
+        # self.proto_3 = torch.zeros(num_class, 64 )
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # SUNet
         # self.proto_0 = torch.zeros(num_class, self.num_class +1)
@@ -1134,6 +1134,7 @@ class prototype_loss(nn.Module):
 
             # weights = torch.cdist(proto.clone().detach(), proto.clone().detach(), p=2.0)
             # weights = 1 / (weights + 1e-8)
+            
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             l = l + (1.0 / torch.mean(distances))
