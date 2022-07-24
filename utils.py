@@ -989,10 +989,10 @@ class prototype_loss(nn.Module):
         # num_class = 3
 
         # CT-1K
-        # num_class = 12
+        num_class = 12
 
         # Synapse
-        num_class = 13     
+        # num_class = 13     
 
         self.num_class = num_class
         
@@ -1010,9 +1010,9 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        self.proto_0 = torch.zeros(num_class, 14 )
+        self.proto_0 = torch.zeros(num_class, 13 )
         self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 14 )
+        self.proto_2 = torch.zeros(num_class, 13 )
         self.proto_3 = torch.zeros(num_class, 64 )
         self.proto_4 = torch.zeros(num_class, 128)
 
@@ -1171,7 +1171,7 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 13
+        num_class = 12
         self.num_class = num_class
         self.proto = torch.zeros(num_class+1, num_class+1)
         self.momentum = torch.tensor(0.0)
