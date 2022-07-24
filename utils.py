@@ -1010,18 +1010,18 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        # self.proto_0 = torch.zeros(num_class, 9  )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 9  )
-        # self.proto_3 = torch.zeros(num_class, 64 )
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_0 = torch.zeros(num_class, 14 )
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 14 )
+        self.proto_3 = torch.zeros(num_class, 64 )
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # SUNet
-        self.proto_0 = torch.zeros(num_class, self.num_class +1)
-        self.proto_1 = torch.zeros(num_class, 8 )
-        self.proto_2 = torch.zeros(num_class, 16)
-        self.proto_3 = torch.zeros(num_class, 32)
-        self.proto_4 = torch.zeros(num_class, 64)
+        # self.proto_0 = torch.zeros(num_class, self.num_class +1)
+        # self.proto_1 = torch.zeros(num_class, 8 )
+        # self.proto_2 = torch.zeros(num_class, 16)
+        # self.proto_3 = torch.zeros(num_class, 32)
+        # self.proto_4 = torch.zeros(num_class, 64)
 
 
         # Mobile_NetV2
