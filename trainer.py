@@ -292,8 +292,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
         # loss_kd = kd_loss(e5)
         ###############################################
-        alpha = 0.5
-        beta = 0.5
+        alpha = 0.6
+        beta = 0.4
         gamma = 0.01
         loss = alpha * loss_dice + beta * loss_ce 
         # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
