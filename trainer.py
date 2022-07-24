@@ -233,8 +233,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     Dice = 0.0
 
     accuracy = utils.AverageMeter()
-    # ce_loss = WeightedCrossEntropyLoss()
-    ce_loss = CrossEntropyLoss()
+    ce_loss = WeightedCrossEntropyLoss()
+    # ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
     ##################################################################
     # kd_out_loss = IM_loss()
