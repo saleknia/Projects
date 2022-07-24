@@ -1062,6 +1062,8 @@ class prototype_loss(nn.Module):
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
+        if 920 <= self.iteration:
+            return 0.0 
         loss = 0.0
         # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [outputs,up1, up2, up3, up4]

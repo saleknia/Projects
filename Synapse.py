@@ -11,15 +11,15 @@ class color:
    END = '\033[0m'
 
 import os
-# os.system('pip install synapseclient')
+os.system('pip install synapseclient')
 import sys
 import argparse
 import wget
 import nibabel as nib
 import numpy as np
-# from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
-# import synapseclient 
+import synapseclient 
 from os import listdir
 from scipy import ndimage
 from PIL import Image
@@ -199,7 +199,7 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
                      lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0]):
     
     train_index=[5,6,7,9,10,21,23,24,26,27,28,30,31,33,34,37,39,40]
-    # scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(0,1))
 
     training_samples_path = os.path.join(samples_path,'img')
     training_samples_names = listdir(path=training_samples_path)
@@ -222,8 +222,8 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
             label_path = os.path.join(training_labels_path,label_name)
 
             sample = nib.load(sample_path).get_fdata()
-            sample = np.clip(a=sample,a_min=-200,a_max=300)
-            # sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
+            sample = np.clip(a=sample,a_min=-125,a_max=175)
+            sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
 
 
             label = nib.load(label_path).get_fdata()
@@ -262,15 +262,15 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
 
                 # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                label_2d = label_2d.astype(dtype=np.uint8)
-                row,col = label_2d.shape
-                for r in range(row):
-                    for c in range(col):
-                        label_2d[r,c] = lookup_table[label_2d[r,c]]
-                label_2d = label_2d.astype(dtype=np.float32)
+                # label_2d = label_2d.astype(dtype=np.uint8)
+                # row,col = label_2d.shape
+                # for r in range(row):
+                #     for c in range(col):
+                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
+                # label_2d = label_2d.astype(dtype=np.float32)
 
-                slice_2d = np.flip(m=slice_2d,axis=1)
-                label_2d = np.flip(m=label_2d,axis=1)
+                # slice_2d = np.flip(m=slice_2d,axis=1)
+                # label_2d = np.flip(m=label_2d,axis=1)
 
                 np.savez(file=slice_name,image=slice_2d,label=label_2d)
         # if sample_index in train_index:
@@ -282,7 +282,7 @@ def making_test_vol_h5(path='/content/data/Synapse/test_vol_h5',
                      samples_path = '/content/MICCAI_2015_Multi_Atlas_Abdomen/RawData/Training',
                      lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0]):
 
-    # scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(0,1))
     test_index=[1,2,3,4,8,22,25,29,32,35,36,38]
 
     testing_samples_path = os.path.join(samples_path,'img')
@@ -306,8 +306,8 @@ def making_test_vol_h5(path='/content/data/Synapse/test_vol_h5',
             label_path = os.path.join(testing_labels_path,label_name)
 
             sample = nib.load(sample_path).get_fdata()
-            sample = np.clip(a=sample,a_min=-200,a_max=300)
-            # sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
+            sample = np.clip(a=sample,a_min=-125,a_max=175)
+            sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
 
             label = nib.load(label_path).get_fdata()
 
@@ -334,20 +334,20 @@ def making_test_vol_h5(path='/content/data/Synapse/test_vol_h5',
 
             # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-            label_3d = label_3d.astype(dtype=np.uint8)
-            row,col,dim = label_3d.shape
-            for r in range(row):
-                for c in range(col):
-                    for d in range(dim):
-                        label_3d[r,c,d] = lookup_table[label_3d[r,c,d]]
+            # label_3d = label_3d.astype(dtype=np.uint8)
+            # row,col,dim = label_3d.shape
+            # for r in range(row):
+            #     for c in range(col):
+            #         for d in range(dim):
+            #             label_3d[r,c,d] = lookup_table[label_3d[r,c,d]]
 
-            label_3d = label_3d.astype(dtype=np.float32)
+            # label_3d = label_3d.astype(dtype=np.float32)
 
-            slice_3d = slice_3d.transpose((2,0,1))
-            label_3d = label_3d.transpose((2,0,1))
+            # slice_3d = slice_3d.transpose((2,0,1))
+            # label_3d = label_3d.transpose((2,0,1))
 
-            slice_3d = np.flip(m=slice_3d,axis=2)
-            label_3d = np.flip(m=label_3d,axis=2)
+            # slice_3d = np.flip(m=slice_3d,axis=2)
+            # label_3d = np.flip(m=label_3d,axis=2)
 
             h5f = h5py.File(slice_3d_name, 'w')
             h5f.create_dataset('image', data=slice_3d)
@@ -359,7 +359,7 @@ def making_test_npz(path='/content/data/Synapse/test_vol_h5',
                      samples_path = '/content/MICCAI_2015_Multi_Atlas_Abdomen/RawData/Training',
                      lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0]):
 
-    # scaler = MinMaxScaler(feature_range=(0,1))
+    scaler = MinMaxScaler(feature_range=(0,1))
     test_index=[1,2,3,4,8,22,25,29,32,35,36,38]
 
     testing_samples_path = os.path.join(samples_path,'img')
@@ -384,8 +384,8 @@ def making_test_npz(path='/content/data/Synapse/test_vol_h5',
             label_path = os.path.join(testing_labels_path,label_name)
 
             sample = nib.load(sample_path).get_fdata()
-            sample = np.clip(a=sample,a_min=-200,a_max=300)
-            # sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
+            sample = np.clip(a=sample,a_min=-125,a_max=175)
+            sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
 
 
             label = nib.load(label_path).get_fdata()
@@ -424,15 +424,15 @@ def making_test_npz(path='/content/data/Synapse/test_vol_h5',
 
                 # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                label_2d = label_2d.astype(dtype=np.uint8)
-                row,col = label_2d.shape
-                for r in range(row):
-                    for c in range(col):
-                        label_2d[r,c] = lookup_table[label_2d[r,c]]
-                label_2d = label_2d.astype(dtype=np.float32)
+                # label_2d = label_2d.astype(dtype=np.uint8)
+                # row,col = label_2d.shape
+                # for r in range(row):
+                #     for c in range(col):
+                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
+                # label_2d = label_2d.astype(dtype=np.float32)
 
-                slice_2d = np.flip(m=slice_2d,axis=1)
-                label_2d = np.flip(m=label_2d,axis=1)
+                # slice_2d = np.flip(m=slice_2d,axis=1)
+                # label_2d = np.flip(m=label_2d,axis=1)
 
                 np.savez(file=slice_name,image=slice_2d,label=label_2d)
         # if sample_index in train_index:
