@@ -974,13 +974,13 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
 
         # SUNet
-        self.down_scales = [1.0,1.0,0.5,0.25,0.125]
+        # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ResNet_18
         # self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
@@ -1066,7 +1066,7 @@ class prototype_loss(nn.Module):
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [outputs,up1, up2, up3, up4]
 
         # print(outputs.shape)
