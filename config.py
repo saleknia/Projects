@@ -89,7 +89,7 @@ if task_id==1:
         DOWNLOAD = True
 
 elif task_id==2:
-    NUM_CLASS = 14
+    NUM_CLASS = 9
     TASK_NAME = 'Synapse'
 
 elif task_id==3:
