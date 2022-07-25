@@ -1078,14 +1078,14 @@ class prototype_loss(nn.Module):
 
         for k in range(5):
             indexs = []
-            weights = []
+            W = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            # temp_t_masks = temp_t_masks.squeeze(dim=1)
+            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_t_masks = temp_t_masks.squeeze(dim=1)
 
             # t_mask_unique_value = torch.unique(temp_t_masks)
             # t_mask_unique_value = t_mask_unique_value[1:]
@@ -1105,8 +1105,8 @@ class prototype_loss(nn.Module):
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
 
-                # bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                # bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
+                bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
 
                 temp = 0.0
                 batch_counter = 0
@@ -1117,7 +1117,9 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-
+                W.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+            W = torch.tensor(W)
+            W = torch.diag(W)
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
 
@@ -1138,12 +1140,12 @@ class prototype_loss(nn.Module):
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             weights = 1.0 / distances_c.clamp(min=self.epsilon)
-            # weights = weights / weights.max()
+            weights = weights / weights.max()
             weights = weights.detach()
             l = l + (1.0 / torch.mean(weights * distances))
 
             l = l + (1.0 / torch.mean(weights * (distances_c[0]-diagonal)))
-            l = l + (1.0 * (torch.mean(diagonal)))
+            l = l + (1.0 * (torch.mean(W * diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
         self.iteration = self.iteration + 1
