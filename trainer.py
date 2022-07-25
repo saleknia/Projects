@@ -296,7 +296,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         ###############################################
         alpha = 1.0
         beta = 1.0
-        gamma = 0.05
+        gamma = 0.01
         # loss = alpha * loss_dice + beta * loss_ce 
         loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
