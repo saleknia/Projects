@@ -1142,6 +1142,7 @@ class prototype_loss(nn.Module):
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             weights = 1.0 / distances.clamp(min=self.epsilon)
+            weights.requires_grad = False
             l = l + (1.0 / torch.mean(weights * distances))
 
             # l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
