@@ -972,10 +972,10 @@ class prototype_loss(nn.Module):
         # self.down_scales = [1.0,1.0,0.5,0.25,0.125]
 
         # ENet
-        # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
+        self.down_scales = [1.0,0.5,0.25,0.125,0.125]
 
         # ESPNet
-        self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
 
         # Mobile_NetV2
         # self.down_scales = [1.0,0.125,0.125,0.25,0.25]
@@ -1004,18 +1004,18 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 512)
 
         # ENet
-        # self.proto_0 = torch.zeros(num_class, 9  )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 64 )
-        # self.proto_3 = torch.zeros(num_class, 128)
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_0 = torch.zeros(num_class, 9  )
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 64 )
+        self.proto_3 = torch.zeros(num_class, 128)
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        self.proto_0 = torch.zeros(num_class, 13 )
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 13 )
-        self.proto_3 = torch.zeros(num_class, 64 )
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_0 = torch.zeros(num_class, 13 )
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 13 )
+        # self.proto_3 = torch.zeros(num_class, 64 )
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # SUNet
         # self.proto_0 = torch.zeros(num_class, self.num_class +1)
@@ -1120,6 +1120,7 @@ class prototype_loss(nn.Module):
                 WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
             WP = torch.tensor(WP)
             WP = torch.diag(WP)
+            WP = WP.detach()
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
 

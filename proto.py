@@ -71,22 +71,29 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
-    down_scales = [0.5,0.25,0.125,0.125]
+    down_scales = [1.0,0.5,0.5,0.25,0.125]
     # down_scales = [0.5,0.5,0.25,0.125]
 
-    num_class = 11
+    num_class = 12
     loader = dataloader['train']
     total_batchs = len(loader)
 
-    # ENet
+    # ESPNet
+    proto_des_0 = torch.zeros(num_class, 13 )
     proto_des_1 = torch.zeros(num_class, 16 )
-    proto_des_2 = torch.zeros(num_class, 64 )
-    proto_des_3 = torch.zeros(num_class, 128)
+    proto_des_2 = torch.zeros(num_class, 13 )
+    proto_des_3 = torch.zeros(num_class, 64 )
     proto_des_4 = torch.zeros(num_class, 128)
-    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+
+    # ENet
+    # proto_des_1 = torch.zeros(num_class, 16 )
+    # proto_des_2 = torch.zeros(num_class, 64 )
+    # proto_des_3 = torch.zeros(num_class, 128)
+    # proto_des_4 = torch.zeros(num_class, 128)
+    protos_des = [proto_des_0, proto_des_1, proto_des_2, proto_des_3, proto_des_4]
     protos_out = []
     with torch.no_grad():
-        for k in range(4):
+        for k in range(5):
             protos=[]
             labels=[]
             for batch_idx, (inputs, targets) in enumerate(loader):
@@ -102,7 +109,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                     bar_length=45
                 )  
                 masks=targets.clone()
-                up = [up1, up2, up3, up4]
+                up = [outputs, up1, up2, up3, up4]
 
                 B,C,H,W = up[k].shape
                 
@@ -110,10 +117,10 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                 temp_masks = temp_masks.squeeze(dim=1)
 
                 mask_unique_value = torch.unique(temp_masks)
-                # mask_unique_value = mask_unique_value[1:]
+                mask_unique_value = mask_unique_value[1:]
                 unique_num = len(mask_unique_value)
                 
-                if unique_num<1:
+                if unique_num<2:
                     continue
 
                 for count,p in enumerate(mask_unique_value):
@@ -125,7 +132,7 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                     for t in range(B):
                         if torch.sum(bin_mask[t])!=0:
                             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                            # temp = temp + temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                            # temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                             temp = v
                             batch_counter = batch_counter + 1
                     temp = temp / batch_counter
@@ -290,7 +297,7 @@ def main(args):
     # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_80_88/'+CKPT_NAME+'_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint/ESPNet_loss_CT-1K_best.pth'
 
 
     print('Loading Checkpoint...')
