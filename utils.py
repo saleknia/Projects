@@ -1078,7 +1078,7 @@ class prototype_loss(nn.Module):
 
         for k in range(5):
             indexs = []
-            W = []
+            WP = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
@@ -1117,9 +1117,9 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                W.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
-            W = torch.tensor(W)
-            W = torch.diag(W)
+                WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+            WP = torch.tensor(WP)
+            WP = torch.diag(WP)
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
 
@@ -1145,7 +1145,7 @@ class prototype_loss(nn.Module):
             l = l + (1.0 / torch.mean(weights * distances))
 
             l = l + (1.0 / torch.mean(weights * (distances_c[0]-diagonal)))
-            l = l + (1.0 * (torch.mean(W * diagonal)))
+            l = l + (1.0 * (torch.mean(WP * diagonal)))
             loss = loss + l
             self.update(prototypes, mask_unique_value, k)
         self.iteration = self.iteration + 1
