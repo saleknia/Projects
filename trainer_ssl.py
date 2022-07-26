@@ -189,8 +189,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
 
-        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
-        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
+        # loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
+        # loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
   
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -199,7 +199,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = 2 * (alpha_1 * loss_dice_1 + beta_1 * loss_ce_1)
-        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        loss_2 = 0.0
 
         loss = loss_1 + loss_2
 
