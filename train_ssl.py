@@ -61,7 +61,7 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
-NUM_CLASS = 9
+NUM_CLASS = 2
 
 class ConcatDataset(torch.utils.data.Dataset):
     def __init__(self, *datasets):

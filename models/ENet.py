@@ -41,7 +41,9 @@ class ENet(nn.Module):
         self.bottleneck5_0 = UpsamplingBottleneck(64, 4, 16, **kwargs)
         self.bottleneck5_1 = Bottleneck(16, 4, 16, **kwargs)
 
-        self.fullconv = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
+        # self.fullconv_1 = nn.ConvTranspose2d(16, nclass, 2, 2, bias=False)
+        self.fullconv_1 = nn.ConvTranspose2d(16, 2, 2, 2, bias=False)
+        self.fullconv_2 = nn.ConvTranspose2d(16, 9, 2, 2, bias=False)
 
         self.__setattr__('exclusive', ['bottleneck1_0', 'bottleneck1_1', 'bottleneck1_2', 'bottleneck1_3',
                                        'bottleneck1_4', 'bottleneck2_0', 'bottleneck2_1', 'bottleneck2_2',
@@ -51,7 +53,7 @@ class ENet(nn.Module):
                                        'bottleneck3_7', 'bottleneck3_8', 'bottleneck4_0', 'bottleneck4_1',
                                        'bottleneck4_2', 'bottleneck5_0', 'bottleneck5_1', 'fullconv'])
 
-    def forward(self, x):
+    def forward(self, x, head=1.0):
         # init
         x = self.initial(x)
 
@@ -89,7 +91,10 @@ class ENet(nn.Module):
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
         # out
-        x = self.fullconv(x)
+        if head==1.0:
+            x = self.fullconv_1(x)
+        elif head==2.0:
+            x = self.fullconv_2(x)           
         return x
 
 
