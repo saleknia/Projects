@@ -233,10 +233,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     Dice = 0.0
 
     accuracy = utils.AverageMeter()
-    ce_loss = WeightedCrossEntropyLoss()
-    # ce_loss = CrossEntropyLoss()
-    # dice_loss = DiceLoss(num_class)
-    dice_loss = GeneralizedDiceLoss(num_classes=num_class)
+
+    # ce_loss = WeightedCrossEntropyLoss()
+    # dice_loss = GeneralizedDiceLoss(num_classes=num_class)
+
+    ce_loss = CrossEntropyLoss()
+    dice_loss = DiceLoss(num_class)
     ##################################################################
     # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
@@ -277,10 +279,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        loss_ce = ce_loss(input=outputs, target=targets.long())
-        # loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(input=outputs, target=targets)
-        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        # loss_ce = ce_loss(input=outputs, target=targets.long())
+        # loss_dice = dice_loss(input=outputs, target=targets)
+
+        loss_ce = ce_loss(outputs, targets[:].long())
+        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
         loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
@@ -294,8 +297,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_kd_out = kd_out_loss(masks=targets.clone(), x4=up4, x3=up3, x2=up2, x1=up1)
         # loss_kd = kd_loss(e5)
         ###############################################
-        alpha = 1.0
-        beta = 1.0
+        alpha = 0.5
+        beta = 0.5
         gamma = 0.1
         # loss = alpha * loss_dice + beta * loss_ce 
         loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
