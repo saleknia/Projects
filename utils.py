@@ -1147,7 +1147,7 @@ class prototype_loss(nn.Module):
             l = l + (1.0 / torch.mean(weights * distances))
 
             l = l + (1.0 / torch.mean(weights * (distances_c[0]-diagonal)))
-            l = l + (1.0 / torch.mean(WP * diagonal))
+            l = l + (1.0 * torch.mean(WP * diagonal))
 
             # l = l + 0.5 * cosine_loss
 
