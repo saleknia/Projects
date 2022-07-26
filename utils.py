@@ -1069,7 +1069,7 @@ class prototype_loss(nn.Module):
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
         # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
-        up = [outputs,up1, up2, up3, up4]
+        up = [up1, up2, up3, up4]
 
         # print(outputs.shape)
         # print(up1.shape)
@@ -1077,7 +1077,7 @@ class prototype_loss(nn.Module):
         # print(up3.shape)
         # print(up4.shape)
 
-        for k in range(5):
+        for k in range(4):
             indexs = []
             WP = []
             B,C,H,W = up[k].shape
@@ -1085,8 +1085,8 @@ class prototype_loss(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_t_masks = temp_t_masks.squeeze(dim=1)
+            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            # temp_t_masks = temp_t_masks.squeeze(dim=1)
 
             # t_mask_unique_value = torch.unique(temp_t_masks)
             # t_mask_unique_value = t_mask_unique_value[1:]
@@ -1106,8 +1106,8 @@ class prototype_loss(nn.Module):
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
 
-                bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
+                # bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+                # bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
 
                 temp = 0.0
                 batch_counter = 0
@@ -1118,23 +1118,23 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+                # WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
 
             # WP = torch.tensor(WP)
             # WP = torch.diag(WP)
             # WP = WP.detach()
 
-            # indexs = [x.item()-1 for x in mask_unique_value]
-            # indexs.sort()
+            indexs = [x.item()-1 for x in mask_unique_value]
+            indexs.sort()
 
             l = 0.0
-            # proto = self.protos[k][indexs].unsqueeze(dim=0)
-            # prototypes = prototypes.unsqueeze(dim=0)
-            # distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            # proto = self.protos[k][indexs].squeeze(dim=0)
-            # prototypes = prototypes.squeeze(dim=0)
-            # x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            # diagonal = distances_c[0] * x
+            proto = self.protos[k][indexs].unsqueeze(dim=0)
+            prototypes = prototypes.unsqueeze(dim=0)
+            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            proto = self.protos[k][indexs].squeeze(dim=0)
+            prototypes = prototypes.squeeze(dim=0)
+            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
+            diagonal = distances_c[0] * x
 
             # weights = 1.0 / distances_c.clamp(min=self.epsilon)
             # weights = weights / weights.max()
@@ -1145,16 +1145,20 @@ class prototype_loss(nn.Module):
             # weights = torch.cdist(proto.clone().detach(), proto.clone().detach(), p=2.0)
             # weights = 1 / (weights + 1e-8)
 
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
+            # proto = prototypes.unsqueeze(dim=0)
+            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            # l = l + (1.0 / torch.mean(distances))
 
-        #     l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-        #     l = l + (1.0 / (torch.mean(diagonal).clamp(min=self.epsilon)))
+            l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
+            if k < 2:
+                l = l + (1.0 / torch.mean(diagonal))
+            else:
+                l = l + (1.0 * torch.mean(diagonal))
             loss = loss + l
 
-        #     self.update(prototypes, mask_unique_value, k)
-        # self.iteration = self.iteration + 1
+            self.update(prototypes, mask_unique_value, k)
+        self.iteration = self.iteration + 1
+
         return loss
 
 
