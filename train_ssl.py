@@ -61,7 +61,16 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
+NUM_CLASS = 2
+class ConcatDataset(torch.utils.data.Dataset):
+    def __init__(self, *datasets):
+        self.datasets = datasets
 
+    def __getitem__(self, i):
+        return tuple(d[i] for d in self.datasets)
+
+    def __len__(self):
+        return min(len(d) for d in self.datasets)
 
 def main(args):
 
@@ -324,11 +333,19 @@ def main(args):
 
     elif TASK_NAME=='CT-1K':
 
-        train_dataset=CT_1K(split='train', joint_transform=train_tf)
+        train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
+        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
-        # g = torch.Generator()
-        # g.manual_seed(0)
+        train_loader = DataLoader(
+                                ConcatDataset(train_dataset_1,train_dataset_2),
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
