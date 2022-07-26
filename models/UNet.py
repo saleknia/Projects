@@ -422,7 +422,7 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
