@@ -46,186 +46,440 @@ from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
-from utils import print_progress
+# from models.original_UNet import original_UNet
 import utils
 from utils import color
 from utils import Save_Checkpoint
 from trainer import trainer
 from tester import tester
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,SSL
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
-from torch.nn.modules.loss import CrossEntropyLoss
-
 # from testing import inference
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
 
-lr = 0.01
-
-class Evaluator(object):
-    ''' For using this evaluator target and prediction
-        dims should be [B,H,W] '''
-    def __init__(self, num_class):
-        self.num_class = num_class
-        self.confusion_matrix = np.zeros((self.num_class,) * 2)
-        
-    def Pixel_Accuracy(self):
-        Acc = np.diag(self.confusion_matrix).sum() / self.confusion_matrix.sum()
-        Acc = torch.tensor(Acc)
-        return Acc
-
-    def Pixel_Accuracy_Class(self):
-        Acc = np.diag(self.confusion_matrix) / self.confusion_matrix.sum(axis=1)
-        Acc = np.nanmean(Acc)
-        Acc = torch.tensor(Acc)
-        return Acc
-
-    def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        numerator = np.diag(self.confusion_matrix) 
-        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix))
-        if show:
-            print('MIoU Per Class: ',numerator/denominator)
-        class_MIoU = numerator/denominator
-        MIoU = np.nanmean(class_MIoU)
-        MIoU = torch.tensor(MIoU)
-        class_MIoU = torch.tensor(class_MIoU)
-        if per_class:
-            return MIoU,class_MIoU
-        else:
-            return MIoU
-
-    def Dice(self,per_class=False,show=False):
-        numerator = 2*np.diag(self.confusion_matrix) 
-        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0))
-        if show:
-            print('Dice Per Class: ',numerator/denominator)
-        class_Dice = numerator/denominator
-        Dice = np.nanmean(class_Dice)
-        Dice = torch.tensor(Dice)
-        class_Dice = torch.tensor(class_Dice)
-        if per_class:
-            return Dice,class_Dice
-        else:
-            return Dice
 
 def main(args):
 
+    if tensorboard:
+        tensorboard_log = tensorboard_folder
+        logger.info(f'Tensorboard Directory: {tensorboard_log}')
+        if not os.path.isdir(tensorboard_log):
+            os.makedirs(tensorboard_log)
+        writer = SummaryWriter(tensorboard_log)
+    else:
+        writer = None
+
     train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
+    # train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
     val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
 
-
+    # transform = A.Compose(
+    #     [
+    #         A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
+    #         ToTensorV2()
+    #     ]
+    # )
 
 # LOAD_MODEL
 
-    model = UNet(n_channels=1, n_classes=1).to(DEVICE)
+    if MODEL_NAME=='UNet':
+        model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+        # model = original_UNet().to(DEVICE)
+
+    elif MODEL_NAME=='UNet_loss':
+        model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='U':
+        model = U(bilinear=False, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='U_loss':
+        model = U_loss(bilinear=False).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet':
+        config_vit = get_CTranS_config()
+        model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet_GT':
+        config_vit = get_CTranS_config()
+        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='GT_UNet':
+        model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='GT_CTrans':
+        config_vit = get_CTranS_config()
+        model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet':
+        model = AttentionUNet(img_ch=1, output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet_loss':
+        model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
+
+    elif MODEL_NAME == 'MultiResUnet':
+        model = MultiResUnet().to(DEVICE)
+
+    elif MODEL_NAME == 'MultiResUnet_loss':
+        model = MultiResUnet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++':
+        model = NestedUNet().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++_loss':
+        model = NestedUNet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'ENet':
+        model = ENet(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ENet_loss':
+        model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet':
+        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet_loss':
+        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2_loss':
+        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN':
+        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN_loss':
+        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet_loss':
+        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'DABNet_loss':
+        model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    else: 
+        raise TypeError('Please enter a valid name for the model type')
+
+
     num_parameters = utils.count_parameters(model)
 
     model_table = tabulate(
-        tabular_data=[['UNet_Base', f'{num_parameters:.2f} M', DEVICE]],
+        tabular_data=[[MODEL_NAME, f'{num_parameters:.2f} M', DEVICE]],
         headers=['Builded Model', '#Parameters', 'Device'],
         tablefmt="fancy_grid"
         )
     logger.info(model_table)
 
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=lr, momentum=0.9, weight_decay=0.0001)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, betas=(0.9, 0.999))
+    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
+
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
+ 
+    if COSINE_LR is True:
+        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
+    else:
+        lr_scheduler =  None     
 
 
-    train_dataset = SSL(split='train', joint_transform=train_tf)
+    initial_best_acc = 0
+    initial_best_epoch = 1
+    current_num_epoch = 0
+    last_num_epoch = 0
+    if LOAD_MODEL:
+        checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
+        logger.info('Loading Checkpoint...')
+        if os.path.isfile(checkpoint_path):
 
-    train_loader = DataLoader(train_dataset,
-                            batch_size=BATCH_SIZE,
-                            shuffle=True,
-                            worker_init_fn=worker_init,
-                            num_workers=NUM_WORKERS,
-                            pin_memory=PIN_MEMORY,
-                            drop_last=True,
+            pretrained_model_path = checkpoint_path
+            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+            pretrained = loaded_data['net']
+            model2_dict = model.state_dict()
+            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+            # logger.info(state_dict.keys())
+            model2_dict.update(state_dict)
+            model.load_state_dict(model2_dict)
+
+            initial_best_acc=loaded_data['best_acc']
+            loaded_acc=loaded_data['acc']
+            initial_best_epoch=loaded_data['best_epoch']
+            last_num_epoch=loaded_data['num_epoch']
+            current_num_epoch=last_num_epoch+current_num_epoch
+
+            optimizer.load_state_dict(loaded_data['optimizer'])
+            # lr_scheduler.load_state_dict(loaded_data['lr_scheduler'])
+
+            # if last_num_epoch-initial_best_epoch < early_stopping:
+            #     count_es = last_num_epoch-initial_best_epoch
+            #     es = False
+            # elif early_stopping < last_num_epoch-initial_best_epoch:
+            #     count_es = early_stopping + 1
+            #     es = True
+            table = tabulate(
+                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+                            headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                            tablefmt="fancy_grid"
                             )
-    data_loader={'train':train_loader}
+            logger.info(table)
+        else:
+            logger.info(f'No Such file : {checkpoint_path}')
+        logger.info('\n')
 
+    start_epoch = last_num_epoch + 1
+    end_epoch =  NUM_EPOCHS
+
+    if TASK_NAME=='COVID-19':
+
+        train_dataset=COVID_19(split='train', joint_transform=train_tf)
+        valid_dataset=COVID_19(split='test', joint_transform=val_tf)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader}
+
+    elif TASK_NAME=='Synapse':
+        # index = np.load(file='index.npy')
+        # train_dataset=Synapse_dataset(split='train',index=index[0:2000],joint_transform=train_tf)
+        # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
+
+        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+        valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
+
+        # g = torch.Generator()
+        # g.manual_seed(0)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                # generator=g
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                # generator=g
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader}
+
+    elif TASK_NAME=='ACDC':
+        # index = np.load(file='index.npy')
+        # train_dataset=Synapse_dataset(split='train',index=index[0:2000],joint_transform=train_tf)
+        # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
+
+        train_dataset=ACDC(split='train', joint_transform=train_tf)
+        valid_dataset=ACDC(split='test', joint_transform=val_tf)
+
+        # g = torch.Generator()
+        # g.manual_seed(0)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader}
+
+    elif TASK_NAME=='CT-1K':
+
+        train_dataset=CT_1K(split='train', joint_transform=train_tf)
+        valid_dataset=CT_1K(split='test', joint_transform=val_tf)
+
+        # g = torch.Generator()
+        # g.manual_seed(0)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader}
+        # data_loader={'train':train_loader,'valid':train_loader}
+
+
+    if SAVE_MODEL:
+        checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
+    else:
+        checkpoint = None
 
     if args.train=='True':
         logger.info(50*'*')
         logger.info('Training Phase')
         logger.info(50*'*')
+        loss_function = prototype_loss()
+        # loss_function = prototype_loss_kd()
+        for epoch in range(start_epoch,end_epoch+1):
+            # set_epoch(epoch,g)
+            trainer(
+                end_epoch=end_epoch,
+                epoch_num=epoch,
+                model=model,
+                dataloader=data_loader['train'],
+                optimizer=optimizer,
+                device=DEVICE,
+                ckpt=checkpoint,                
+                num_class=NUM_CLASS,
+                lr_scheduler=lr_scheduler,
+                writer=writer,
+                logger=logger,
+                loss_function=loss_function)
+            
+            # numpy_state = np.random.get_state()
+            # random_state = random.getstate()
+            # torch_state = torch.get_rng_state()
+            # cuda_state = torch.cuda.get_rng_state()
 
-        for epoch in range(1,NUM_EPOCHS+1):
-            print(f'Epoch: {epoch} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
+            # tester(
+            #     end_epoch=end_epoch,
+            #     epoch_num=epoch,
+            #     model=model,
+            #     dataloader=data_loader['valid'],
+            #     device=DEVICE,
+            #     ckpt=checkpoint,
+            #     num_class=NUM_CLASS,
+            #     writer=writer,
+            #     logger=logger,
+            #     optimizer=None,
+            #     lr_scheduler=None,
+            #     early_stopping=None)
 
-            model=model.to(DEVICE)
-            model.train()
+            # np.random.set_state(numpy_state)
+            # random.setstate(random_state)
+            # torch.set_rng_state(torch_state)
+            # torch.cuda.set_rng_state(cuda_state)
 
-            loss_total = utils.AverageMeter()
-            loss_dice_total = utils.AverageMeter()
-            loss_ce_total = utils.AverageMeter()
-            Eval = Evaluator(num_class=1)
-            accuracy = utils.AverageMeter()
+            # if checkpoint:
+            #     if early_stopping < checkpoint.early_stopping(epoch):
+            #         logger.info('Early Stopping!')
+            #         break
+            # numpy_state = np.random.get_state()
+            # with open('/content/drive/MyDrive/checkpoint/numpy_state.pickle', 'wb') as f:
+            #     pickle.dump(numpy_state, f)
 
-            mIOU = 0.0
-            Dice = 0.0
+            # random_state = random.getstate()
+            # with open('/content/drive/MyDrive/checkpoint/random_state.pickle', 'wb') as f:
+            #     pickle.dump(random_state, f)
 
+            # torch_state = torch.get_rng_state()
+            # torch.save(torch_state, '/content/drive/MyDrive/checkpoint/torch_state.pth')
 
-            ce_loss = CrossEntropyLoss()
-            dice_loss = DiceLoss(1)
+            # cuda_state = torch.cuda.get_rng_state()
+            # torch.save(cuda_state, '/content/drive/MyDrive/checkpoint/cuda_state.pth')
+            if epoch==end_epoch:
+                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
+                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
+                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+                    pretrained = loaded_data['net']
+                    model2_dict = model.state_dict()
+                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+                    # logger.info(state_dict.keys())
+                    model2_dict.update(state_dict)
+                    model.load_state_dict(model2_dict)
 
-            total_batchs = len(data_loader['train'])
-            loader = data_loader['train'] 
+                    acc=loaded_data['acc']
+                    acc_per_class=loaded_data['acc_per_class'].tolist()
+                    acc_per_class=[round(x,2) for x in acc_per_class]
+                    best_epoch=loaded_data['best_epoch']
 
-            base_iter = (epoch-1) * total_batchs
-            iter_num = base_iter
-            max_iterations = NUM_EPOCHS * total_batchs
+                    logger.info(50*'*')
+                    logger.info(f'Best Accuracy over training: {acc:.2f}')
+                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+                    logger.info(f'Epoch Number: {best_epoch}')
 
-            for batch_idx, (inputs, targets) in enumerate(loader):
-
-                inputs, targets = inputs.to('cuda'), targets.to('cuda')
-                targets = targets.float()
-                outputs = model(inputs)
-                loss_ce = ce_loss(outputs, targets[:].long())
-                loss_dice = dice_loss(outputs, targets, softmax=True)
-                loss = 0.5 * loss_ce + 0.5 * loss_dice 
-
-                lr_ = lr * (1.0 - iter_num / max_iterations) ** 0.9
-
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = lr_
-
-                iter_num = iter_num + 1        
-        
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-
-
-                loss_total.update(loss)
-                loss_dice_total.update(loss_dice)
-                loss_ce_total.update(loss_ce)
+                    if args.inference=='True':
+                        logger.info(50*'*')
+                        logger.info('Inference Phase')
+                        # logger.info(50*'*')
+                        # inference(model=model,logger=logger)
+                        tester(
+                            end_epoch=1,
+                            epoch_num=1,
+                            model=copy.deepcopy(model),
+                            dataloader=data_loader['valid'],
+                            device=DEVICE,
+                            ckpt=None,
+                            num_class=NUM_CLASS,
+                            writer=writer,
+                            logger=logger,
+                            optimizer=None,
+                            lr_scheduler=None,
+                            early_stopping=None)
                 
-                targets = targets.long()
+                    logger.info(50*'*')
+                    logger.info(50*'*')
+                    logger.info('\n')
+    if tensorboard:
+        writer.close()
 
-                predictions = torch.argmax(input=outputs,dim=1).long()
-                Eval.add_batch(gt_image=targets,pre_image=predictions)
+    # numpy_state = np.random.get_state()
+    # with open('./checkpoint/numpy_state.pickle', 'wb') as f:
+    #     pickle.dump(numpy_state, f)
 
-                accuracy.update(Eval.Pixel_Accuracy())
+    # random_state = random.getstate()
+    # with open('./checkpoint/random_state.pickle', 'wb') as f:
+    #     pickle.dump(random_state, f)
 
-                print_progress(
-                    iteration=batch_idx+1,
-                    total=total_batchs,
-                    prefix=f'Train {epoch} Batch {batch_idx+1}/{total_batchs} ',
-                    suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
-                    bar_length=45
-                )  
-  
-            acc = 100*accuracy.avg
-            mIOU = 100*Eval.Mean_Intersection_over_Union()
-            Dice,Dice_per_class = Eval.Dice(per_class=True)
-            Dice,Dice_per_class = 100*Dice,100*Dice_per_class
-     
-        
-            logger.info(f'Epoch: {epoch} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    # torch_state = torch.get_rng_state()
+    # torch.save(torch_state, './checkpoint/torch_state.pth')
 
+    # cuda_state = torch.cuda.get_rng_state()
+    # torch.save(cuda_state, './checkpoint/cuda_state.pth')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--inference', type=str,default='False')
@@ -251,6 +505,24 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED) 
 
+    if os.path.isfile('/content/drive/MyDrive/checkpoint/numpy_state.pickle'):
+        with open('/content/drive/MyDrive/checkpoint/numpy_state.pickle', 'rb') as f:
+            numpy_state = pickle.load(f) 
+        np.random.set_state(numpy_state)
+   
+    if os.path.isfile('/content/drive/MyDrive/checkpoint/random_state.pickle'):
+        with open('/content/drive/MyDrive/checkpoint/random_state.pickle', 'rb') as f:
+            random_state = pickle.load(f) 
+        random.setstate(random_state)
+    
+
+    if os.path.isfile('/content/drive/MyDrive/checkpoint/torch_state.pth'):
+        torch_state = torch.load('/content/drive/MyDrive/checkpoint/torch_state.pth')
+        torch.set_rng_state(torch_state)
+
+    if os.path.isfile('/content/drive/MyDrive/checkpoint/cuda_state.pth'):
+        cuda_state = torch.load('/content/drive/MyDrive/checkpoint/cuda_state.pth')
+        torch.cuda.set_rng_state(cuda_state)
 
     main(args)
     
