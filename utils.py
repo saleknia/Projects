@@ -1005,17 +1005,17 @@ class prototype_loss(nn.Module):
 
         # ENet
         # self.proto_0 = torch.zeros(num_class, 13 )
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 64 )
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 128)
+        # self.proto_1 = torch.zeros(num_class, 16 )
+        # self.proto_2 = torch.zeros(num_class, 64 )
+        # self.proto_3 = torch.zeros(num_class, 128)
+        # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
         # self.proto_0 = torch.zeros(num_class, 9  )
-        # self.proto_1 = torch.zeros(num_class, 16 )
-        # self.proto_2 = torch.zeros(num_class, 9  )
-        # self.proto_3 = torch.zeros(num_class, 64 )
-        # self.proto_4 = torch.zeros(num_class, 128)
+        self.proto_1 = torch.zeros(num_class, 16 )
+        self.proto_2 = torch.zeros(num_class, 9  )
+        self.proto_3 = torch.zeros(num_class, 64 )
+        self.proto_4 = torch.zeros(num_class, 128)
 
         # SUNet
         # self.proto_0 = torch.zeros(num_class, self.num_class +1)
@@ -1136,24 +1136,21 @@ class prototype_loss(nn.Module):
             x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
             diagonal = distances_c[0] * x
 
-            # weights = 1.0 / distances_c.clamp(min=self.epsilon)
-            # weights = weights / weights.max()
-            # weights = weights.detach()
+            weights = 1.0 / distances_c.clamp(min=self.epsilon)
+            weights = weights / weights.max()
+            weights = weights.detach()
 
-            # cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
-
-            # weights = torch.cdist(proto.clone().detach(), proto.clone().detach(), p=2.0)
-            # weights = 1 / (weights + 1e-8)
+            cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
             # proto = prototypes.unsqueeze(dim=0)
             # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             # l = l + (1.0 / torch.mean(distances))
 
-            l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-            if k < 2:
-                l = l + (1.0 / torch.mean(diagonal))
-            else:
-                l = l + (1.0 * torch.mean(diagonal))
+            l = l + (1.0 / torch.mean(weights * (distances_c[0]-diagonal)))
+            l = l + 0.5 * cosine_loss
+
+            # l = l + (1.0 / torch.mean(diagonal))
+                
             loss = loss + l
 
             self.update(prototypes, mask_unique_value, k)
