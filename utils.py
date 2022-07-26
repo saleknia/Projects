@@ -1011,7 +1011,7 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # ESPNet
-        # self.proto_0 = torch.zeros(num_class, 9  )
+        self.proto_0 = torch.zeros(num_class, 9  )
         self.proto_1 = torch.zeros(num_class, 16 )
         self.proto_2 = torch.zeros(num_class, 9  )
         self.proto_3 = torch.zeros(num_class, 64 )
@@ -1053,12 +1053,12 @@ class prototype_loss(nn.Module):
         # self.proto_4 = torch.zeros(num_class, 128)
 
         # self.protos = torch.load('/content/UNet_V2/protos_file.pth')
-        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        # self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
 
-        # self.protos = [self.proto_0,self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [self.proto_0,self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        # self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
+        self.cosine_loss = torch.nn.CosineEmbeddingLoss(margin=0.0, size_average=None, reduce=None, reduction='mean')
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 213)
@@ -1068,7 +1068,7 @@ class prototype_loss(nn.Module):
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [up1, up2, up3, up4]
 
         # print(outputs.shape)
@@ -1180,12 +1180,12 @@ class prototype_loss(nn.Module):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        num_class = 12
+        num_class = 8
         self.num_class = num_class
         self.proto = torch.zeros(num_class+1, num_class+1)
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
     def forward(self, preds_S, masks):
         loss = 0.0
