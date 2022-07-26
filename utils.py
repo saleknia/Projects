@@ -1068,7 +1068,7 @@ class prototype_loss(nn.Module):
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
+        # loss = loss + self.pixel_wise(preds_S=outputs, masks=masks)
         up = [outputs, up1, up2, up3, up4]
 
         # print(outputs.shape)
@@ -1085,8 +1085,8 @@ class prototype_loss(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            # temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            # temp_t_masks = temp_t_masks.squeeze(dim=1)
+            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_t_masks = temp_t_masks.squeeze(dim=1)
 
             # t_mask_unique_value = torch.unique(temp_t_masks)
             # t_mask_unique_value = t_mask_unique_value[1:]
@@ -1106,8 +1106,8 @@ class prototype_loss(nn.Module):
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
 
-                # bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                # bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
+                bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
 
                 temp = 0.0
                 batch_counter = 0
@@ -1118,11 +1118,11 @@ class prototype_loss(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-                # WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+                WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
 
-            # WP = torch.tensor(WP)
-            # WP = torch.diag(WP)
-            # WP = WP.detach()
+            WP = torch.tensor(WP)
+            WP = torch.diag(WP)
+            WP = WP.detach()
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
@@ -1140,17 +1140,18 @@ class prototype_loss(nn.Module):
             weights = weights / weights.max()
             weights = weights.detach()
 
-            cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
+            # cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
-            # proto = prototypes.unsqueeze(dim=0)
-            # distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            # l = l + (1.0 / torch.mean(distances))
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(weights * distances))
 
             l = l + (1.0 / torch.mean(weights * (distances_c[0]-diagonal)))
-            l = l + 0.5 * cosine_loss
+            l = l + (1.0 / torch.mean(WP * diagonal))
 
-            # l = l + (1.0 / torch.mean(diagonal))
-                
+            # l = l + 0.5 * cosine_loss
+
+
             loss = loss + l
 
             self.update(prototypes, mask_unique_value, k)
