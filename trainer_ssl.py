@@ -153,7 +153,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     accuracy_2 = utils.AverageMeter()
 
     ce_loss_1 = CrossEntropyLoss()
-    dice_loss_1 = DiceLoss(2)
+    dice_loss_1 = DiceLoss(9)
 
     ce_loss_2 = CrossEntropyLoss()
     dice_loss_2 = DiceLoss(9)
@@ -167,9 +167,14 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     for batch_idx, ((inputs_1, targets_1),(inputs_2, targets_2)) in enumerate(loader):
 
+        print(inputs_1.shape)
+        print(targets_1.shape)
+        print(inputs_2.shape)
+        print(targets_2.shape)
+
         inputs_1, targets_1 = inputs_1.to(device), targets_1.to(device)
         targets_1[targets_1!=4.0] = 0.0
-        targets_1[targets_1==4.0] = 1.0
+        targets_1[targets_1==4.0] = 7.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
 
@@ -178,12 +183,14 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
  
         outputs_1 = model(inputs_1)
         outputs_2 = model(inputs_2)
-     
-        loss_dice_1 = dice_loss(inputs=outputs_1, target=targets_1, softmax=True)
-        loss_ce_1 = ce_loss(outputs_1, targets_1[:].long())
 
-        loss_dice_2 = dice_loss(inputs=outputs_2, target=targets_2, softmax=True)
-        loss_ce_2 = ce_loss(outputs_2, targets_2[:].long())
+
+     
+        loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
+        loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
+
+        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
   
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -213,6 +220,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets_1 = targets_1.long()
         targets_2 = targets_2.long()
+
 
 
         predictions_1 = torch.argmax(input=outputs_1,dim=1).long()

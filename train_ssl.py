@@ -50,7 +50,7 @@ from models.GT_CTrans import GT_CTrans
 import utils
 from utils import color
 from utils import Save_Checkpoint
-from trainer import trainer
+from trainer_ssl import trainer
 from tester import tester
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
@@ -61,7 +61,8 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
-NUM_CLASS = 2
+NUM_CLASS = 9
+
 class ConcatDataset(torch.utils.data.Dataset):
     def __init__(self, *datasets):
         self.datasets = datasets
@@ -347,14 +348,14 @@ def main(args):
                                 drop_last=True,
                                 )
 
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
+        # train_loader = DataLoader(train_dataset,
+        #                         batch_size=BATCH_SIZE,
+        #                         shuffle=True,
+        #                         worker_init_fn=worker_init,
+        #                         num_workers=NUM_WORKERS,
+        #                         pin_memory=PIN_MEMORY,
+        #                         drop_last=True,
+        #                         )
         valid_loader = DataLoader(valid_dataset,
                                 batch_size=1,
                                 shuffle=True,
