@@ -20,6 +20,7 @@ def entropy_loss(v):
         input: batch_size x channels x h x w
         output: batch_size x 1 x h x w
     """
+    v = torch.nn.functional.softmax(v, dim=1)
     assert v.dim() == 4
     n, c, h, w = v.size()
     return -torch.sum(torch.mul(v, torch.log2(v + 1e-30))) / (n * h * w * np.log2(c))
@@ -231,6 +232,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
+        loss_total_3.update(loss_3)
 
         targets_1 = targets_1.long()
         targets_2 = targets_2.long()
