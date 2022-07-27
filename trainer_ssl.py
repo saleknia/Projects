@@ -262,12 +262,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     Dice,Dice_per_class = Eval_1.Dice(per_class=True)
     Dice,Dice_per_class = 100*Dice,100*Dice_per_class
 
-    if writer is not None:
-        writer.add_scalar('Loss/train', loss_total.avg.item(), epoch_num)
-        writer.add_scalar('Acc/train', acc.item(), epoch_num)
-        writer.add_scalar('Dice/train', Dice.item(), epoch_num)
-        writer.add_scalar('MIoU/train', mIOU.item(), epoch_num)
-
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
