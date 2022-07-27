@@ -171,6 +171,9 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss_2 = CrossEntropyLoss()
     dice_loss_2 = DiceLoss(9)
 
+    ce_loss_3 = CrossEntropyLoss()
+    dice_loss_3 = DiceLoss(2)
+
     total_batchs = len(dataloader)
     loader = dataloader 
 
@@ -194,26 +197,34 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1 = targets_1.float()
         targets_2 = targets_2.float()
  
-        outputs_1_1, outputs_1_2 = model(inputs_1, head=3.0)
-        outputs_2 = model(inputs_2, head=2.0)
+        outputs_1 = model(inputs_1, head=1.0)
+        outputs_2_1, output_2_2 = model(inputs_2, head=2.0)
 
-
+        targets_2_new = targets_2
+        targets_2_new[targets_2_new!=6.0] = 0.0
+        targets_2_new[targets_2_new==6.0] = 1.0 
      
-        loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
-        loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
+        loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
+        loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
 
-        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
-        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
-  
+        loss_dice_2 = dice_loss_2(inputs=outputs_2_1, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2_1, targets_2[:].long())
+
+        loss_dice_3 = dice_loss_3(inputs=output_2_2, target=targets_2_new, softmax=True)
+        loss_ce_3 = ce_loss_3(output_2_2, targets_2_new[:].long())
+        
         alpha_1 = 1.0
         beta_1 = 1.0
 
         alpha_2 = 1.0
         beta_2 = 1.0
 
-        loss_1 = 2 * (alpha_1 * loss_dice_1 + beta_1 * loss_ce_1)
+        alpha_3 = 1.0
+        beta_3 = 1.0
+
+        loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_3 = entropy_loss(outputs_1_2)
+        loss_3 = alpha_3 * loss_dice_3 + beta_3 * loss_ce_3
         # loss_2 = 0.0
 
         loss = loss_1 + loss_2 + loss_3
@@ -232,17 +243,16 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
-        loss_total_3.update(loss_3)
 
         targets_1 = targets_1.long()
         targets_2 = targets_2.long()
 
 
 
-        predictions_1 = torch.argmax(input=outputs_1_1,dim=1).long()
+        predictions_1 = torch.argmax(input=outputs_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
+        predictions_2 = torch.argmax(input=outputs_2_1,dim=1).long()
         Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
