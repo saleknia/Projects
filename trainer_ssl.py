@@ -198,20 +198,15 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_2 = targets_2.float()
  
         outputs_1 = model(inputs_1, head=1.0)
-        outputs_2_1, output_2_2 = model(inputs_2, head=2.0)
+        outputs_2 = model(inputs_2, head=2.0)
 
-        targets_2_new = targets_2
-        targets_2_new[targets_2_new!=6.0] = 0.0
-        targets_2_new[targets_2_new==6.0] = 1.0 
+
      
         loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
 
-        loss_dice_2 = dice_loss_2(inputs=outputs_2_1, target=targets_2, softmax=True)
-        loss_ce_2 = ce_loss_2(outputs_2_1, targets_2[:].long())
-
-        loss_dice_3 = dice_loss_3(inputs=output_2_2, target=targets_2_new, softmax=True)
-        loss_ce_3 = ce_loss_3(output_2_2, targets_2_new[:].long())
+        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
         
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -219,15 +214,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         alpha_2 = 1.0
         beta_2 = 1.0
 
-        alpha_3 = 1.0
-        beta_3 = 1.0
-
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_3 = alpha_3 * loss_dice_3 + beta_3 * loss_ce_3
         # loss_2 = 0.0
 
-        loss = loss_1 + loss_2 + loss_3
+        loss = loss_1 + loss_2 
 
         lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -252,7 +243,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         predictions_1 = torch.argmax(input=outputs_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        predictions_2 = torch.argmax(input=outputs_2_1,dim=1).long()
+        predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
         Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
@@ -262,7 +253,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   
