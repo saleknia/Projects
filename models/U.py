@@ -82,7 +82,7 @@ class U(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        in_channels = 8
+        in_channels = 64
         self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels, in_channels * 2)
         self.down2 = Down(in_channels * 2, in_channels * 4)
@@ -93,10 +93,10 @@ class U(nn.Module):
         self.up2 = Up(in_channels * 8 , in_channels * 4 // factor, bilinear)
         self.up3 = Up(in_channels * 4 , in_channels * 2 // factor, bilinear)
         self.up4 = Up(in_channels * 2 , in_channels, bilinear)
-        self.outc = OutConv(in_channels, n_classes)
+        self.outc_1 = OutConv(in_channels, 2)
+        self.outc_2 = OutConv(in_channels, 9)
 
-
-    def forward(self, x):
+    def forward(self, x, head=1.0):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -107,11 +107,15 @@ class U(nn.Module):
         up2 = self.up3(up3, x2) # 16
         up1 = self.up4(up2, x1) # 8
 
-        logits = self.outc(up1) 
+        # logits = self.outc(up1) 
 
-        if self.training:
-            return logits, up4, up3, up2, up1
-        else:
-            return logits
+        # if self.training:
+        #     return logits, up4, up3, up2, up1
+        # else:
+        #     return logits
+        if head==1.0:
+            return self.outc_1(up1)
+        if head==2.0:
+            return self.outc_2(up1)
 
 

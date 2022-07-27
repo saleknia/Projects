@@ -193,13 +193,13 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_2 = targets_2.float()
  
         outputs_1 = model(inputs_1, head=1.0)
-        # outputs_2 = model(inputs_2, head=2.0)
+        outputs_2 = model(inputs_2, head=2.0)
 
         loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
 
-        # loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
-        # loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
+        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
         
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -208,8 +208,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_2 = 0.0
+        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        # loss_2 = 0.0
 
         loss = loss_1 + loss_2 
 
@@ -236,11 +236,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         predictions_1 = torch.argmax(input=outputs_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        # predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
-        # Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
+        predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
+        Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
-        # accuracy_2.update(Eval_2.Pixel_Accuracy())
+        accuracy_2.update(Eval_2.Pixel_Accuracy())
 
         print_progress(
             iteration=batch_idx+1,
