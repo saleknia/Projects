@@ -1,6 +1,7 @@
 import utils
 from utils import cosine_scheduler
 import torch
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
@@ -12,6 +13,16 @@ import warnings
 from utils import focal_loss
 from torch.autograd import Variable
 warnings.filterwarnings("ignore")
+
+def entropy_loss(v):
+    """
+        Entropy loss for probabilistic prediction vectors
+        input: batch_size x channels x h x w
+        output: batch_size x 1 x h x w
+    """
+    assert v.dim() == 4
+    n, c, h, w = v.size()
+    return -torch.sum(torch.mul(v, torch.log2(v + 1e-30))) / (n * h * w * np.log2(c))
 
 def flatten(tensor):
     """Flattens a given tensor such that the channel axis is first.
@@ -137,6 +148,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     loss_total_1 = utils.AverageMeter()
     loss_total_2 = utils.AverageMeter()
+    loss_total_3 = utils.AverageMeter()
 
 
     Eval_1 = utils.Evaluator(num_class=2)
@@ -181,16 +193,16 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1 = targets_1.float()
         targets_2 = targets_2.float()
  
-        outputs_1 = model(inputs_1, head=1.0)
-        # outputs_2 = model(inputs_2, head=2.0)
+        outputs_1_1, outputs_1_2 = model(inputs_1, head=3.0)
+        outputs_2 = model(inputs_2, head=2.0)
 
 
      
-        loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
-        loss_ce_1 = ce_loss_1(outputs_1, targets_1[:].long())
+        loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
+        loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
 
-        # loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
-        # loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
+        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
   
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -199,10 +211,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_2 = 0.0
+        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        loss_3 = entropy_loss(outputs_1_2)
+        # loss_2 = 0.0
 
-        loss = loss_1 + loss_2
+        loss = loss_1 + loss_2 + loss_3
 
         lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -224,20 +237,20 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
 
 
-        predictions_1 = torch.argmax(input=outputs_1,dim=1).long()
+        predictions_1 = torch.argmax(input=outputs_1_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        # predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
-        # Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
+        predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
+        Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
-        # accuracy_2.update(Eval_2.Pixel_Accuracy())
+        accuracy_2.update(Eval_2.Pixel_Accuracy())
 
         print_progress(
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   

@@ -143,13 +143,13 @@ class AttentionUNet(nn.Module):
         self.UpConv2 = ConvBlock(128, 64)
 
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
-
-        self.head = seg_head()
-
-
+        self.Conv_1 = nn.Conv2d(64 , 2, kernel_size=1, stride=1, padding=0)
+        self.Conv_2 = nn.Conv2d(64 , 9, kernel_size=1, stride=1, padding=0)
 
 
-    def forward(self, x):
+
+
+    def forward(self, x, head=1.0):
         """
         e : encoder layers
         d : decoder layers
@@ -191,12 +191,16 @@ class AttentionUNet(nn.Module):
         d2 = self.UpConv2(d2)
 
         # out = self.Conv(d2)
-        out = self.head(up4=d5, up3=d4, up2=d3, up1=d2)
 
         # if self.training:
         #     return out, d5, d4, d3, d2
         # else:
         #     return out
-
+        if head==1.0:
+            out = self.Conv_1(d2)
+        elif head==2.0:
+            out = self.Conv_2(d2)
+        elif head==3.0:
+            out = (self.Conv_1(d2), self.Conv_2(d2))
         return out
 
