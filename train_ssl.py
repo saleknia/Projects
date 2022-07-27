@@ -53,7 +53,7 @@ from utils import Save_Checkpoint
 from trainer_ssl import trainer
 from tester import tester
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
-from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
+from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd, proto
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
@@ -378,7 +378,7 @@ def main(args):
         logger.info(50*'*')
         logger.info('Training Phase')
         logger.info(50*'*')
-        loss_function = prototype_loss()
+        loss_function = proto()
         # loss_function = prototype_loss_kd()
         for epoch in range(start_epoch,end_epoch+1):
             # set_epoch(epoch,g)

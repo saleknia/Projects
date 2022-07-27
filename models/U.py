@@ -114,7 +114,7 @@ class U(nn.Module):
         # else:
         #     return logits
         if head==1.0:
-            return self.outc_1(up1)
+            return self.outc_1(up1), self.outc_2(up1)
         if head==2.0:
             return self.outc_2(up1)
 

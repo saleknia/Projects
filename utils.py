@@ -964,6 +964,96 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 ###################################################################################
 ###################################################################################
 
+class proto(nn.Module):
+    def __init__(self):
+        super(proto, self).__init__()
+        self.epsilon = 1e-6
+
+        # Synapse
+        num_class = 9 
+
+        self.num_class = num_class
+
+        self.protos = torch.zeros(num_class, num_class)
+        self.momentum = torch.tensor(0.85)
+        self.iteration = 0
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+
+
+
+    def forward(self, masks, outputs):
+        loss = 0.0
+        B,C,H,W = outputs.shape
+        
+        mask_unique_value = torch.unique(masks)
+        unique_num = len(mask_unique_value)
+        prototypes = torch.zeros(size=(unique_num,C))
+
+        for count,p in enumerate(mask_unique_value):
+            p = p.long()
+            bin_mask = torch.tensor(masks==p,dtype=torch.int8)
+            bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
+
+            temp = 0.0
+            batch_counter = 0
+            for t in range(B):
+                if torch.sum(bin_mask[t])!=0:
+                    v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                    batch_counter = batch_counter + 1
+            temp = temp / batch_counter
+            prototypes[count] = temp
+
+            indexs = [x.item() for x in mask_unique_value]
+            indexs.sort()
+
+            self.update(prototypes, mask_unique_value)
+        self.iteration = self.iteration + 1
+    
+    def align(self, outputs):
+        masks = torch.argmax(input=outputs,dim=1).long()
+        B,C,H,W = masks.shape
+        
+        mask_unique_value = torch.unique(masks)
+        unique_num = len(mask_unique_value)
+        prototypes = torch.zeros(size=(unique_num,C))
+
+        for count,p in enumerate(mask_unique_value):
+            p = p.long()
+            bin_mask = torch.tensor(masks==p,dtype=torch.int8)
+            bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
+
+            temp = 0.0
+            batch_counter = 0
+            for t in range(B):
+                if torch.sum(bin_mask[t])!=0:
+                    v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                    batch_counter = batch_counter + 1
+            temp = temp / batch_counter
+            prototypes[count] = temp  
+
+        indexs = [x.item() for x in mask_unique_value]
+        indexs.sort()
+
+        l = 0.0
+        proto = self.protos[indexs].unsqueeze(dim=0)
+        prototypes = prototypes.unsqueeze(dim=0)
+        distances = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+        x = (torch.eye(distances[0].shape[0],distances[0].shape[1]))
+        diagonal = distances[0] * x
+        l = l + torch.mean(diagonal)
+        l = l + (1.0 / torch.mean(distances-diagonal))
+        return l
+
+    @torch.no_grad()
+    def update(self, prototypes, mask_unique_value):
+        for count, p in enumerate(mask_unique_value):
+            p = p.long().item()
+            self.momentum = self.momentum_schedule[self.iteration] 
+            self.protos[p] = self.protos[p] * self.momentum + prototypes[count] * (1 - self.momentum)
+
+
 
 class prototype_loss(nn.Module):
     def __init__(self):
