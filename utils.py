@@ -1012,7 +1012,7 @@ class proto(nn.Module):
     
     def align(self, outputs):
         masks = torch.argmax(input=outputs,dim=1).long()
-        B,C,H,W = masks.shape
+        B,C,H,W = outputs.shape
         
         mask_unique_value = torch.unique(masks)
         unique_num = len(mask_unique_value)

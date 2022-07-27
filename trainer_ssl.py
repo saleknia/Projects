@@ -193,7 +193,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
  
         outputs_1_1 , outputs_1_2 = model(inputs_1, head=1.0)
         outputs_2 = model(inputs_2, head=2.0)
-        proto(outputs_2)
+
+        proto(outputs=outputs_2, masks=targets_2)
 
         loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
@@ -211,7 +212,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_3 = alpha_3 * proto.align(outputs_1_2)
+        loss_3 = alpha_3 * proto.align(outputs=outputs_1_2)
         # loss_2 = 0.0
 
         loss = loss_1 + loss_2 + loss_3
@@ -250,7 +251,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   
