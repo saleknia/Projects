@@ -203,6 +203,6 @@ class AttentionUNet(nn.Module):
             out = self.Conv_2(d2)
             return out
         elif head==3.0:
-            return self.Conv_1(d2), self.Conv_2(d2)
+            return self.Conv_1(d2), self.Conv_2(d2))
        
 

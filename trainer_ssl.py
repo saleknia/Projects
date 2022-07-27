@@ -211,7 +211,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         alpha_2 = 1.0
         beta_2 = 1.0
 
-        loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
+        loss_1 = 2 * (alpha_1 * loss_dice_1 + beta_1 * loss_ce_1)
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
         loss_3 = entropy_loss(outputs_1_2)
         # loss_2 = 0.0
