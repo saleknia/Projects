@@ -1052,6 +1052,7 @@ class proto(nn.Module):
         x = (torch.eye(distances[0].shape[0],distances[0].shape[1]))
         diagonal = distances[0] * x
         l = l + torch.mean(diagonal)
+        l = l + (1.0 / torch.mean(distances[0] - diagonal))
 
         return l
         # return 0.0

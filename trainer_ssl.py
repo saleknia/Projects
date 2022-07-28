@@ -202,7 +202,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
         loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
         
-        alpha_1 = 1.0
+        alpha_1 = 2.0
         beta_1 = 1.0
 
         alpha_2 = 1.0
