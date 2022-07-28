@@ -980,6 +980,12 @@ class proto(nn.Module):
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30.0, 368)
 
     def forward(self, masks, outputs):
+
+        targets = masks.long()
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        overlap = (predictions==targets).float()
+        t_masks = targets * overlap
+
         loss = 0.0
         B,C,H,W = outputs.shape
         
@@ -994,6 +1000,9 @@ class proto(nn.Module):
                 bin_mask = torch.tensor(masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
 
+                bin_mask_t = torch.tensor(t_masks==p,dtype=torch.int8)
+                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(outputs)
+
                 temp = 0.0
                 batch_counter = 0
                 for t in range(B):
@@ -1002,7 +1011,7 @@ class proto(nn.Module):
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
-                prototypes[count] = temp
+                prototypes[count] = temp * (torch.sum(bin_mask_t) / torch.sum(bin_mask))
             self.update(prototypes, mask_unique_value)
         self.iteration = self.iteration + 1
     
