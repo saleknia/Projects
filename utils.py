@@ -977,7 +977,7 @@ class proto(nn.Module):
         self.protos = torch.zeros(num_class, num_class)
         self.momentum = torch.tensor(0.85)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30.0, 368)
 
 
 
@@ -1043,7 +1043,6 @@ class proto(nn.Module):
         x = (torch.eye(distances[0].shape[0],distances[0].shape[1]))
         diagonal = distances[0] * x
         l = l + torch.mean(diagonal)
-        l = l + (1.0 / torch.mean(distances-diagonal))
         return l
 
     @torch.no_grad()
