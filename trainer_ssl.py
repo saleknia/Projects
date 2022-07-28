@@ -191,7 +191,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1 = targets_1.float()
         targets_2 = targets_2.float()
  
-        outputs_1_1 , outputs_1_2 = model(inputs_1, head=1.0)
+        outputs_1_1 , outputs_1_2 = model(inputs_1, head=3.0)
         outputs_2 = model(inputs_2, head=2.0)
 
         proto(outputs=outputs_2, masks=targets_2)
