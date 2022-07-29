@@ -14,6 +14,16 @@ from utils import focal_loss
 from torch.autograd import Variable
 warnings.filterwarnings("ignore")
 
+def dice_loss(score, target):
+    target = target.float()
+    smooth = 1e-5
+    intersect = torch.sum(score * target)
+    y_sum = torch.sum(target * target)
+    z_sum = torch.sum(score * score)
+    loss = (2 * intersect + smooth) / (z_sum + y_sum + smooth)
+    loss = 1 - loss
+    return loss
+
 def entropy_loss(v):
     """
         Entropy loss for probabilistic prediction vectors
@@ -191,32 +201,36 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1 = targets_1.float()
         targets_2 = targets_2.float()
  
-        outputs_1_1 , outputs_1_2 = model(inputs_1, head=3.0)
-        outputs_2 = model(inputs_2, head=2.0)
+        outputs_1_1 , outputs_1_2 = model(inputs_1, num_head=2.0) # input_1 ---> Single
+        outputs_2_1 , outputs_2_2 = model(inputs_2, num_head=2.0) # input_2 ---> Multi
 
-        proto(outputs=outputs_2, masks=targets_2)
+        prediction_1_1 = torch.argmax(input=outputs_1_1,dim=1).long()
+        prediction_1_2 = (torch.argmax(input=outputs_1_2,dim=1)==6.0).long()
+
+        prediction_2_1 = torch.argmax(input=outputs_2_1,dim=1).long()
+        prediction_2_2 = (torch.argmax(input=outputs_2_2,dim=1)==6.0).long()
 
         loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
 
-        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2, softmax=True)
-        loss_ce_2 = ce_loss_2(outputs_2, targets_2[:].long())
-        
-        alpha_1 = 2.0
-        beta_1 = 2.0
+        loss_dice_2 = dice_loss_2(inputs=outputs_2_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2_2, targets_2[:].long())
+
+        loss_dice_3_1 = dice_loss(score=prediction_1_2, target=prediction_1_1)
+        loss_dice_3_2 = dice_loss(score=prediction_2_2, target=prediction_2_1)
+
+
+        alpha_1 = 1.0
+        beta_1 = 1.0
 
         alpha_2 = 1.0
         beta_2 = 1.0
 
-        alpha_3 = 0.1
-
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_3 = alpha_3 * proto.align(outputs=outputs_1_2)
-        # loss_2 = 0.0
-
+        loss_3 = loss_dice_3_1 + loss_dice_3_1
         loss = loss_1 + loss_2 + loss_3
-
+ 
         lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
@@ -231,7 +245,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
-        loss_total_3.update(loss_3)
 
         targets_1 = targets_1.long()
         targets_2 = targets_2.long()
@@ -241,7 +254,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         predictions_1 = torch.argmax(input=outputs_1_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        predictions_2 = torch.argmax(input=outputs_2,dim=1).long()
+        predictions_2 = torch.argmax(input=outputs_2_2,dim=1).long()
         Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
@@ -251,7 +264,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   

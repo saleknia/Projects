@@ -96,7 +96,7 @@ class U(nn.Module):
         self.outc_1 = OutConv(in_channels, 2)
         self.outc_2 = OutConv(in_channels, 9)
 
-    def forward(self, x, head=1.0):
+    def forward(self, x, num_head=1.0):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -113,10 +113,9 @@ class U(nn.Module):
         #     return logits, up4, up3, up2, up1
         # else:
         #     return logits
-        if head==1.0:
+        if num_head==1.0:
             return self.outc_1(up1)
-        if head==2.0:
-            return self.outc_2(up1)
-        if head==3.0:
+        if num_head==2.0:
             return self.outc_1(up1), self.outc_2(up1)
+            
 
