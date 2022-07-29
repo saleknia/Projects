@@ -977,7 +977,7 @@ class proto(nn.Module):
         self.protos = torch.zeros(num_class-1 , num_class)
         self.momentum = torch.tensor(0.85)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.8, 1.0, 30.0, 368)
 
     def forward(self, masks, outputs):
 
