@@ -196,12 +196,9 @@ class AttentionUNet(nn.Module):
         #     return out, d5, d4, d3, d2
         # else:
         #     return out
-        if head==1.0:
-            out = self.Conv_1(d2)
-            return out
-        elif head==2.0:
-            out = self.Conv_2(d2)
-            return out
-
+        if num_head==1.0:
+            return self.outc_1(up1)
+        if num_head==2.0:
+            return self.outc_1(up1), self.outc_2(up1)
        
 
