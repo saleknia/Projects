@@ -975,6 +975,7 @@ class proto(nn.Module):
         self.num_class = num_class
 
         self.protos = torch.zeros(num_class-1 , num_class)
+        self.counter = torch.zeros(num_class-1)
         self.momentum = torch.tensor(0.85)
         self.iteration = 0
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30.0, 368)
@@ -1063,8 +1064,9 @@ class proto(nn.Module):
     def update(self, prototypes, mask_unique_value):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
-            self.momentum = self.momentum_schedule[self.iteration] 
-            self.protos[p-1] = self.protos[p-1] * self.momentum + prototypes[count] * (1 - self.momentum)
+            # self.momentum = self.momentum_schedule[self.iteration] 
+            self.counter[p-1] = self.counter[p-1] + 1.0
+            self.protos[p-1] = prototypes[count] / self.counter[p-1]
 
 
 

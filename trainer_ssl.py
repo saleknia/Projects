@@ -183,9 +183,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     ce_loss_2 = CrossEntropyLoss()
     dice_loss_2 = DiceLoss(9)
 
-    dice_loss_3_1 = DiceLoss(2)
-    dice_loss_3_2 = DiceLoss(2)
-
     total_batchs = len(dataloader)
     loader = dataloader 
 
@@ -207,8 +204,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         outputs_1_1 , outputs_1_2 = model(inputs_1, num_head=2.0) # input_1 ---> Single
         outputs_2_1 , outputs_2_2 = model(inputs_2, num_head=2.0) # input_2 ---> Multi
 
-        prediction_1_2 = (torch.argmax(input=outputs_1_2,dim=1)==6.0).long()
-        prediction_2_2 = (torch.argmax(input=outputs_2_2,dim=1)==6.0).long()
+        proto(masks=targets_2, outputs=outputs_2_2)
 
         loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
@@ -216,9 +212,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_2 = dice_loss_2(inputs=outputs_2_2, target=targets_2, softmax=True)
         loss_ce_2 = ce_loss_2(outputs_2_2, targets_2[:].long())
 
-        loss_dice_3_1 = dice_loss_3_1(inputs=outputs_1_1, target=prediction_1_2, softmax=True)
-        loss_dice_3_2 = dice_loss_3_2(inputs=outputs_2_1, target=prediction_2_2, softmax=True)
-
+        loss_3 = proto.align(outputs=outputs_1_2) * 0.5
 
         alpha_1 = 1.0
         beta_1 = 1.0
@@ -228,7 +222,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
         loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_3 = loss_dice_3_1 + loss_dice_3_1
         loss = loss_1 + loss_2 + loss_3
  
         lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
