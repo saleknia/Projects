@@ -149,7 +149,7 @@ class AttentionUNet(nn.Module):
 
 
 
-    def forward(self, x, head=1.0):
+    def forward(self, x, num_head=1.0):
         """
         e : encoder layers
         d : decoder layers
@@ -197,8 +197,8 @@ class AttentionUNet(nn.Module):
         # else:
         #     return out
         if num_head==1.0:
-            return self.outc_1(up1)
+            return self.outc_1(d2)
         if num_head==2.0:
-            return self.outc_1(up1), self.outc_2(up1)
+            return self.outc_1(d2), self.outc_2(d2)
        
 
