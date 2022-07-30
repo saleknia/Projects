@@ -221,8 +221,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_2 = 0.0
+        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        # loss_2 = 0.0
         loss = loss_1 + loss_2
  
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
