@@ -32,10 +32,11 @@ def TCIA_kaggle_download(supervised=True):
         os.system('rm -r /content/UNet/TCIA/labels')
     os.chdir(path=pwd)
 
-def TCIA_extract(test_index, supervised=True):
+def TCIA_extract(train_index, valid_index, test_index, supervised=True):
 
     if supervised:
         os.system('mkdir /content/UNet/TCIA/train')
+        os.system('mkdir /content/UNet/TCIA/valid')
         os.system('mkdir /content/UNet/TCIA/test')
     else:
         os.system('mkdir /content/UNet/TCIA/train')
@@ -54,9 +55,9 @@ def TCIA_extract(test_index, supervised=True):
         if supervised:
             label = np.load('/content/UNet/TCIA/labels/' + f)
             for index in range(num_sample_slices):
-                if count in test_index:
+                if count in train_index:
                     pwd = os.getcwd()
-                    os.chdir(path='/content/UNet/TCIA/test')
+                    os.chdir(path='/content/UNet/TCIA/train')
                     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
                     slice_2d = sample[:,:,index]
                     slice_2d = slice_2d.astype(dtype=np.float32)
@@ -64,9 +65,19 @@ def TCIA_extract(test_index, supervised=True):
                     label_2d = label_2d.astype(dtype=np.float32)
                     np.savez(file=slice_name,image=slice_2d,label=label_2d)
                     os.chdir(path=pwd)
-                else:
+                elif count in valid_index:
                     pwd = os.getcwd()
-                    os.chdir(path='/content/UNet/TCIA/train')
+                    os.chdir(path='/content/UNet/TCIA/valid')
+                    slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
+                    slice_2d = sample[:,:,index]
+                    slice_2d = slice_2d.astype(dtype=np.float32)
+                    label_2d = label[:,:,index]
+                    label_2d = label_2d.astype(dtype=np.float32)
+                    np.savez(file=slice_name,image=slice_2d,label=label_2d)
+                    os.chdir(path=pwd)
+                elif count in test_index:
+                    pwd = os.getcwd()
+                    os.chdir(path='/content/UNet/TCIA/test')
                     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
                     slice_2d = sample[:,:,index]
                     slice_2d = slice_2d.astype(dtype=np.float32)
@@ -109,10 +120,13 @@ if __name__ == "__main__":
         supervised = True
     else:
         supervised = False
-    test_index = np.arange(10)
+
+    train_index = np.arange(50)
+    valid_index = np.arange(50,65)
+    test_index  = np.arange(65,80)
 
     TCIA_kaggle_download(supervised=supervised)
-    TCIA_extract(test_index=test_index, supervised=supervised)
+    TCIA_extract(train_index=train_index, valid_index=valid_index, test_index=test_index, supervised=supervised)
 
 
 
