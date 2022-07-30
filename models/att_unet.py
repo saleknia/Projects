@@ -3,6 +3,41 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torchvision
 
+
+class seg_head(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.scale_4 = nn.Upsample(scale_factor=2)
+        self.scale_3 = nn.Upsample(scale_factor=2)
+        self.scale_2 = nn.Upsample(scale_factor=2)
+        self.conv_4 =  nn.Conv2d(512, 256, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
+        self.conv_2 =  nn.Conv2d(128, 64 , kernel_size=(1,1), stride=(1,1))
+
+        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.BN_out = nn.BatchNorm2d(64)
+        self.RELU6_out = nn.ReLU6()
+
+        self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
+
+    def forward(self, up4, up3, up2, up1):
+        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        up4 = self.scale_4(self.conv_4(up4))
+        up3 = up3 + up4
+        up3 = self.scale_3(self.conv_3(up3))
+        up2 = up3 + up2
+        up2 = self.scale_2(self.conv_2(up2))
+        up = up2 + up1
+        
+        up = self.conv(up)
+        up = self.BN_out(up)
+        up = self.RELU6_out(up)
+        up = self.out(up)
+
+        return up
+
 class ConvBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels):
@@ -84,34 +119,6 @@ class AttentionBlock(nn.Module):
         out = skip_connection * psi
         return out
 
-class seg_head(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.scale_4 = nn.Upsample(scale_factor=2)
-        self.scale_3 = nn.Upsample(scale_factor=2)
-        self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(512, 256, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 = nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
-        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
-        self.BN = nn.BatchNorm2d(64)
-        self.RELU6 = nn.ReLU6()
-        self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
-    def forward(self, up4, up3, up2, up1):
-        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-        up4 = self.scale_4(self.conv_4(up4))
-        up3 = up3 + up4
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = up3 + up2
-        up2 = self.scale_2(self.conv_2(up2))
-        up = up2 + up1
-        up = self.conv(up)
-        up = self.BN(up)
-        up = self.RELU6(up)
-        up = self.out(up)
-        return up
 
 class AttentionUNet(nn.Module):
 
@@ -145,7 +152,7 @@ class AttentionUNet(nn.Module):
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
         self.Conv_1 = nn.Conv2d(64 , 2, kernel_size=1, stride=1, padding=0)
         self.Conv_2 = nn.Conv2d(64 , 9, kernel_size=1, stride=1, padding=0)
-
+        self.head = seg_head(num_class=2)
 
 
 
