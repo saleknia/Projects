@@ -44,7 +44,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
 from tester_s import tester_s
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
