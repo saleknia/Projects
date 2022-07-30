@@ -161,11 +161,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     loss_total_1 = utils.AverageMeter()
     loss_total_2 = utils.AverageMeter()
-    loss_total_3 = utils.AverageMeter()
+    loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=2)
-    Eval_2 = utils.Evaluator(num_class=9)
+    Eval_1 = utils.Evaluator(num_class=9)
+    Eval_2 = utils.Evaluator(num_class=13)
 
 
     mIOU_1 = 0.0
@@ -178,10 +178,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     accuracy_2 = utils.AverageMeter()
 
     ce_loss_1 = CrossEntropyLoss()
-    dice_loss_1 = DiceLoss(2)
+    dice_loss_1 = DiceLoss(9)
 
     ce_loss_2 = CrossEntropyLoss()
-    dice_loss_2 = DiceLoss(9)
+    dice_loss_2 = DiceLoss(13)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -193,8 +193,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     for batch_idx, ((inputs_1, targets_1),(inputs_2, targets_2)) in enumerate(loader):
 
         inputs_1, targets_1 = inputs_1.to(device), targets_1.to(device)
-        targets_1[targets_1!=4.0] = 0.0
-        targets_1[targets_1==4.0] = 1.0
+        # targets_1[targets_1!=4.0] = 0.0
+        # targets_1[targets_1==4.0] = 1.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
 
@@ -221,12 +221,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        # loss_2 = 0.0
-        loss_3 = 0.0
-        loss = loss_1 + loss_2 + loss_3
+        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        loss_2 = 0.0
+        loss = loss_1 + loss_2
  
-        lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
@@ -240,7 +239,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
-        loss_total_3.update(loss_3)
+        loss_total.update(loss)
 
         targets_1 = targets_1.long()
         targets_2 = targets_2.long()
@@ -260,7 +259,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   
