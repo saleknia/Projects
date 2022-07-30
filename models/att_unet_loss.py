@@ -84,7 +84,7 @@ class AttentionBlock(nn.Module):
         return out
 
 class seg_head(nn.Module):
-    def __init__(self):
+    def __init__(self, num_class):
         super().__init__()
         self.scale_4 = nn.Upsample(scale_factor=2)
         self.scale_3 = nn.Upsample(scale_factor=2)
