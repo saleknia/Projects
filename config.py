@@ -43,7 +43,7 @@ if log:
 
 
 # Hyperparameters etc.
-LEARNING_RATE = 0.05
+LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 6
 NUM_EPOCHS = 30
@@ -63,14 +63,15 @@ DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
-task_ids = ['1','2','3','4','5']
+task_ids = ['1','2','3','4','5','6']
 task_table = tabulate(
                     tabular_data=[
                         ['COVID-19', 1],
                         ['Synapse', 2],
                         ['ACDC', 3],
                         ['CT-1K', 4],
-                        ['SSL', 5]],
+                        ['SSL', 5],
+                        ['TCIA',6]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -103,6 +104,10 @@ elif task_id==4:
 elif task_id==5:
     NUM_CLASS = 1
     TASK_NAME = 'SSL'
+
+elif task_id==6:
+    NUM_CLASS = 2
+    TASK_NAME = 'TCIA'
 
 # CONTINUE_ids = ['1','2']
 # CONTINUE_table = tabulate(

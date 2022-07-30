@@ -28,8 +28,6 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             inputs, targets = inputs.to(device), targets.to(device)
 
-            # targets[targets>8]=0.0
-
             targets = targets.float()
             outputs = model(inputs)
 
@@ -37,7 +35,6 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             loss_dice = dice_loss(outputs, targets, softmax=True)
             loss = 0.5 * loss_ce + 0.5 * loss_dice
 
-            # loss = loss_func(inputs=outputs, target=targets, softmax=True)
             loss_total.update(loss)
 
             targets = targets.long()

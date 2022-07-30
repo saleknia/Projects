@@ -29,8 +29,6 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
 
             inputs, targets = inputs.to(device), targets.to(device)
 
-            # targets[targets==12]=0.0
-
             targets = targets.float()
             outputs = model(inputs)
 
@@ -38,7 +36,6 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             loss_dice = dice_loss(outputs, targets, softmax=True)
             loss = 0.5 * loss_ce + 0.5 * loss_dice
 
-            # loss = loss_func(inputs=outputs, target=targets, softmax=True)
             loss_total.update(loss)
 
             targets = targets.long()
@@ -71,11 +68,4 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
 
         logger.info(f'Epoch: {epoch_num} ---> Valid , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , hd95: {hd95_total.avg:.4f} , Pixel Accuracy: {acc:.2f}') 
         logger.info(f'Dice Per Class: {Dice_per_class}') 
-    # # Save checkpoint
-    # if ckpt is not None:
-    #     ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (epoch_num==end_epoch):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
 

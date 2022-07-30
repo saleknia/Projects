@@ -69,8 +69,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_proto_total = utils.AverageMeter()
-    # loss_kd_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -81,54 +79,25 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
-    ##################################################################
-    # IMD_loss = IM_loss()
-    proto_loss = loss_function
-    ##################################################################
-    ##################################################################
-    # kd_loss = loss_function
-    ##################################################################
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
 
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
-    # max_iterations = 50 * total_batchs
 
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
-
-        # targets[targets>8]=0.0
-
         targets = targets.float()
-
-
-        # outputs = model(inputs)
-
-        outputs, up4, up3, up2, up1 = model(inputs)
-
-        masks = targets.long()
-        preds = torch.argmax(input=outputs,dim=1).long()
-        overlap = (masks==preds).float()
-        masks = masks * overlap
+        outputs = model(inputs)
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(outputs, targets, softmax=True)
-        # loss_proto = proto_loss(masks=targets, outputs=proto)
-        # loss_proto = proto_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
-        loss_proto = 0.0
-        # loss_proto = proto_loss(masks=masks.clone(), up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_kd = prediction_map_distillation(y=outputs, masks=targets)
-        # loss_kd = IMD_loss(masks=targets.clone(), up3=up3, up2=up2, up1=up1)
-        ###############################################
-        alpha = 0.01
-        beta = 0.0
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd 
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + alpha * loss_proto
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice 
-        ###############################################
+
+        alpha = 0.5
+        beta = 0.5
+        loss = 0.5 * loss_ce + 0.5 * loss_dice
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -141,18 +110,10 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss.backward()
         optimizer.step()
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
-
-        # iter_num = iter_num + 1
-
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_proto_total.update(loss_proto)
-        # loss_kd_total.update(loss_kd)
-        ###############################################
+
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
@@ -163,11 +124,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',         
             bar_length=45
         )  
   
@@ -190,14 +147,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
-    # Save checkpoint
-    # if ckpt is not None:
-    #     ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None:
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (epoch_num==end_epoch):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)  
+
 
 

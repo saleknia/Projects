@@ -67,15 +67,8 @@ def main(args):
         writer = None
 
     train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
-    # train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
     val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
-
-    # transform = A.Compose(
-    #     [
-    #         A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
-    #         ToTensorV2()
-    #     ]
-    # )
+    test_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
 
 # LOAD_MODEL
 
@@ -330,6 +323,40 @@ def main(args):
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+    elif TASK_NAME=='TCIA':
+
+        train_dataset = TCIA(split='train', joint_transform=train_tf)
+        valid_dataset = TCIA(split='valid', joint_transform=val_tf)
+        test_dataset  = TCIA(split='test' , joint_transform=val_tf)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)

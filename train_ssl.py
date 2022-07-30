@@ -52,7 +52,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_ssl import trainer
 from tester import tester
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd, proto
 from config import *
 from tabulate import tabulate
@@ -335,6 +335,43 @@ def main(args):
     elif TASK_NAME=='CT-1K':
 
         train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
+        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
+        valid_dataset=CT_1K(split='test', joint_transform=val_tf)
+
+        train_loader = DataLoader(
+                                ConcatDataset(train_dataset_1,train_dataset_2),
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        # train_loader = DataLoader(train_dataset,
+        #                         batch_size=BATCH_SIZE,
+        #                         shuffle=True,
+        #                         worker_init_fn=worker_init,
+        #                         num_workers=NUM_WORKERS,
+        #                         pin_memory=PIN_MEMORY,
+        #                         drop_last=True,
+        #                         )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader}
+        # data_loader={'train':train_loader,'valid':train_loader}
+
+
+    elif TASK_NAME=='TCIA':
+
+        train_dataset_1 = TCIA(split='train', joint_transform=train_tf)
         train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
