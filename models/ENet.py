@@ -53,7 +53,7 @@ class ENet(nn.Module):
                                        'bottleneck3_7', 'bottleneck3_8', 'bottleneck4_0', 'bottleneck4_1',
                                        'bottleneck4_2', 'bottleneck5_0', 'bottleneck5_1', 'fullconv'])
 
-    def forward(self, x, head=1.0):
+    def forward(self, x, num_head=1.0):
         # init
         x = self.initial(x)
 
@@ -91,11 +91,11 @@ class ENet(nn.Module):
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
         # out
-        if head==1.0:
-            x = self.fullconv_1(x)
-        elif head==2.0:
-            x = self.fullconv_2(x)           
-        return x
+        if num_head==1.0:
+            return self.fullconv_1(x)
+        elif num_head==2.0:
+            return self.fullconv_1(x) , self.fullconv_2(x)           
+    
 
 
 class InitialBlock(nn.Module):
