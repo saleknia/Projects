@@ -61,38 +61,38 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
-NUM_CLASS = 8
-
-class ConcatDataset(torch.utils.data.Dataset):
-    def __init__(self, *datasets):
-        self.datasets = datasets
-
-    def __getitem__(self, i):
-        return tuple(d[i] for d in self.datasets)
-
-    def __len__(self):
-        return min(len(d) for d in self.datasets)
+NUM_CLASS = 2
 
 # class ConcatDataset(torch.utils.data.Dataset):
 #     def __init__(self, *datasets):
 #         self.datasets = datasets
-#         self.lengths = []
-#         for dataset in self.datasets:
-#             self.lengths.append(len(dataset))
 
-#     def __getitem__(self, index):
-#         indexs = []
-#         for length in self.lengths:
-#             if length<=index:
-#                 indexs.append(index-length)
-#             else:
-#                 indexs.append(index)
-
-#         output = tuple(d[k] for d,k in zip(self.datasets,indexs))
-#         return output
+#     def __getitem__(self, i):
+#         return tuple(d[i] for d in self.datasets)
 
 #     def __len__(self):
-#         return max(len(d) for d in self.datasets)    
+#         return min(len(d) for d in self.datasets)
+
+class ConcatDataset(torch.utils.data.Dataset):
+    def __init__(self, *datasets):
+        self.datasets = datasets
+        self.lengths = []
+        for dataset in self.datasets:
+            self.lengths.append(len(dataset))
+
+    def __getitem__(self, index):
+        indexs = []
+        for length in self.lengths:
+            if length<=index:
+                indexs.append(index-length)
+            else:
+                indexs.append(index)
+
+        output = tuple(d[k] for d,k in zip(self.datasets,indexs))
+        return output
+
+    def __len__(self):
+        return max(len(d) for d in self.datasets)    
 
 def main(args):
 
@@ -391,10 +391,10 @@ def main(args):
 
     elif TASK_NAME=='SSL':
 
-        train_dataset_1 = Synapse_dataset(split='train', joint_transform=train_tf)
-        train_dataset_2 = CT_1K(split='train', joint_transform=train_tf)
+        train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
+        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
 
-        valid_dataset = Synapse_dataset(split='val', joint_transform=val_tf)
+        valid_dataset = CT_1K(split='valid', joint_transform=val_tf)
 
         train_loader = DataLoader(
                                 ConcatDataset(train_dataset_1,train_dataset_2),
@@ -536,7 +536,7 @@ def main(args):
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
                     # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
                     # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_last.pth'
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
                     loaded_data = torch.load(pretrained_model_path, map_location='cuda')
                     pretrained = loaded_data['net']
                     model2_dict = model.state_dict()

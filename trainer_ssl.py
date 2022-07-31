@@ -164,8 +164,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=8)
-    Eval_2 = utils.Evaluator(num_class=13)
+    Eval_1 = utils.Evaluator(num_class=2)
+    Eval_2 = utils.Evaluator(num_class=9)
 
 
     mIOU_1 = 0.0
@@ -178,10 +178,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     accuracy_2 = utils.AverageMeter()
 
     ce_loss_1 = CrossEntropyLoss()
-    dice_loss_1 = DiceLoss(8)
+    dice_loss_1 = DiceLoss(2)
 
     ce_loss_2 = CrossEntropyLoss()
-    dice_loss_2 = DiceLoss(13)
+    dice_loss_2 = DiceLoss(9)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -193,10 +193,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     for batch_idx, ((inputs_1, targets_1),(inputs_2, targets_2)) in enumerate(loader):
 
         inputs_1, targets_1 = inputs_1.to(device), targets_1.to(device)
-        # targets_1[targets_1!=4.0] = 0.0
-        # targets_1[targets_1==4.0] = 1.0
-        targets_1[targets_1==4.0] = 3.0
-        targets_1[targets_1>4.0] = targets_1[targets_1>4.0] - 1
+        targets_1[targets_1!=4.0] = 0.0
+        targets_1[targets_1==4.0] = 1.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
 
@@ -227,7 +225,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # loss_2 = 0.0
         loss = loss_1 + loss_2
  
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
@@ -273,7 +271,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total_1.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
 
     # Save checkpoint
     if ckpt is not None:
