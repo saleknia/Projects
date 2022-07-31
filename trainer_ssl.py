@@ -164,7 +164,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=9)
+    Eval_1 = utils.Evaluator(num_class=8)
     Eval_2 = utils.Evaluator(num_class=13)
 
 
@@ -196,7 +196,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         # targets_1[targets_1!=4.0] = 0.0
         # targets_1[targets_1==4.0] = 1.0
         targets_1[targets_1==4.0] = 3.0
-        targets_1[targets_1>4.0] = targets_1[targets_1>4.0] - 1.0
+        targets_1[targets_1>4.0] = targets_1[targets_1>4.0] - 1
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
 
@@ -211,8 +211,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
         loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())
 
-        # loss_dice_2 = dice_loss_2(inputs=outputs_2_2, target=targets_2, softmax=True)
-        # loss_ce_2 = ce_loss_2(outputs_2_2, targets_2[:].long())
+        loss_dice_2 = dice_loss_2(inputs=outputs_2_2, target=targets_2, softmax=True)
+        loss_ce_2 = ce_loss_2(outputs_2_2, targets_2[:].long())
 
         # loss_3 = proto.align(outputs=outputs_1_2) * 0.5
 
@@ -223,8 +223,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         beta_2 = 1.0
 
         loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        loss_2 = 0.0
+        loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+        # loss_2 = 0.0
         loss = loss_1 + loss_2
  
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -251,8 +251,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         predictions_1 = torch.argmax(input=outputs_1_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        # predictions_2 = torch.argmax(input=outputs_2_2,dim=1).long()
-        # Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
+        predictions_2 = torch.argmax(input=outputs_2_2,dim=1).long()
+        Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
         accuracy_2.update(Eval_2.Pixel_Accuracy())
