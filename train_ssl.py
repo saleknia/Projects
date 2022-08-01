@@ -84,7 +84,7 @@ class ConcatDataset(torch.utils.data.Dataset):
         indexs = []
         for length in self.lengths:
             if length<=index:
-                indexs.append(index-length)
+                indexs.append(index % length)
             else:
                 indexs.append(index)
 
