@@ -966,7 +966,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 
 class discriminate(nn.Module):
     def __init__(self):
-        super(proto, self).__init__()
+        super(discriminate, self).__init__()
         self.epsilon = 1e-6
 
     def forward(self, masks, outputs):
@@ -978,15 +978,20 @@ class discriminate(nn.Module):
             mask = masks[b]
             mask_unique_value = torch.unique(mask)
             unique_num = len(mask_unique_value)
-            prototypes = torch.zeros(size=(unique_num, C))
-            for count,p in enumerate(mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(mask==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
-                v = torch.sum(bin_mask*output)/torch.sum(bin_mask)
-                prototypes[count] = v
-            distances = torch.cdist(prototypes, prototypes, p=2.0)
-            loss = loss +  1.0 / torch.mean(distances)
+            if 1 < unique_num:
+                prototypes = torch.zeros(size=(unique_num, C))
+                for count,p in enumerate(mask_unique_value):
+                    p = p.long()
+                    bin_mask = torch.tensor(mask==p,dtype=torch.int8)
+                    s = torch.sum(bin_mask)
+                    bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
+                    v = torch.sum(bin_mask*output,dim=[1,2])/s
+                    print(v)
+                    prototypes[count] = v
+                    
+                distances = torch.cdist(prototypes, prototypes, p=2.0)
+                print(1.0 / torch.mean(distances))
+                loss = loss +  1.0 / torch.mean(distances)
         
         return loss
 
