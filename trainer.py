@@ -59,6 +59,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         alpha = 0.5
         beta = 0.5
+        gamma = 0.01 
         loss = alpha * loss_dice + beta * loss_ce 
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
