@@ -12,6 +12,8 @@ import torch.nn.functional as F
 import warnings
 from utils import focal_loss
 from torch.autograd import Variable
+from torch.cuda.amp import autocast as autocast
+from torch.cuda.amp import GradScaler
 warnings.filterwarnings("ignore")
 
 def dice_loss(score, target):
@@ -169,7 +171,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
 
     Eval_1 = utils.Evaluator(num_class=5 )
-    Eval_2 = utils.Evaluator(num_class=10)
+    Eval_2 = utils.Evaluator(num_class=13)
 
     loss_1 = 0.0
     loss_2 = 0.0
@@ -187,7 +189,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss_1 = DiceLoss(5)
 
     ce_loss_2 = CrossEntropyLoss()
-    dice_loss_2 = DiceLoss(10)
+    dice_loss_2 = DiceLoss(13)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -195,7 +197,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
-
+    scaler = GradScaler()
     for batch_idx, ((inputs_1, targets_1),(inputs_2, targets_2)) in enumerate(loader):
 
         inputs_1, targets_1 = inputs_1.to(device), targets_1.to(device)
@@ -204,102 +206,104 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1[targets_1>4.0] = 0.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
-        targets_2[targets_2>9.0] = 0.0
+        # targets_2[targets_2>9.0] = 0.0
         targets_2_sub = targets_2.clone()
         targets_2_sub[targets_2_sub>4.0] = 0.0
 
         targets_1 = targets_1.float()
         targets_2 = targets_2.float()
  
-        outputs_1, outputs_1_aux_0, outputs_1_aux_1, outputs_1_aux_2, outputs_1_aux_3 = model(inputs_1, num_head=2.0) # input_1 ---> Single
-        outputs_2, outputs_2_aux_0, outputs_2_aux_1, outputs_2_aux_2, outputs_2_aux_3 = model(inputs_2, num_head=2.0) # input_2 ---> Multi
+        with autocast():
+            optimizer.zero_grad()
+            outputs_1, outputs_1_aux_0, outputs_1_aux_1, outputs_1_aux_2, outputs_1_aux_3 = model(inputs_1, num_head=2.0) # input_1 ---> Single
+            outputs_2, outputs_2_aux_0, outputs_2_aux_1, outputs_2_aux_2, outputs_2_aux_3 = model(inputs_2, num_head=2.0) # input_2 ---> Multi
 
-        ############################################################################################
-        ############################################################################################
-        ############################################################################################
+            ############################################################################################
+            ############################################################################################
+            ############################################################################################
 
-        loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
-        loss_ce_1   = ce_loss_1(outputs_1, targets_1[:].long())
+            loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
+            loss_ce_1   = ce_loss_1(outputs_1, targets_1[:].long())
 
-        outputs_1_aux_0 = torch.softmax(outputs_1_aux_0, dim=1)
-        outputs_1_aux_1 = torch.softmax(outputs_1_aux_1, dim=1)
-        outputs_1_aux_2 = torch.softmax(outputs_1_aux_2, dim=1)
-        # outputs_1_aux_3 = torch.softmax(outputs_1_aux_3, dim=1)
+            outputs_1_aux_0 = torch.softmax(outputs_1_aux_0, dim=1)
+            outputs_1_aux_1 = torch.softmax(outputs_1_aux_1, dim=1)
+            outputs_1_aux_2 = torch.softmax(outputs_1_aux_2, dim=1)
+            outputs_1_aux_3 = torch.softmax(outputs_1_aux_3, dim=1)
+            
+            preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2 + outputs_1_aux_3) / 4
+            # preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2) / 3
+
+
+            variance_aux_0 = torch.sum(kl_distance(torch.log(outputs_1_aux_0), preds), dim=1, keepdim=True)
+            exp_variance_aux_0 = torch.exp(-variance_aux_0)
+
+            variance_aux_1 = torch.sum(kl_distance(torch.log(outputs_1_aux_1), preds), dim=1, keepdim=True)
+            exp_variance_aux_1 = torch.exp(-variance_aux_1)
+
+            variance_aux_2 = torch.sum(kl_distance(torch.log(outputs_1_aux_2), preds), dim=1, keepdim=True)
+            exp_variance_aux_2 = torch.exp(-variance_aux_2)
+
+            variance_aux_3 = torch.sum(kl_distance(torch.log(outputs_1_aux_3), preds), dim=1, keepdim=True)
+            exp_variance_aux_3 = torch.exp(-variance_aux_3)
+
+
+            consistency_dist_aux_0 = (preds - outputs_1_aux_0) ** 2
+            consistency_loss_aux_0 = torch.mean(consistency_dist_aux_0 * exp_variance_aux_0) / (torch.mean(exp_variance_aux_0) + 1e-8) + torch.mean(variance_aux_0)
+
+            consistency_dist_aux_1 = (preds - outputs_1_aux_1) ** 2
+            consistency_loss_aux_1 = torch.mean(consistency_dist_aux_1 * exp_variance_aux_1) / (torch.mean(exp_variance_aux_1) + 1e-8) + torch.mean(variance_aux_1)
+
+            consistency_dist_aux_2 = (preds - outputs_1_aux_2) ** 2
+            consistency_loss_aux_2 = torch.mean(consistency_dist_aux_2 * exp_variance_aux_2) / (torch.mean(exp_variance_aux_2) + 1e-8) + torch.mean(variance_aux_2)
+
+            consistency_dist_aux_3 = (preds - outputs_1_aux_3) ** 2
+            consistency_loss_aux_3 = torch.mean(consistency_dist_aux_3 * exp_variance_aux_3) / (torch.mean(exp_variance_aux_3) + 1e-8) + torch.mean(variance_aux_3)
+
+            consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
         
-        # preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2 + outputs_1_aux_3) / 4
-        preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2) / 3
+            # consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2) / 3
 
+            loss_1 = loss_dice_1 + loss_ce_1 + consistency_loss
 
-        variance_aux_0 = torch.sum(kl_distance(torch.log(outputs_1_aux_0), preds), dim=1, keepdim=True)
-        exp_variance_aux_0 = torch.exp(-variance_aux_0)
+            ############################################################################################
+            ############################################################################################
+            ############################################################################################
 
-        variance_aux_1 = torch.sum(kl_distance(torch.log(outputs_1_aux_1), preds), dim=1, keepdim=True)
-        exp_variance_aux_1 = torch.exp(-variance_aux_1)
+            loss_dice_2 = dice_loss_1(inputs=outputs_2, target=targets_2_sub, softmax=True)
+            loss_ce_2 = ce_loss_2(outputs_2, targets_2_sub[:].long())
 
-        variance_aux_2 = torch.sum(kl_distance(torch.log(outputs_1_aux_2), preds), dim=1, keepdim=True)
-        exp_variance_aux_2 = torch.exp(-variance_aux_2)
+            loss_dice_2_aux_0 = dice_loss_2(inputs=outputs_2_aux_0, target=targets_2, softmax=True)
+            loss_ce_2_aux_0 = ce_loss_2(outputs_2_aux_0, targets_2[:].long())
 
-        # variance_aux_3 = torch.sum(kl_distance(torch.log(outputs_1_aux_3), preds), dim=1, keepdim=True)
-        # exp_variance_aux_3 = torch.exp(-variance_aux_3)
+            loss_dice_2_aux_1 = dice_loss_2(inputs=outputs_2_aux_1, target=targets_2, softmax=True)
+            loss_ce_2_aux_1 = ce_loss_2(outputs_2_aux_1, targets_2[:].long())
 
+            loss_dice_2_aux_2 = dice_loss_2(inputs=outputs_2_aux_2, target=targets_2, softmax=True)
+            loss_ce_2_aux_2 = ce_loss_2(outputs_2_aux_2, targets_2[:].long())
 
-        consistency_dist_aux_0 = (preds - outputs_1_aux_0) ** 2
-        consistency_loss_aux_0 = torch.mean(consistency_dist_aux_0 * exp_variance_aux_0) / (torch.mean(exp_variance_aux_0) + 1e-8) + torch.mean(variance_aux_0)
+            loss_dice_2_aux_3 = dice_loss_2(inputs=outputs_2_aux_3, target=targets_2, softmax=True)
+            loss_ce_2_aux_3 = ce_loss_2(outputs_2_aux_3, targets_2[:].long())
 
-        consistency_dist_aux_1 = (preds - outputs_1_aux_1) ** 2
-        consistency_loss_aux_1 = torch.mean(consistency_dist_aux_1 * exp_variance_aux_1) / (torch.mean(exp_variance_aux_1) + 1e-8) + torch.mean(variance_aux_1)
+            loss_2 = loss_dice_2 + loss_ce_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0 + loss_dice_2_aux_1 + loss_ce_2_aux_1 + loss_dice_2_aux_2 + loss_ce_2_aux_2  
 
-        consistency_dist_aux_2 = (preds - outputs_1_aux_2) ** 2
-        consistency_loss_aux_2 = torch.mean(consistency_dist_aux_2 * exp_variance_aux_2) / (torch.mean(exp_variance_aux_2) + 1e-8) + torch.mean(variance_aux_2)
+            ############################################################################################
+            ############################################################################################
+            ############################################################################################
 
-        # consistency_dist_aux_3 = (preds - outputs_1_aux_3) ** 2
-        # consistency_loss_aux_3 = torch.mean(consistency_dist_aux_3 * exp_variance_aux_3) / (torch.mean(exp_variance_aux_3) + 1e-8) + torch.mean(variance_aux_3)
+            # loss_3 = proto.align(outputs=outputs_1_2) * 0.5
 
-        # consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
+            alpha_1 = 1.0
+            beta_1 = 1.0
+
+            alpha_2 = 1.0
+            beta_2 = 1.0
+
+            # loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
+            # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
+            # loss_2 = 0.0
+
+            loss = loss_1 + loss_2
     
-        consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2) / 3
-
-        loss_1 = loss_dice_1 + loss_ce_1 + consistency_loss
-
-        ############################################################################################
-        ############################################################################################
-        ############################################################################################
-
-        loss_dice_2 = dice_loss_1(inputs=outputs_2, target=targets_2_sub, softmax=True)
-        loss_ce_2 = ce_loss_2(outputs_2, targets_2_sub[:].long())
-
-        loss_dice_2_aux_0 = dice_loss_2(inputs=outputs_2_aux_0, target=targets_2, softmax=True)
-        loss_ce_2_aux_0 = ce_loss_2(outputs_2_aux_0, targets_2[:].long())
-
-        loss_dice_2_aux_1 = dice_loss_2(inputs=outputs_2_aux_1, target=targets_2, softmax=True)
-        loss_ce_2_aux_1 = ce_loss_2(outputs_2_aux_1, targets_2[:].long())
-
-        loss_dice_2_aux_2 = dice_loss_2(inputs=outputs_2_aux_2, target=targets_2, softmax=True)
-        loss_ce_2_aux_2 = ce_loss_2(outputs_2_aux_2, targets_2[:].long())
-
-        loss_dice_2_aux_3 = dice_loss_2(inputs=outputs_2_aux_3, target=targets_2, softmax=True)
-        loss_ce_2_aux_3 = ce_loss_2(outputs_2_aux_3, targets_2[:].long())
-
-        loss_2 = loss_dice_2 + loss_ce_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0 + loss_dice_2_aux_1 + loss_ce_2_aux_1 + loss_dice_2_aux_2 + loss_ce_2_aux_2  
-
-        ############################################################################################
-        ############################################################################################
-        ############################################################################################
-
-        # loss_3 = proto.align(outputs=outputs_1_2) * 0.5
-
-        alpha_1 = 1.0
-        beta_1 = 1.0
-
-        alpha_2 = 1.0
-        beta_2 = 1.0
-
-        # loss_1 = alpha_1 * loss_dice_1 + beta_1 * loss_ce_1
-        # loss_2 = alpha_2 * loss_dice_2 + beta_2 * loss_ce_2
-        # loss_2 = 0.0
-
-        loss = loss_1 + loss_2
- 
         lr_ = 0.05 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
@@ -307,10 +311,13 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         iter_num = iter_num + 1        
         
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
