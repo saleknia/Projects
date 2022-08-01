@@ -163,11 +163,13 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     loss_total_1 = utils.AverageMeter()
     loss_total_2 = utils.AverageMeter()
+    loss_total_3 = utils.AverageMeter()
+
     loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=5 )
-    Eval_2 = utils.Evaluator(num_class=13)
+    Eval_1 = utils.Evaluator(num_class=5)
+    Eval_2 = utils.Evaluator(num_class=9)
 
     loss_1 = 0.0
     loss_2 = 0.0
@@ -185,7 +187,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss_1 = DiceLoss(5)
 
     ce_loss_2 = CrossEntropyLoss()
-    dice_loss_2 = DiceLoss(13)
+    dice_loss_2 = DiceLoss(9)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -202,6 +204,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets_1[targets_1>4.0] = 0.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
+        targets_2[targets_2>9.0] = 0.0
         targets_2_sub = targets_2.clone()
         targets_2_sub[targets_2_sub>4.0] = 0.0
 
@@ -311,6 +314,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_total_1.update(loss_1)
         loss_total_2.update(loss_2)
+        loss_total_3.update(consistency_loss)
         loss_total.update(loss)
 
         targets_1 = targets_1.long()
@@ -331,7 +335,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
+            suffix=f'loss_1 = {loss_total_1.avg:.4f} , loss_2 = {loss_total_2.avg:.4f} , loss_3 = {loss_total_3.avg:.4f} , Dice_1 = {Eval_1.Dice()*100:.2f} , Dice_2 = {Eval_2.Dice()*100:.2f}',          
             bar_length=45
         )  
   
