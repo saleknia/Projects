@@ -238,15 +238,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss = GeneralizedDiceLoss(num_classes=num_class)
 
     ce_loss = CrossEntropyLoss()
-    # dice_loss = DiceLoss(num_class)
+    dice_loss = DiceLoss(num_class)
     ##################################################################
     # kd_out_loss = IM_loss()
     # kd_out_loss = CriterionPixelWise()
     kd_loss = M_loss()    
     proto_loss = loss_function
-    ##################################################################
-    ##################################################################
-    # kd_loss = loss_function
     ##################################################################
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -254,7 +251,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
-    # max_iterations = 50 * total_batchs
 
     for batch_idx, (inputs, targets) in enumerate(loader):
 
@@ -262,12 +258,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets = targets.float()
 
-        # outputs = model(inputs)
-        # outputs, up3, up2, up1  = model(inputs)
-        # outputs, e5 = model(inputs)
-        # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        # outputs, up4, up3, up2, up1, up0 = model(inputs)
-        # outputs, up4, up3, up2, up1 = model(inputs)
         
         outputs, up4, up3, up2, up1 = model(inputs)
         # e5, e4, e3, e2 = model(inputs, pretrain=True)
