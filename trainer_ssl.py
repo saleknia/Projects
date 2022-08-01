@@ -168,8 +168,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=5)
-    Eval_2 = utils.Evaluator(num_class=9)
+    Eval_1 = utils.Evaluator(num_class=5 )
+    Eval_2 = utils.Evaluator(num_class=10)
 
     loss_1 = 0.0
     loss_2 = 0.0
@@ -187,7 +187,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     dice_loss_1 = DiceLoss(5)
 
     ce_loss_2 = CrossEntropyLoss()
-    dice_loss_2 = DiceLoss(9)
+    dice_loss_2 = DiceLoss(10)
 
     total_batchs = len(dataloader)
     loader = dataloader 
