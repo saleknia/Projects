@@ -218,8 +218,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice_1 = dice_loss_1(inputs=outputs_1, target=targets_1, softmax=True)
         loss_ce_1   = ce_loss_1(outputs_1, targets_1[:].long())
 
-        loss_1 = loss_1 + dice_loss_1 + ce_loss_1
-
         outputs_1_aux_0 = torch.softmax(outputs_1_aux_0, dim=1)
         outputs_1_aux_1 = torch.softmax(outputs_1_aux_1, dim=1)
         outputs_1_aux_2 = torch.softmax(outputs_1_aux_2, dim=1)
@@ -254,36 +252,28 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
 
-        loss_1 = loss_1 + consistency_loss
+        loss_1 = loss_dice_1 + loss_ce_1 + consistency_loss
 
         ############################################################################################
         ############################################################################################
         ############################################################################################
 
-        loss_dice_2 = dice_loss_2(inputs=outputs_2, target=targets_2_sub, softmax=True)
+        loss_dice_2 = dice_loss_1(inputs=outputs_2, target=targets_2_sub, softmax=True)
         loss_ce_2 = ce_loss_2(outputs_2, targets_2_sub[:].long())
-
-        loss_2 = loss_2 + loss_dice_2 + loss_ce_2
 
         loss_dice_2_aux_0 = dice_loss_2(inputs=outputs_2_aux_0, target=targets_2, softmax=True)
         loss_ce_2_aux_0 = ce_loss_2(outputs_2_aux_0, targets_2[:].long())
 
-        loss_2 = loss_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0
-
         loss_dice_2_aux_1 = dice_loss_2(inputs=outputs_2_aux_1, target=targets_2, softmax=True)
         loss_ce_2_aux_1 = ce_loss_2(outputs_2_aux_1, targets_2[:].long())
 
-        loss_2 = loss_2 + loss_dice_2_aux_1 + loss_ce_2_aux_1        
+        loss_dice_2_aux_2 = dice_loss_2(inputs=outputs_2_aux_2, target=targets_2, softmax=True)
+        loss_ce_2_aux_2 = ce_loss_2(outputs_2_aux_2, targets_2[:].long())
 
         loss_dice_2_aux_3 = dice_loss_2(inputs=outputs_2_aux_3, target=targets_2, softmax=True)
         loss_ce_2_aux_3 = ce_loss_2(outputs_2_aux_3, targets_2[:].long())
 
-        loss_2 = loss_2 + loss_dice_2_aux_3 + loss_ce_2_aux_3  
-
-        loss_dice_2_aux_4 = dice_loss_2(inputs=outputs_2_aux_4, target=targets_2, softmax=True)
-        loss_ce_2_aux_4 = ce_loss_2(outputs_2_aux_4, targets_2[:].long())
-
-        loss_2 = loss_2 + loss_dice_2_aux_4 + loss_ce_2_aux_4  
+        loss_2 = loss_dice_2 + loss_ce_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0 + loss_dice_2_aux_1 + loss_ce_2_aux_1 + loss_dice_2_aux_2 + loss_ce_2_aux_2  
 
         ############################################################################################
         ############################################################################################
@@ -311,7 +301,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         iter_num = iter_num + 1        
         
         optimizer.zero_grad()
-        loss.backward()
+        loss.backward(retain_graph=True)
         optimizer.step()
 
 
@@ -324,10 +314,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
 
 
-        predictions_1 = torch.argmax(input=outputs_1_1,dim=1).long()
+        predictions_1 = torch.argmax(input=outputs_1,dim=1).long()
         Eval_1.add_batch(gt_image=targets_1,pre_image=predictions_1)
 
-        predictions_2 = torch.argmax(input=outputs_2_2,dim=1).long()
+        predictions_2 = torch.argmax(input=outputs_2_aux_0,dim=1).long()
         Eval_2.add_batch(gt_image=targets_2,pre_image=predictions_2)
 
         accuracy_1.update(Eval_1.Pixel_Accuracy())
