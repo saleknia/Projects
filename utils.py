@@ -970,15 +970,12 @@ class proto(nn.Module):
         self.epsilon = 1e-6
 
         # Synapse
-        num_class = 9 
+        num_class = 10
 
         self.num_class = num_class
 
-        self.protos = torch.zeros(num_class-1 , num_class)
-        self.counter = torch.zeros(num_class-1)
-        self.momentum = torch.tensor(0.85)
-        self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 30.0, 368)
+        self.protos = torch.zeros(num_class , num_class)
+        self.accumlator = torch.zeros(num_class , num_class)
 
     def forward(self, masks, outputs):
 
@@ -991,7 +988,7 @@ class proto(nn.Module):
         B,C,H,W = outputs.shape
         
         mask_unique_value = torch.unique(masks)
-        mask_unique_value = mask_unique_value[1:]
+        mask_unique_value = mask_unique_value
         unique_num = len(mask_unique_value)
         prototypes = torch.zeros(size=(unique_num,C))
 
@@ -1005,68 +1002,29 @@ class proto(nn.Module):
                 bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(outputs)
 
                 temp = 0.0
-                batch_counter = 0
                 for t in range(B):
                     if torch.sum(bin_mask[t])!=0:
                         v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes[count] = temp * (torch.sum(bin_mask_t) / torch.sum(bin_mask))
+                        w = torch.sum(bin_mask_t[t],dim=[1,2]) / torch.sum(bin_mask[t],dim=[1,2])
+                        temp = temp + (w * v)
+                prototypes[count] = temp 
             self.update(prototypes, mask_unique_value)
-        self.iteration = self.iteration + 1
-    
-    def align(self, outputs):
-        masks = torch.argmax(input=outputs,dim=1).long()
-        B,C,H,W = outputs.shape
-        
-        mask_unique_value = torch.unique(masks)
-        mask_unique_value = mask_unique_value[1:]
-        unique_num = len(mask_unique_value)
-        prototypes = torch.zeros(size=(unique_num,C))
-
-        if unique_num == 0:
-            return 0.0
-
-        for count,p in enumerate(mask_unique_value):
-            p = p.long()
-            bin_mask = torch.tensor(masks==p,dtype=torch.int8)
-            bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
-
-            temp = 0.0
-            batch_counter = 0
-            for t in range(B):
-                if torch.sum(bin_mask[t])!=0:
-                    v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                    temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                    batch_counter = batch_counter + 1
-            temp = temp / batch_counter
-            prototypes[count] = temp  
-
-        indexs = [x.item()-1 for x in mask_unique_value]
-        indexs.sort()
-
-        l = 0.0
-        proto = self.protos[indexs].unsqueeze(dim=0)
-        prototypes = prototypes.unsqueeze(dim=0)
-        distances = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-        x = (torch.eye(distances[0].shape[0],distances[0].shape[1]))
-        diagonal = distances[0] * x
-        l = l + torch.mean(diagonal)
-        
-        if 1 < unique_num:
-            l = l + (1.0 / torch.mean(distances[0] - diagonal))
-
-        return l
-        # return 0.0
 
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value):
         for count, p in enumerate(mask_unique_value):
             p = p.long().item()
-            # self.momentum = self.momentum_schedule[self.iteration] 
-            self.counter[p-1] = self.counter[p-1] + 1.0
-            self.protos[p-1] = prototypes[count] / self.counter[p-1]
+            self.accumlator[p] = self.accumlator[p] + prototypes[count] 
+            self.protos[p] = nn.functional.normalize(self.accumlator[p], p=2.0, dim=0, eps=1e-12, out=None)
+
+    def psudo(self, outputs):
+        B, C, H, W = outputs.shape
+        temp = torch.zeros(B, self.num_class, H, W)
+        for i in range(self.num_class):
+            v = self.protos[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(outputs)
+            temp[:,i,:,:] = torch.norm(outputs-v, dim=1.0)
+        label = torch.argmin(temp, dim=1)
+        return label
 
 
 
