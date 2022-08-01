@@ -195,6 +195,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         inputs_1, targets_1 = inputs_1.to(device), targets_1.to(device)
         # targets_1[targets_1!=4.0] = 0.0
         # targets_1[targets_1==4.0] = 1.0
+        targets_1[targets_1>4.0] = 0.0
 
         inputs_2, targets_2 = inputs_2.to(device), targets_2.to(device)
 

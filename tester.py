@@ -33,7 +33,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             # targets[targets!=4.0] = 0.0
             # targets[targets==4.0] = 1.0
-            
+            targets[targets>4.0] = 0.0
+
             outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())
