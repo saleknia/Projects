@@ -9,7 +9,7 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import focal_loss
+from utils import focal_loss, discriminate
 from torch.autograd import Variable
 import pickle
 warnings.filterwarnings("ignore")
@@ -25,6 +25,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
+    loss_diss_total = utils.AverageMeter()
+
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -35,6 +37,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
+    diss_loss = discriminate()
     ##################################################################
     proto = loss_function
     ##################################################################
@@ -56,11 +59,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-
+        loss_diss = diss_loss(masks=targets, outputs=outputs)
         alpha = 0.5
         beta = 0.5
         gamma = 0.01 
-        loss = alpha * loss_dice + beta * loss_ce 
+        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_diss
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -77,6 +80,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
+        loss_diss_total.update(loss_diss)
 
         targets = targets.long()
 
@@ -89,7 +93,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Diss_loss = {gamma*loss_diss_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
   
