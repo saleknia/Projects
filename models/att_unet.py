@@ -152,15 +152,15 @@ class AttentionUNet(nn.Module):
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
 
         self.Conv_1_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
-        self.Conv_1_2 = nn.Conv2d(64 , 13 , kernel_size=1, stride=1, padding=0)
+        self.Conv_1_2 = nn.Conv2d(64 , 9 , kernel_size=1, stride=1, padding=0)
 
-        self.Conv_2 = nn.Conv2d(128, 13 , kernel_size=1, stride=1, padding=0)
+        self.Conv_2 = nn.Conv2d(128, 9 , kernel_size=1, stride=1, padding=0)
         self.Scale_2 = nn.Upsample(scale_factor=2) 
 
-        self.Conv_3 = nn.Conv2d(256, 13 , kernel_size=1, stride=1, padding=0)
+        self.Conv_3 = nn.Conv2d(256, 9 , kernel_size=1, stride=1, padding=0)
         self.Scale_3 = nn.Upsample(scale_factor=4) 
 
-        self.Conv_4 = nn.Conv2d(512, 13 , kernel_size=1, stride=1, padding=0)
+        self.Conv_4 = nn.Conv2d(512, 9 , kernel_size=1, stride=1, padding=0)
         self.Scale_4 = nn.Upsample(scale_factor=8) 
 
 
