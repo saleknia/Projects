@@ -169,6 +169,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     Eval_1 = utils.Evaluator(num_class=5 )
     Eval_2 = utils.Evaluator(num_class=13)
 
+    loss_1 = 0.0
+    loss_2 = 0.0
 
     mIOU_1 = 0.0
     Dice_1 = 0.0
