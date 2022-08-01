@@ -150,7 +150,7 @@ class AttentionUNet(nn.Module):
         self.UpConv2 = ConvBlock(128, 64)
 
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
-        self.Conv_1 = nn.Conv2d(64 , 4  , kernel_size=1, stride=1, padding=0)
+        self.Conv_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
         self.Conv_2 = nn.Conv2d(64 , 13 , kernel_size=1, stride=1, padding=0)
         # self.Conv_1 = seg_head(num_class=2)
 

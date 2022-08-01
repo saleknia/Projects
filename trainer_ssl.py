@@ -164,7 +164,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
 
 
-    Eval_1 = utils.Evaluator(num_class=4 )
+    Eval_1 = utils.Evaluator(num_class=5 )
     Eval_2 = utils.Evaluator(num_class=13)
 
 
@@ -178,7 +178,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     accuracy_2 = utils.AverageMeter()
 
     ce_loss_1 = CrossEntropyLoss()
-    dice_loss_1 = DiceLoss(4)
+    dice_loss_1 = DiceLoss(5)
 
     ce_loss_2 = CrossEntropyLoss()
     dice_loss_2 = DiceLoss(13)
