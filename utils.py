@@ -1011,8 +1011,6 @@ class proto(nn.Module):
 
         targets = masks.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = (predictions==targets).float()
-        t_masks = targets * overlap
 
         loss = 0.0
         B,C,H,W = outputs.shape
@@ -1024,16 +1022,19 @@ class proto(nn.Module):
         for count,p in enumerate(mask_unique_value):
             p = p.long()
             bin_mask = torch.tensor(masks==p,dtype=torch.int8)
+            bin_m = bin_mask
             bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
 
-            bin_mask_t = torch.tensor(t_masks==p,dtype=torch.int8)
+            bin_mask_t = torch.tensor(predictions==p,dtype=torch.int8)
+            bin_mt = bin_mask_t
             bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(outputs)
 
             temp = 0.0
             for t in range(B):
                 if torch.sum(bin_mask[t])!=0:
                     v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                    w = torch.sum(bin_mask_t[t],dim=[1,2]) / torch.sum(bin_mask[t],dim=[1,2])
+                    # w = torch.sum(bin_mask_t[t],dim=[1,2]) / torch.sum(bin_mask[t],dim=[1,2])
+                    w = self.dice(score=bin_mt, target=bin_m)
                     temp = temp + (w * v)
             prototypes[count] = temp 
         self.update(prototypes, mask_unique_value)
@@ -1049,11 +1050,19 @@ class proto(nn.Module):
         B, C, H, W = outputs.shape
         temp = torch.zeros(B, self.num_class, H, W).cuda()
         for i in range(self.num_class):
-            v = self.protos[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(outputs)
+            v = self.protos[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(outputs).cuda()
             temp[:,i,:,:] = torch.norm(outputs-v, dim=1)
         label = torch.argmin(temp, dim=1)
         return label
 
+    def dice(self, score, target):
+        target = target.float()
+        smooth = 1e-5
+        intersect = torch.sum(score * target)
+        y_sum = torch.sum(target * target)
+        z_sum = torch.sum(score * score)
+        dice = (2 * intersect + smooth) / (z_sum + y_sum + smooth)
+        return dice
 
 
 class prototype_loss(nn.Module):
