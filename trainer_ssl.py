@@ -221,9 +221,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         outputs_1_aux_0 = torch.softmax(outputs_1_aux_0, dim=1)
         outputs_1_aux_1 = torch.softmax(outputs_1_aux_1, dim=1)
         outputs_1_aux_2 = torch.softmax(outputs_1_aux_2, dim=1)
-        outputs_1_aux_3 = torch.softmax(outputs_1_aux_3, dim=1)
+        # outputs_1_aux_3 = torch.softmax(outputs_1_aux_3, dim=1)
         
-        preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2 + outputs_1_aux_3) / 4
+        # preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2 + outputs_1_aux_3) / 4
+        preds = (outputs_1_aux_0 + outputs_1_aux_1 + outputs_1_aux_2) / 3
+
 
         variance_aux_0 = torch.sum(kl_distance(torch.log(outputs_1_aux_0), preds), dim=1, keepdim=True)
         exp_variance_aux_0 = torch.exp(-variance_aux_0)
@@ -234,8 +236,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         variance_aux_2 = torch.sum(kl_distance(torch.log(outputs_1_aux_2), preds), dim=1, keepdim=True)
         exp_variance_aux_2 = torch.exp(-variance_aux_2)
 
-        variance_aux_3 = torch.sum(kl_distance(torch.log(outputs_1_aux_3), preds), dim=1, keepdim=True)
-        exp_variance_aux_3 = torch.exp(-variance_aux_3)
+        # variance_aux_3 = torch.sum(kl_distance(torch.log(outputs_1_aux_3), preds), dim=1, keepdim=True)
+        # exp_variance_aux_3 = torch.exp(-variance_aux_3)
 
 
         consistency_dist_aux_0 = (preds - outputs_1_aux_0) ** 2
@@ -247,10 +249,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         consistency_dist_aux_2 = (preds - outputs_1_aux_2) ** 2
         consistency_loss_aux_2 = torch.mean(consistency_dist_aux_2 * exp_variance_aux_2) / (torch.mean(exp_variance_aux_2) + 1e-8) + torch.mean(variance_aux_2)
 
-        consistency_dist_aux_3 = (preds - outputs_1_aux_3) ** 2
-        consistency_loss_aux_3 = torch.mean(consistency_dist_aux_3 * exp_variance_aux_3) / (torch.mean(exp_variance_aux_3) + 1e-8) + torch.mean(variance_aux_3)
+        # consistency_dist_aux_3 = (preds - outputs_1_aux_3) ** 2
+        # consistency_loss_aux_3 = torch.mean(consistency_dist_aux_3 * exp_variance_aux_3) / (torch.mean(exp_variance_aux_3) + 1e-8) + torch.mean(variance_aux_3)
 
-        consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
+        # consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
+    
+        consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2) / 3
 
         loss_1 = loss_dice_1 + loss_ce_1 + consistency_loss
 
@@ -301,7 +305,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         iter_num = iter_num + 1        
         
         optimizer.zero_grad()
-        loss.backward(retain_graph=True)
+        loss.backward()
         optimizer.step()
 
 
