@@ -150,9 +150,20 @@ class AttentionUNet(nn.Module):
         self.UpConv2 = ConvBlock(128, 64)
 
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
-        self.Conv_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
-        self.Conv_2 = nn.Conv2d(64 , 13 , kernel_size=1, stride=1, padding=0)
-        # self.Conv_1 = seg_head(num_class=2)
+
+        self.Conv_1_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
+        self.Conv_1_2 = nn.Conv2d(64 , 13 , kernel_size=1, stride=1, padding=0)
+
+        self.Conv_2 = nn.Conv2d(128, 13 , kernel_size=1, stride=1, padding=0)
+        self.Scale_2 = nn.Upsample(scale_factor=2) 
+
+        self.Conv_3 = nn.Conv2d(256, 13 , kernel_size=1, stride=1, padding=0)
+        self.Scale_3 = nn.Upsample(scale_factor=4) 
+
+        self.Conv_4 = nn.Conv2d(512, 13 , kernel_size=1, stride=1, padding=0)
+        self.Scale_4 = nn.Upsample(scale_factor=8) 
+
+
 
 
 
@@ -205,12 +216,20 @@ class AttentionUNet(nn.Module):
         #     return out, d5, d4, d3, d2
         # else:
         #     return out
+        
+        outputs = self.Conv_1_1(d2)
+        outputs_aux_0 = self.Conv_1_2(d2)
+        outputs_aux_1 = self.Conv_2(self.Scale_2(d3))
+        outputs_aux_2 = self.Conv_3(self.Scale_3(d4))
+        outputs_aux_3 = self.Conv_4(self.Scale_4(d5))
 
         if num_head==1.0:
-            return self.Conv_1(d2)
+            return outputs
         if num_head==2.0:
-            return self.Conv_1(d2), self.Conv_2(d2)
-       
+            return outputs, outputs_aux_0, outputs_aux_1, outputs_aux_2, outputs_aux_3
+ 
+
+
         # if num_head==1.0:
         #     return self.Conv_1(up4=d5, up3=d4, up2=d3, up1=d2)
         # if num_head==2.0:
