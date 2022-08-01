@@ -110,11 +110,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         lr_scheduler.step()        
         
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    if epoch_num == end_epoch:
+        obj = proto
+        file_pi = open('prototypes', 'wb') 
+        pickle.dump(obj, file_pi)
 
-
-    obj = proto
-    file_pi = open('prototypes', 'w') 
-    pickle.dump(obj, file_pi)
 
     # Save checkpoint
     if ckpt is not None:
