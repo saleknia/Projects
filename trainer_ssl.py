@@ -259,7 +259,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             consistency_dist_aux_3 = (preds - outputs_1_aux_3) ** 2
             consistency_loss_aux_3 = torch.mean(consistency_dist_aux_3 * exp_variance_aux_3) / (torch.mean(exp_variance_aux_3) + 1e-8) + torch.mean(variance_aux_3)
 
-            consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
+            consistency_loss = 10.0 * (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2 + consistency_loss_aux_3) / 4
         
             # consistency_loss = (consistency_loss_aux_0 + consistency_loss_aux_1 + consistency_loss_aux_2) / 3
 
@@ -284,7 +284,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             loss_dice_2_aux_3 = dice_loss_2(inputs=outputs_2_aux_3, target=targets_2, softmax=True)
             loss_ce_2_aux_3 = ce_loss_2(outputs_2_aux_3, targets_2[:].long())
 
-            loss_2 = loss_dice_2 + loss_ce_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0 + loss_dice_2_aux_1 + loss_ce_2_aux_1 + loss_dice_2_aux_2 + loss_ce_2_aux_2  
+            loss_2 = 0.2 * (loss_dice_2 + loss_ce_2 + loss_dice_2_aux_0 + loss_ce_2_aux_0 + loss_dice_2_aux_1 + loss_ce_2_aux_1 + loss_dice_2_aux_2 + loss_ce_2_aux_2)
 
             ############################################################################################
             ############################################################################################
