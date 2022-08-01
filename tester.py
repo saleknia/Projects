@@ -7,6 +7,7 @@ import warnings
 from medpy import metric
 import medpy
 import numpy as np
+import pickle
 warnings.filterwarnings("ignore")
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
@@ -17,6 +18,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     mIOU = 0.0
     Dice = 0.0
     accuracy = utils.AverageMeter()
+
+    filehandler = open('prototypes', 'r') 
+    proto = pickle.load(filehandler)
 
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
@@ -33,7 +37,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             # targets[targets!=4.0] = 0.0
             # targets[targets==4.0] = 1.0
-            targets[targets>4.0] = 0.0
+            # targets[targets>4.0] = 0.0
 
             outputs = model(inputs)
 
