@@ -986,11 +986,9 @@ class discriminate(nn.Module):
                     s = torch.sum(bin_mask)
                     bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
                     v = torch.sum(bin_mask*output,dim=[1,2])/s
-                    print(v)
                     prototypes[count] = v
                     
                 distances = torch.cdist(prototypes, prototypes, p=2.0)
-                print(1.0 / torch.mean(distances))
                 loss = loss +  1.0 / torch.mean(distances)
         
         return loss
