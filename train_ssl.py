@@ -61,7 +61,7 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
-NUM_CLASS = 2
+NUM_CLASS = 4
 
 # class ConcatDataset(torch.utils.data.Dataset):
 #     def __init__(self, *datasets):
@@ -389,12 +389,49 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader}
         # data_loader={'train':train_loader,'valid':train_loader}
 
+    # elif TASK_NAME=='SSL':
+
+    #     train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
+    #     train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
+
+    #     valid_dataset = CT_1K(split='valid', joint_transform=val_tf)
+
+    #     train_loader = DataLoader(
+    #                             ConcatDataset(train_dataset_1,train_dataset_2),
+    #                             batch_size=BATCH_SIZE,
+    #                             shuffle=True,
+    #                             worker_init_fn=worker_init,
+    #                             num_workers=NUM_WORKERS,
+    #                             pin_memory=PIN_MEMORY,
+    #                             drop_last=True,
+    #                             )
+
+    #     # train_loader = DataLoader(train_dataset,
+    #     #                         batch_size=BATCH_SIZE,
+    #     #                         shuffle=True,
+    #     #                         worker_init_fn=worker_init,
+    #     #                         num_workers=NUM_WORKERS,
+    #     #                         pin_memory=PIN_MEMORY,
+    #     #                         drop_last=True,
+    #     #                         )
+    #     valid_loader = DataLoader(valid_dataset,
+    #                             batch_size=1,
+    #                             shuffle=True,
+    #                             worker_init_fn=worker_init,
+    #                             num_workers=NUM_WORKERS,
+    #                             pin_memory=PIN_MEMORY,
+    #                             drop_last=True,
+    #                             )
+
+    #     data_loader={'train':train_loader,'valid':valid_loader}
+    #     # data_loader={'train':train_loader,'valid':train_loader}
+
     elif TASK_NAME=='SSL':
 
         train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
-        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
+        train_dataset_2 = CT_1K(split='valid', joint_transform=train_tf)
 
-        valid_dataset = CT_1K(split='valid', joint_transform=val_tf)
+        valid_dataset = CT_1K(split='test', joint_transform=val_tf)
 
         train_loader = DataLoader(
                                 ConcatDataset(train_dataset_1,train_dataset_2),
@@ -425,7 +462,6 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader}
         # data_loader={'train':train_loader,'valid':train_loader}
-
 
     elif TASK_NAME=='TCIA':
 
