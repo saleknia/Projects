@@ -970,7 +970,7 @@ class proto(nn.Module):
         self.epsilon = 1e-6
 
         # Synapse
-        num_class = 10
+        num_class = 9
 
         self.num_class = num_class
 
