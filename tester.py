@@ -8,6 +8,7 @@ from medpy import metric
 import medpy
 import numpy as np
 import pickle
+from utils import proto
 warnings.filterwarnings("ignore")
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
@@ -19,9 +20,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     Dice = 0.0
     accuracy = utils.AverageMeter()
 
-    filehandler = open('prototypes', 'r') 
-    proto = pickle.load(filehandler)
-
+    filehandler = open('prototypes', 'rb') 
+    proto_ = pickle.load(filehandler)
+    
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
 
@@ -49,7 +50,10 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             loss_total.update(loss)
 
             targets = targets.long()
+
             predictions = torch.argmax(input=outputs,dim=1).long()
+            # predictions = proto_.psudo(outputs)
+
             Eval.add_batch(gt_image=targets,pre_image=predictions)
             hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
             # hd95_acc = 0.0

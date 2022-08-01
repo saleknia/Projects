@@ -1019,10 +1019,10 @@ class proto(nn.Module):
 
     def psudo(self, outputs):
         B, C, H, W = outputs.shape
-        temp = torch.zeros(B, self.num_class, H, W)
+        temp = torch.zeros(B, self.num_class, H, W).cuda()
         for i in range(self.num_class):
             v = self.protos[i].unsqueeze(dim=0).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(outputs)
-            temp[:,i,:,:] = torch.norm(outputs-v, dim=1.0)
+            temp[:,i,:,:] = torch.norm(outputs-v, dim=1)
         label = torch.argmin(temp, dim=1)
         return label
 
