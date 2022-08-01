@@ -59,7 +59,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss_diss = diss_loss(masks=targets, outputs=outputs)
+        # loss_diss = diss_loss(masks=targets, outputs=outputs)
+        loss_diss = 0.0
         alpha = 0.5
         beta = 0.5
         gamma = 1.0
