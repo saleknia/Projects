@@ -62,7 +62,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_diss = diss_loss(masks=targets, outputs=outputs)
         alpha = 0.5
         beta = 0.5
-        gamma = 0.01 
+        gamma = 1.0
         loss = alpha * loss_dice + beta * loss_ce + gamma * loss_diss
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
