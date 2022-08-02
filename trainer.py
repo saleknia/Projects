@@ -9,9 +9,8 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import focal_loss, discriminate
+from utils import focal_loss
 from torch.autograd import Variable
-import pickle
 warnings.filterwarnings("ignore")
 
 
@@ -25,8 +24,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_diss_total = utils.AverageMeter()
-
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -37,10 +34,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
-    diss_loss = discriminate()
-    ##################################################################
-    proto = loss_function
-    ##################################################################
+
     total_batchs = len(dataloader)
     loader = dataloader 
 
@@ -55,16 +49,23 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         targets = targets.float()
         
         outputs, up4, up3, up2, up1 = model(inputs)
-        proto(masks=targets, outputs=outputs)
+     
+        targets = targets.long()
+
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        overlap = (predictions==targets).float()
+        t_masks = targets * overlap
+        targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        # loss_diss = diss_loss(masks=targets, outputs=outputs)
-        loss_diss = 0.0
+
+        ###############################################
         alpha = 0.5
         beta = 0.5
-        gamma = 1.0
-        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_diss
+        gamma = 0.01
+        loss = alpha * loss_dice + beta * loss_ce 
+        ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -77,12 +78,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss.backward()
         optimizer.step()
 
-
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_diss_total.update(loss_diss)
-
+        ###############################################
         targets = targets.long()
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -94,7 +93,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Diss_loss = {gamma*loss_diss_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
+            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
   
@@ -116,11 +119,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         lr_scheduler.step()        
         
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
-    if epoch_num == end_epoch:
-        obj = proto
-        file_pi = open('prototypes', 'wb') 
-        pickle.dump(obj, file_pi)
-
 
     # Save checkpoint
     if ckpt is not None:

@@ -420,47 +420,47 @@ def main(args):
 
             # cuda_state = torch.cuda.get_rng_state()
             # torch.save(cuda_state, '/content/drive/MyDrive/checkpoint/cuda_state.pth')
-        if True:#epoch==end_epoch:
-            if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
-                # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-                pretrained = loaded_data['net']
-                model2_dict = model.state_dict()
-                state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-                # logger.info(state_dict.keys())
-                model2_dict.update(state_dict)
-                model.load_state_dict(model2_dict)
+            if epoch==end_epoch:
+                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
+                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
+                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+                    pretrained = loaded_data['net']
+                    model2_dict = model.state_dict()
+                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+                    # logger.info(state_dict.keys())
+                    model2_dict.update(state_dict)
+                    model.load_state_dict(model2_dict)
 
-                acc=loaded_data['acc']
-                acc_per_class=loaded_data['acc_per_class'].tolist()
-                acc_per_class=[round(x,2) for x in acc_per_class]
-                best_epoch=loaded_data['best_epoch']
+                    acc=loaded_data['acc']
+                    acc_per_class=loaded_data['acc_per_class'].tolist()
+                    acc_per_class=[round(x,2) for x in acc_per_class]
+                    best_epoch=loaded_data['best_epoch']
 
-                logger.info(50*'*')
-                logger.info(f'Best Accuracy over training: {acc:.2f}')
-                logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
-                logger.info(f'Epoch Number: {best_epoch}')
-
-                if args.inference=='True':
                     logger.info(50*'*')
-                    logger.info('Inference Phase')
-                    # logger.info(50*'*')
-                    # inference(model=model,logger=logger)
-                    tester(
-                        end_epoch=1,
-                        epoch_num=1,
-                        model=copy.deepcopy(model),
-                        dataloader=data_loader['valid'],
-                        device=DEVICE,
-                        ckpt=None,
-                        num_class=NUM_CLASS,
-                        writer=writer,
-                        logger=logger,
-                        optimizer=None,
-                        lr_scheduler=None,
-                        early_stopping=None)
+                    logger.info(f'Best Accuracy over training: {acc:.2f}')
+                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+                    logger.info(f'Epoch Number: {best_epoch}')
+
+                    if args.inference=='True':
+                        logger.info(50*'*')
+                        logger.info('Inference Phase')
+                        # logger.info(50*'*')
+                        # inference(model=model,logger=logger)
+                        tester(
+                            end_epoch=1,
+                            epoch_num=1,
+                            model=copy.deepcopy(model),
+                            dataloader=data_loader['valid'],
+                            device=DEVICE,
+                            ckpt=None,
+                            num_class=NUM_CLASS,
+                            writer=writer,
+                            logger=logger,
+                            optimizer=None,
+                            lr_scheduler=None,
+                            early_stopping=None)
             
                     logger.info(50*'*')
                     logger.info(50*'*')

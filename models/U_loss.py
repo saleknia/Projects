@@ -107,6 +107,6 @@ class U_loss(nn.Module):
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
         if self.training:
-            return logits, up1, up2, up3, up4, x5
+            return logits, up1, up2, up3, up4
         else:
             return logits

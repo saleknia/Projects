@@ -545,7 +545,7 @@ class UNet_loss(nn.Module):
         #     logits = self.outc(up1)
 
         if self.training:
-            return logits, x4, x3, x2, x1, x5
+            return logits, x4, x3, x2, x1
         else:
             return logits
 

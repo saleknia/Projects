@@ -1004,8 +1004,9 @@ class proto(nn.Module):
 
         self.num_class = num_class
 
-        self.protos = torch.zeros(num_class , num_class)
-        self.accumlator = torch.zeros(num_class , num_class)
+        self.protos = torch.zeros(num_class, 64)
+        self.accumlator = torch.zeros(num_class, 64)
+        self.iteration = 0
 
     def forward(self, masks, outputs):
 
@@ -1038,7 +1039,6 @@ class proto(nn.Module):
                     temp = temp + v
             prototypes[count] = temp 
         self.update(prototypes, mask_unique_value)
-
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value):
         for count, p in enumerate(mask_unique_value):
