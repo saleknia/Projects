@@ -1006,7 +1006,8 @@ class proto(nn.Module):
 
         self.protos = torch.zeros(num_class, 64)
         self.accumlator = torch.zeros(num_class, 64)
-        self.iteration = 0
+        self.iter_num = 0
+        self.max_iterations = 5 * 368
 
     def forward(self, masks, outputs):
 
@@ -1036,9 +1037,11 @@ class proto(nn.Module):
                     v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                     # w = torch.sum(bin_mask_t[t],dim=[1,2]) / torch.sum(bin_mask[t],dim=[1,2])
                     # w = self.dice(score=bin_mt, target=bin_m)
-                    temp = temp + v
+                    w = (1.0 - self.iter_num / self.max_iterations) ** 0.9
+                    temp = temp + (w * v)
             prototypes[count] = temp 
         self.update(prototypes, mask_unique_value)
+        self.iter_num = self.iter_num + 1
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value):
         for count, p in enumerate(mask_unique_value):
