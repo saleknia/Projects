@@ -199,7 +199,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
             targets_1 = targets_1.float()
 
-            outputs_1_1 , outputs_1_2 = model(inputs_1, num_head=2.0)
+            outputs_1_1 = model(inputs_1, num_head=1.0)
 
             loss_dice_1 = dice_loss_1(inputs=outputs_1_1, target=targets_1, softmax=True)
             loss_ce_1 = ce_loss_1(outputs_1_1, targets_1[:].long())

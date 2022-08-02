@@ -152,7 +152,7 @@ class AttentionUNet(nn.Module):
         # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
 
         self.Conv_1_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
-        self.Conv_1_2 = nn.Conv2d(64 , 10 , kernel_size=1, stride=1, padding=0)
+        # self.Conv_1_2 = nn.Conv2d(64 , 10 , kernel_size=1, stride=1, padding=0)
 
 
 
