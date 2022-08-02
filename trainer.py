@@ -53,7 +53,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         
         outputs, up4, up3, up2, up1 = model(inputs)
      
-        prototype(masks=targets, outputs=outputs)
+        prototype(masks=targets, outputs=up4)
 
         targets = targets.long()
 
