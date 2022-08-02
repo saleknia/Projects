@@ -1034,8 +1034,8 @@ class proto(nn.Module):
                 if torch.sum(bin_mask[t])!=0:
                     v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                     # w = torch.sum(bin_mask_t[t],dim=[1,2]) / torch.sum(bin_mask[t],dim=[1,2])
-                    w = self.dice(score=bin_mt, target=bin_m)
-                    temp = temp + (w * v)
+                    # w = self.dice(score=bin_mt, target=bin_m)
+                    temp = temp + v
             prototypes[count] = temp 
         self.update(prototypes, mask_unique_value)
 
