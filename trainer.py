@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import warnings
 from utils import focal_loss
 from torch.autograd import Variable
+import pickle
 warnings.filterwarnings("ignore")
 
 
@@ -24,6 +25,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
+
+    prototype = loss_function
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -50,6 +53,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         
         outputs, up4, up3, up2, up1 = model(inputs)
      
+        prototype(masks=targets, outputs=outputs)
+
         targets = targets.long()
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -100,7 +105,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
-  
+    
+    if epoch_num == end_epoch:
+        filehandler = open('prototypes', 'wb') 
+        pickle.dump(prototype, filehandler)
     # acc = 100*accuracy.avg
     # mIOU = 100*Eval.Mean_Intersection_over_Union()
     # Dice = 100*Eval.Dice()
