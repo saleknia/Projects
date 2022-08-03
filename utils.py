@@ -963,7 +963,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 # Original
 ###################################################################################
 ###################################################################################
-
+# freeze
 class discriminate(nn.Module):
     def __init__(self):
         super(discriminate, self).__init__()

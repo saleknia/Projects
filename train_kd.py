@@ -50,17 +50,22 @@ from models.GT_CTrans import GT_CTrans
 import utils
 from utils import color
 from utils import Save_Checkpoint
-from trainer import trainer
+from trainer_kd import trainer_kd
 from tester import tester
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
-from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
 # from testing import inference
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
+
+NUM_WORKERS = 4
+PIN_MEMORY = True
+
+SEED = 666
+
 
 class Checkpoint(object):
     def __init__(self,filename):
@@ -101,125 +106,100 @@ class Checkpoint(object):
     def best_accuracy(self):
         return self.best_acc
 
-def main(args):
+def main(args, student_train=True, device='cuda'):
+    
+    if student_train:
+        train_tf = transforms.Compose([RandomGenerator(output_size=[args.image_height, args.image_width])])
+        val_tf = ValGenerator(output_size=[args.image_height, args.image_width])
+
+        if args.student_name=='UNet':
+            student_model = UNet(n_channels=1, n_classes=args.num_class).to(device)
+
+        elif args.student_name=='UNet_loss':
+            student_model = UNet_loss(n_channels=1, n_classes=args.num_class).to(device)
+
+        elif args.student_name=='U':
+            student_model = U(bilinear=False, n_classes=args.num_class).to(device)
+
+        elif args.student_name=='U_loss':
+            student_model = U_loss(bilinear=False).to(device)
+
+        elif args.student_name == 'AttUNet':
+            student_model = AttentionUNet(img_ch=1, output_ch=args.num_class).to(device)
+
+        elif args.student_name == 'AttUNet_loss':
+            student_model = AttentionUNet_loss(img_ch=1, output_ch=args.num_class).to(device) 
+
+        elif args.student_name == 'ENet':
+            student_model = ENet(nclass=args.num_class).to(device)
+
+        elif args.student_name == 'ENet_loss':
+            student_model = ENet_loss(nclass=args.num_class).to(device)
+
+        elif args.student_name == 'ESPNet':
+            student_model = ESPNet(num_classes=args.num_class).to(device)
+
+        elif args.student_name == 'ESPNet_loss':
+            student_model = ESPNet_loss(num_classes=args.num_class).to(device)
+
+        else: 
+            raise TypeError('Please enter a valid name for the model type')
+
+        if args.teacher_name=='UNet':
+            teacher_model = UNet(n_channels=1, n_classes=args.num_class).to(device)
+
+        elif args.teacher_name=='UNet_loss':
+            teacher_model = UNet_loss(n_channels=1, n_classes=args.num_class).to(device)
+
+        elif args.teacher_name=='U':
+            teacher_model = U(bilinear=False, n_classes=args.num_class).to(device)
+
+        elif args.teacher_name=='U_loss':
+            teacher_model = U_loss(bilinear=False).to(device)
+
+        elif args.teacher_name == 'AttUNet':
+            teacher_model = AttentionUNet(img_ch=1, output_ch=args.num_class).to(device)
+
+        elif args.teacher_name == 'AttUNet_loss':
+            teacher_model = AttentionUNet_loss(img_ch=1, output_ch=args.num_class).to(device) 
+
+        elif args.teacher_name == 'ENet':
+            teacher_model = ENet(nclass=args.num_class).to(device)
+
+        elif args.teacher_name == 'ENet_loss':
+            teacher_model = ENet_loss(nclass=args.num_class).to(device)
+
+        elif args.teacher_name == 'ESPNet':
+            teacher_model = ESPNet(num_classes=args.num_class).to(device)
+
+        elif args.teacher_name == 'ESPNet_loss':
+            teacher_model = ESPNet_loss(num_classes=args.num_class).to(device)
+
+        else: 
+            raise TypeError('Please enter a valid name for the model type')
+
+        num_parameters = utils.count_parameters(student_model)
+
+        model_table = tabulate(
+            tabular_data=[[args.student_name, f'{num_parameters:.2f} M', device]],
+            headers=['student Model', '#Parameters', 'Device'],
+            tablefmt="fancy_grid"
+            )
+        logger.info(model_table)
+
+        optimizer = optim.SGD(filter(lambda p: p.requires_grad, student_model.parameters()), lr=args.learning_rate, momentum=0.9, weight_decay=0.0001) 
 
 
-    train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
-    val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
-
-# LOAD_MODEL
-
-    if MODEL_NAME=='UNet':
-        model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
-        # model = original_UNet().to(DEVICE)
-
-    elif MODEL_NAME=='UNet_loss':
-        model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='U':
-        model = U(bilinear=False, n_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='U_loss':
-        model = U_loss(bilinear=False).to(DEVICE)
-
-    elif MODEL_NAME=='UCTransNet':
-        config_vit = get_CTranS_config()
-        model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
-
-    elif MODEL_NAME=='UCTransNet_GT':
-        config_vit = get_CTranS_config()
-        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
-
-    elif MODEL_NAME=='GT_UNet':
-        model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='GT_CTrans':
-        config_vit = get_CTranS_config()
-        model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
-
-    elif MODEL_NAME == 'AttUNet':
-        model = AttentionUNet(img_ch=1, output_ch=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'AttUNet_loss':
-        model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
-
-    elif MODEL_NAME == 'MultiResUnet':
-        model = MultiResUnet().to(DEVICE)
-
-    elif MODEL_NAME == 'MultiResUnet_loss':
-        model = MultiResUnet_loss().to(DEVICE)
-
-    elif MODEL_NAME == 'UNet++':
-        model = NestedUNet().to(DEVICE)
-
-    elif MODEL_NAME == 'UNet++_loss':
-        model = NestedUNet_loss().to(DEVICE)
-
-    elif MODEL_NAME == 'ENet':
-        model = ENet(nclass=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ENet_loss':
-        model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ERFNet':
-        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ERFNet_loss':
-        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Mobile_NetV2':
-        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Mobile_NetV2_loss':
-        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Fast_SCNN':
-        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Fast_SCNN_loss':
-        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ESPNet':
-        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ESPNet_loss':
-        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'DABNet_loss':
-        model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    else: 
-        raise TypeError('Please enter a valid name for the model type')
-
-
-    num_parameters = utils.count_parameters(model)
-
-    model_table = tabulate(
-        tabular_data=[[MODEL_NAME, f'{num_parameters:.2f} M', DEVICE]],
-        headers=['Builded Model', '#Parameters', 'Device'],
-        tablefmt="fancy_grid"
-        )
-    logger.info(model_table)
-
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
- 
-    if COSINE_LR is True:
-        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
-    else:
-        lr_scheduler =  None     
-
-    if LOAD_MODEL:
-        checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
-        logger.info('Loading Checkpoint...')
+        checkpoint_path = '/content/drive/MyDrive/checkpoint/' + args.teacher_name + '_teacher.pth'
+        logger.info('Loading Teacher Model...')
         if os.path.isfile(checkpoint_path):
-
             pretrained_model_path = checkpoint_path
             loaded_data = torch.load(pretrained_model_path, map_location='cuda')
             pretrained = loaded_data['net']
-            model2_dict = model.state_dict()
+            model2_dict = teacher_model.state_dict()
             state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
             model2_dict.update(state_dict)
-            model.load_state_dict(model2_dict)
+            teacher_model.load_state_dict(model2_dict)
 
             initial_best_acc=loaded_data['best_acc']
             loaded_acc=loaded_data['acc']
@@ -238,173 +218,116 @@ def main(args):
             logger.info(f'No Such file : {checkpoint_path}')
         logger.info('\n')
 
-    start_epoch = 1
-    end_epoch =  NUM_EPOCHS
+        for param in teacher_model.parameters():
+            param.requires_grad = False
+
+        start_epoch = 1
+        end_epoch =  args.num_epochs
 
 
-    if TASK_NAME=='Synapse':
+        if args.task_name=='Synapse':
+            train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+            valid_dataset=Synapse_dataset(split='valid', joint_transform=val_tf)
 
-        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-        valid_dataset=Synapse_dataset(split='train', joint_transform=val_tf)
+            train_loader = DataLoader(train_dataset,
+                                    batch_size=args.batch_size,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
+            valid_loader = DataLoader(valid_dataset,
+                                    batch_size=1,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
 
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
+            data_loader={'train':train_loader,'valid':valid_loader}
 
-        data_loader={'train':train_loader,'valid':valid_loader}
+        elif args.task_name=='ACDC':
 
-    elif TASK_NAME=='ACDC':
-        # index = np.load(file='index.npy')
-        # train_dataset=Synapse_dataset(split='train',index=index[0:2000],joint_transform=train_tf)
-        # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
+            train_dataset=ACDC(split='train', joint_transform=train_tf)
+            valid_dataset=ACDC(split='test', joint_transform=val_tf)
+            train_loader = DataLoader(train_dataset,
+                                    batch_size=args.batch_size,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
+            valid_loader = DataLoader(valid_dataset,
+                                    batch_size=1,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
 
-        train_dataset=ACDC(split='train', joint_transform=train_tf)
-        valid_dataset=ACDC(split='test', joint_transform=val_tf)
+            data_loader={'train':train_loader,'valid':valid_loader}
 
-        # g = torch.Generator()
-        # g.manual_seed(0)
+        elif args.task_name=='CT-1K':
 
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
+            train_dataset=CT_1K(split='train', joint_transform=train_tf)
+            valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
-        data_loader={'train':train_loader,'valid':valid_loader}
+            train_loader = DataLoader(train_dataset,
+                                    batch_size=args.batch_size,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
+            valid_loader = DataLoader(valid_dataset,
+                                    batch_size=1,
+                                    shuffle=True,
+                                    worker_init_fn=worker_init,
+                                    num_workers=NUM_WORKERS,
+                                    pin_memory=PIN_MEMORY,
+                                    drop_last=True,
+                                    )
 
-    elif TASK_NAME=='CT-1K':
-
-        train_dataset=CT_1K(split='train', joint_transform=train_tf)
-        valid_dataset=CT_1K(split='test', joint_transform=val_tf)
-
-        # g = torch.Generator()
-        # g.manual_seed(0)
-
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        data_loader={'train':train_loader,'valid':valid_loader}
-        # data_loader={'train':train_loader,'valid':train_loader}
+            data_loader={'train':train_loader,'valid':valid_loader}
 
 
-    if SAVE_MODEL:
-        checkpoint = Checkpoint(CKPT_NAME)
-    else:
-        checkpoint = None
+        if args.save_model:
+            checkpoint = Checkpoint(args.ckpt_name)
+        else:
+            checkpoint = None
 
-    if args.train=='True':
-        logger.info(50*'*')
-        logger.info('Training Phase')
-        logger.info(50*'*')
-        loss_function = proto()
-        # loss_function = prototype_loss()
-        # loss_function = prototype_loss_kd()
-        for epoch in range(start_epoch,end_epoch+1):
-            trainer(
-                end_epoch=end_epoch,
-                epoch_num=epoch,
-                model=model,
-                dataloader=data_loader['train'],
-                optimizer=optimizer,
-                device=DEVICE,
-                ckpt=checkpoint,                
-                num_class=NUM_CLASS,
-                lr_scheduler=lr_scheduler,
-                writer=writer,
-                logger=logger,
-                loss_function=loss_function)
+        if args.train=='True':
+            logger.info(50*'*')
+            logger.info('Student Training Phase')
+            logger.info(50*'*')
+            for epoch in range(start_epoch,end_epoch+1):
+                trainer_kd(
+                        end_epoch=end_epoch,
+                        epoch_num=epoch,
+                        teacher_model=teacher_model,
+                        student_model=student_model,
+                        dataloader=data_loader['train'],
+                        optimizer=optimizer,
+                        device='cuda',
+                        ckpt=checkpoint,                
+                        num_class=args.num_class,
+                        logger=logger)
             
-            # numpy_state = np.random.get_state()
-            # random_state = random.getstate()
-            # torch_state = torch.get_rng_state()
-            # cuda_state = torch.cuda.get_rng_state()
-
-            # tester(
-            #     end_epoch=end_epoch,
-            #     epoch_num=epoch,
-            #     model=model,
-            #     dataloader=data_loader['valid'],
-            #     device=DEVICE,
-            #     ckpt=checkpoint,
-            #     num_class=NUM_CLASS,
-            #     writer=writer,
-            #     logger=logger,
-            #     optimizer=None,
-            #     lr_scheduler=None,
-            #     early_stopping=None)
-
-            # np.random.set_state(numpy_state)
-            # random.setstate(random_state)
-            # torch.set_rng_state(torch_state)
-            # torch.cuda.set_rng_state(cuda_state)
-
-            # if checkpoint:
-            #     if early_stopping < checkpoint.early_stopping(epoch):
-            #         logger.info('Early Stopping!')
-            #         break
-            # numpy_state = np.random.get_state()
-            # with open('/content/drive/MyDrive/checkpoint/numpy_state.pickle', 'wb') as f:
-            #     pickle.dump(numpy_state, f)
-
-            # random_state = random.getstate()
-            # with open('/content/drive/MyDrive/checkpoint/random_state.pickle', 'wb') as f:
-            #     pickle.dump(random_state, f)
-
-            # torch_state = torch.get_rng_state()
-            # torch.save(torch_state, '/content/drive/MyDrive/checkpoint/torch_state.pth')
-
-            # cuda_state = torch.cuda.get_rng_state()
-            # torch.save(cuda_state, '/content/drive/MyDrive/checkpoint/cuda_state.pth')
             if epoch==end_epoch:
-                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
-                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+
+                if args.save_model and 0 < checkpoint.best_accuracy():
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + args.student_name + '_best.pth'
                     loaded_data = torch.load(pretrained_model_path, map_location='cuda')
                     pretrained = loaded_data['net']
-                    model2_dict = model.state_dict()
+                    model2_dict = student_model.state_dict()
                     state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-                    # logger.info(state_dict.keys())
                     model2_dict.update(state_dict)
-                    model.load_state_dict(model2_dict)
+                    student_model.load_state_dict(model2_dict)
 
                     acc=loaded_data['acc']
                     acc_per_class=loaded_data['acc_per_class'].tolist()
@@ -419,8 +342,6 @@ def main(args):
                     if args.inference=='True':
                         logger.info(50*'*')
                         logger.info('Inference Phase')
-                        # logger.info(50*'*')
-                        # inference(model=model,logger=logger)
                         tester(
                             end_epoch=1,
                             epoch_num=1,
@@ -438,22 +359,6 @@ def main(args):
                     logger.info(50*'*')
                     logger.info(50*'*')
                     logger.info('\n')
-    if tensorboard:
-        writer.close()
-
-    # numpy_state = np.random.get_state()
-    # with open('./checkpoint/numpy_state.pickle', 'wb') as f:
-    #     pickle.dump(numpy_state, f)
-
-    # random_state = random.getstate()
-    # with open('./checkpoint/random_state.pickle', 'wb') as f:
-    #     pickle.dump(random_state, f)
-
-    # torch_state = torch.get_rng_state()
-    # torch.save(torch_state, './checkpoint/torch_state.pth')
-
-    # cuda_state = torch.cuda.get_rng_state()
-    # torch.save(cuda_state, './checkpoint/cuda_state.pth')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--inference', type=str,default='False')
@@ -462,14 +367,6 @@ args = parser.parse_args()
 
 def worker_init(worker_id):
     random.seed(SEED + worker_id)
-
-# def set_epoch(epoch,g):
-#     g.manual_seed(5728479885 + epoch)   
-
-# def worker_init(worker_id):
-#     worker_seed = torch.initial_seed() % 2**32
-#     np.random.seed(worker_seed)
-#     random.seed(worker_seed)
 
 if __name__ == "__main__":
     
@@ -487,24 +384,6 @@ if __name__ == "__main__":
     torch.cuda.manual_seed(SEED)
     torch.cuda.manual_seed_all(SEED) 
 
-    if os.path.isfile('/content/drive/MyDrive/checkpoint/numpy_state.pickle'):
-        with open('/content/drive/MyDrive/checkpoint/numpy_state.pickle', 'rb') as f:
-            numpy_state = pickle.load(f) 
-        np.random.set_state(numpy_state)
-   
-    if os.path.isfile('/content/drive/MyDrive/checkpoint/random_state.pickle'):
-        with open('/content/drive/MyDrive/checkpoint/random_state.pickle', 'rb') as f:
-            random_state = pickle.load(f) 
-        random.setstate(random_state)
-    
-
-    if os.path.isfile('/content/drive/MyDrive/checkpoint/torch_state.pth'):
-        torch_state = torch.load('/content/drive/MyDrive/checkpoint/torch_state.pth')
-        torch.set_rng_state(torch_state)
-
-    if os.path.isfile('/content/drive/MyDrive/checkpoint/cuda_state.pth'):
-        cuda_state = torch.load('/content/drive/MyDrive/checkpoint/cuda_state.pth')
-        torch.cuda.set_rng_state(cuda_state)
 
     main(args)
     
