@@ -50,10 +50,10 @@ from models.GT_CTrans import GT_CTrans
 import utils
 from utils import color
 from utils import Save_Checkpoint
-from trainer_ssl import trainer
+from trainer import trainer
 from tester import tester
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA
-from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd, proto
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
+from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
@@ -61,60 +61,13 @@ from tensorboardX import SummaryWriter
 # from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
-NUM_CLASS = 5
 
-# class ConcatDataset(torch.utils.data.Dataset):
-#     def __init__(self, *datasets):
-#         self.datasets = datasets
-
-#     def __getitem__(self, i):
-#         return tuple(d[i] for d in self.datasets)
-
-#     def __len__(self):
-#         return min(len(d) for d in self.datasets)
-
-class ConcatDataset(torch.utils.data.Dataset):
-    def __init__(self, *datasets):
-        self.datasets = datasets
-        self.lengths = []
-        for dataset in self.datasets:
-            self.lengths.append(len(dataset))
-
-    def __getitem__(self, index):
-        indexs = []
-        for length in self.lengths:
-            if length<=index:
-                indexs.append(index % length)
-            else:
-                indexs.append(index)
-
-        output = tuple(d[k] for d,k in zip(self.datasets,indexs))
-        return output
-
-    def __len__(self):
-        return max(len(d) for d in self.datasets)    
 
 def main(args):
 
-    if tensorboard:
-        tensorboard_log = tensorboard_folder
-        logger.info(f'Tensorboard Directory: {tensorboard_log}')
-        if not os.path.isdir(tensorboard_log):
-            os.makedirs(tensorboard_log)
-        writer = SummaryWriter(tensorboard_log)
-    else:
-        writer = None
 
     train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
-    # train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
     val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
-
-    # transform = A.Compose(
-    #     [
-    #         A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
-    #         ToTensorV2()
-    #     ]
-    # )
 
 # LOAD_MODEL
 
@@ -209,9 +162,6 @@ def main(args):
         tablefmt="fancy_grid"
         )
     logger.info(model_table)
-
-    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, betas=(0.9, 0.999))
-    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
     optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
  
@@ -355,12 +305,13 @@ def main(args):
 
     elif TASK_NAME=='CT-1K':
 
-        train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
-        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
+        train_dataset=CT_1K(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
-        train_loader = DataLoader(
-                                ConcatDataset(train_dataset_1,train_dataset_2),
+        # g = torch.Generator()
+        # g.manual_seed(0)
+
+        train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
@@ -368,125 +319,6 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-
-        # train_loader = DataLoader(train_dataset,
-        #                         batch_size=BATCH_SIZE,
-        #                         shuffle=True,
-        #                         worker_init_fn=worker_init,
-        #                         num_workers=NUM_WORKERS,
-        #                         pin_memory=PIN_MEMORY,
-        #                         drop_last=True,
-        #                         )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        data_loader={'train':train_loader,'valid':valid_loader}
-        # data_loader={'train':train_loader,'valid':train_loader}
-
-    # elif TASK_NAME=='SSL':
-
-    #     train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
-    #     train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
-
-    #     valid_dataset = CT_1K(split='valid', joint_transform=val_tf)
-
-    #     train_loader = DataLoader(
-    #                             ConcatDataset(train_dataset_1,train_dataset_2),
-    #                             batch_size=BATCH_SIZE,
-    #                             shuffle=True,
-    #                             worker_init_fn=worker_init,
-    #                             num_workers=NUM_WORKERS,
-    #                             pin_memory=PIN_MEMORY,
-    #                             drop_last=True,
-    #                             )
-
-    #     # train_loader = DataLoader(train_dataset,
-    #     #                         batch_size=BATCH_SIZE,
-    #     #                         shuffle=True,
-    #     #                         worker_init_fn=worker_init,
-    #     #                         num_workers=NUM_WORKERS,
-    #     #                         pin_memory=PIN_MEMORY,
-    #     #                         drop_last=True,
-    #     #                         )
-    #     valid_loader = DataLoader(valid_dataset,
-    #                             batch_size=1,
-    #                             shuffle=True,
-    #                             worker_init_fn=worker_init,
-    #                             num_workers=NUM_WORKERS,
-    #                             pin_memory=PIN_MEMORY,
-    #                             drop_last=True,
-    #                             )
-
-    #     data_loader={'train':train_loader,'valid':valid_loader}
-    #     # data_loader={'train':train_loader,'valid':train_loader}
-
-    elif TASK_NAME=='SSL':
-
-        train_dataset_1 = CT_1K(split='train', joint_transform=train_tf)
-        train_dataset_2 = CT_1K(split='valid', joint_transform=train_tf)
-
-        valid_dataset = CT_1K(split='test', joint_transform=val_tf)
-
-        train_loader = DataLoader(
-                                ConcatDataset(train_dataset_1,train_dataset_2),
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        # train_loader = DataLoader(train_dataset,
-        #                         batch_size=BATCH_SIZE,
-        #                         shuffle=True,
-        #                         worker_init_fn=worker_init,
-        #                         num_workers=NUM_WORKERS,
-        #                         pin_memory=PIN_MEMORY,
-        #                         drop_last=True,
-        #                         )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        data_loader={'train':train_loader,'valid':valid_loader}
-        # data_loader={'train':train_loader,'valid':train_loader}
-
-    elif TASK_NAME=='TCIA':
-
-        train_dataset_1 = TCIA(split='train', joint_transform=train_tf)
-        train_dataset_2 = Synapse_dataset(split='train', joint_transform=train_tf)
-        valid_dataset=CT_1K(split='test', joint_transform=val_tf)
-
-        train_loader = DataLoader(
-                                ConcatDataset(train_dataset_1,train_dataset_2),
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        # train_loader = DataLoader(train_dataset,
-        #                         batch_size=BATCH_SIZE,
-        #                         shuffle=True,
-        #                         worker_init_fn=worker_init,
-        #                         num_workers=NUM_WORKERS,
-        #                         pin_memory=PIN_MEMORY,
-        #                         drop_last=True,
-        #                         )
         valid_loader = DataLoader(valid_dataset,
                                 batch_size=1,
                                 shuffle=True,
@@ -510,6 +342,7 @@ def main(args):
         logger.info('Training Phase')
         logger.info(50*'*')
         loss_function = proto()
+        # loss_function = prototype_loss()
         # loss_function = prototype_loss_kd()
         for epoch in range(start_epoch,end_epoch+1):
             # set_epoch(epoch,g)
@@ -610,9 +443,9 @@ def main(args):
                             lr_scheduler=None,
                             early_stopping=None)
             
-                logger.info(50*'*')
-                logger.info(50*'*')
-                logger.info('\n')
+                    logger.info(50*'*')
+                    logger.info(50*'*')
+                    logger.info('\n')
     if tensorboard:
         writer.close()
 
@@ -637,6 +470,14 @@ args = parser.parse_args()
 
 def worker_init(worker_id):
     random.seed(SEED + worker_id)
+
+# def set_epoch(epoch,g):
+#     g.manual_seed(5728479885 + epoch)   
+
+# def worker_init(worker_id):
+#     worker_seed = torch.initial_seed() % 2**32
+#     np.random.seed(worker_seed)
+#     random.seed(worker_seed)
 
 if __name__ == "__main__":
     

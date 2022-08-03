@@ -173,21 +173,13 @@ def count_label_slice(labels_path='/content/MICCAI_2015_Multi_Atlas_Abdomen/RawD
         print(name,' ',sample_nib.shape[2])
     print('Number of slices according to the labels: ',sum)
 
-all_indexes = [1,2,3,4,5,6,7,8,9,10,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+# all_indexes = [1,2,3,4,5,6,7,8,9,10,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
 
-train_index=[5,6,7,9,10,21,23,24,26,27,28,30,31,33,34,37,39,40]
-test_index=[1,2,3,4,8,22,25,29,32,35,36,38]
+# train_index=[5,6,7,9,10,21,23,24,26,27,28,30,31,33,34,37,39,40]
+# test_index=[1,2,3,4,8,22,25,29,32,35,36,38]
 
-test_index_1 = [30,  4, 26, 13, 20, 15, 11, 14, 35,  3]
-
-test_index_2 = [10, 28, 29,  2, 12,  5, 32, 31, 34,  6]
-
-test_index_3 = [40, 19, 23,  9, 17, 37, 18, 22, 24, 21]
-
-test_index_4 = [ 7, 27, 25,  1, 33, 38, 36, 16,  8, 39]
-
-
-test_indexs = [test_index_1, test_index_2, test_index_3, test_index_4] 
+train_index = [1,2,3,4,5,6,7,8,9,10,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
+lookup_table = [0, ]
 
 def formal(index,lenght):
     index=str(index)
@@ -262,12 +254,12 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
 
                 # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                # label_2d = label_2d.astype(dtype=np.uint8)
-                # row,col = label_2d.shape
-                # for r in range(row):
-                #     for c in range(col):
-                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
-                # label_2d = label_2d.astype(dtype=np.float32)
+                label_2d = label_2d.astype(dtype=np.uint8)
+                row,col = label_2d.shape
+                for r in range(row):
+                    for c in range(col):
+                        label_2d[r,c] = lookup_table[label_2d[r,c]]
+                label_2d = label_2d.astype(dtype=np.float32)
 
                 # slice_2d = np.flip(m=slice_2d,axis=1)
                 # label_2d = np.flip(m=label_2d,axis=1)
@@ -540,17 +532,22 @@ if __name__ == "__main__":
         print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
         making_train_npz(path = os.path.join(download_path,'train_npz'),
                         samples_path = os.path.join(download_path,'RawData','Training'),
-                        lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
-        
-        print(color.BOLD+color.RED+'Making test_npz dirctory... '+color.END)                      
-        making_test_npz(path = os.path.join(download_path,'test_npz'),
-                        samples_path = os.path.join(download_path,'RawData','Training'),
-                        lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+                        lookup_table = [0,3,2,2,8,9,1,7,5,6,0,4,0,0])
 
-        print(color.BOLD+color.RED+'Making test_vol_h5 dirctory... '+color.END)                      
-        making_test_vol_h5(path = os.path.join(download_path,'test_vol_h5'),
-                        samples_path = os.path.join(download_path,'RawData','Training'),
-                        lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+        # print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
+        # making_train_npz(path = os.path.join(download_path,'train_npz'),
+        #                 samples_path = os.path.join(download_path,'RawData','Training'),
+        #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+        
+        # print(color.BOLD+color.RED+'Making test_npz dirctory... '+color.END)                      
+        # making_test_npz(path = os.path.join(download_path,'test_npz'),
+        #                 samples_path = os.path.join(download_path,'RawData','Training'),
+        #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+
+        # print(color.BOLD+color.RED+'Making test_vol_h5 dirctory... '+color.END)                      
+        # making_test_vol_h5(path = os.path.join(download_path,'test_vol_h5'),
+        #                 samples_path = os.path.join(download_path,'RawData','Training'),
+        #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
     elif args.download=='False':
         test_index = test_indexs[fold-1]
         synapse_prepare(combine=combine, test_index=test_index)
