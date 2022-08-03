@@ -62,6 +62,44 @@ from tensorboardX import SummaryWriter
 import warnings
 warnings.filterwarnings('ignore')
 
+class Checkpoint(object):
+    def __init__(self,filename):
+        self.best_acc = 0.0
+        self.best_epoch = 1
+        self.folder = 'checkpoint'
+        self.filename=filename
+        self.best_path = '/content/drive/MyDrive/checkpoint/' + self.filename + '_best.pth'
+        self.last_path = '/content/drive/MyDrive/checkpoint/' + self.filename + '_last.pth'
+        os.makedirs(self.folder, exist_ok=True)
+
+    def save_best(self, acc, acc_per_class, epoch, net, optimizer, lr_scheduler):
+        if self.best_acc < acc:
+            print(color.BOLD+color.RED+'Saving best checkpoint...'+color.END)
+            state = {
+                'net': net.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'acc': acc,
+                'acc_per_class':acc_per_class,
+                'best_epoch': epoch
+            }
+            self.best_epoch = epoch
+            self.best_acc = acc
+            torch.save(state, self.best_path)
+
+    def save_last(self, acc, acc_per_class, epoch, net, optimizer, lr_scheduler):
+        print(color.BOLD+color.RED+'Saving last checkpoint...'+color.END)
+        state = {
+            'net': net.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'acc': acc,
+            'best_acc': self.best_acc,
+            'acc_per_class': acc_per_class,
+            'best_epoch': self.best_epoch,
+            'num_epoch': epoch
+        }
+        
+    def best_accuracy(self):
+        return self.best_acc
 
 def main(args):
 
@@ -170,11 +208,6 @@ def main(args):
     else:
         lr_scheduler =  None     
 
-
-    initial_best_acc = 0
-    initial_best_epoch = 1
-    current_num_epoch = 0
-    last_num_epoch = 0
     if LOAD_MODEL:
         checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
         logger.info('Loading Checkpoint...')
@@ -185,7 +218,6 @@ def main(args):
             pretrained = loaded_data['net']
             model2_dict = model.state_dict()
             state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-            # logger.info(state_dict.keys())
             model2_dict.update(state_dict)
             model.load_state_dict(model2_dict)
 
@@ -193,17 +225,9 @@ def main(args):
             loaded_acc=loaded_data['acc']
             initial_best_epoch=loaded_data['best_epoch']
             last_num_epoch=loaded_data['num_epoch']
-            current_num_epoch=last_num_epoch+current_num_epoch
 
             optimizer.load_state_dict(loaded_data['optimizer'])
-            # lr_scheduler.load_state_dict(loaded_data['lr_scheduler'])
 
-            # if last_num_epoch-initial_best_epoch < early_stopping:
-            #     count_es = last_num_epoch-initial_best_epoch
-            #     es = False
-            # elif early_stopping < last_num_epoch-initial_best_epoch:
-            #     count_es = early_stopping + 1
-            #     es = True
             table = tabulate(
                             tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
                             headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
@@ -214,43 +238,14 @@ def main(args):
             logger.info(f'No Such file : {checkpoint_path}')
         logger.info('\n')
 
-    start_epoch = last_num_epoch + 1
+    start_epoch = 1
     end_epoch =  NUM_EPOCHS
 
-    if TASK_NAME=='COVID-19':
 
-        train_dataset=COVID_19(split='train', joint_transform=train_tf)
-        valid_dataset=COVID_19(split='test', joint_transform=val_tf)
-
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-
-        data_loader={'train':train_loader,'valid':valid_loader}
-
-    elif TASK_NAME=='Synapse':
-        # index = np.load(file='index.npy')
-        # train_dataset=Synapse_dataset(split='train',index=index[0:2000],joint_transform=train_tf)
-        # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
+    if TASK_NAME=='Synapse':
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-        valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
-
-        # g = torch.Generator()
-        # g.manual_seed(0)
+        valid_dataset=Synapse_dataset(split='train', joint_transform=val_tf)
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
@@ -259,7 +254,6 @@ def main(args):
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
-                                # generator=g
                                 )
         valid_loader = DataLoader(valid_dataset,
                                 batch_size=1,
@@ -268,7 +262,6 @@ def main(args):
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
-                                # generator=g
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader}
@@ -333,7 +326,7 @@ def main(args):
 
 
     if SAVE_MODEL:
-        checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
+        checkpoint = Checkpoint(CKPT_NAME)
     else:
         checkpoint = None
 
@@ -345,7 +338,6 @@ def main(args):
         # loss_function = prototype_loss()
         # loss_function = prototype_loss_kd()
         for epoch in range(start_epoch,end_epoch+1):
-            # set_epoch(epoch,g)
             trainer(
                 end_epoch=end_epoch,
                 epoch_num=epoch,
