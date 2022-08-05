@@ -157,12 +157,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets[:].long())
             loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
             loss_disparity = disparity_loss(masks=teacher_predictions, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
-            loss_att = importance_maps_distillation(student=[e4, e3, e2, e1], teacher=[[e4_t, e3_t, e2_t, e1_t]])
+            loss_att = importance_maps_distillation(student=[e4, e3, e2, e1], teacher=[e4_t, e3_t, e2_t, e1_t])
             ###############################################
             alpha = 0.5
             beta = 0.5
             gamma = 0.01
-            loss = alpha * loss_dice + beta * loss_ce 
+            zeta = 0.01
+            loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity + zeta * loss_att
             ###############################################
 
             lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -179,6 +180,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_total.update(loss)
             loss_dice_total.update(loss_dice)
             loss_ce_total.update(loss_ce)
+            loss_att_total.update(loss_att)
+            loss_disparity_total.update(loss_disparity)
             ###############################################
             targets = targets.long()
 
@@ -194,7 +197,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
                 # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
                 # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-                suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+                suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , diss_loss = {gamma*loss_disparity_total.avg:.8f} , att_loss = {zeta*loss_att_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
                 # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
                 bar_length=45
             )  

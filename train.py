@@ -194,17 +194,15 @@ def main(args):
             model2_dict.update(state_dict)
             teacher_model.load_state_dict(model2_dict)
 
-            initial_best_acc=loaded_data['best_acc']
             loaded_acc=loaded_data['acc']
             initial_best_epoch=loaded_data['best_epoch']
-            last_num_epoch=loaded_data['num_epoch']
 
             for param in model.parameters():
                 param.requires_grad = False
 
             table = tabulate(
-                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-                            headers=['Loaded Teacher Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                            tabular_data=[[loaded_acc, initial_best_epoch]],
+                            headers=['Loaded Teacher Model Acc', 'Best Epoch Number'],
                             tablefmt="fancy_grid"
                             )
             logger.info(table)
