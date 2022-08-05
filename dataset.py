@@ -30,8 +30,9 @@ import pickle
 def random_crop(image, label):
     x0 = random.randint(0, image.shape[1]// 4)
     y0 = random.randint(0, image.shape[0]// 4)
-    w = image.shape[1]// 4
-    h = image.shape[0]// 4
+    np_image = np.array(image)
+    w = np_image.shape[1]// 4
+    h = np_image.shape[0]// 4
     image = image[y0:y0+h, x0:x0+w]
     label = label[y0:y0+h, x0:x0+w]
     return image, label
