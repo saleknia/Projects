@@ -75,15 +75,7 @@ def main(args):
         writer = None
 
     train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
-    # train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
     val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
-
-    # transform = A.Compose(
-    #     [
-    #         A.Resize(height=IMAGE_HEIGHT, width=IMAGE_WIDTH),
-    #         ToTensorV2()
-    #     ]
-    # )
 
 # LOAD_MODEL
 

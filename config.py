@@ -98,7 +98,7 @@ elif task_id==3:
     TASK_NAME = 'ACDC'
 
 elif task_id==4:
-    NUM_CLASS = 2
+    NUM_CLASS = 5
     TASK_NAME = 'CT-1K'
 
 elif task_id==5:
