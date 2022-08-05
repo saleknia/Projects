@@ -285,8 +285,8 @@ def main(args):
     elif TASK_NAME=='Synapse':
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-        # valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
-        valid_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+        valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
+        # valid_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
 
 
         train_loader = DataLoader(train_dataset,
@@ -384,7 +384,6 @@ def main(args):
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
-                teacher_model=teacher_model,
                 dataloader=data_loader['train'],
                 optimizer=optimizer,
                 device=DEVICE,
