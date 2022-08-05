@@ -397,47 +397,6 @@ def main(args):
                 logger=logger,
                 loss_function=loss_function)
             
-            # numpy_state = np.random.get_state()
-            # random_state = random.getstate()
-            # torch_state = torch.get_rng_state()
-            # cuda_state = torch.cuda.get_rng_state()
-
-            # tester(
-            #     end_epoch=end_epoch,
-            #     epoch_num=epoch,
-            #     model=model,
-            #     dataloader=data_loader['valid'],
-            #     device=DEVICE,
-            #     ckpt=checkpoint,
-            #     num_class=NUM_CLASS,
-            #     writer=writer,
-            #     logger=logger,
-            #     optimizer=None,
-            #     lr_scheduler=None,
-            #     early_stopping=None)
-
-            # np.random.set_state(numpy_state)
-            # random.setstate(random_state)
-            # torch.set_rng_state(torch_state)
-            # torch.cuda.set_rng_state(cuda_state)
-
-            # if checkpoint:
-            #     if early_stopping < checkpoint.early_stopping(epoch):
-            #         logger.info('Early Stopping!')
-            #         break
-            # numpy_state = np.random.get_state()
-            # with open('/content/drive/MyDrive/checkpoint/numpy_state.pickle', 'wb') as f:
-            #     pickle.dump(numpy_state, f)
-
-            # random_state = random.getstate()
-            # with open('/content/drive/MyDrive/checkpoint/random_state.pickle', 'wb') as f:
-            #     pickle.dump(random_state, f)
-
-            # torch_state = torch.get_rng_state()
-            # torch.save(torch_state, '/content/drive/MyDrive/checkpoint/torch_state.pth')
-
-            # cuda_state = torch.cuda.get_rng_state()
-            # torch.save(cuda_state, '/content/drive/MyDrive/checkpoint/cuda_state.pth')
             if epoch==end_epoch:
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
                     # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
@@ -486,20 +445,6 @@ def main(args):
     if tensorboard:
         writer.close()
 
-    # numpy_state = np.random.get_state()
-    # with open('./checkpoint/numpy_state.pickle', 'wb') as f:
-    #     pickle.dump(numpy_state, f)
-
-    # random_state = random.getstate()
-    # with open('./checkpoint/random_state.pickle', 'wb') as f:
-    #     pickle.dump(random_state, f)
-
-    # torch_state = torch.get_rng_state()
-    # torch.save(torch_state, './checkpoint/torch_state.pth')
-
-    # cuda_state = torch.cuda.get_rng_state()
-    # torch.save(cuda_state, './checkpoint/cuda_state.pth')
-
 parser = argparse.ArgumentParser()
 parser.add_argument('--inference', type=str,default='False')
 parser.add_argument('--train', type=str,default='True')
@@ -508,13 +453,6 @@ args = parser.parse_args()
 def worker_init(worker_id):
     random.seed(SEED + worker_id)
 
-# def set_epoch(epoch,g):
-#     g.manual_seed(5728479885 + epoch)   
-
-# def worker_init(worker_id):
-#     worker_seed = torch.initial_seed() % 2**32
-#     np.random.seed(worker_seed)
-#     random.seed(worker_seed)
 
 if __name__ == "__main__":
     
