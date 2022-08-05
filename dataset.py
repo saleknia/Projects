@@ -26,6 +26,14 @@ import cv2
 from torch.utils import data
 import pickle
 
+
+def random_crop(image, label):
+    x = random.randint(0, image.shape[1] - width)
+    y = random.randint(0, image.shape[0] - height)
+    image = image[y:y+height, x:x+width]
+    label = label[y:y+height, x:x+width]
+    return image, label
+
 def random_rot_flip(image, label):
     k = np.random.randint(0, 4)
     image = np.rot90(image, k)
@@ -498,6 +506,8 @@ class CT_1K(Dataset):
         data_path = os.path.join(self.data_dir, slice_name)
         data = np.load(data_path)
         image, mask = data['image'], data['label']
+
+        mask[mask>4.0] = 0.0
 
         sample = {'image': image, 'label': mask}
 

@@ -82,18 +82,18 @@ class U_loss(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-
-        self.inc = DoubleConv(n_channels, 64)
-        self.down1 = Down(64, 128)
-        self.down2 = Down(128, 256)
-        self.down3 = Down(256, 512)
+        in_channels = 32
+        self.inc = DoubleConv(n_channels, in_channels)
+        self.down1 = Down(in_channels  , in_channels*2)
+        self.down2 = Down(in_channels*2, in_channels*4)
+        self.down3 = Down(in_channels*4, in_channels*8)
         factor = 2 if bilinear else 1
-        self.down4 = Down(512, 1024 // factor)
-        self.up1 = Up(1024, 512 // factor, bilinear)
-        self.up2 = Up(512, 256 // factor, bilinear)
-        self.up3 = Up(256, 128 // factor, bilinear)
-        self.up4 = Up(128, 64, bilinear)
-        self.outc = OutConv(64, n_classes)
+        self.down4 = Down(in_channels*8, (in_channels*16) // factor)
+        self.up1 = Up(in_channels*16, in_channels*8  // factor, bilinear)
+        self.up2 = Up(in_channels*8 , in_channels*4 // factor, bilinear)
+        self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
+        self.up4 = Up(in_channels*2 , in_channels , bilinear)
+        self.outc = OutConv(in_channels , n_classes)
 
     def forward(self, x):
         x1 = self.inc(x)
@@ -107,6 +107,6 @@ class U_loss(nn.Module):
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
         if self.training:
-            return logits, up1, up2, up3, up4
+            return logits, up1, up2, up3, up4, x5, x4, x3, x2, x1
         else:
             return logits

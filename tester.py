@@ -19,9 +19,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     mIOU = 0.0
     Dice = 0.0
     accuracy = utils.AverageMeter()
-
-    filehandler = open('prototypes', 'rb') 
-    proto_ = pickle.load(filehandler)
     
     ce_loss = CrossEntropyLoss()
     dice_loss = DiceLoss(num_class)
@@ -35,11 +32,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             inputs, targets = inputs.to(device), targets.to(device)
 
             targets = targets.float()
-
-            # targets[targets!=4.0] = 0.0
-            # targets[targets==4.0] = 1.0
-            # targets[targets>4.0] = 0.0
-
             outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())
@@ -52,7 +44,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            # predictions = proto_.psudo(outputs)
 
             Eval.add_batch(gt_image=targets,pre_image=predictions)
             hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)

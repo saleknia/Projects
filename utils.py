@@ -25,6 +25,80 @@ from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 
+def at(x, exp):
+    """
+    attention value of a feature map
+    :param x: feature
+    :return: attention value
+    """
+    return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
+
+
+def importance_maps_distillation(student, teacher, exp=4):
+    """
+    importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+    Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+    https://arxiv.org/abs/1612.03928
+    :param exp: exponent
+    :param s: student feature maps
+    :param t: teacher feature maps
+    :return: imd loss value
+    """
+    loss = 0.0
+    for s,t in zip(student, teacher):
+        if s.shape[2] != t.shape[2]:
+            s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+        loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
+    return loss
+
+
+class disparity(nn.Module):
+    def __init__(self):
+        super(disparity, self).__init__()
+        self.down_scales = [1.0, 1.0, 0.5, 0.25, 0.125]
+
+    def forward(self, masks, outputs, up4, up3, up2, up1):
+        loss = 0.0
+        up = [outputs, up1, up2, up3, up4]
+
+        for k in range(4):
+            B,C,H,W = up[k].shape
+            
+            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks = temp_masks.squeeze(dim=1)
+
+            mask_unique_value = torch.unique(temp_masks)
+            mask_unique_value = mask_unique_value[1:]
+            unique_num = len(mask_unique_value)
+            
+            if unique_num<2:
+                return 0
+
+            prototypes = torch.zeros(size=(unique_num,C),device='cuda')
+
+            for count,p in enumerate(mask_unique_value):
+                p = p.long()
+                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+                temp = 0.0
+                batch_counter = 0
+                for t in range(B):
+                    if torch.sum(bin_mask[t])!=0:
+                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+                        batch_counter = batch_counter + 1
+                temp = temp / batch_counter
+                prototypes[count] = temp
+            
+            l = 0.0
+
+            distances = torch.cdist(prototypes.to('cuda'), prototypes.to('cuda'), p=2.0)
+            l = 1.0 / (torch.mean(distances)) 
+            loss = loss + l
+
+        return loss
+
+
 
 class FocalLoss(nn.Module):
     """ Focal Loss, as described in https://arxiv.org/abs/1708.02002.

@@ -183,21 +183,24 @@ def main(args):
 
     if TEACHER is True:
         teacher_model = AttentionUNet_loss(img_ch=1, output_ch=10).to(DEVICE) 
-        checkpoint_path = '/content/drive/MyDrive/teacher/'+CKPT_NAME+'_best.pth'
+        checkpoint_path = '/content/drive/MyDrive/teacher/AttUNet_loss_Synapse_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
             pretrained_model_path = checkpoint_path
             loaded_data = torch.load(pretrained_model_path, map_location='cuda')
             pretrained = loaded_data['net']
-            model2_dict = model.state_dict()
+            model2_dict = teacher_model.state_dict()
             state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
             model2_dict.update(state_dict)
-            model.load_state_dict(model2_dict)
+            teacher_model.load_state_dict(model2_dict)
 
             initial_best_acc=loaded_data['best_acc']
             loaded_acc=loaded_data['acc']
             initial_best_epoch=loaded_data['best_epoch']
             last_num_epoch=loaded_data['num_epoch']
+
+            for param in model.parameters():
+                param.requires_grad = False
 
             table = tabulate(
                             tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
@@ -344,8 +347,6 @@ def main(args):
         train_dataset=CT_1K(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
-        # g = torch.Generator()
-        # g.manual_seed(0)
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,

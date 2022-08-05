@@ -9,99 +9,196 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import focal_loss
+from utils import focal_loss, importance_maps_distillation, disparity
 from torch.autograd import Variable
 import pickle
 warnings.filterwarnings("ignore")
 
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
-    torch.autograd.set_detect_anomaly(True)
-    print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
+    if teacher_model==None:
+        torch.autograd.set_detect_anomaly(True)
+        print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
 
-    model=model.to(device)
-    model.train()
+        model=model.to(device)
+        model.train()
 
-    loss_total = utils.AverageMeter()
-    loss_dice_total = utils.AverageMeter()
-    loss_ce_total = utils.AverageMeter()
+        loss_total = utils.AverageMeter()
+        loss_dice_total = utils.AverageMeter()
+        loss_ce_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class)
+        Eval = utils.Evaluator(num_class=num_class)
 
-    mIOU = 0.0
-    Dice = 0.0
+        mIOU = 0.0
+        Dice = 0.0
 
-    accuracy = utils.AverageMeter()
+        accuracy = utils.AverageMeter()
 
-    ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_class)
+        ce_loss = CrossEntropyLoss()
+        dice_loss = DiceLoss(num_class)
 
-    total_batchs = len(dataloader)
-    loader = dataloader 
+        total_batchs = len(dataloader)
+        loader = dataloader 
 
-    base_iter = (epoch_num-1) * total_batchs
-    iter_num = base_iter
-    max_iterations = end_epoch * total_batchs
+        base_iter = (epoch_num-1) * total_batchs
+        iter_num = base_iter
+        max_iterations = end_epoch * total_batchs
 
-    for batch_idx, (inputs, targets) in enumerate(loader):
+        for batch_idx, (inputs, targets) in enumerate(loader):
 
-        inputs, targets = inputs.to(device), targets.to(device)
+            inputs, targets = inputs.to(device), targets.to(device)
 
-        targets = targets.float()
+            targets = targets.float()
+            
+            outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
         
-        outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
-     
-        targets = targets.long()
+            targets = targets.long()
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = (predictions==targets).float()
-        t_masks = targets * overlap
-        targets = targets.float()
+            predictions = torch.argmax(input=outputs,dim=1).long()
+            overlap = (predictions==targets).float()
+            t_masks = targets * overlap
+            targets = targets.float()
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+            loss_ce = ce_loss(outputs, targets[:].long())
+            loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        ###############################################
-        alpha = 0.5
-        beta = 0.5
-        gamma = 0.01
-        loss = alpha * loss_dice + beta * loss_ce 
-        ###############################################
+            ###############################################
+            alpha = 0.5
+            beta = 0.5
+            gamma = 0.01
+            loss = alpha * loss_dice + beta * loss_ce 
+            ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+            lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr_
 
-        iter_num = iter_num + 1        
+            iter_num = iter_num + 1        
+            
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_total.update(loss)
+            loss_dice_total.update(loss_dice)
+            loss_ce_total.update(loss_ce)
+            ###############################################
+            targets = targets.long()
+
+            predictions = torch.argmax(input=outputs,dim=1).long()
+            Eval.add_batch(gt_image=targets,pre_image=predictions)
+
+            accuracy.update(Eval.Pixel_Accuracy())
+
+            print_progress(
+                iteration=batch_idx+1,
+                total=total_batchs,
+                prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
+                # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
+                # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
+                # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
+                suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+                # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+                bar_length=45
+            )  
+    else:   
+        torch.autograd.set_detect_anomaly(True)
+        print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
+
+        teacher_model=teacher_model.to(device)
+        teacher_model.eval()
+
+        model=model.to(device)
+        model.train()
+
+        loss_total = utils.AverageMeter()
+        loss_dice_total = utils.AverageMeter()
+        loss_ce_total = utils.AverageMeter()
+
+        loss_att_total = utils.AverageMeter()
+        loss_disparity_total = utils.AverageMeter()
+
+        Eval = utils.Evaluator(num_class=num_class)
+
+        mIOU = 0.0
+        Dice = 0.0
+
+        accuracy = utils.AverageMeter()
+
+        ce_loss = CrossEntropyLoss()
+        dice_loss = DiceLoss(num_class)
+        disparity_loss = disparity()
+
+        total_batchs = len(dataloader)
+        loader = dataloader 
+
+        base_iter = (epoch_num-1) * total_batchs
+        iter_num = base_iter
+        max_iterations = end_epoch * total_batchs
+
+        for batch_idx, (inputs, targets) in enumerate(loader):
+
+            inputs, targets = inputs.to(device), targets.to(device)
+
+            targets = targets.float()
+            
+            with torch.no_grad():
+                outputs_t, up4_t, up3_t, up2_t, up1_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
+                teacher_predictions = torch.argmax(input=outputs_t,dim=1).long()
+                teacher_predictions[targets>0] = 0
+                teacher_predictions = teacher_predictions + targets
+
+
+            outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
         
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            targets = targets.long()
 
-        loss_total.update(loss)
-        loss_dice_total.update(loss_dice)
-        loss_ce_total.update(loss_ce)
-        ###############################################
-        targets = targets.long()
+            loss_ce = ce_loss(outputs, targets[:].long())
+            loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+            loss_disparity = disparity_loss(masks=teacher_predictions, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
+            loss_att = importance_maps_distillation(student=[e4, e3, e2, e1], teacher=[[e4_t, e3_t, e2_t, e1_t]])
+            ###############################################
+            alpha = 0.5
+            beta = 0.5
+            gamma = 0.01
+            loss = alpha * loss_dice + beta * loss_ce 
+            ###############################################
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        Eval.add_batch(gt_image=targets,pre_image=predictions)
+            lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        accuracy.update(Eval.Pixel_Accuracy())
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = lr_
 
-        print_progress(
-            iteration=batch_idx+1,
-            total=total_batchs,
-            prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
-            bar_length=45
-        )  
-    
+            iter_num = iter_num + 1        
+            
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+            loss_total.update(loss)
+            loss_dice_total.update(loss_dice)
+            loss_ce_total.update(loss_ce)
+            ###############################################
+            targets = targets.long()
+
+            predictions = torch.argmax(input=outputs,dim=1).long()
+            Eval.add_batch(gt_image=targets,pre_image=predictions)
+
+            accuracy.update(Eval.Pixel_Accuracy())
+
+            print_progress(
+                iteration=batch_idx+1,
+                total=total_batchs,
+                prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
+                # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
+                # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
+                # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
+                suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+                # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+                bar_length=45
+            )  
+
     acc = 100*accuracy.avg
     mIOU = 100*Eval.Mean_Intersection_over_Union()
     Dice,Dice_per_class = Eval.Dice(per_class=True)
