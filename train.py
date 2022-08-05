@@ -347,7 +347,6 @@ def main(args):
         train_dataset=CT_1K(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)
 
-
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
                                 shuffle=True,
