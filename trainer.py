@@ -65,7 +65,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss = alpha * loss_dice + beta * loss_ce 
         ###############################################
 
-        lr_ = 0.04 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
