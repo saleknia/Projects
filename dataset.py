@@ -30,14 +30,18 @@ import pickle
 def random_crop(image, label):
 
     np_image = np.array(image)
+    x, y = np_image.shape
     w = np_image.shape[1] // 4
     h = np_image.shape[0] // 4
 
     x0 = random.randint(0, w)
     y0 = random.randint(0, h)
 
-    image = image[y0:y0+h, x0:x0+w]
-    label = label[y0:y0+h, x0:x0+w]
+    image = np_image[y0:y0+h, x0:x0+w]
+    label = np_image[y0:y0+h, x0:x0+w]
+
+    image = zoom(image, (x / w, y / h), order=0)  # why not 3?
+    label = zoom(label, (x / w, y / h), order=0)  # why not 3?
 
     return image, label
 
