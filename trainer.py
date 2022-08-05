@@ -50,8 +50,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
             targets = targets.float()
             
-            outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
-        
+            # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
+            outputs, up4, up3, up2, up1 = model(inputs)
+       
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
