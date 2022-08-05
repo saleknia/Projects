@@ -197,7 +197,7 @@ def main(args):
             loaded_acc=loaded_data['acc']
             initial_best_epoch=loaded_data['best_epoch']
 
-            for param in model.parameters():
+            for param in teacher_model.parameters():
                 param.requires_grad = False
 
             table = tabulate(

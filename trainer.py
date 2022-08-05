@@ -158,7 +158,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets[:].long())
             loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
             loss_disparity = disparity_loss(masks=teacher_predictions, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
-            loss_att = importance_maps_distillation(student=[e4, e3, e2, e1], teacher=[e4_t, e3_t, e2_t, e1_t])
+            loss_att = importance_maps_distillation(student=[e4, e3, e2, e1], teacher=[e4_t.detach().clone(), e3_t.detach().clone(), e2_t.detach().clone(), e1_t.detach().clone()])
             ###############################################
             alpha = 0.5
             beta = 0.5
