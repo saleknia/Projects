@@ -285,7 +285,7 @@ def main(args):
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
         # valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
-        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+        valid_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
 
 
         train_loader = DataLoader(train_dataset,
