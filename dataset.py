@@ -507,7 +507,7 @@ class CT_1K(Dataset):
         data = np.load(data_path)
         image, mask = data['image'], data['label']
 
-        mask[mask>4.0] = 0.0
+        # mask[mask>4.0] = 0.0
 
         sample = {'image': image, 'label': mask}
 

@@ -549,8 +549,7 @@ if __name__ == "__main__":
         #                 samples_path = os.path.join(download_path,'RawData','Training'),
         #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
     elif args.download=='False':
-        test_index = test_indexs[fold-1]
-        synapse_prepare(combine=combine, test_index=test_index)
+        synapse_prepare(combine=combine)
 
 
 
