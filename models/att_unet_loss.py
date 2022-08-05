@@ -188,6 +188,6 @@ class AttentionUNet_loss(nn.Module):
         out = self.Conv(d2)
 
         if self.training:
-            return out,d5, d4, d3, d2, 
+            return out,d5, d4, d3, d2, e5, e4, e3, e2, e1
         else:
             return out  
