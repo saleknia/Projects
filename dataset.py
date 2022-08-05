@@ -31,8 +31,8 @@ def random_crop(image, label):
 
     np_image = np.array(image)
     x, y = np_image.shape
-    w = np_image.shape[1] // 4
-    h = np_image.shape[0] // 4
+    w = np_image.shape[1] // 2
+    h = np_image.shape[0] // 2
 
     x0 = random.randint(0, w)
     y0 = random.randint(0, h)
