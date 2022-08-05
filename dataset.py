@@ -28,10 +28,12 @@ import pickle
 
 
 def random_crop(image, label):
-    x = random.randint(0, image.shape[1] - width)
-    y = random.randint(0, image.shape[0] - height)
-    image = image[y:y+height, x:x+width]
-    label = label[y:y+height, x:x+width]
+    x0 = random.randint(0, image.shape[1]// 4)
+    y0 = random.randint(0, image.shape[0]// 4)
+    w = image.shape[1]// 4
+    h = image.shape[0]// 4
+    image = image[y0:y0+h, x0:x0+w]
+    label = label[y0:y0+h, x0:x0+w]
     return image, label
 
 def random_rot_flip(image, label):
@@ -61,10 +63,13 @@ class RandomGenerator(object):
             image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
             image, label = random_rotate(image, label)
+        elif random.random() > 0.5:
+            image, label = random_crop(image, label)
 
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
             label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+
         image = F.to_tensor(image)
         label = to_long_tensor(label)
         sample = {'image': image, 'label': label}
