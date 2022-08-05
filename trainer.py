@@ -15,7 +15,7 @@ import pickle
 warnings.filterwarnings("ignore")
 
 
-def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
+def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
 
@@ -25,8 +25,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-
-    prototype = loss_function
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -51,10 +49,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         targets = targets.float()
         
-        outputs, up4, up3, up2, up1 = model(inputs)
+        outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
      
-        prototype(masks=targets, outputs=up1)
-
         targets = targets.long()
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -106,12 +102,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             bar_length=45
         )  
     
-    if epoch_num == end_epoch:
-        filehandler = open('prototypes', 'wb') 
-        pickle.dump(prototype, filehandler)
-    # acc = 100*accuracy.avg
-    # mIOU = 100*Eval.Mean_Intersection_over_Union()
-    # Dice = 100*Eval.Dice()
     acc = 100*accuracy.avg
     mIOU = 100*Eval.Mean_Intersection_over_Union()
     Dice,Dice_per_class = Eval.Dice(per_class=True)

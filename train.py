@@ -181,6 +181,35 @@ def main(args):
     else:
         lr_scheduler =  None     
 
+    if TEACHER is True:
+        teacher_model = AttentionUNet_loss(img_ch=1, output_ch=10).to(DEVICE) 
+        checkpoint_path = '/content/drive/MyDrive/teacher/'+CKPT_NAME+'_best.pth'
+        logger.info('Loading Teacher Checkpoint...')
+        if os.path.isfile(checkpoint_path):
+            pretrained_model_path = checkpoint_path
+            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+            pretrained = loaded_data['net']
+            model2_dict = model.state_dict()
+            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+            model2_dict.update(state_dict)
+            model.load_state_dict(model2_dict)
+
+            initial_best_acc=loaded_data['best_acc']
+            loaded_acc=loaded_data['acc']
+            initial_best_epoch=loaded_data['best_epoch']
+            last_num_epoch=loaded_data['num_epoch']
+
+            table = tabulate(
+                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+                            headers=['Loaded Teacher Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                            tablefmt="fancy_grid"
+                            )
+            logger.info(table)
+        else:
+            logger.info(f'No Such file : {checkpoint_path}')
+        logger.info('\n')
+    else:
+        teacher_model =  None     
 
     initial_best_acc = 0
     initial_best_epoch = 1
@@ -253,15 +282,11 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader}
 
     elif TASK_NAME=='Synapse':
-        # index = np.load(file='index.npy')
-        # train_dataset=Synapse_dataset(split='train',index=index[0:2000],joint_transform=train_tf)
-        # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-        valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
+        # valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
+        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
 
-        # g = torch.Generator()
-        # g.manual_seed(0)
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
@@ -361,6 +386,7 @@ def main(args):
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
+                teacher_model=teacher_model,
                 dataloader=data_loader['train'],
                 optimizer=optimizer,
                 device=DEVICE,

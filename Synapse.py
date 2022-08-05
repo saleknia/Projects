@@ -11,8 +11,8 @@ class color:
    END = '\033[0m'
 
 import os
-# os.system('pip install synapseclient')
-# import synapseclient 
+os.system('pip install synapseclient')
+import synapseclient 
 import sys
 import argparse
 import wget
