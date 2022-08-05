@@ -146,6 +146,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             with torch.no_grad():
                 outputs_t, up4_t, up3_t, up2_t, up1_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
                 teacher_predictions = torch.argmax(input=outputs_t,dim=1).long()
+                teacher_predictions = teacher_predictions.detach().clone()
                 teacher_predictions[targets>0] = 0
                 teacher_predictions = teacher_predictions + targets
 
