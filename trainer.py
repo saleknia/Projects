@@ -234,19 +234,13 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    ce_loss = WeightedCrossEntropyLoss()
+    # ce_loss = WeightedCrossEntropyLoss()
     dice_loss = GeneralizedDiceLoss(num_classes=num_class)
-
     ce_loss = CrossEntropyLoss()
     # dice_loss = DiceLoss(num_class)
     ##################################################################
-    # kd_out_loss = IM_loss()
-    # kd_out_loss = CriterionPixelWise()
     kd_loss = M_loss()    
     proto_loss = loss_function
-    ##################################################################
-    ##################################################################
-    # kd_loss = loss_function
     ##################################################################
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -261,17 +255,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-
-        # outputs = model(inputs)
-        # outputs, up3, up2, up1  = model(inputs)
-        # outputs, e5 = model(inputs)
-        # outputs, probs1, probs2, probs3, probs4, up4, up3, up2, up1 = model(inputs)
-        # outputs, up4, up3, up2, up1, up0 = model(inputs)
-        # outputs, up4, up3, up2, up1 = model(inputs)
         
         outputs, up4, up3, up2, up1 = model(inputs)
-        # e5, e4, e3, e2 = model(inputs, pretrain=True)
-        # outputs = torch.zeros(inputs.shape,device='cuda')
      
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -285,10 +270,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
+        # loss_proto = proto_loss(masks=targets.clone(), t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1, outputs=outputs)
         # loss_kd = kd_loss(e5=e5, e4=e4, e3=e3, e2=e2)
 
-        # loss_proto = 0.0
+        loss_proto = 0.0
         loss_kd = 0.0
         # loss_ce = 0
         # loss_dice = 0
@@ -300,8 +285,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         alpha = 1.0
         beta = 1.0
         gamma = 0.01
-        # loss = alpha * loss_dice + beta * loss_ce 
-        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
+        loss = alpha * loss_dice + beta * loss_ce 
+        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
