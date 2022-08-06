@@ -146,9 +146,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_class)
+    # ce_loss = CrossEntropyLoss()
+    # dice_loss = DiceLoss(num_class)
 
+    ce_loss = WeightedCrossEntropyLoss()
+    dice_loss = GeneralizedDiceLoss(num_class)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -171,13 +173,15 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        # loss_ce = ce_loss(outputs, targets[:].long())
+        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
+        loss_ce = ce_loss(input=outputs, target=targets.long())
+        loss_dice = dice_loss(input=outputs, target=targets)
 
         ###############################################
-        alpha = 0.5
-        beta = 0.5
+        alpha = 1.0
+        beta = 1.0
         loss = alpha * loss_dice + beta * loss_ce
         ###############################################
 
