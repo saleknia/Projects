@@ -103,13 +103,14 @@ class InitialBlock(nn.Module):
 
     def __init__(self, out_channels, norm_layer=nn.BatchNorm2d, **kwargs):
         super(InitialBlock, self).__init__()
-        self.conv = nn.Conv2d(3, out_channels, 3, 2, 1, bias=False)
+        self.conv = nn.Conv2d(1, out_channels, 3, 2, 1, bias=False)
+        # self.conv = nn.Conv2d(3, out_channels, 3, 2, 1, bias=False)
         self.maxpool = nn.MaxPool2d(2, 2)
         self.bn = norm_layer(out_channels + 3)
         self.act = nn.PReLU()
 
     def forward(self, x):
-        x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
+        # x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         x_conv = self.conv(x)
         x_pool = self.maxpool(x)
         x = torch.cat([x_conv, x_pool], dim=1)
