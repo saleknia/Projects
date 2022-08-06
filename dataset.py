@@ -27,23 +27,23 @@ from torch.utils import data
 import pickle
 
 
-# def random_crop(image, label):
+def random_crop(image, label):
 
-#     np_image = np.array(image)
-#     x, y = np_image.shape
-#     w = np_image.shape[1] // 2
-#     h = np_image.shape[0] // 2
+    np_image = np.array(image)
+    x, y = np_image.shape
+    w = np_image.shape[1] // 2
+    h = np_image.shape[0] // 2
 
-#     x0 = random.randint(0, w)
-#     y0 = random.randint(0, h)
+    x0 = random.randint(0, w)
+    y0 = random.randint(0, h)
 
-#     image = np_image[y0:y0+h, x0:x0+w]
-#     label = np_image[y0:y0+h, x0:x0+w]
+    image = np_image[y0:y0+h, x0:x0+w]
+    label = np_image[y0:y0+h, x0:x0+w]
 
-#     image = zoom(image, (x / w, y / h), order=0)  # why not 3?
-#     label = zoom(label, (x / w, y / h), order=0)  # why not 3?
+    image = zoom(image, (x / w, y / h), order=0)  # why not 3?
+    label = zoom(label, (x / w, y / h), order=0)  # why not 3?
 
-#     return image, label
+    return image, label
 
 def random_rot_flip(image, label):
     k = np.random.randint(0, 4)
@@ -55,7 +55,7 @@ def random_rot_flip(image, label):
     return image, label
 
 def random_rotate(image, label):
-    angle = np.random.randint(-20, 20)
+    angle = np.random.randint(-90, 90)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
     label = ndimage.rotate(label, angle, order=0, reshape=False)
     return image, label
