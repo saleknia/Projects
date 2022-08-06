@@ -27,23 +27,23 @@ from torch.utils import data
 import pickle
 
 
-def random_crop(image, label):
+# def random_crop(image, label):
 
-    np_image = np.array(image)
-    x, y = np_image.shape
-    w = np_image.shape[1] // 2
-    h = np_image.shape[0] // 2
+#     np_image = np.array(image)
+#     x, y = np_image.shape
+#     w = np_image.shape[1] // 2
+#     h = np_image.shape[0] // 2
 
-    x0 = random.randint(0, w)
-    y0 = random.randint(0, h)
+#     x0 = random.randint(0, w)
+#     y0 = random.randint(0, h)
 
-    image = np_image[y0:y0+h, x0:x0+w]
-    label = np_image[y0:y0+h, x0:x0+w]
+#     image = np_image[y0:y0+h, x0:x0+w]
+#     label = np_image[y0:y0+h, x0:x0+w]
 
-    image = zoom(image, (x / w, y / h), order=0)  # why not 3?
-    label = zoom(label, (x / w, y / h), order=0)  # why not 3?
+#     image = zoom(image, (x / w, y / h), order=0)  # why not 3?
+#     label = zoom(label, (x / w, y / h), order=0)  # why not 3?
 
-    return image, label
+#     return image, label
 
 def random_rot_flip(image, label):
     k = np.random.randint(0, 4)
@@ -72,8 +72,8 @@ class RandomGenerator(object):
             image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
             image, label = random_rotate(image, label)
-        elif random.random() > 0.5:
-            image, label = random_crop(image, label)
+        # elif random.random() > 0.5:
+        #     image, label = random_crop(image, label)
 
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?

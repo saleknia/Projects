@@ -60,12 +60,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
         ###############################################
-        alpha = 0.5
+        alpha = 1.0
         beta = 0.5
-        loss = alpha * loss_dice + beta * loss_ce 
+        loss = alpha * loss_dice 
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
