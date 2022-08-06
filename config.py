@@ -48,8 +48,8 @@ DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 6
 NUM_EPOCHS = 60
 NUM_WORKERS = 4
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 224
+IMAGE_HEIGHT = 256
+IMAGE_WIDTH = 256
 PIN_MEMORY = True
 early_stopping = 200
 
@@ -93,7 +93,7 @@ if task_id==1:
         DOWNLOAD = True
 
 elif task_id==2:
-    NUM_CLASS = 9
+    NUM_CLASS = 14
     TASK_NAME = 'Synapse'
 
 elif task_id==3:

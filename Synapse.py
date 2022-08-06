@@ -179,7 +179,6 @@ def count_label_slice(labels_path='/content/MICCAI_2015_Multi_Atlas_Abdomen/RawD
 # test_index=[1,2,3,4,8,22,25,29,32,35,36,38]
 
 train_index = [1,2,3,4,5,6,7,8,9,10,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40]
-lookup_table = [0, ]
 
 def formal(index,lenght):
     index=str(index)
@@ -254,12 +253,12 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
 
                 # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                label_2d = label_2d.astype(dtype=np.uint8)
-                row,col = label_2d.shape
-                for r in range(row):
-                    for c in range(col):
-                        label_2d[r,c] = lookup_table[label_2d[r,c]]
-                label_2d = label_2d.astype(dtype=np.float32)
+                # label_2d = label_2d.astype(dtype=np.uint8)
+                # row,col = label_2d.shape
+                # for r in range(row):
+                #     for c in range(col):
+                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
+                # label_2d = label_2d.astype(dtype=np.float32)
 
                 # slice_2d = np.flip(m=slice_2d,axis=1)
                 # label_2d = np.flip(m=label_2d,axis=1)
@@ -529,20 +528,20 @@ if __name__ == "__main__":
         print(color.BOLD+color.RED+'Extracting Dataset... '+color.END)   
         unzip_dataset(zip_path=zip_path,extract_path=extract_path)
 
-        print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
-        making_train_npz(path = os.path.join(download_path,'train_npz'),
-                        samples_path = os.path.join(download_path,'RawData','Training'),
-                        lookup_table = [0,3,2,2,8,9,1,7,5,6,0,4,0,0])
+        # print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
+        # making_train_npz(path = os.path.join(download_path,'train_npz'),
+        #                 samples_path = os.path.join(download_path,'RawData','Training'),
+        #                 lookup_table = [0,3,2,2,8,9,1,7,5,6,0,4,0,0])
 
         # print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
         # making_train_npz(path = os.path.join(download_path,'train_npz'),
         #                 samples_path = os.path.join(download_path,'RawData','Training'),
         #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
         
-        # print(color.BOLD+color.RED+'Making test_npz dirctory... '+color.END)                      
-        # making_test_npz(path = os.path.join(download_path,'test_npz'),
-        #                 samples_path = os.path.join(download_path,'RawData','Training'),
-        #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+        print(color.BOLD+color.RED+'Making test_npz dirctory... '+color.END)                      
+        making_test_npz(path = os.path.join(download_path,'test_npz'),
+                        samples_path = os.path.join(download_path,'RawData','Training'),
+                        lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
 
         # print(color.BOLD+color.RED+'Making test_vol_h5 dirctory... '+color.END)                      
         # making_test_vol_h5(path = os.path.join(download_path,'test_vol_h5'),
