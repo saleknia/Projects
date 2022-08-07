@@ -120,7 +120,7 @@ class AttentionUNet_loss(nn.Module):
         super(AttentionUNet_loss, self).__init__()
 
         self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
-        base = 64
+        base = 16
         self.Conv1 = ConvBlock(img_ch, base)
         self.Conv2 = ConvBlock(base, base*2)
         self.Conv3 = ConvBlock(base*2, base*4)
