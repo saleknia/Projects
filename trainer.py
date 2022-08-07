@@ -223,7 +223,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss_disparity = disparity_loss(up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_disparity = disparity_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
         ###############################################
         alpha = 0.5
         beta = 0.5
