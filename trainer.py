@@ -110,10 +110,10 @@ class WeightedCrossEntropyLoss(nn.Module):
     """WeightedCrossEntropyLoss (WCE) as described in https://arxiv.org/pdf/1707.03237.pdf
     """
 
-    def __init__(self, ignore_index=-1):
+    def __init__(self, ignore_index=-1, epsilon=1e-6):
         super(WeightedCrossEntropyLoss, self).__init__()
         self.ignore_index = ignore_index
-
+        self.epsilon = epsilon
     def forward(self, input, target):
         weight = self._class_weights(input)
         return F.cross_entropy(input, target, weight=weight, ignore_index=self.ignore_index)
@@ -124,7 +124,7 @@ class WeightedCrossEntropyLoss(nn.Module):
         input = F.softmax(input, dim=1)
         flattened = flatten(input)
         nominator = (1. - flattened).sum(-1)
-        denominator = flattened.sum(-1)
+        denominator = flattened.sum(-1).clamp(min=1e-6)
         class_weights = Variable(nominator / denominator, requires_grad=False)
         return class_weights
 
@@ -146,11 +146,11 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    # ce_loss = CrossEntropyLoss()
-    # dice_loss = DiceLoss(num_class)
+    ce_loss = CrossEntropyLoss()
+    dice_loss = DiceLoss(num_class)
 
-    ce_loss = WeightedCrossEntropyLoss()
-    dice_loss = GeneralizedDiceLoss(num_class)
+    # ce_loss = WeightedCrossEntropyLoss()
+    # dice_loss = GeneralizedDiceLoss(num_class)
 
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -173,15 +173,15 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        # loss_ce = ce_loss(outputs, targets[:].long())
-        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        loss_ce = ce_loss(outputs, targets[:].long())
+        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_ce = ce_loss(input=outputs, target=targets.long())
-        loss_dice = dice_loss(input=outputs, target=targets)
+        # loss_ce = ce_loss(input=outputs, target=targets.long())
+        # loss_dice = dice_loss(input=outputs, target=targets)
 
         ###############################################
-        alpha = 1.0
-        beta = 1.0
+        alpha = 0.5
+        beta = 0.5
         loss = alpha * loss_dice + beta * loss_ce
         ###############################################
 
