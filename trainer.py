@@ -187,8 +187,6 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_proto_total = utils.AverageMeter()
-    loss_kd_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -197,7 +195,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
-    dice_loss = GeneralizedDiceLoss(num_classes=num_class)
+    dice_loss = DiceLoss(num_classes=num_class)
     ce_loss = CrossEntropyLoss()
     ##################################################################
     kd_loss = M_loss()    
@@ -224,16 +222,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
-        loss_dice = dice_loss(input=outputs, target=targets)
         loss_ce = ce_loss(outputs, targets[:].long())
+        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_proto = 0.0
-        loss_kd = 0.0
-        # loss_ce = 0
-        # loss_dice = 0
         ###############################################
-        alpha = 1.0
-        beta = 1.0
+        alpha = 0.5
+        beta = 0.5
         gamma = 0.01
         loss = alpha * loss_dice + beta * loss_ce 
         # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
@@ -257,8 +251,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_proto_total.update(loss_proto)
-        loss_kd_total.update(loss_kd)
+        loss_proto_total.update(0.0)
+        loss_kd_total.update(0.0)
         ###############################################
         targets = targets.long()
 
