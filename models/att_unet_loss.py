@@ -120,30 +120,30 @@ class AttentionUNet_loss(nn.Module):
         super(AttentionUNet_loss, self).__init__()
 
         self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
+        base = 64
+        self.Conv1 = ConvBlock(img_ch, base)
+        self.Conv2 = ConvBlock(base, base*2)
+        self.Conv3 = ConvBlock(base*2, base*4)
+        self.Conv4 = ConvBlock(base*4, base*8)
+        self.Conv5 = ConvBlock(base*8, 1024)
 
-        self.Conv1 = ConvBlock(img_ch, 64)
-        self.Conv2 = ConvBlock(64, 128)
-        self.Conv3 = ConvBlock(128, 256)
-        self.Conv4 = ConvBlock(256, 512)
-        self.Conv5 = ConvBlock(512, 1024)
+        self.Up5 = UpConv(base*16, base*8)
+        self.Att5 = AttentionBlock(F_g=base*8, F_l=base*8, n_coefficients=base*4)
+        self.UpConv5 = ConvBlock(base*16, base*8)
 
-        self.Up5 = UpConv(1024, 512)
-        self.Att5 = AttentionBlock(F_g=512, F_l=512, n_coefficients=256)
-        self.UpConv5 = ConvBlock(1024, 512)
+        self.Up4 = UpConv(base*8, base*4)
+        self.Att4 = AttentionBlock(F_g=base*4, F_l=base*4, n_coefficients=base*2)
+        self.UpConv4 = ConvBlock(base*8, base*4)
 
-        self.Up4 = UpConv(512, 256)
-        self.Att4 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)
-        self.UpConv4 = ConvBlock(512, 256)
+        self.Up3 = UpConv(base*4, base*2)
+        self.Att3 = AttentionBlock(F_g=base*2, F_l=base*2, n_coefficients=base)
+        self.UpConv3 = ConvBlock(base*4, base*2)
 
-        self.Up3 = UpConv(256, 128)
-        self.Att3 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)
-        self.UpConv3 = ConvBlock(256, 128)
+        self.Up2 = UpConv(base*2, base)
+        self.Att2 = AttentionBlock(F_g=base, F_l=base, n_coefficients=32)
+        self.UpConv2 = ConvBlock(base*2, base)
 
-        self.Up2 = UpConv(128, 64)
-        self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
-        self.UpConv2 = ConvBlock(128, 64)
-
-        self.Conv = nn.Conv2d(64, output_ch, kernel_size=1, stride=1, padding=0)
+        self.Conv = nn.Conv2d(base, output_ch, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
         """
