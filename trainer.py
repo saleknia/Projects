@@ -13,6 +13,54 @@ from utils import focal_loss
 from torch.autograd import Variable
 warnings.filterwarnings("ignore")
 
+def one_hot_loss(exist_pred, targets):
+    targets=targets.cpu()
+    exist_pred=exist_pred.cpu()
+    yp = torch.zeros(6,9)
+    for i in range(6):
+        unique_num = torch.unique(targets[i])
+        for j in range(9):
+            if j in unique_num:
+                yp[i,j] = 1.0
+            else:
+                yp[i,j] = 0.0
+    loss = torch.nn.functional.binary_cross_entropy(input=exist_pred, target=yp)
+    return loss
+
+def loss_kd_regularization(outputs, masks):
+    """
+    loss function for mannually-designed regularization: Tf-KD_{reg}
+    """
+    correct_prob = 0.95    # the probability for correct class in u(k)
+    K = outputs.size(1)
+
+    teacher_scores = torch.ones_like(outputs).cuda()
+    teacher_scores = teacher_scores*(1-correct_prob)/(K-1)  # p^d(k)
+
+    teacher_scores[masks] = correct_prob
+
+    return teacher_scores
+
+def prediction_map_distillation(y, masks) :
+    """
+    basic KD loss function based on "Distilling the Knowledge in a Neural Network"
+    https://arxiv.org/abs/1503.02531
+    :param y: student score map
+    :param teacher_scores: teacher score map
+    :param T:  for softmax
+    :return: loss value
+    """
+    y = y.cuda()
+    masks = masks.long()
+    masks = masks.cuda()
+
+    masks_temp = F.one_hot(masks, num_classes=9)
+    masks_temp = torch.permute(masks_temp, (0, 3, 1, 2))
+    masks_temp = masks_temp.bool()
+
+    teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
+
+    return teacher_scores
 
 def flatten(tensor):
     """Flattens a given tensor such that the channel axis is first.
@@ -110,10 +158,10 @@ class WeightedCrossEntropyLoss(nn.Module):
     """WeightedCrossEntropyLoss (WCE) as described in https://arxiv.org/pdf/1707.03237.pdf
     """
 
-    def __init__(self, ignore_index=-1, epsilon=1e-6):
+    def __init__(self, ignore_index=-1):
         super(WeightedCrossEntropyLoss, self).__init__()
         self.ignore_index = ignore_index
-        self.epsilon = epsilon
+
     def forward(self, input, target):
         weight = self._class_weights(input)
         return F.cross_entropy(input, target, weight=weight, ignore_index=self.ignore_index)
@@ -128,6 +176,7 @@ class WeightedCrossEntropyLoss(nn.Module):
         class_weights = Variable(nominator / denominator, requires_grad=False)
         return class_weights
 
+
 def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
@@ -138,6 +187,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
+    loss_proto_total = utils.AverageMeter()
+    loss_kd_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -146,9 +197,12 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     accuracy = utils.AverageMeter()
 
+    dice_loss = GeneralizedDiceLoss(num_classes=num_class)
     ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_class)
-
+    ##################################################################
+    kd_loss = M_loss()    
+    proto_loss = loss_function
+    ##################################################################
     total_batchs = len(dataloader)
     loader = dataloader 
 
@@ -170,13 +224,21 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         t_masks = targets * overlap
         targets = targets.float()
 
+        loss_dice = dice_loss(input=outputs, target=targets)
         loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
+        loss_proto = 0.0
+        loss_kd = 0.0
+        # loss_ce = 0
+        # loss_dice = 0
         ###############################################
-        alpha = 0.5
-        beta = 0.5
-        loss = alpha * loss_dice + beta * loss_ce
+        alpha = 1.0
+        beta = 1.0
+        gamma = 0.01
+        loss = alpha * loss_dice + beta * loss_ce 
+        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_proto         
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
+        # loss = loss_kd 
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -189,11 +251,14 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+        # lr_scheduler.step()
 
 
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
+        loss_proto_total.update(loss_proto)
+        loss_kd_total.update(loss_kd)
         ###############################################
         targets = targets.long()
 
@@ -209,7 +274,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
             # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , proto_loss = {gamma*loss_proto_total.avg:.8f} , kd_loss = {beta*loss_kd_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
@@ -242,6 +307,7 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
     #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
     # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
     #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)  
+
 
 
 
