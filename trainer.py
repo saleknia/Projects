@@ -185,12 +185,12 @@ class CriterionPixelWise(nn.Module):
             print("disabled the reduce.")
 
     def forward(self, preds_S, preds_T):
-        preds_T[0].detach()
-        assert preds_S[0].shape == preds_T[0].shape,'the output dim of teacher and student differ'
-        N,C,W,H = preds_S[0].shape
-        softmax_pred_T = F.softmax(preds_T[0].permute(0,2,3,1).contiguous().view(-1,C), dim=1)
+        preds_T.detach()
+        assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S.shape
+        softmax_pred_T = F.softmax(preds_T.permute(0,2,3,1).contiguous().view(-1,C), dim=1)
         logsoftmax = nn.LogSoftmax(dim=1)
-        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S[0].permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
@@ -251,7 +251,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ###############################################
         alpha = 0.5
         beta = 0.5
-        gamma = 0.001
+        gamma = 0.01
         loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
         # loss = alpha * loss_dice + beta * loss_ce      
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd

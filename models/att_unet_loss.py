@@ -163,4 +163,4 @@ class AttentionUNet_loss(nn.Module):
         if self.training:
             return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
         else:
-            return out  
+            return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
