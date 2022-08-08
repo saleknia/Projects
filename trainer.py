@@ -218,8 +218,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    # disparity_loss = disparity()
-    disparity_loss = CriterionPixelWise()
+    disparity_loss = disparity()
+    Criterion_loss = CriterionPixelWise()
     ##################################################################
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -247,9 +247,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        # loss_disparity = disparity_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_disparity = disparity_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_disparity = MSE(d5,d5_t) + MSE(d4,d4_t) + MSE(d3,d3_t) + MSE(d2,d2_t) + MSE(e5,e5_t) + MSE(e4,e4_t) + MSE(e3,e3_t) + MSE(e2,e2_t) + MSE(e1,e1_t)
+        # loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
+        loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t) + disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
+        # loss_disparity = 0.0
         ###############################################
         alpha = 0.5
         beta = 0.5

@@ -41,11 +41,15 @@ class seg_head(nn.Module):
 class se_block(nn.Module):
     def __init__(self, in_channels, squeeze=4):
         super(se_block, self).__init__()
-        self.SQ_1 = SQ(in_channels=in_channels, squeeze=squeeze)
-        self.SQ_2 = SQ(in_channels=in_channels, squeeze=squeeze)
-        self.SQ_3 = SQ(in_channels=in_channels, squeeze=squeeze)
-        self.SQ_4 = SQ(in_channels=in_channels, squeeze=squeeze)
-        self.out = SQ(in_channels=in_channels*squeeze, squeeze=1/squeeze)
+        self.SQ_1 = SQ(in_channels=in_channels)
+        self.SQ_2 = SQ(in_channels=in_channels)
+        self.SQ_3 = SQ(in_channels=in_channels)
+        self.SQ_4 = SQ(in_channels=in_channels)
+        self.out =  nn.Sequential(
+                                    nn.Conv2d(in_channels*4, in_channels, kernel_size=1),
+                                    nn.BatchNorm2d(in_channels),
+                                    nn.ReLU(inplace=True)
+                                )
     def forward(self, x):
         x = self.SQ_1(x) + self.SQ_2(x) + self.SQ_3(x) + self.SQ_4(x) 
         output = self.out(x)
@@ -73,11 +77,11 @@ class ConvBlock(nn.Module):
         return x
 
 class SQ(nn.Module):
-    def __init__(self, in_channels, squeeze):
+    def __init__(self, in_channels):
         super(SQ, self).__init__()
         self.conv =  nn.Sequential(
-                                    nn.Conv2d(in_channels, in_channels*squeeze, kernel_size=1),
-                                    nn.BatchNorm2d(in_channels*squeeze),
+                                    nn.Conv2d(in_channels, in_channels*4, kernel_size=1),
+                                    nn.BatchNorm2d(in_channels*4),
                                     nn.ReLU(inplace=True)
                                 )
 
@@ -152,7 +156,7 @@ class AttentionUNet(nn.Module):
         super(AttentionUNet, self).__init__()
 
         self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
-        base = 16
+        base = 8
         self.Conv1 = ConvBlock(img_ch, base)
         self.Conv2 = ConvBlock(base, base*2)
         self.Conv3 = ConvBlock(base*2, base*4)
@@ -177,17 +181,6 @@ class AttentionUNet(nn.Module):
 
         self.Conv = nn.Conv2d(base , output_ch, kernel_size=1, stride=1, padding=0)
 
-        self.se_block_e1 = se_block(base*1 )
-        self.se_block_e2 = se_block(base*2 )
-        self.se_block_e3 = se_block(base*4 )
-        self.se_block_e4 = se_block(base*8 )
-        self.se_block_e5 = se_block(base*16)
-
-        self.se_block_d2 = se_block(base*1)
-        self.se_block_d3 = se_block(base*2)
-        self.se_block_d4 = se_block(base*4)
-        self.se_block_d5 = se_block(base*8)
-
     def forward(self, x):
         """
         e : encoder layers
@@ -195,52 +188,43 @@ class AttentionUNet(nn.Module):
         s : skip-connections from encoder layers to decoder layers
         """
         e1 = self.Conv1(x)
-        e1, e1_int = self.se_block_e1(e1)
 
         e2 = self.MaxPool(e1)
         e2 = self.Conv2(e2)
-        e2, e2_int = self.se_block_e2(e2)
 
         e3 = self.MaxPool(e2)
         e3 = self.Conv3(e3)
-        e3, e3_int = self.se_block_e3(e3)
 
         e4 = self.MaxPool(e3)
         e4 = self.Conv4(e4)
-        e4, e4_int = self.se_block_e4(e4)
 
         e5 = self.MaxPool(e4)
         e5 = self.Conv5(e5)
-        e5, e5_int = self.se_block_e5(e5)
 
         d5 = self.Up5(e5)
 
         s4 = self.Att5(gate=d5, skip_connection=e4)
         d5 = torch.cat((s4, d5), dim=1) # concatenate attention-weighted skip connection with previous layer output
         d5 = self.UpConv5(d5)
-        d5, d5_int = self.se_block_d5(d5)
 
         d4 = self.Up4(d5)
         s3 = self.Att4(gate=d4, skip_connection=e3)
         d4 = torch.cat((s3, d4), dim=1)
         d4 = self.UpConv4(d4)
-        d4, d4_int = self.se_block_d4(d4)
 
         d3 = self.Up3(d4)
         s2 = self.Att3(gate=d3, skip_connection=e2)
         d3 = torch.cat((s2, d3), dim=1)
         d3 = self.UpConv3(d3)
-        d3, d3_int = self.se_block_d3(d3)
 
         d2 = self.Up2(d3)
         s1 = self.Att2(gate=d2, skip_connection=e1)
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
-        d2, d2_int = self.se_block_d2(d2)
 
         out = self.Conv(d2)
 
         if self.training:
-            return out, d5_int, d4_int, d3_int, d2_int, e5_int, e4_int, e3_int, e2_int, e1_int
+            return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
         else:
             return out  

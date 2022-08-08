@@ -57,7 +57,7 @@ class disparity(nn.Module):
         super(disparity, self).__init__()
         self.down_scales = [1.0, 0.5, 0.25, 0.125]
 
-    def forward(self, masks, up4, up3, up2, up1):
+    def forward(self, masks, t_masks, up4, up3, up2, up1):
         loss = 0.0
         up = [up1, up2, up3, up4]
 
@@ -67,6 +67,9 @@ class disparity(nn.Module):
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
+            temp_masks_t = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks_t = temp_masks_t.squeeze(dim=1)
+
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
@@ -75,6 +78,7 @@ class disparity(nn.Module):
                 return 0
 
             prototypes = torch.zeros(size=(unique_num,C),device='cuda')
+            # prototypes_t = torch.zeros(size=(unique_num,C),device='cuda')
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
@@ -89,11 +93,31 @@ class disparity(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
-            
+
+            # for count,p in enumerate(mask_unique_value):
+            #     p = p.long()
+            #     bin_mask = torch.tensor(temp_masks_t==p,dtype=torch.int8)
+            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+            #     temp = 0.0
+            #     batch_counter = 0
+            #     for t in range(B):
+            #         if torch.sum(bin_mask[t])!=0:
+            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+            #             batch_counter = batch_counter + 1
+            #     if batch_counter!=0.0:
+            #         temp = temp / batch_counter
+            #         prototypes_t[count] = temp
+
             l = 0.0
 
-            distances = torch.cdist(prototypes.to('cuda'), prototypes.to('cuda'), p=2.0)
+            distances = torch.cdist(prototypes.detach().clone(), prototypes, p=2.0)
+            # distances_t = torch.cdist(prototypes_t.to('cuda'), prototypes.to('cuda'), p=2.0)
+            # diagonal = distances_t * (torch.eye(distances_t.shape[0],distances_t.shape[1],device='cuda'))
+
+            # l = l + torch.mean(distances_t)
             l = 1.0 / (torch.mean(distances)) 
+
             loss = loss + l
 
         return loss
