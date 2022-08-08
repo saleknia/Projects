@@ -40,7 +40,7 @@ class seg_head(nn.Module):
 
 class se_block(nn.Module):
     def __init__(self, in_channels, squeeze=4):
-        super().__init__()
+        super(se_block, self).__init__()
         self.layers = []
         for i in range(squeeze):
             layer = nn.Sequential(
