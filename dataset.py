@@ -91,11 +91,11 @@ class RandomGenerator(object):
         image, label = sample['image'], sample['label']
         image, label = F.to_pil_image(image), F.to_pil_image(label)
         x, y = image.size
-        if random.random() > 0.5:
+        if random.random() > 0.0:
             image, label = random_rot_flip(image, label)
-        elif random.random() > 0.5:
+        elif random.random() > 0.0:
             image, label = random_rotate(image, label)
-        elif random.random() > 0.5:
+        elif random.random() > 0.0:
             image, label = random_scale(image, label)
 
         if x != self.output_size[0] or y != self.output_size[1]:
