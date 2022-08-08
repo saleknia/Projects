@@ -41,26 +41,13 @@ class seg_head(nn.Module):
 class se_block(nn.Module):
     def __init__(self, in_channels, squeeze=4):
         super(se_block, self).__init__()
-        self.layers = []
-        for i in range(squeeze):
-            layer = nn.Sequential(
-                                    nn.Conv2d(in_channels, in_channels*squeeze, kernel_size=1),
-                                    nn.BatchNorm2d(in_channels*squeeze),
-                                    nn.ReLU(inplace=True)
-                                )
-            self.layers.append(layer)
-        self.out = nn.Sequential(
-                                    nn.Conv2d(in_channels*squeeze, in_channels, kernel_size=1),
-                                    nn.BatchNorm2d(in_channels),
-                                    nn.ReLU(inplace=True)
-                                )
+        self.SQ_1 = SQ(in_channels=in_channels, squeeze=squeeze)
+        self.SQ_2 = SQ(in_channels=in_channels, squeeze=squeeze)
+        self.SQ_3 = SQ(in_channels=in_channels, squeeze=squeeze)
+        self.SQ_4 = SQ(in_channels=in_channels, squeeze=squeeze)
+        self.out = SQ(in_channels=in_channels*squeeze, squeeze=1/squeeze)
     def forward(self, x):
-        for i,layer in enumerate(self.layers):
-            if i==0:
-                temp = layer(x)
-            else:
-                temp = layer(x) + temp
-        x = temp
+        x = self.SQ_1(x) + self.SQ_2(x) + self.SQ_3(x) + self.SQ_4(x) 
         output = self.out(x)
         return output, x
 
@@ -80,6 +67,19 @@ class ConvBlock(nn.Module):
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True)
         )
+
+    def forward(self, x):
+        x = self.conv(x)
+        return x
+
+class SQ(nn.Module):
+    def __init__(self, in_channels, squeeze):
+        super(SQ, self).__init__()
+        self.conv =  nn.Sequential(
+                                    nn.Conv2d(in_channels, in_channels*squeeze, kernel_size=1),
+                                    nn.BatchNorm2d(in_channels*squeeze),
+                                    nn.ReLU(inplace=True)
+                                )
 
     def forward(self, x):
         x = self.conv(x)
