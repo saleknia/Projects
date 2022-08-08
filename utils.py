@@ -1317,7 +1317,6 @@ class prototype_loss(nn.Module):
             weights = weights / weights.max()
             weights = weights.detach()
 
-            # cosine_loss = self.cosine_loss(proto.clone().detach(),prototypes,torch.ones(prototypes.shape[0]))
 
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
