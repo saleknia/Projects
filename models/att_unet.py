@@ -61,7 +61,7 @@ class se_block(nn.Module):
         x = temp
         output = self.out(x)
         return output, x
-        
+
 class ConvBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels):
@@ -150,39 +150,37 @@ class AttentionUNet(nn.Module):
         super(AttentionUNet, self).__init__()
 
         self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
+        base = 16
+        self.Conv1 = ConvBlock(img_ch, base)
+        self.Conv2 = ConvBlock(base, base*2)
+        self.Conv3 = ConvBlock(base*2, base*4)
+        self.Conv4 = ConvBlock(base*4, base*8)
+        self.Conv5 = ConvBlock(base*8, base*16)
 
-        self.Conv1 = ConvBlock(img_ch, 64)
-        self.Conv2 = ConvBlock(64, 128)
-        self.Conv3 = ConvBlock(128, 256)
-        self.Conv4 = ConvBlock(256, 512)
-        self.Conv5 = ConvBlock(512, 1024)
+        self.Up5 = UpConv(base*16, base*8)
+        self.Att5 = AttentionBlock(F_g=base*8, F_l=base*8, n_coefficients=base*4)
+        self.UpConv5 = ConvBlock(base*16, base*8)
 
-        self.Up5 = UpConv(1024, 512)
-        self.Att5 = AttentionBlock(F_g=512, F_l=512, n_coefficients=256)
-        self.UpConv5 = ConvBlock(1024, 512)
+        self.Up4 = UpConv(base*8, base*4)
+        self.Att4 = AttentionBlock(F_g=base*4, F_l=base*4, n_coefficients=base*2)
+        self.UpConv4 = ConvBlock(base*8, base*4)
 
-        self.Up4 = UpConv(512, 256)
-        self.Att4 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)
-        self.UpConv4 = ConvBlock(512, 256)
+        self.Up3 = UpConv(base*4, base*2)
+        self.Att3 = AttentionBlock(F_g=base*2, F_l=base*2, n_coefficients=base)
+        self.UpConv3 = ConvBlock(base*4, base*2)
 
-        self.Up3 = UpConv(256, 128)
-        self.Att3 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)
-        self.UpConv3 = ConvBlock(256, 128)
+        self.Up2 = UpConv(base*2, base)
+        self.Att2 = AttentionBlock(F_g=base, F_l=base, n_coefficients=base//2)
+        self.UpConv2 = ConvBlock(base*2, base)
 
-        self.Up2 = UpConv(128, 64)
-        self.Att2 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)
-        self.UpConv2 = ConvBlock(128, 64)
-
-        # self.Conv = nn.Conv2d(64 , output_ch, kernel_size=1, stride=1, padding=0)
-
-        self.Conv_1_1 = nn.Conv2d(64 , 5  , kernel_size=1, stride=1, padding=0)
-        # self.Conv_1_2 = nn.Conv2d(64 , 10 , kernel_size=1, stride=1, padding=0)
+        self.Conv = nn.Conv2d(base , output_ch, kernel_size=1, stride=1, padding=0)
 
 
 
 
 
-    def forward(self, x, num_head=1.0):
+
+    def forward(self, x):
         """
         e : encoder layers
         d : decoder layers
@@ -223,33 +221,9 @@ class AttentionUNet(nn.Module):
         d2 = torch.cat((s1, d2), dim=1)
         d2 = self.UpConv2(d2)
 
-        # out = self.Conv(d2)
+        out = self.Conv(d2)
 
-        # return out
-
-        # if self.training:
-        #     return out, d5, d4, d3, d2
-        # else:
-        #     return out
-        
-
-        if num_head==1.0:
-            return self.Conv_1_1(d2)
-        if num_head==2.0:
-            return self.Conv_1_1(d2), self.Conv_1_2(d2)
-
- 
-
-
-        # if num_head==1.0:
-        #     return self.Conv_1(up4=d5, up3=d4, up2=d3, up1=d2)
-        # if num_head==2.0:
-        #     return self.Conv_1(up4=d5, up3=d4, up2=d3, up1=d2), self.Conv_2(d2)
-
-
-
-
-
-
-
-
+        if self.training:
+            return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
+        else:
+            return out  

@@ -56,8 +56,8 @@ early_stopping = 200
 LOAD_MODEL = True
 CONTINUE = True
 
-# TEACHER = True
-TEACHER = False
+TEACHER = True
+# TEACHER = False
 
 
 SAVE_MODEL = True

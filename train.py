@@ -182,7 +182,7 @@ def main(args):
         lr_scheduler =  None     
 
     if TEACHER is True:
-        teacher_model = AttentionUNet_loss(img_ch=1, output_ch=10).to(DEVICE) 
+        teacher_model = AttentionUNet_loss(img_ch=1, output_ch=9).to(DEVICE) 
         checkpoint_path = '/content/drive/MyDrive/teacher/AttUNet_loss_Synapse_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
@@ -384,6 +384,7 @@ def main(args):
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
+                teacher_model = teacher_model,
                 dataloader=data_loader['train'],
                 optimizer=optimizer,
                 device=DEVICE,

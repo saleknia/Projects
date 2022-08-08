@@ -176,10 +176,29 @@ class WeightedCrossEntropyLoss(nn.Module):
         class_weights = Variable(nominator / denominator, requires_grad=False)
         return class_weights
 
+class CriterionPixelWise(nn.Module):
+    def __init__(self, ignore_index=255, use_weight=True, reduce=True):
+        super(CriterionPixelWise, self).__init__()
+        self.ignore_index = ignore_index
+        self.criterion = torch.nn.CrossEntropyLoss(ignore_index=ignore_index, reduce=reduce)
+        if not reduce:
+            print("disabled the reduce.")
 
-def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
+    def forward(self, preds_S, preds_T):
+        preds_T[0].detach()
+        assert preds_S[0].shape == preds_T[0].shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S[0].shape
+        softmax_pred_T = F.softmax(preds_T[0].permute(0,2,3,1).contiguous().view(-1,C), dim=1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S[0].permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        return loss
+
+def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
+
+    teacher_model=teacher_model.to(device)
+    teacher_model.eval()
 
     model=model.to(device)
     model.train()
@@ -198,7 +217,8 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    disparity_loss = disparity()
+    # disparity_loss = disparity()
+    disparity_loss = CriterionPixelWise()
     ##################################################################
     total_batchs = len(dataloader)
     loader = dataloader 
@@ -212,7 +232,10 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        
+
+        with torch.no_grad():
+            outputs_t, d5_t, d4_t, d3_t, d2_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
+
         outputs, d5, d4, d3, d2, e5, e4, e3, e2, e1 = model(inputs)
      
         targets = targets.long()
@@ -224,13 +247,13 @@ def trainer(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         # loss_disparity = disparity_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
-        loss_disparity = 0.0
+        loss_disparity = disparity_loss(preds_S=outputs, preds_T=outputs_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
         gamma = 0.001
-        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
-        loss = alpha * loss_dice + beta * loss_ce      
+        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
+        # loss = alpha * loss_dice + beta * loss_ce      
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
