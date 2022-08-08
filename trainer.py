@@ -234,11 +234,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        with torch.no_grad():
-            outputs_t, d5_t, d4_t, d3_t, d2_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
+        # with torch.no_grad():
+        #     outputs_t, d5_t, d4_t, d3_t, d2_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
 
-        outputs, d5, d4, d3, d2, e5, e4, e3, e2, e1 = model(inputs)
-     
+        # outputs, d5, d4, d3, d2, e5, e4, e3, e2, e1 = model(inputs)
+        outputs, up4, up3, up2, up1 = model(inputs)
+
+
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
         overlap = (predictions==targets).float()
@@ -248,14 +250,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         # loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
-        loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t) + disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
-        # loss_disparity = 0.0
+        # loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t) + disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
+        loss_disparity = 0.0
         ###############################################
         alpha = 0.5
         beta = 0.5
         gamma = 0.01
-        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
-        # loss = alpha * loss_dice + beta * loss_ce      
+        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
+        loss = alpha * loss_dice + beta * loss_ce      
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
