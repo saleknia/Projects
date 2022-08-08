@@ -45,6 +45,29 @@ def random_crop(image, label):
 
     return image, label
 
+def random_scale(image, label):
+
+    np_image = np.array(image)
+    np_label = np.array(label)
+    x, y = np_image.shape
+
+    scale = 0.5 + (0.5 * np.random.rand())
+
+    image = zoom(image, scale, order=0) 
+    label = zoom(label, scale, order=0)
+    xp, yp = image.shape
+
+    b_x = (x - xp)//2
+    a_x = x - b_x
+
+    b_y = (y - yp)//2
+    a_y = y - b_y
+
+    image = np.pad(image, ((b_y, a_y), (b_x, a_x)))
+    label = np.pad(label, ((b_y, a_y), (b_x, a_x)))
+    
+    return image, label
+
 def random_rot_flip(image, label):
     k = np.random.randint(0, 4)
     image = np.rot90(image, k)
@@ -72,8 +95,8 @@ class RandomGenerator(object):
             image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
             image, label = random_rotate(image, label)
-        # elif random.random() > 0.5:
-        #     image, label = random_crop(image, label)
+        elif random.random() > 0.5:
+            image, label = random_scale(image, label)
 
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
