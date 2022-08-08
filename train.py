@@ -183,7 +183,7 @@ def main(args):
 
     if TEACHER is True:
         teacher_model = AttentionUNet_loss(img_ch=1, output_ch=9).to(DEVICE) 
-        checkpoint_path = '/content/drive/MyDrive/teacher/AttUNet_loss_Synapse_best.pth'
+        checkpoint_path = '/content/drive/MyDrive/teacher_att/AttUNet_loss_Synapse_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
             pretrained_model_path = checkpoint_path
