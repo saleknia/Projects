@@ -58,10 +58,10 @@ def random_scale(image, label):
     xp, yp = image.shape
 
     b_x = (x - xp)//2
-    a_x = x - b_x
+    a_x = x - xp - b_x
 
     b_y = (y - yp)//2
-    a_y = y - b_y
+    a_y = y - yp - b_y
 
     image = np.pad(image, ((b_y, a_y), (b_x, a_x)))
     label = np.pad(label, ((b_y, a_y), (b_x, a_x)))
