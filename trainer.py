@@ -11,6 +11,7 @@ import torch.nn.functional as F
 import warnings
 from utils import focal_loss
 from torch.autograd import Variable
+from torch.nn.functional import mse_loss as MSE
 warnings.filterwarnings("ignore")
 
 def one_hot_loss(exist_pred, targets):
@@ -247,7 +248,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         # loss_disparity = disparity_loss(masks=targets, up4=up4, up3=up3, up2=up2, up1=up1)
-        loss_disparity = disparity_loss(preds_S=outputs, preds_T=outputs_t)
+        # loss_disparity = disparity_loss(preds_S=outputs, preds_T=outputs_t)
+        loss_disparity = MSE(d5,d5_t) + MSE(d4,d4_t) + MSE(d3,d3_t) + MSE(d2,d2_t) + MSE(e5,e5_t) + MSE(e4,e4_t) + MSE(e3,e3_t) + MSE(e2,e2_t) + MSE(e1,e1_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
