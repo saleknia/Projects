@@ -38,6 +38,30 @@ class seg_head(nn.Module):
 
         return up
 
+class se_block(nn.Module):
+    def __init__(self, in_channels, squeeze=4):
+        super().__init__()
+        self.layers = []
+        for i in range(squeeze):
+            layer = nn.Sequential(
+                                    nn.Conv2d(in_channels, in_channels*squeeze, kernel_size=1),
+                                    nn.BatchNorm2d(in_channels*squeeze),
+                                    nn.ReLU(inplace=True)
+                                )
+            self.layers.append(layer)
+        self.out = nn.Sequential(
+                                    nn.Conv2d(in_channels*squeeze, in_channels, kernel_size=1),
+                                    nn.BatchNorm2d(in_channels),
+                                    nn.ReLU(inplace=True)
+                                )
+    def forward(self, x):
+        temp = 0
+        for layer in self.layers:
+            temp = layer(x) + temp
+        x = temp
+        output = self.out(x)
+        return output, x
+        
 class ConvBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels):
