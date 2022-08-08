@@ -55,9 +55,11 @@ class se_block(nn.Module):
                                     nn.ReLU(inplace=True)
                                 )
     def forward(self, x):
-        temp = 0
-        for layer in self.layers:
-            temp = layer(x) + temp
+        for i,layer in enumerate(self.layers):
+            if i==0:
+                temp = layer(x)
+            else:
+                temp = layer(x) + temp
         x = temp
         output = self.out(x)
         return output, x
