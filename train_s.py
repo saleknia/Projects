@@ -386,7 +386,7 @@ def main(args):
         print('mean and std: ', datas['mean'], datas['std'])
 
         # define loss function, respectively
-        weight = torch.from_numpy(datas['classWeights'])
+        weight = torch.from_numpy(datas['classWeights']).to(DEVICE)
 
         datas, test_loader = build_dataset_test('camvid', NUM_WORKERS)
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
