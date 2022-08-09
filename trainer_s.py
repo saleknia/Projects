@@ -31,7 +31,7 @@ class Evaluator(object):
         Acc = torch.tensor(Acc)
         return Acc
 
-    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+    def MIOU_out(self,per_class=False,show=False):
         numerator = np.diag(self.confusion_matrix) 
         denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix))
         if show:
@@ -39,7 +39,7 @@ class Evaluator(object):
             # print('Union Pixels: ',denominator)
             print('MIoU Per Class: ',numerator/denominator)
         class_MIoU = numerator/denominator
-        class_MIoU = class_MIoU[1:]
+        class_MIoU = class_MIoU[0:self.num_class]
         MIoU = np.nanmean(class_MIoU)
         MIoU = torch.tensor(MIoU)
         class_MIoU = torch.tensor(class_MIoU)
@@ -56,7 +56,7 @@ class Evaluator(object):
             # print('Union Pixels: ',denominator)
             print('Dice Per Class: ',numerator/denominator)
         class_Dice = numerator/denominator
-        class_Dice = class_Dice[1:]
+        class_Dice = class_Dice[0:self.num_class]
         Dice = np.nanmean(class_Dice)
         Dice = torch.tensor(Dice)
         class_Dice = torch.tensor(class_Dice)
@@ -88,7 +88,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
     model.train()
 
-    loss_ce_total = utils.AverageMeter()
+    loss_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -111,11 +111,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.float()
         outputs = model(inputs)
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-
-        alpha = 0.5
-        beta = 0.5
-        loss = 0.5 * loss_ce + 0.5 * loss_dice
+        loss = ce_loss(outputs, targets[:].long())
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -129,8 +125,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         optimizer.step()
 
         loss_total.update(loss)
-        loss_dice_total.update(loss_dice)
-        loss_ce_total.update(loss_ce)
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -142,28 +136,18 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',         
+            suffix=f'loss = {loss_total.avg:.4f} , Dice = {Eval.MIOU_out()*100:.2f}',         
             bar_length=45
         )  
   
-    # acc = 100*accuracy.avg
-    # mIOU = 100*Eval.Mean_Intersection_over_Union()
-    # Dice = 100*Eval.Dice()
     acc = 100*accuracy.avg
-    mIOU = 100*Eval.Mean_Intersection_over_Union()
-    Dice,Dice_per_class = Eval.Dice(per_class=True)
-    Dice,Dice_per_class = 100*Dice,100*Dice_per_class
-
-    if writer is not None:
-        writer.add_scalar('Loss/train', loss_total.avg.item(), epoch_num)
-        writer.add_scalar('Acc/train', acc.item(), epoch_num)
-        writer.add_scalar('Dice/train', Dice.item(), epoch_num)
-        writer.add_scalar('MIoU/train', mIOU.item(), epoch_num)
+    mIOU,mIOU_per_class = Eval.MIOU_out(per_class=True)
+    mIOU,mIOU_per_class = 100*mIOU,100*mIOU_per_class
 
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
 
 
