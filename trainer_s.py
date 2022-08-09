@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss, disparity
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -91,6 +91,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     model.train()
 
     loss_total = utils.AverageMeter()
+    loss_ce_total = utils.AverageMeter()
+    loss_disparity_total = utils.AverageMeter()
 
     Eval = Evaluator(num_class=num_class+1)
 
@@ -99,6 +101,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     accuracy = utils.AverageMeter()
 
     ce_loss = CrossEntropyLoss(weight=weight, ignore_index=11)
+    disparity_loss = disparity()
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
@@ -111,10 +114,18 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
-        outputs = model(inputs)
+        outputs, up4, up3, up2, up1 = model(inputs)
 
-        loss = ce_loss(outputs, targets[:].long())
+        targets = targets.long()
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        overlap = (predictions==targets).float()
+        t_masks = targets * overlap
+        targets = targets.float()
 
+        loss_ce = ce_loss(outputs, targets[:].long())
+        loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1) * 0.1
+        loss = loss_ce + loss_disparity
+ 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
@@ -127,6 +138,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         optimizer.step()
 
         loss_total.update(loss)
+        loss_ce_total.update(loss_ce)
+        loss_disparity.update(loss_disparity)
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -138,7 +151,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss = {loss_total.avg:.4f} , MIOU = {Eval.MIOU_out()*100:.2f}',         
+            suffix=f'loss = {loss_total.avg:.4f} , loss_ce = {loss_ce_total.avg:.4f} , loss_dis = {loss_disparity_total.avg:.4f} , MIOU = {Eval.MIOU_out()*100:.2f}',         
             bar_length=45
         )  
   
