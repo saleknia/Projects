@@ -113,7 +113,7 @@ elif task_id==6:
     NUM_CLASS = 2
     TASK_NAME = 'TCIA'
 
-elif task_id==6:
+elif task_id==7:
     NUM_CLASS = 11
     TASK_NAME = 'camvid'
 

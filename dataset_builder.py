@@ -1,14 +1,14 @@
 import os
 import pickle
 from torch.utils import data
-from camvid import CamVidDataSet, CamVidValDataSet, CamVidTrainInform, CamVidTestDataSet
+from camvid import CamVidDataSet, CamVidValDataSet, CamVidTrainInform
 
 
 def build_dataset_train(dataset, input_size, batch_size, train_type, random_scale, random_mirror, num_workers):
     # data_dir = os.path.join('./dataset/', dataset)
     data_dir = '/content/drive/MyDrive/CamVid/CamVid'
 
-    dataset_list = '/content/drive/MyDrive/CamVid/CamVid/train.txt'
+    dataset_list = 'train.txt'
     train_data_list = '/content/drive/MyDrive/CamVid/CamVid/train.txt'
     val_data_list = '/content/drive/MyDrive/CamVid/CamVid/val.txt'
     inform_data_file = os.path.join('./content', dataset + '_inform.pkl')
