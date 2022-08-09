@@ -472,7 +472,8 @@ def main(args):
                             logger=logger,
                             optimizer=None,
                             lr_scheduler=None,
-                            early_stopping=None)
+                            early_stopping=None,
+                            weight=weight)
                 
                     logger.info(50*'*')
                     logger.info(50*'*')

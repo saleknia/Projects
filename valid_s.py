@@ -79,7 +79,7 @@ class Evaluator(object):
     def reset(self):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
 
-def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer):
+def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,weight):
     model.eval()
     loss_total = utils.AverageMeter()
     Eval = Evaluator(num_class=num_class)
@@ -112,7 +112,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Valid {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} , mIoU= {Eval.Mean_Intersection_over_Union()*100:.2f}',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} , mIoU= {Eval.MIOU_out()*100:.2f}',
                 bar_length=45
             )  
 
