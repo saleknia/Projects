@@ -123,7 +123,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
-        loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, up4=up4, up3=up3, up2=up2, up1=up1) * 0.1
+        loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, outputs=outputs,up4=up4, up3=up3, up2=up2, up1=up1) * 0.1
+        # loss_disparity = 0.0
         loss = loss_ce + loss_disparity
  
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9

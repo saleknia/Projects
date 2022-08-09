@@ -56,14 +56,14 @@ class disparity(nn.Module):
     def __init__(self):
         super(disparity, self).__init__()
         # self.down_scales = [1.0, 0.5, 0.25, 0.125]
-        self.down_scales = [0.5, 0.25, 0.125, 0.125]
+        self.down_scales = [1.0, 0.5, 0.25, 0.125, 0.125]
 
 
-    def forward(self, masks, t_masks, up4, up3, up2, up1):
+    def forward(self, masks, t_masks, outputs, up4, up3, up2, up1):
         loss = 0.0
-        up = [up1, up2, up3, up4]
+        up = [outputs, up1, up2, up3, up4]
 
-        for k in range(4):
+        for k in range(5):
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
@@ -73,7 +73,7 @@ class disparity(nn.Module):
             temp_masks_t = temp_masks_t.squeeze(dim=1)
 
             mask_unique_value = torch.unique(temp_masks)
-            # mask_unique_value = mask_unique_value[0:-1]
+            mask_unique_value = mask_unique_value[0:-1]
             unique_num = len(mask_unique_value)
             
             if unique_num<2:
@@ -86,6 +86,10 @@ class disparity(nn.Module):
                 p = p.long()
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+
+                bin_mask_t = torch.tensor(temp_masks_t==p,dtype=torch.int8)
+                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
+
                 temp = 0.0
                 batch_counter = 0
                 for t in range(B):
@@ -96,20 +100,7 @@ class disparity(nn.Module):
                 temp = temp / batch_counter
                 prototypes[count] = temp
 
-            # for count,p in enumerate(mask_unique_value):
-            #     p = p.long()
-            #     bin_mask = torch.tensor(temp_masks_t==p,dtype=torch.int8)
-            #     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-            #     temp = 0.0
-            #     batch_counter = 0
-            #     for t in range(B):
-            #         if torch.sum(bin_mask[t])!=0:
-            #             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-            #             temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-            #             batch_counter = batch_counter + 1
-            #     if batch_counter!=0.0:
-            #         temp = temp / batch_counter
-            #         prototypes_t[count] = temp
+
 
             l = 0.0
 
