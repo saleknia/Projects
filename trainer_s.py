@@ -139,7 +139,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
-        loss_disparity.update(loss_disparity)
+        loss_disparity_total.update(loss_disparity)
 
         targets = targets.long()
         predictions = torch.argmax(input=outputs,dim=1).long()
