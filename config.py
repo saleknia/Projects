@@ -114,8 +114,8 @@ elif task_id==6:
     TASK_NAME = 'TCIA'
 
 elif task_id==6:
-    NUM_CLASS = 2
-    TASK_NAME = 'TCIA'
+    NUM_CLASS = 11
+    TASK_NAME = 'camvid'
 
 # CONTINUE_ids = ['1','2']
 # CONTINUE_table = tabulate(

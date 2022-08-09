@@ -82,7 +82,7 @@ class Evaluator(object):
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping,weight):
     model.eval()
     loss_total = utils.AverageMeter()
-    Eval = Evaluator(num_class=num_class)
+    Eval = Evaluator(num_class=num_class+1)
     mIOU = 0.0
     accuracy = utils.AverageMeter()
 

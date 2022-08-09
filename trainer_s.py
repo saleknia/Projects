@@ -90,7 +90,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     loss_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class)
+    Eval = utils.Evaluator(num_class=num_class+1)
 
     mIOU = 0.0
 
