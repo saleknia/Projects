@@ -78,7 +78,7 @@ def random_rot_flip(image, label):
     return image, label
 
 def random_rotate(image, label):
-    angle = np.random.randint(-90, 90)
+    angle = np.random.randint(-20, 20)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
     label = ndimage.rotate(label, angle, order=0, reshape=False)
     return image, label
@@ -91,12 +91,12 @@ class RandomGenerator(object):
         image, label = sample['image'], sample['label']
         image, label = F.to_pil_image(image), F.to_pil_image(label)
         x, y = image.size
-        if random.random() > 0.0:
+        if random.random() > 0.5:
             image, label = random_rot_flip(image, label)
-        elif random.random() > 0.0:
+        elif random.random() > 0.5:
             image, label = random_rotate(image, label)
-        elif random.random() > 0.0:
-            image, label = random_scale(image, label)
+        # elif random.random() > 0.5:
+        #     image, label = random_scale(image, label)
 
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
@@ -544,7 +544,7 @@ class CT_1K(Dataset):
         data = np.load(data_path)
         image, mask = data['image'], data['label']
 
-        mask[mask>11.0] = 0.0
+        mask[mask>8.0] = 0.0
 
         sample = {'image': image, 'label': mask}
 

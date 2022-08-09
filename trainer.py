@@ -253,8 +253,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t) + disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
         loss_disparity = 0.0
         ###############################################
-        alpha = 0.5
-        beta = 0.5
+        alpha = 0.6
+        beta = 0.4
         gamma = 0.01
         # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
         loss = alpha * loss_dice + beta * loss_ce      
