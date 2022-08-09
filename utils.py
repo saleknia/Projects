@@ -73,7 +73,7 @@ class disparity(nn.Module):
             temp_masks_t = temp_masks_t.squeeze(dim=1)
 
             mask_unique_value = torch.unique(temp_masks)
-            mask_unique_value = mask_unique_value[0:-1]
+            # mask_unique_value = mask_unique_value[0:-1]
             unique_num = len(mask_unique_value)
             
             if unique_num<2:
