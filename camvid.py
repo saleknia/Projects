@@ -235,7 +235,7 @@ class CamVidTrainInform:
                 else:
                     print("we can only collect statistical information of train set, please check")
 
-                if max_val > (self.classes - 1) or min_val < 0:
+                if max_val > self.classes or min_val < 0:
                     print('Labels can take value between 0 and number of classes.')
                     print('Some problem with labels. Please check. label_set:', unique_values)
                     print('Label Image ID: ' + label_file)

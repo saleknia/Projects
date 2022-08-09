@@ -11,7 +11,9 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
     dataset_list = 'train.txt'
     train_data_list = '/content/drive/MyDrive/CamVid/CamVid/train.txt'
     val_data_list = '/content/drive/MyDrive/CamVid/CamVid/val.txt'
-    inform_data_file = os.path.join('./content', dataset + '_inform.pkl')
+    # inform_data_file = os.path.join('./content', dataset + '_inform.pkl')
+    inform_data_file = dataset + '_inform.pkl'
+
 
     # inform_data_file collect the information of mean, std and weigth_class
     if not os.path.isfile(inform_data_file):
