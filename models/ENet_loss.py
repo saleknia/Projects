@@ -188,7 +188,7 @@ class InitialBlock(nn.Module):
         self.act = nn.PReLU()
 
     def forward(self, x):
-        x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
+        # x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         x_conv = self.conv(x)
         x_pool = self.maxpool(x)
         x = torch.cat([x_conv, x_pool], dim=1)
