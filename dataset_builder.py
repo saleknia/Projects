@@ -68,7 +68,7 @@ def build_dataset_train(dataset, input_size, batch_size, train_type, random_scal
 
 def build_dataset_test(dataset, num_workers, none_gt=False):
     # data_dir = os.path.join('./dataset/', dataset)
-    data_dir = '/content/drive/MyDrive/CamVid/CamVid/test'
+    data_dir = '/content/drive/MyDrive/CamVid/CamVid'
 
     dataset_list = '/content/drive/MyDrive/CamVid/CamVid/train.txt'
     test_data_list = '/content/drive/MyDrive/CamVid/CamVid/test.txt'

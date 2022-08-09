@@ -39,7 +39,7 @@ class Evaluator(object):
             # print('Union Pixels: ',denominator)
             print('MIoU Per Class: ',numerator/denominator)
         class_MIoU = numerator/denominator
-        class_MIoU = class_MIoU[0:self.num_class]
+        class_MIoU = class_MIoU[0:self.num_class-1]
         MIoU = np.nanmean(class_MIoU)
         MIoU = torch.tensor(MIoU)
         class_MIoU = torch.tensor(class_MIoU)
