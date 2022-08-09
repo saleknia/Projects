@@ -80,6 +80,7 @@ class Evaluator(object):
         self.confusion_matrix = np.zeros((self.num_class,) * 2)
 
 def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,weight):
+    model=model.to(device)
     model.eval()
     loss_total = utils.AverageMeter()
     Eval = Evaluator(num_class=num_class+1)

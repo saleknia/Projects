@@ -86,17 +86,19 @@ class Evaluator(object):
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function,weight):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
+    
+    model=model.to('cuda')
     model.train()
 
     loss_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class+1)
+    Eval = Evaluator(num_class=num_class+1)
 
     mIOU = 0.0
 
     accuracy = utils.AverageMeter()
 
-    ce_loss = CrossEntropyLoss(weight=weight, ignore_index=11)
+    ce_loss = CrossEntropyLoss(weight=weight.to('cuda'), ignore_index=11)
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 

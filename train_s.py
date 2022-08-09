@@ -379,7 +379,7 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='camvid':
-        datas, train_loader, valid_loader = build_dataset_train('camvid', 368, BATCH_SIZE, None, False, True, NUM_WORKERS)
+        datas, train_loader, valid_loader = build_dataset_train('camvid', (368,368), BATCH_SIZE, None, False, True, NUM_WORKERS)
 
         print('=====> Dataset statistics')
         print("data['classWeights']: ", datas['classWeights'])

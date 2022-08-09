@@ -72,8 +72,8 @@ def build_dataset_test(dataset, num_workers, none_gt=False):
 
     dataset_list = '/content/drive/MyDrive/CamVid/CamVid/train.txt'
     test_data_list = '/content/drive/MyDrive/CamVid/CamVid/test.txt'
-    inform_data_file = os.path.join('./content', dataset + '_inform.pkl')
-
+    # inform_data_file = os.path.join('./content', dataset + '_inform.pkl')
+    inform_data_file = dataset + '_inform.pkl'
     # inform_data_file collect the information of mean, std and weigth_class
     if not os.path.isfile(inform_data_file):
         print("%s is not found" % (inform_data_file))
