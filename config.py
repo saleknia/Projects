@@ -66,7 +66,7 @@ DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
-task_ids = ['1','2','3','4','5','6']
+task_ids = ['1','2','3','4','5','6','7']
 task_table = tabulate(
                     tabular_data=[
                         ['COVID-19', 1],
@@ -74,7 +74,8 @@ task_table = tabulate(
                         ['ACDC', 3],
                         ['CT-1K', 4],
                         ['SSL', 5],
-                        ['TCIA',6]],
+                        ['TCIA',6],
+                        ['camvid',7]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -107,6 +108,10 @@ elif task_id==4:
 elif task_id==5:
     NUM_CLASS = 1
     TASK_NAME = 'SSL'
+
+elif task_id==6:
+    NUM_CLASS = 2
+    TASK_NAME = 'TCIA'
 
 elif task_id==6:
     NUM_CLASS = 2
