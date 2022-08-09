@@ -10,75 +10,94 @@ from utils import print_progress
 import torch.nn.functional as F
 import warnings
 from valid_s import valid_s
+import numpy as np
 warnings.filterwarnings("ignore")
 
-def loss_kd_regularization(outputs, masks):
-    """
-    loss function for mannually-designed regularization: Tf-KD_{reg}
-    """
-    correct_prob = 0.9    # the probability for correct class in u(k)
-    K = outputs.size(1)
+class Evaluator(object):
+    ''' For using this evaluator target and prediction
+        dims should be [B,H,W] '''
+    def __init__(self, num_class):
+        self.num_class = num_class
+        self.confusion_matrix = np.zeros((self.num_class,) * 2)
+        
+    def Pixel_Accuracy(self):
+        Acc = np.diag(self.confusion_matrix).sum() / self.confusion_matrix.sum()
+        Acc = torch.tensor(Acc)
+        return Acc
 
-    teacher_scores = torch.ones_like(outputs).cuda()
-    teacher_scores = teacher_scores*(1-correct_prob)/(K-1)  # p^d(k)
+    def Pixel_Accuracy_Class(self):
+        Acc = np.diag(self.confusion_matrix) / self.confusion_matrix.sum(axis=1)
+        Acc = np.nanmean(Acc)
+        Acc = torch.tensor(Acc)
+        return Acc
 
-    teacher_scores[masks] = correct_prob
+    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+        numerator = np.diag(self.confusion_matrix) 
+        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix))
+        if show:
+            # print('Intersection Pixels: ',numerator)
+            # print('Union Pixels: ',denominator)
+            print('MIoU Per Class: ',numerator/denominator)
+        class_MIoU = numerator/denominator
+        class_MIoU = class_MIoU[1:]
+        MIoU = np.nanmean(class_MIoU)
+        MIoU = torch.tensor(MIoU)
+        class_MIoU = torch.tensor(class_MIoU)
+        if per_class:
+            return MIoU,class_MIoU
+        else:
+            return MIoU
 
-    return teacher_scores
-
-def prediction_map_distillation(y, masks, T=2.0) :
-    """
-    basic KD loss function based on "Distilling the Knowledge in a Neural Network"
-    https://arxiv.org/abs/1503.02531
-    :param y: student score map
-    :param teacher_scores: teacher score map
-    :param T:  for softmax
-    :return: loss value
-    """
-    y = y.cuda()
-    masks = masks.long()
-    masks = masks.cuda()
-
-    bin_masks = masks
-    bin_masks[bin_masks!=0] = 1.0 
-
-    masks_temp = F.one_hot(masks, num_classes=9)
-    masks_temp = torch.permute(masks_temp, (0, 3, 1, 2))
-    masks_temp = masks_temp.bool()
-
-    teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
-
-    y_prime = y * bin_masks.unsqueeze(dim=1).expand_as(y)
-    teacher_scores_prime = teacher_scores * bin_masks.unsqueeze(dim=1).expand_as(teacher_scores)
-
-    p = F.log_softmax(y_prime / T , dim=1)
-    q = F.softmax(teacher_scores_prime / T, dim=1)
-
-    p = p.view(-1, 2)
-    q = q.view(-1, 2)
-
-    l_kl = F.kl_div(p, q, reduction='batchmean') * (T ** 2)
-    return l_kl
+    def Dice(self,per_class=False,show=False):
+        numerator = 2*np.diag(self.confusion_matrix) 
+        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0))
+        if show:
+            # print('Intersection Pixels: ',numerator)
+            # print('Union Pixels: ',denominator)
+            print('Dice Per Class: ',numerator/denominator)
+        class_Dice = numerator/denominator
+        class_Dice = class_Dice[1:]
+        Dice = np.nanmean(class_Dice)
+        Dice = torch.tensor(Dice)
+        class_Dice = torch.tensor(class_Dice)
+        if per_class:
+            return Dice,class_Dice
+        else:
+            return Dice
 
 
-def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
+    def _generate_matrix(self, gt_image, pre_image):
+        mask = (gt_image >= 0) & (gt_image < self.num_class)
+        label = self.num_class * gt_image[mask].astype('int') + pre_image[mask]
+        count = np.bincount(label, minlength=self.num_class**2)
+        confusion_matrix = count.reshape(self.num_class, self.num_class)
+        return confusion_matrix
+
+    def add_batch(self, gt_image, pre_image):
+        gt_image=gt_image.int().detach().cpu().numpy()
+        pre_image=pre_image.int().detach().cpu().numpy()
+        assert gt_image.shape == pre_image.shape
+        for lp, lt in zip(pre_image, gt_image):
+            self.confusion_matrix += self._generate_matrix(lt.flatten(), lp.flatten())
+
+    def reset(self):
+        self.confusion_matrix = np.zeros((self.num_class,) * 2)
+
+def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function,weight):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
     model.train()
 
-    loss_total = utils.AverageMeter()
-    loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
     mIOU = 0.0
-    Dice = 0.0
 
     accuracy = utils.AverageMeter()
 
-    ce_loss = CrossEntropyLoss()
-    dice_loss = DiceLoss(num_class)
+    ce_loss = CrossEntropyLoss(weight=weight, ignore_index=11)
+
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
 
@@ -93,7 +112,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         outputs = model(inputs)
 
         loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(outputs, targets, softmax=True)
 
         alpha = 0.5
         beta = 0.5

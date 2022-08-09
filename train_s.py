@@ -49,6 +49,7 @@ from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
+from dataset_builder import build_dataset_train, build_dataset_test
 # from testing import inference
 # from testingV2 import inferenceV2
 import warnings
@@ -377,6 +378,19 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
+    elif TASK_NAME=='camvid':
+        datas, train_loader, valid_loader = build_dataset_train('camvid', 368, BATCH_SIZE, None, False, True, NUM_WORKERS)
+
+        print('=====> Dataset statistics')
+        print("data['classWeights']: ", datas['classWeights'])
+        print('mean and std: ', datas['mean'], datas['std'])
+
+        # define loss function, respectively
+        weight = torch.from_numpy(datas['classWeights'])
+
+        datas, test_loader = build_dataset_test('camvid', NUM_WORKERS)
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
@@ -403,7 +417,8 @@ def main(args):
                 lr_scheduler=lr_scheduler,
                 writer=writer,
                 logger=logger,
-                loss_function=loss_function)
+                loss_function=loss_function,
+                weight=weight)
             # tester_s(
             #     end_epoch=end_epoch,
             #     epoch_num=epoch,
