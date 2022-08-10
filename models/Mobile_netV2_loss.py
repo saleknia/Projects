@@ -236,6 +236,10 @@ class Mobile_netV2_loss(nn.Module):
         x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
         if self.training:
             return x, x4, x3, x2, x1
+            print(x4.shape)
+            print(x3.shape)
+            print(x2.shape)
+            print(x1.shape)
         else:
             return x
 
