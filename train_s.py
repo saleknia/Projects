@@ -35,6 +35,8 @@ from models.GT_UNet import GT_U_Net
 from models.ENet import ENet
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
+from models.ESPNet import ESPNet
+from models.ESPNet_loss import ESPNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
@@ -145,6 +147,12 @@ def main(args):
     elif MODEL_NAME == 'ENet_loss':
         model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
 
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet_loss':
+        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+        
     elif MODEL_NAME == 'DABNet':
         model = DABNet(classes=NUM_CLASS).to(DEVICE)
 
