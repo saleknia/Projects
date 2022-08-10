@@ -54,7 +54,7 @@ def importance_maps_distillation(student, teacher, exp=4):
 
 class disparity(nn.Module):
     def __init__(self):
-        super(prototype_loss, self).__init__()
+        super(disparity, self).__init__()
         self.epsilon = 1e-6
 
         # ENet
