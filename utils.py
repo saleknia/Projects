@@ -229,10 +229,10 @@ def importance_maps_distillation(student, teacher, exp=4):
 class disparity(nn.Module):
     def __init__(self):
         super(disparity, self).__init__()
-        # self.down_scales = [1.0,0.5,0.5,0.25,0.125]
+        self.down_scales = [1.0, 0.5, 0.5, 0.25, 0.125]
         # self.down_scales = [1.0, 0.5, 0.25, 0.125, 0.125]
         # self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
-        self.down_scales = [1.0, 1.0, 0.5, 0.25, 0.125]
+        # self.down_scales = [1.0, 1.0, 0.5, 0.25, 0.125]
 
 
 
