@@ -249,25 +249,25 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        # loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
+        loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t) + disparity_loss(masks=targets, t_masks=t_masks, up4=d5, up3=d4, up2=d3, up1=d2)
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
         ###############################################
         alpha = 0.5
         beta = 0.5
         gamma = 0.01
-        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
-        loss = alpha * loss_dice + beta * loss_ce      
+        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
+        # loss = alpha * loss_dice + beta * loss_ce      
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
 
-        lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
+        # lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_
+        # for param_group in optimizer.param_groups:
+        #     param_group['lr'] = lr_
 
-        iter_num = iter_num + 1        
+        # iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
