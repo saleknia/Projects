@@ -77,7 +77,7 @@ class OutConv(nn.Module):
 
 
 class U_loss(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9, bilinear=False):
+    def __init__(self, n_channels=1, n_classes=13, bilinear=False):
         super(U_loss, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
