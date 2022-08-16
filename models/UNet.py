@@ -480,7 +480,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
         # Question here
-        in_channels = 8
+        in_channels = 12
 
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
@@ -530,7 +530,7 @@ class UNet(nn.Module):
             logits = self.outc(up1)
 
         if self.training:
-            return logits, up4, up3, up2, up1, x5, x4, x3, x2, x1
+            return logits, up4, up3, up2, up1
         else:
             return logits
 

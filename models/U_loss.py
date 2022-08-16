@@ -77,12 +77,12 @@ class OutConv(nn.Module):
 
 
 class U_loss(nn.Module):
-    def __init__(self, n_channels=1, n_classes=5, bilinear=False):
+    def __init__(self, n_channels=1, n_classes=9, bilinear=False):
         super(U_loss, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        in_channels = 32
+        in_channels = 12
         self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels  , in_channels*2)
         self.down2 = Down(in_channels*2, in_channels*4)
@@ -107,6 +107,6 @@ class U_loss(nn.Module):
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
         if self.training:
-            return logits, up1, up2, up3, up4, x5, x4, x3, x2, x1
+            return logits, up1, up2, up3, up4
         else:
             return logits

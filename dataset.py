@@ -26,6 +26,59 @@ import cv2
 from torch.utils import data
 import pickle
 
+def shift_2d_replace(data, dx, dy, constant=0.0):
+    """
+    Shifts the array in two dimensions while setting rolled values to constant
+    :param data: The 2d numpy array to be shifted
+    :param dx: The shift in x
+    :param dy: The shift in y
+    :param constant: The constant to replace rolled values with
+    :return: The shifted array with "constant" where roll occurs
+    """
+    shifted_data = np.roll(data, dx, axis=1)
+    if dx < 0:
+        shifted_data[:, dx:] = constant
+    elif dx > 0:
+        shifted_data[:, 0:dx] = constant
+
+    shifted_data = np.roll(shifted_data, dy, axis=0)
+    if dy < 0:
+        shifted_data[dy:, :] = constant
+    elif dy > 0:
+        shifted_data[0:dy, :] = constant
+    return shifted_data
+
+def random_shift(image, label):
+
+    np_image = np.array(image)
+    np_label = np.array(label)
+    x, y = np_image.shape
+
+    x_Shift = int(x * (np.random.rand()-0.5))
+    y_Shift = int(y * (np.random.rand()-0.5))
+
+    image = shift_2d_replace(data=np_image, dx=x_Shift, dy=y_Shift) 
+    label = shift_2d_replace(data=np_label, dx=x_Shift, dy=y_Shift) 
+    
+    return image, label
+
+
+def random_erase(image, label):
+
+    np_image = np.array(image)
+    np_label = np.array(label)
+
+
+    w = np_image.shape[1] // 2
+    h = np_image.shape[0] // 2
+
+    x0 = random.randint(0, w)
+    y0 = random.randint(0, h)
+
+    np_image[y0:y0+h, x0:x0+w] = 0.0
+    np_label[y0:y0+h, x0:x0+w] = 0.0
+
+    return np_image, np_label
 
 def random_crop(image, label):
 
@@ -83,6 +136,17 @@ def random_rotate(image, label):
     label = ndimage.rotate(label, angle, order=0, reshape=False)
     return image, label
 
+def crop_image(img,label,tol=0):
+    img = np.array(img)
+    label = np.array(label)
+    # img is 2D image data
+    # tol  is tolerance
+    mask = img>tol
+    image, label = img[np.ix_(mask.any(1),mask.any(0))], label[np.ix_(mask.any(1),mask.any(0))]
+    image = zoom(image, (256.0 / image.shape[0], 256.0 / image.shape[1]), order=0)  # why not 3?
+    label = zoom(label, (256.0 / label.shape[0], 256.0 / label.shape[1]), order=0)
+    return image, label
+
 class RandomGenerator(object):
     def __init__(self, output_size):
         self.output_size = output_size
@@ -95,8 +159,7 @@ class RandomGenerator(object):
             image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
             image, label = random_rotate(image, label)
-        # elif random.random() > 0.5:
-        #     image, label = random_scale(image, label)
+
 
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?

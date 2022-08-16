@@ -108,17 +108,6 @@ class ENet_loss(nn.Module):
         x = self.bottleneck2_8(x)
         x4 = x
 
-        # if self.training==False:
-        #     B, C, H, W = x4.shape
-        #     x4_p = x4.reshape(B * H * W ,C).detach().cpu().numpy()
-        #     labels = self.neigh_x4.predict(x4_p)
-        #     for count,label in enumerate(labels):
-        #         if label!=0:
-        #             x4_p[count] = self.protos_des[3][label]
-        #         else:
-        #             x4_p[count] = np.zeros(C)
-        #     x = torch.tensor(x4_p).reshape(B, C, H, W).cuda()
-
         # stage 3
         x = self.bottleneck3_1(x)
         x = self.bottleneck3_2(x)
@@ -129,46 +118,17 @@ class ENet_loss(nn.Module):
         x = self.bottleneck3_8(x)
         x3 = x
 
-        # if self.training==False:
-        #     B, C, H, W = x3.shape
-        #     x3_p = x3.reshape(B * H * W ,C).detach().cpu().numpy()
-        #     labels = self.neigh_x3.predict(x3_p)
-        #     for i in range(B * H * W):
-        #         if labels[i]!=0:
-        #             index = self.neigh_x3.kneighbors(X=np.array([x3_p[i]]), n_neighbors=1, return_distance=False)
-        #             x3_p[i] = self.X_3[index[0,0]]
-        #     x = torch.tensor(x3_p).reshape(B, C, H, W).cuda()
-
         # stage 4
         x = self.bottleneck4_0(x, max_indices2)
         x = self.bottleneck4_1(x)
         x = self.bottleneck4_2(x)
         x2 = x
 
-        # if self.training==False:
-        #     B, C, H, W = x2.shape
-        #     x2_p = x2.reshape(B * H * W ,C).detach().cpu().numpy()
-        #     labels = self.neigh_x2.predict(x2_p)
-        #     for count,label in enumerate(labels):
-        #         x2_p[count] = self.protos_des[1][label]
-        #     x2 = torch.tensor(x2_p).reshape(B, C, H, W)
-
         # stage 5
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
         x1 = x
 
-        # if self.training==False:
-        #     B, C, H, W = x1.shape
-        #     x1_p = x1.reshape(B * H * W ,C).detach().cpu().numpy()
-        #     labels = self.neigh_x1.predict(x1_p)
-        #     for count,label in enumerate(labels):
-        #         x1_p[count] = self.protos_des[0][label]
-        #     x1 = torch.tensor(x1_p).reshape(B, C, H, W)
-
-
-        # out
-        # x = self.head(x4, x3, x2, x1)
         x = self.fullconv(x)
 
         if self.training:

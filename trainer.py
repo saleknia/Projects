@@ -256,13 +256,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         alpha = 0.5
         beta = 0.5
         gamma = 0.01
-        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
-        # loss = alpha * loss_dice + beta * loss_ce      
+        # loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
+        loss = alpha * loss_dice + beta * loss_ce      
         # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
         # loss = loss_kd 
         ###############################################
 
-        # lr_ = 0.02 * (1.0 - iter_num / max_iterations) ** 0.9
+        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         # for param_group in optimizer.param_groups:
         #     param_group['lr'] = lr_
