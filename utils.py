@@ -233,17 +233,17 @@ class disparity(nn.Module):
         # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
         # self.down_scales = [1.0, 0.5, 0.25, 0.125, 0.125]
         # self.down_scales = [1.0, 0.25, 0.125, 0.0625, 0.03125]
-        self.down_scales = [1.0, 0.5, 0.25, 0.125]
+        self.down_scales = [1.0, 1.0, 0.5, 0.25, 0.125]
 
 
 
     def forward(self, masks, t_masks, outputs, up4, up3, up2, up1):
         loss = 0.0
-        # up = [outputs, up1, up2, up3, up4]
-        up = [up1, up2, up3, up4]
+        up = [outputs, up1, up2, up3, up4]
+        # up = [up1, up2, up3, up4]
 
 
-        for k in range(4):
+        for k in range(5):
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
