@@ -25,6 +25,11 @@ from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
 
+def pw_cosine(x,y):
+    x = torch.nn.functional.normalize(x)
+    y = torch.nn.functional.normalize(y)
+    cosine = torch.mm(x, y.T)
+    cosine = torch.nn.fun
 def at(x, exp):
     """
     attention value of a feature map
