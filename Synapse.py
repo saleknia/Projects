@@ -531,17 +531,22 @@ if __name__ == "__main__":
         # print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
         # making_train_npz(path = os.path.join(download_path,'train_npz'),
         #                 samples_path = os.path.join(download_path,'RawData','Training'),
-        #                 lookup_table = [0,3,2,2,8,9,1,7,5,6,0,4,0,0])
-
-        # print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
-        # making_train_npz(path = os.path.join(download_path,'train_npz'),
-        #                 samples_path = os.path.join(download_path,'RawData','Training'),
         #                 lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
-        
+
+
+
+        print(color.BOLD+color.RED+'Making train_npz dirctory... '+color.END) 
+        making_train_npz(path = os.path.join(download_path,'train_npz'),
+                        samples_path = os.path.join(download_path,'RawData','Training'),
+                        lookup_table = [0,1,2,3,4,5,6,7,8,9,10,11,12,13])
+
+
         print(color.BOLD+color.RED+'Making test_npz dirctory... '+color.END)                      
         making_test_npz(path = os.path.join(download_path,'test_npz'),
                         samples_path = os.path.join(download_path,'RawData','Training'),
-                        lookup_table = [0,7,4,3,2,0,5,8,1,0,0,6,0,0])
+                        lookup_table = [0,1,2,3,4,5,6,7,8,9,10,11,12,13])
+
+
 
         # print(color.BOLD+color.RED+'Making test_vol_h5 dirctory... '+color.END)                      
         # making_test_vol_h5(path = os.path.join(download_path,'test_vol_h5'),
