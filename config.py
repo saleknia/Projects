@@ -43,7 +43,7 @@ if log:
 
 
 # Hyperparameters etc.
-LEARNING_RATE = 0.001
+LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 6
 NUM_EPOCHS = 60
@@ -94,7 +94,7 @@ if task_id==1:
         DOWNLOAD = True
 
 elif task_id==2:
-    NUM_CLASS = 14
+    NUM_CLASS = 9
     TASK_NAME = 'Synapse'
 
 elif task_id==3:
@@ -102,7 +102,7 @@ elif task_id==3:
     TASK_NAME = 'ACDC'
 
 elif task_id==4:
-    NUM_CLASS = 13
+    NUM_CLASS = 9
     TASK_NAME = 'CT-1K'
 
 elif task_id==5:
