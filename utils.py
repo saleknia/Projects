@@ -266,10 +266,14 @@ class disparity(nn.Module):
 
         for k in range(4):
             indexs = []
+            WP = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
+
+            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_t_masks = temp_t_masks.squeeze(dim=1)
 
             mask_unique_value = torch.unique(temp_masks)
             mask_unique_value = mask_unique_value[1:]
@@ -285,6 +289,9 @@ class disparity(nn.Module):
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
 
+                bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
+                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
+
                 temp = 0.0
                 batch_counter = 0
                 for t in range(B):
@@ -294,6 +301,12 @@ class disparity(nn.Module):
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
                 prototypes[count] = temp
+                WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+
+            WP = torch.tensor(WP)
+            WP = torch.diag(WP)
+            WP = WP.detach()
+
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
@@ -308,7 +321,7 @@ class disparity(nn.Module):
             diagonal = distances_c[0] * x
 
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-            l = l + (1.0 * torch.mean(diagonal))
+            l = l + (1.0 * torch.mean(WP*diagonal))
 
             loss = loss + l
 
