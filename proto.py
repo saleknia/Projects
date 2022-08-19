@@ -71,26 +71,26 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
     model.train()
     model.to(device)
     # down_scales = [1.0,0.5,0.25,0.125]
-    down_scales = [1.0,0.5,0.5,0.25,0.125]
-    # down_scales = [0.5,0.5,0.25,0.125]
+    # down_scales = [1.0,0.5,0.5,0.25,0.125]
+    down_scales = [0.5,0.25,0.125,0.125]
 
-    num_class = 12
+    num_class = 8
     loader = dataloader['train']
     total_batchs = len(loader)
 
     # ESPNet
-    proto_des_0 = torch.zeros(num_class, 13 )
-    proto_des_1 = torch.zeros(num_class, 16 )
-    proto_des_2 = torch.zeros(num_class, 13 )
-    proto_des_3 = torch.zeros(num_class, 64 )
-    proto_des_4 = torch.zeros(num_class, 128)
+    # proto_des_0 = torch.zeros(num_class, 13 )
+    # proto_des_1 = torch.zeros(num_class, 16 )
+    # proto_des_2 = torch.zeros(num_class, 13 )
+    # proto_des_3 = torch.zeros(num_class, 64 )
+    # proto_des_4 = torch.zeros(num_class, 128)
 
     # ENet
-    # proto_des_1 = torch.zeros(num_class, 16 )
-    # proto_des_2 = torch.zeros(num_class, 64 )
-    # proto_des_3 = torch.zeros(num_class, 128)
-    # proto_des_4 = torch.zeros(num_class, 128)
-    protos_des = [proto_des_0, proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+    proto_des_1 = torch.zeros(num_class, 16 )
+    proto_des_2 = torch.zeros(num_class, 64 )
+    proto_des_3 = torch.zeros(num_class, 128)
+    proto_des_4 = torch.zeros(num_class, 128)
+    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
     protos_out = []
     with torch.no_grad():
         for k in range(5):
