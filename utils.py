@@ -240,42 +240,29 @@ class disparity(nn.Module):
 
         # ENet
         self.down_scales = [0.5,0.25,0.125,0.125]
-
-
-
         num_class = 10
 
         self.num_class = num_class
         
 
         # ENet
-        self.proto_0 = torch.zeros(num_class, 11 )
         self.proto_1 = torch.zeros(num_class, 16 )
         self.proto_2 = torch.zeros(num_class, 64 )
         self.proto_3 = torch.zeros(num_class, 128)
         self.proto_4 = torch.zeros(num_class, 128)
 
-        self.protos = [self.proto_0, self.proto_1, self.proto_2, self.proto_3, self.proto_4]
+        self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
         self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
         # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
-    def dice_loss(self, score, target):
-        target = target.float()
-        smooth = 1e-5
-        intersect = torch.sum(score * target)
-        y_sum = torch.sum(target * target)
-        z_sum = torch.sum(score * score)
-        loss = (2 * intersect + smooth) / (z_sum + y_sum + smooth)
-        loss = 1 - loss
-        return loss
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
         loss = 0.0
-        up = [outputs, up1, up2, up3, up4]
+        up = [up1, up2, up3, up4]
 
-        for k in range(5):
+        for k in range(4):
             indexs = []
             WP = []
             B,C,H,W = up[k].shape
@@ -335,6 +322,10 @@ class disparity(nn.Module):
 
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
             l = l + (1.0 * torch.mean(diagonal))
+
+            proto = prototypes.unsqueeze(dim=0)
+            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
+            l = l + (1.0 / torch.mean(distances))
 
             loss = loss + l
 
