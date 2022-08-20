@@ -301,8 +301,9 @@ class disparity(nn.Module):
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
+                wp = torch.sum(bin_mask_t)/torch.sum(bin_mask)
                 prototypes[count] = temp
-                WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
+                WP.append(wp)
 
             WP = torch.tensor(WP)
             WP = torch.diag(WP)
@@ -322,7 +323,7 @@ class disparity(nn.Module):
             diagonal = distances_c[0] * x
 
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-            l = l + (1.0 * torch.mean(WP*diagonal))
+            l = l + (1.0 * torch.mean((1.0-WP)*diagonal))
 
             loss = loss + l
 
@@ -330,6 +331,13 @@ class disparity(nn.Module):
         self.iteration = self.iteration + 1
 
         return loss
+
+    # @torch.no_grad()
+    # def update(self, prototypes_t, mask_unique_value, k):
+    #     for count, p in enumerate(mask_unique_value):
+    #         p = p.long().item()
+    #         self.protos[k][p-1] = self.protos[k][p-1] + prototypes_t[count]
+    #         self.protos[k][p-1] = nn.functional.normalize(self.protos[k][p-1], p=2.0, dim=0, eps=1e-12, out=None)
 
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value, k):
