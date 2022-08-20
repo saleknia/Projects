@@ -257,7 +257,8 @@ class disparity(nn.Module):
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
@@ -329,7 +330,6 @@ class disparity(nn.Module):
         self.iteration = self.iteration + 1
 
         return loss
-
 
     @torch.no_grad()
     def update(self, prototypes, mask_unique_value, k):
