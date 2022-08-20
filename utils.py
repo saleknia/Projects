@@ -257,8 +257,8 @@ class disparity(nn.Module):
         self.protos = [self.proto_1, self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
-        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
+        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 396)
+        # self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
 
 
     def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
@@ -301,13 +301,13 @@ class disparity(nn.Module):
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
-                wp = torch.sum(bin_mask_t)/torch.sum(bin_mask)
+                # wp = torch.sum(bin_mask_t)/torch.sum(bin_mask)
                 prototypes[count] = temp
-                WP.append(wp)
+            #     WP.append(wp)
 
-            WP = torch.tensor(WP)
-            WP = torch.diag(WP)
-            WP = WP.detach()
+            # WP = torch.tensor(WP)
+            # WP = torch.diag(WP)
+            # WP = WP.detach()
 
 
             indexs = [x.item()-1 for x in mask_unique_value]
@@ -323,7 +323,7 @@ class disparity(nn.Module):
             diagonal = distances_c[0] * x
 
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-            l = l + (1.0 * torch.mean((1.0-WP)*diagonal))
+            l = l + (1.0 * torch.mean(diagonal))
 
             loss = loss + l
 
