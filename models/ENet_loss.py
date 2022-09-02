@@ -132,7 +132,7 @@ class ENet_loss(nn.Module):
         x = self.fullconv(x)
 
         if self.training:
-            return x, x4, x3, x2, x1
+            return x, x4, x3, x2, x1, None, None, None, None, None
         else:
             return x
 
