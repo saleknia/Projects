@@ -95,7 +95,7 @@ class U(nn.Module):
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
         self.outc = OutConv(in_channels , n_classes)
 
-    def forward(self, x):
+    def forward(self, x, teacher=False):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -109,4 +109,7 @@ class U(nn.Module):
         if self.training:
             return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
         else:
-            return logits
+            if teacher:
+                return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
+            else:
+                return logits
