@@ -47,7 +47,7 @@ class Fast_SCNN_loss(nn.Module):
             return tuple(outputs)
         else:
             if self.training:
-                return outputs[0], feature_fusion, x2, x1, higher_res_features
+                return outputs[0], feature_fusion, x2, x1, higher_res_features, None, None, None, None, None
             else:
                 return outputs[0]
 
