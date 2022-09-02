@@ -182,7 +182,7 @@ def main(args):
         lr_scheduler =  None     
 
     if TEACHER is True:
-        teacher_model = model = U(bilinear=False).to(DEVICE)
+        teacher_model = U(bilinear=False).to(DEVICE)
         checkpoint_path = '/content/drive/MyDrive/checkpoint_88_14/U_loss_ACDC_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
