@@ -181,38 +181,38 @@ def main(args):
     else:
         lr_scheduler =  None     
 
-    # if TEACHER is True:
-    #     teacher_model = AttentionUNet_loss(img_ch=1, output_ch=9).to(DEVICE) 
-    #     checkpoint_path = '/content/drive/MyDrive/teacher_att/AttUNet_loss_Synapse_best.pth'
-    #     logger.info('Loading Teacher Checkpoint...')
-    #     if os.path.isfile(checkpoint_path):
-    #         pretrained_model_path = checkpoint_path
-    #         loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-    #         pretrained = loaded_data['net']
-    #         model2_dict = teacher_model.state_dict()
-    #         state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-    #         model2_dict.update(state_dict)
-    #         teacher_model.load_state_dict(model2_dict)
+    if TEACHER is True:
+        teacher_model = model = U_loss(bilinear=False).to(DEVICE)
+        checkpoint_path = '/content/drive/MyDrive/checkpoint_88_14/U_loss_ACDC_best.pth'
+        logger.info('Loading Teacher Checkpoint...')
+        if os.path.isfile(checkpoint_path):
+            pretrained_model_path = checkpoint_path
+            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+            pretrained = loaded_data['net']
+            model2_dict = teacher_model.state_dict()
+            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+            model2_dict.update(state_dict)
+            teacher_model.load_state_dict(model2_dict)
 
-    #         loaded_acc=loaded_data['acc']
-    #         initial_best_epoch=loaded_data['best_epoch']
+            loaded_acc=loaded_data['acc']
+            initial_best_epoch=loaded_data['best_epoch']
 
-    #         for param in teacher_model.parameters():
-    #             param.requires_grad = False
+            for param in teacher_model.parameters():
+                param.requires_grad = False
 
-    #         table = tabulate(
-    #                         tabular_data=[[loaded_acc, initial_best_epoch]],
-    #                         headers=['Loaded Teacher Model Acc', 'Best Epoch Number'],
-    #                         tablefmt="fancy_grid"
-    #                         )
-    #         logger.info(table)
-    #     else:
-    #         logger.info(f'No Such file : {checkpoint_path}')
-    #     logger.info('\n')
-    # else:
-    #     teacher_model =  None     
+            table = tabulate(
+                            tabular_data=[[loaded_acc, initial_best_epoch]],
+                            headers=['Loaded Teacher Model Acc', 'Best Epoch Number'],
+                            tablefmt="fancy_grid"
+                            )
+            logger.info(table)
+        else:
+            logger.info(f'No Such file : {checkpoint_path}')
+        logger.info('\n')
+    else:
+        teacher_model =  None     
 
-    teacher_model =  None     
+    # teacher_model =  None     
 
     initial_best_acc = 0
     initial_best_epoch = 1
