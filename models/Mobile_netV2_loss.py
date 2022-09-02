@@ -275,7 +275,7 @@ class Mobile_netV2_loss(nn.Module):
             # print(x3.shape)
             # print(x2.shape)
             # print(x1.shape)
-            return x, x4, x3, x2, x1
+            return x, x4, x3, x2, x1, None, None, None, None, None
 
         else:
             return x
