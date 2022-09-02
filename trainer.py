@@ -238,7 +238,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         #     outputs_t, d5_t, d4_t, d3_t, d2_t, e5_t, e4_t, e3_t, e2_t, e1_t = teacher_model(inputs)
 
         # outputs, d5, d4, d3, d2, e5, e4, e3, e2, e1 = model(inputs)
-        outputs, up4, up3, up2, up1 = model(inputs)
+        outputs, up4, up3, up2, up1, x1, x2, x3, x4, x5 = model(inputs)
 
 
         targets = targets.long()
