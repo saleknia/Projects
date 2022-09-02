@@ -192,7 +192,7 @@ class DABNet_loss(nn.Module):
         up1 = self.up(up4)
 
         if self.training:
-            return up1, up4, up3, up2, up1, _, _, _, _, _ # [1.0, 0.25, 0.125, 0.125] [9, 64, 128, 9]
+            return up1, up4, up3, up2, up1, None, None, None, None, None # [1.0, 0.25, 0.125, 0.125] [9, 64, 128, 9]
         else:
             return up1
 
