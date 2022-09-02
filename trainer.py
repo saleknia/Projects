@@ -237,7 +237,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         outputs, up4, up3, up2, up1, x1, x2, x3, x4, x5 = model(inputs)
 
         with torch.no_grad():
-            outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs)
+            outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,teacher=True)
 
 
         # targets = targets.long()
