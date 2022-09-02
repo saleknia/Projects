@@ -76,46 +76,37 @@ class OutConv(nn.Module):
 
 
 
-class U(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9, bilinear=False):
-        super(U, self).__init__()
+class U_loss(nn.Module):
+    def __init__(self, n_channels=1, n_classes=4, bilinear=False):
+        super(U_loss, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
         in_channels = 64
         self.inc = DoubleConv(n_channels, in_channels)
-        self.down1 = Down(in_channels, in_channels * 2)
-        self.down2 = Down(in_channels * 2, in_channels * 4)
-        self.down3 = Down(in_channels * 4, in_channels * 8)
+        self.down1 = Down(in_channels  , in_channels*2)
+        self.down2 = Down(in_channels*2, in_channels*4)
+        self.down3 = Down(in_channels*4, in_channels*8)
         factor = 2 if bilinear else 1
-        self.down4 = Down(in_channels * 8, in_channels * 16 // factor)
-        self.up1 = Up(in_channels * 16, in_channels * 8 // factor, bilinear)
-        self.up2 = Up(in_channels * 8 , in_channels * 4 // factor, bilinear)
-        self.up3 = Up(in_channels * 4 , in_channels * 2 // factor, bilinear)
-        self.up4 = Up(in_channels * 2 , in_channels, bilinear)
-        self.outc_1 = OutConv(in_channels, 2)
-        self.outc_2 = OutConv(in_channels, 9)
+        self.down4 = Down(in_channels*8, (in_channels*16) // factor)
+        self.up1 = Up(in_channels*16, in_channels*8  // factor, bilinear)
+        self.up2 = Up(in_channels*8 , in_channels*4 // factor, bilinear)
+        self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
+        self.up4 = Up(in_channels*2 , in_channels , bilinear)
+        self.outc = OutConv(in_channels , n_classes)
 
-    def forward(self, x, num_head=1.0):
+    def forward(self, x):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        up4 = self.up1(x5, x4)  # 64
-        up3 = self.up2(up4, x3) # 32
-        up2 = self.up3(up3, x2) # 16
-        up1 = self.up4(up2, x1) # 8
-
-        # logits = self.outc(up1) 
-
-        # if self.training:
-        #     return logits, up4, up3, up2, up1
-        # else:
-        #     return logits
-        if num_head==1.0:
-            return self.outc_1(up1)
-        if num_head==2.0:
-            return self.outc_1(up1), self.outc_2(up1)
-            
-
+        up1 = self.up1(x5, x4)
+        up2 = self.up2(up1, x3)
+        up3 = self.up3(up2, x2)
+        up4 = self.up4(up3, x1)
+        logits = self.outc(up4)
+        if self.training:
+            return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
+        else:
+            return logits

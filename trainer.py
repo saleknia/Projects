@@ -198,8 +198,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
 
-    # teacher_model=teacher_model.to(device)
-    # teacher_model.eval()
+    teacher_model=teacher_model.to(device)
+    teacher_model.eval()
 
     model=model.to(device)
     model.train()
@@ -234,17 +234,17 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
+        outputs, up4, up3, up2, up1, x1, x2, x3, x4, x5 = model(inputs)
+
         with torch.no_grad():
             outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs)
 
-        outputs, up4, up3, up2, up1, x1, x2, x3, x4, x5 = model(inputs)
 
-
-        targets = targets.long()
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        overlap = (predictions==targets).float()
-        t_masks = targets * overlap
-        targets = targets.float()
+        # targets = targets.long()
+        # predictions = torch.argmax(input=outputs,dim=1).long()
+        # overlap = (predictions==targets).float()
+        # t_masks = targets * overlap
+        # targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
