@@ -77,7 +77,7 @@ class OutConv(nn.Module):
 
 
 class U(nn.Module):
-    def __init__(self, n_channels=1, n_classes=4, bilinear=False):
+    def __init__(self, n_channels=3, n_classes=2, bilinear=False):
         super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -106,10 +106,12 @@ class U(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
-        if self.training:
-            return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
-        else:
-            if teacher:
-                return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
-            else:
-                return logits
+        return logits
+        
+        # if self.training:
+        #     return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
+        # else:
+        #     if teacher:
+        #         return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
+        #     else:
+        #         return logits
