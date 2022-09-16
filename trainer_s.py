@@ -36,7 +36,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
-    ce_loss = CrossEntropyLoss()
+    # ce_loss = CrossEntropyLoss()
+    ce_loss = torch.nn.BCELoss()
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
@@ -79,8 +80,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_dice_total.update(loss_dice)
 
         targets = targets.long()
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        Eval.add_batch(gt_image=targets,pre_image=predictions)
+        
+        # predictions = torch.argmax(input=outputs,dim=1).long()
+        # Eval.add_batch(gt_image=targets,pre_image=predictions)
+
+        predictions = outputs
+        Eval.add_batch(gt_image=targets,pre_image=outputs)
 
         accuracy.update(Eval.Pixel_Accuracy())
 

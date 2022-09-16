@@ -20,7 +20,8 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
-    ce_loss = CrossEntropyLoss()
+    # ce_loss = CrossEntropyLoss()
+    ce_loss = torch.nn.BCELoss()
 
     total_batchs = len(dataloader)
     loader = dataloader
@@ -40,8 +41,12 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             loss_total.update(loss)
 
             targets = targets.long()
-            predictions = torch.argmax(input=outputs,dim=1).long()
-            Eval.add_batch(gt_image=targets,pre_image=predictions)
+
+            # predictions = torch.argmax(input=outputs,dim=1).long()
+            # Eval.add_batch(gt_image=targets,pre_image=predictions)
+
+            predictions = outputs
+            Eval.add_batch(gt_image=targets,pre_image=outputs)
 
             accuracy.update(Eval.Pixel_Accuracy())
 

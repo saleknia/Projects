@@ -107,7 +107,7 @@ class OutConv(nn.Module):
 
 
 class U(nn.Module):
-    def __init__(self, n_channels=3, n_classes=2, bilinear=False):
+    def __init__(self, n_channels=3, n_classes=1, bilinear=False):
         super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -124,6 +124,7 @@ class U(nn.Module):
         self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
         self.outc = OutConv(in_channels , n_classes)
+        self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, x, teacher=False):
         x1 = self.inc(x)
@@ -136,7 +137,8 @@ class U(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
-        return logits
+        outputs = self.sigmoid(logits)
+        return outputs
         
         # if self.training:
         #     return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5

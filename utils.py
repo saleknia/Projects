@@ -24,6 +24,17 @@ from typing import Optional, Sequence
 from torch import Tensor
 from torch import nn
 from torch.nn import functional as F
+from sklearn.metrics import roc_auc_score,jaccard_score
+
+def show_image_with_dice(gt_image, pre_image):
+
+    gt_image = (gt_image).astype(np.float32)
+    pre_image = (pre_image).astype(np.float32)
+    dice_pred = 2 * np.sum(gt_image * pre_image) / (np.sum(gt_image) + np.sum(pre_image) + 1e-5)
+    iou_pred = jaccard_score(gt_image.reshape(-1),pre_image.reshape(-1))
+    return dice_pred, iou_pred
+
+
 
 def pw_cosine(x,y):
     x = torch.nn.functional.normalize(x)
