@@ -35,7 +35,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     accuracy = utils.AverageMeter()
 
-    dice_loss = DiceLoss(num_class)
+    dice_loss = DiceLoss(num_class-1)
     # ce_loss = CrossEntropyLoss()
     ce_loss = torch.nn.BCELoss()
 

@@ -19,7 +19,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     Dice = 0.0
     accuracy = utils.AverageMeter()
 
-    dice_loss = DiceLoss(num_class)
+    dice_loss = DiceLoss(num_class-1)
     # ce_loss = CrossEntropyLoss()
     ce_loss = torch.nn.BCELoss()
 
