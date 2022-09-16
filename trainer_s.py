@@ -59,7 +59,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # t_masks = targets * overlap
         # targets = targets.float()
 
-        loss_ce = ce_loss(outputs, targets[:].long())
+        # loss_ce = ce_loss(outputs, targets[:].long())
+        loss_ce = ce_loss(outputs, targets[:])
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_ce + 0.5 * loss_dice
  
