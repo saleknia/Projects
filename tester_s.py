@@ -56,9 +56,9 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
         acc = 100*accuracy.avg
         mIOU = 100*Eval.Mean_Intersection_over_Union()
         Dice,Dice_per_class = Eval.Dice(per_class=True)
-        Dice,Dice_per_class = 100*Dice,100*Dice_per_class.tolist()
+        Dice,Dice_per_class = 100*Dice,100*Dice_per_class
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}') 
-        logger.info(f'Dice Per Class: {Dice_per_class}') 
+        logger.info(f'Dice Per Class: {Dice_per_class.tolist()}') 
 
