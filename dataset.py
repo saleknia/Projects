@@ -77,7 +77,7 @@ class ISIC2017(Dataset):
         if random.random() < 0.5:
             img  = np.flip(img,  axis=1)
             seg  = np.flip(seg,  axis=1)
-        return img, seg
+        return img, seg[0]
 
     def __len__(self):
         return len(self.data)
