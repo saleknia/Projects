@@ -31,6 +31,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     Eval = utils.Evaluator(num_class=num_class+1)
 
     mIOU = 0.0
+    Dice = 0.0
 
     accuracy = utils.AverageMeter()
 
