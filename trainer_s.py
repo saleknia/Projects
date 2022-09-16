@@ -82,7 +82,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
-        dice, _ = dice_iou(gt_image=targets,pre_image=predictions)
+        dice, _ = dice_iou(gt_image=targets.cpu().numpy(),pre_image=predictions.cpu().numpy())
         accuracy_eval.update(dice)
         accuracy.update(Eval.Pixel_Accuracy())
 
