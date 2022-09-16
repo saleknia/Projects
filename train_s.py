@@ -456,26 +456,10 @@ def main(args):
                 lr_scheduler=lr_scheduler,
                 writer=writer,
                 logger=logger,
-                loss_function=loss_function,
-                weight=weight)
-            # tester_s(
-            #     end_epoch=end_epoch,
-            #     epoch_num=epoch,
-            #     model=model,
-            #     dataloader=data_loader['valid'],
-            #     device=DEVICE,
-            #     ckpt=checkpoint,
-            #     num_class=NUM_CLASS,
-            #     writer=writer,
-            #     logger=logger,
-            #     optimizer=optimizer,
-            #     lr_scheduler=lr_scheduler,
-            #     early_stopping=early_stopping)
+                loss_function=loss_function)
 
             if epoch==end_epoch:
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
-                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
                     pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
                     loaded_data = torch.load(pretrained_model_path, map_location='cuda')
                     pretrained = loaded_data['net']
@@ -498,7 +482,6 @@ def main(args):
                         logger.info(50*'*')
                         logger.info('Inference Phase')
                         logger.info(50*'*')
-                        # inference(model=model,logger=logger)
                         tester_s(
                             end_epoch=1,
                             epoch_num=1,
@@ -511,14 +494,11 @@ def main(args):
                             logger=logger,
                             optimizer=None,
                             lr_scheduler=None,
-                            early_stopping=None,
-                            weight=weight)
+                            early_stopping=None)
                 
                     logger.info(50*'*')
                     logger.info(50*'*')
                     logger.info('\n')
-    if tensorboard:
-        writer.close()
 
     # numpy_state = np.random.get_state()
     # with open('./checkpoint/numpy_state.pickle', 'wb') as f:
