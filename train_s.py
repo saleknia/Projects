@@ -46,7 +46,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
 from tester_s import tester_s
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
@@ -172,12 +172,10 @@ def main(args):
         )
     logger.info(model_table)
 
-    # loss_fn = utils.DiceLoss(n_classes=NUM_CLASS)
-    # optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, betas=(0.9, 0.999))
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=0.001, betas=(0.9, 0.999))
 
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
  
     if COSINE_LR is True:
         lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
@@ -344,6 +342,39 @@ def main(args):
                                 )
         test_loader = DataLoader(test_dataset,
                                 batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+    elif TASK_NAME=='ISIC20177':
+
+        train_dataset = ISIC2017(split='train')
+        valid_dataset = ISIC2017(split='valid')
+        test_dataset  = ISIC2017(split='test')
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=BATCH_SIZE,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,

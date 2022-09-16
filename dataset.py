@@ -40,11 +40,9 @@ def dataset_normalized(imgs):
     return imgs_normalized
        
 
-class isic_loader(Dataset):
-    """ dataset class for Brats datasets
-    """
+class ISIC2017(Dataset):
     def __init__(self, path_Data='/content/drive/MyDrive/ISIC2017_dataset', split='train'):
-        super(isic_loader, self)
+        super(ISIC2017, self)
         if split=='train':
             self.train = True
             self.data   = np.load(path_Data+'data_train.npy')
