@@ -15,7 +15,7 @@ Dataset_add = '/content/ISIC2017_dataset/'
 Tr_add = 'ISIC-2017_Training_Data'
 
 Tr_list = glob.glob(Dataset_add+ Tr_add+'/*.jpg')
-# It contains 2594 training samples
+# It contains 2000 training samples
 Data_train_2017    = np.zeros([2000, height, width, channels])
 Label_train_2017   = np.zeros([2000, height, width])
 

@@ -45,8 +45,8 @@ if log:
 # Hyperparameters etc.
 LEARNING_RATE = 0.001
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 16
-NUM_EPOCHS = 60
+BATCH_SIZE = 8
+NUM_EPOCHS = 10
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 256
 IMAGE_WIDTH = 256
