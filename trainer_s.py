@@ -61,8 +61,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice
-        loss = loss_ce
+        loss = 0.5 * loss_ce + 0.5 * loss_dice
  
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -80,7 +79,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_dice_total.update(loss_dice)
 
         targets = targets.long()
-        
+
         # predictions = torch.argmax(input=outputs,dim=1).long()
         # Eval.add_batch(gt_image=targets,pre_image=predictions)
 
