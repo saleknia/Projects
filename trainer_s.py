@@ -92,8 +92,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         )  
   
     acc = 100*accuracy.avg
-    mIOU,mIOU_per_class = Eval.MIOU_out(per_class=True)
-    mIOU,mIOU_per_class = 100*mIOU,100*mIOU_per_class
+    mIOU = 100*Eval.Mean_Intersection_over_Union()
+    Dice,Dice_per_class = Eval.Dice(per_class=True)
+    Dice,Dice_per_class = 100*Dice,100*Dice_per_class
 
     if lr_scheduler is not None:
         lr_scheduler.step()        
