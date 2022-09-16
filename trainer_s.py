@@ -34,6 +34,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     Dice = 0.0
 
     accuracy = utils.AverageMeter()
+    accuracy_eval = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
@@ -82,13 +83,14 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
 
+        accuracy_eval.update(torch.sum(predictions==targets)/torch.sum(targets==targets))
         accuracy.update(Eval.Pixel_Accuracy())
 
         print_progress(
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f} , Pixel Accuracy: {accuracy.avg*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f} , Pixel Accuracy: {accuracy.avg*100:.2f} , Pixel Accuracy Eval: {accuracy_eval.avg*100:.2f}',          
             bar_length=45
         )  
   
@@ -100,7 +102,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Dice: {Dice:.2f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Dice: {Dice:.2f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f} , Pixel Accuracy Eval: {accuracy_eval.avg*100:.2f} , lr: {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
 
 
