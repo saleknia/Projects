@@ -124,7 +124,7 @@ def main(args):
         model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
 
     elif MODEL_NAME == 'AttUNet':
-        model = AttentionUNet(img_ch=1, output_ch=NUM_CLASS).to(DEVICE)
+        model = AttentionUNet(img_ch=3, output_ch=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'AttUNet_loss':
         model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 

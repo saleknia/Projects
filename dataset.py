@@ -71,7 +71,7 @@ class ISIC2017(Dataset):
         img = img.permute( 2, 0, 1)
         seg = seg.permute( 2, 0, 1)
         
-        return img, seg
+        return img, seg[0]
                
     def apply_augmentation(self, img, seg):
         if random.random() < 0.5:
