@@ -28,7 +28,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class+1)
+    Eval = utils.Evaluator(num_class=num_class)
 
     mIOU = 0.0
     Dice = 0.0
