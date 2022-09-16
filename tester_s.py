@@ -20,7 +20,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
-    ce_loss = CrossEntropyLoss(weight=weight, ignore_index=11)
+    ce_loss = CrossEntropyLoss()
 
     total_batchs = len(dataloader)
     loader = dataloader
