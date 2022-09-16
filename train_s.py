@@ -469,7 +469,7 @@ def main(args):
                     model.load_state_dict(model2_dict)
 
                     acc=loaded_data['acc']
-                    acc_per_class=loaded_data['acc_per_class']
+                    acc_per_class=loaded_data['acc_per_class'].tolist()
                     acc_per_class=[round(x,2) for x in acc_per_class]
                     best_epoch=loaded_data['best_epoch']
 

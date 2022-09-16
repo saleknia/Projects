@@ -59,8 +59,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss = 0.5 * loss_ce + 0.5 * loss_dice
+        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        # loss = 0.5 * loss_ce + 0.5 * loss_dice
+        loss = loss_ce
  
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -99,7 +100,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Dice: {Dice:.2f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
 
 

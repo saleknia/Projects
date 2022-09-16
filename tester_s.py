@@ -49,14 +49,14 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ,  Dice = {Eval.Dice()*100:.2f}',
+                suffix=f'loss= {loss_total.avg:.4f} , Pixel Accuracy= {accuracy.avg*100:.2f} ,  Dice = {Eval.Dice()*100:.2f}',
                 bar_length=45
             )  
 
         acc = 100*accuracy.avg
         mIOU = 100*Eval.Mean_Intersection_over_Union()
         Dice,Dice_per_class = Eval.Dice(per_class=True)
-        Dice,Dice_per_class = 100*Dice,100*Dice_per_class
+        Dice,Dice_per_class = 100*Dice,100*Dice_per_class.tolist()
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}') 
