@@ -49,6 +49,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
+        inputs = inputs.float()
         outputs = model(inputs)
 
         # targets = targets.long()

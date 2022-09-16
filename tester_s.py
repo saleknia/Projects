@@ -29,7 +29,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
         for batch_idx, (inputs, targets) in enumerate(loader):
 
             inputs, targets = inputs.to(device), targets.to(device)
-
+            inputs = inputs.float()
             targets = targets.float()
             outputs = model(inputs)
 
