@@ -41,7 +41,7 @@ def dataset_normalized(imgs):
        
 
 class ISIC2017(Dataset):
-    def __init__(self, path_Data='/content/drive/MyDrive/ISIC2017_dataset', split='train'):
+    def __init__(self, path_Data='/content/drive/MyDrive/ISIC2017_dataset/', split='train'):
         super(ISIC2017, self)
         if split=='train':
             self.train = True
