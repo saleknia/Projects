@@ -28,8 +28,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
 
-    eval_dice, eval_iou = utils.AverageMeter(), utils.AverageMeter()
-
     Eval = utils.Evaluator(num_class=num_class)
 
     mIOU = 0.0
@@ -83,10 +81,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
-        
-        dice, iou = dice_iou(gt_image=targets.detach().cpu().numpy(), pre_image=predictions)
-        eval_dice.update(dice)
-        eval_iou.update(iou)
 
         accuracy.update(Eval.Pixel_Accuracy())
 
@@ -94,7 +88,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f} , Pixel Accuracy: {accuracy.avg*100:.2f} , eval_dice: {eval_dice.avg*100:.2f}',          
+            suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f} , Pixel Accuracy: {accuracy.avg*100:.2f}',          
             bar_length=45
         )  
   
@@ -106,7 +100,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Dice: {Dice:.2f} , eval_dice: {eval_dice.avg*100:.2f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Dice: {Dice:.2f} , mIoU: {mIOU:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader['valid'],device,ckpt,num_class,writer,logger,optimizer)
 
 
