@@ -156,7 +156,7 @@ class AttentionUNet(nn.Module):
         super(AttentionUNet, self).__init__()
 
         self.MaxPool = nn.MaxPool2d(kernel_size=2, stride=2)
-        base = 8
+        base = 64
         self.Conv1 = ConvBlock(img_ch, base)
         self.Conv2 = ConvBlock(base, base*2)
         self.Conv3 = ConvBlock(base*2, base*4)
@@ -224,7 +224,8 @@ class AttentionUNet(nn.Module):
 
         out = self.Conv(d2)
 
-        if self.training:
-            return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
-        else:
-            return out  
+        return out
+        # if self.training:
+        #     return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
+        # else:
+        #     return out  
