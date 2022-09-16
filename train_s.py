@@ -470,7 +470,6 @@ def main(args):
 
                 acc=loaded_data['acc']
                 acc_per_class=loaded_data['acc_per_class']
-                print(acc_per_class)
                 acc_per_class=[round(x,2) for x in acc_per_class]
                 best_epoch=loaded_data['best_epoch']
 
