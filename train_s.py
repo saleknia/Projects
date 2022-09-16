@@ -351,7 +351,7 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
-    elif TASK_NAME=='ISIC20177':
+    elif TASK_NAME=='ISIC2017':
 
         train_dataset = ISIC2017(split='train')
         valid_dataset = ISIC2017(split='valid')
