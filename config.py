@@ -76,7 +76,7 @@ task_table = tabulate(
                         ['SSL', 5],
                         ['TCIA',6],
                         ['camvid',7],
-                        ['ISIC2017']],
+                        ['ISIC2017',8]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -118,24 +118,11 @@ elif task_id==7:
     NUM_CLASS = 11
     TASK_NAME = 'camvid'
 
-# CONTINUE_ids = ['1','2']
-# CONTINUE_table = tabulate(
-#                     tabular_data=[
-#                         ['True', 1],
-#                         ['False', 2]],
-#                     headers=['Continue Training', 'ID'],
-#                     tablefmt="fancy_grid"
-#                     )
+elif task_id==8:
+    NUM_CLASS = 2
+    TASK_NAME = 'ISIC2017'
 
-# print(CONTINUE_table)
-# CONTINUE_id = input('Enter Training ID:  ')
-# assert (CONTINUE_id in CONTINUE_ids),'ID is Incorrect.'
-# CONTINUE_id = int(CONTINUE_id)
 
-# if CONTINUE_id==1:
-#     CONTINUE = True
-# elif CONTINUE_id==2:
-#     CONTINUE = False
 
 
 model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25']
@@ -254,104 +241,6 @@ elif model_id==25:
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
 
-# if model_id==1:
-#     MODEL_NAME = 'UCTransNet'
-#     if task_id==1:
-#         CKPT_NAME = 'UCTransNet_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UCTransNet_Synapse'   
-#     elif task_id==3:
-#         CKPT_NAME = 'UCTransNet_ACDC'   
-# elif model_id==2:
-#     MODEL_NAME = 'UCTransNet_GT'
-#     if task_id==1:
-#         CKPT_NAME = 'UCTransNet_GT_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UCTransNet_GT_Synapse'   
-# elif model_id==3:
-#     MODEL_NAME = 'UNet'
-#     if task_id==1:
-#         CKPT_NAME = 'UNet_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UNet_Synapse'  
-#     elif task_id==3:
-#         CKPT_NAME = 'UNet_ACDC' 
-# elif model_id==4:
-#     MODEL_NAME = 'GT_UNet'
-#     if task_id==1:
-#         CKPT_NAME = 'GT_UNet_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'GT_UNet_Synapse'  
-# elif model_id==5:
-#     MODEL_NAME = 'GT_CTrans'
-#     if task_id==1:
-#         CKPT_NAME = 'GT_CTrans_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'GT_CTrans_Synapse'  
-# elif model_id==6:
-#     MODEL_NAME = 'AttUNet'
-#     if task_id==1:
-#         CKPT_NAME = 'AttUNet_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'AttUNet_Synapse'  
-#     elif task_id==3:
-#         CKPT_NAME = 'AttUNet_ACDC'  
-# elif model_id==7:
-#     MODEL_NAME = 'UNet_loss'
-#     if task_id==1:
-#         CKPT_NAME = 'UNet_loss_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UNet_loss_Synapse'
-#     elif task_id==3:
-#         CKPT_NAME = 'UNet_loss_ACDC' 
-# elif model_id==8:
-#     MODEL_NAME = 'AttUNet_loss'
-#     if task_id==1:
-#         CKPT_NAME = 'AttUNet_loss_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'AttUNet_loss_Synapse' 
-#     elif task_id==3:
-#         CKPT_NAME = 'AttUNet_loss_ACDC' 
-# elif model_id==9:
-#     MODEL_NAME = 'MultiResUnet'
-#     if task_id==1:
-#         CKPT_NAME = 'MultiResUnet_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'MultiResUnet_Synapse' 
-# elif model_id==10:
-#     MODEL_NAME = 'MultiResUnet_loss'
-#     if task_id==1:
-#         CKPT_NAME = 'MultiResUnet_loss_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'MultiResUnet_loss_Synapse' 
-# elif model_id==11:
-#     MODEL_NAME = 'UNet++'
-#     if task_id==1:
-#         CKPT_NAME = 'UNet++_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UNet++_Synapse' 
-# elif model_id==12:
-#     MODEL_NAME = 'UNet++_loss'
-#     if task_id==1:
-#         CKPT_NAME = 'UNet++_loss_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'UNet++_loss_Synapse' 
-# elif model_id==13:
-#     MODEL_NAME = 'U'
-#     if task_id==1:
-#         CKPT_NAME = 'U_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'U_Synapse' 
-#     elif task_id==3:
-#         CKPT_NAME = 'U_ACDC' 
-# elif model_id==14:
-#     MODEL_NAME = 'U_loss'
-#     if task_id==1:
-#         CKPT_NAME = 'U_loss_Covid'
-#     elif task_id==2:
-#         CKPT_NAME = 'U_loss_Synapse' 
-#     elif task_id==3:
-#         CKPT_NAME = 'U_loss_ACDC' 
 
 table = tabulate(
     tabular_data=[
