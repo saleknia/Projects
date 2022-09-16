@@ -83,7 +83,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         targets = targets.long()
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
+        predictions = outputs
+        # predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
 
         accuracy.update(Eval.Pixel_Accuracy())

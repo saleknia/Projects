@@ -769,6 +769,7 @@ class Evaluator(object):
     def add_batch(self, gt_image, pre_image):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
+
         assert gt_image.shape == pre_image.shape
         for lp, lt in zip(pre_image, gt_image):
             self.confusion_matrix += self._generate_matrix(lt.flatten(), lp.flatten())
