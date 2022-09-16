@@ -27,7 +27,6 @@ from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score,jaccard_score
 
 def dice_iou(gt_image, pre_image):
-
     gt_image = (gt_image).astype(np.float32)
     pre_image = (pre_image).astype(np.float32)
     dice_pred = 2 * np.sum(gt_image * pre_image) / (np.sum(gt_image) + np.sum(pre_image))
