@@ -76,8 +76,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # print(targets.shape)
         # print(outputs.shape)
         soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long()).permute(0,3,1,2))
-        # loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label)
-        loss_kd = 0.0
+        loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label)
+        # loss_kd = 0.0
         loss_ce = ce_loss(outputs, targets[:].long()) 
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd
