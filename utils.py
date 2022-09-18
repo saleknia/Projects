@@ -2146,7 +2146,7 @@ class M_loss(nn.Module):
         probs = probs.sum(dim=0) # (C, C)
         diag = probs * (torch.eye(probs.shape[0],probs.shape[1]).to('cuda')) # (C, C)
         probs = probs - diag
-        l = torch.norm(probs) 
+        l = torch.norm(probs**2) 
         loss = loss + l
         return loss
 
