@@ -115,7 +115,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # loss_kd = 0.0
         loss_ce = ce_loss(outputs, targets[:].long()) 
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd + loss_att
+        loss = loss_ce + loss_dice + loss_kd + loss_att
  
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -131,8 +131,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
-        loss_ce_total.update(loss_kd)
-        loss_dice_total.update(loss_att)
+        loss_kd_total.update(loss_kd)
+        loss_att_total.update(loss_att)
 
         targets = targets.long()
 
