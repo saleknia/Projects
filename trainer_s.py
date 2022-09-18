@@ -16,6 +16,19 @@ from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 warnings.filterwarnings("ignore")
 
+class CriterionPixelWise(nn.Module):
+    def __init__(self):
+        super(CriterionPixelWise, self).__init__()
+        self.criterion = torch.nn.CrossEntropyLoss()
+
+    def forward(self, preds_S, preds_T):
+        preds_T.detach()
+        assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S.shape
+        softmax_pred_T = preds_T.permute(0,2,3,1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        return loss
 
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -38,6 +51,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
+    kd_loss = CriterionPixelWise()
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
@@ -62,7 +76,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # print(targets.shape)
         # print(outputs.shape)
         soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long()).permute(0,3,1,2))
-        loss_ce = ce_loss(outputs, targets[:].long()) + ce_loss(soft_label, targets[:].long())
+        loss_ce = ce_loss(outputs, targets[:].long()) + kd_loss(preds_S=outputs, preds_T=soft_label)
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_ce + 0.5 * loss_dice
  
