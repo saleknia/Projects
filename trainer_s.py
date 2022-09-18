@@ -16,6 +16,36 @@ from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 warnings.filterwarnings("ignore")
 
+def at(x, exp):
+    """
+    attention value of a feature map
+    :param x: feature
+    :return: attention value
+    """
+    return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
+
+
+def importance_maps_distillation(s, t, exp=4):
+    """
+    importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+    Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+    https://arxiv.org/abs/1612.03928
+    :param exp: exponent
+    :param s: student feature maps
+    :param t: teacher feature maps
+    :return: imd loss value
+    """
+    if s.shape[2] != t.shape[2]:
+        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
+
+def attention_loss(up4, up3, up2, up1):
+    loss = 0.0
+    loss = loss + importance_maps_distillation(s=up4, t=up3)
+    loss = loss + importance_maps_distillation(s=up3, t=up2)
+    loss = loss + importance_maps_distillation(s=up2, t=up1)
+    return loss
+
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
@@ -65,7 +95,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
         inputs = inputs.float()
-        outputs = model(inputs)
+        # outputs = model(inputs)
+        outputs, up4, up3, up2, up1 = model(inputs)
+
 
         # targets = targets.long()
         # predictions = torch.argmax(input=outputs,dim=1).long()
@@ -77,10 +109,11 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # print(outputs.shape)
         soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long()).permute(0,3,1,2))
         loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label)
+        loss_att = attention_loss(up4=up4, up3=up3, up2=up2, up1=up1)
         # loss_kd = 0.0
         loss_ce = ce_loss(outputs, targets[:].long()) 
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd
+        loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd + loss_att
  
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
