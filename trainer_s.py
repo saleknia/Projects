@@ -41,9 +41,9 @@ def importance_maps_distillation(s, t, exp=4):
 
 def attention_loss(up4, up3, up2, up1):
     loss = 0.0
-    loss = loss + importance_maps_distillation(s=up4, t=up3)
-    loss = loss + importance_maps_distillation(s=up3, t=up2)
-    loss = loss + importance_maps_distillation(s=up2, t=up1)
+    loss = loss + importance_maps_distillation(s=up3, t=up4)
+    loss = loss + importance_maps_distillation(s=up2, t=up3)
+    loss = loss + importance_maps_distillation(s=up1, t=up2)
     return loss
 
 class CriterionPixelWise(nn.Module):
