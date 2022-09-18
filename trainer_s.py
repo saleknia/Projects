@@ -25,7 +25,7 @@ class CriterionPixelWise(nn.Module):
         preds_T.detach()
         assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
         N,C,W,H = preds_S.shape
-        softmax_pred_T = preds_T.permute(0,2,3,1)
+        softmax_pred_T = preds_T.permute(0,2,3,1).contiguous().view(-1,C)
         logsoftmax = nn.LogSoftmax(dim=1)
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
