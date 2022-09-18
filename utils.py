@@ -248,44 +248,22 @@ class disparity(nn.Module):
     def __init__(self):
         super(disparity, self).__init__()
 
-        # ENet
-        self.down_scales = [1.0, 1.0, 0.5, 0.25, 0.125]
-        # self.down_scales = [1.0,0.5,0.25,0.125,0.125]
-        num_class = 10
+        self.down_scales = [1.0, 0.5, 0.25, 0.125]
+        num_class = 2
 
         self.num_class = num_class
-        
 
-        # ENet
-        self.proto_0 = torch.zeros(num_class, 9 )
-        self.proto_1 = torch.zeros(num_class, 16 )
-        self.proto_2 = torch.zeros(num_class, 64 )
-        self.proto_3 = torch.zeros(num_class, 128)
-        self.proto_4 = torch.zeros(num_class, 128)
-
-        self.protos = [self.proto_0, self.proto_1, self.proto_2, self.proto_3, self.proto_4]
-        self.momentum = torch.tensor(0.0)
-        self.iteration = 0
-        self.momentum_schedule = cosine_scheduler(0.85, 1.0, 60.0, 368)
-
-
-    def forward(self, masks, t_masks, up4, up3, up2, up1, outputs):
+    def forward(self, masks, up4, up3, up2, up1):
         loss = 0.0
-        up = [outputs, up1, up2, up3, up4]
+        up = [up1, up2, up3, up4]
 
         for k in range(4):
-            indexs = []
-            WP = []
             B,C,H,W = up[k].shape
             
             temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
             temp_masks = temp_masks.squeeze(dim=1)
 
-            temp_t_masks = nn.functional.interpolate(t_masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_t_masks = temp_t_masks.squeeze(dim=1)
-
             mask_unique_value = torch.unique(temp_masks)
-            mask_unique_value = mask_unique_value[1:]
             unique_num = len(mask_unique_value)
             
             if unique_num<2:
@@ -297,10 +275,6 @@ class disparity(nn.Module):
                 p = p.long()
                 bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
                 bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-
-                bin_mask_t = torch.tensor(temp_t_masks==p,dtype=torch.int8)
-                bin_mask_t = bin_mask_t.unsqueeze(dim=1).expand_as(up[k])
-
                 temp = 0.0
                 batch_counter = 0
                 for t in range(B):
@@ -309,39 +283,14 @@ class disparity(nn.Module):
                         temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
                         batch_counter = batch_counter + 1
                 temp = temp / batch_counter
-                wp = torch.sum(bin_mask_t)/torch.sum(bin_mask)
-                # wp = self.dice_loss(bin_mask_t,bin_mask) 
                 prototypes[count] = temp
-                WP.append(wp)
-
-            WP = torch.tensor(WP)
-            WP = torch.diag(WP)
-            WP = WP.detach()
-
-
-            indexs = [x.item()-1 for x in mask_unique_value]
-            indexs.sort()
 
             l = 0.0
-            proto = self.protos[k][indexs].unsqueeze(dim=0)
-            prototypes = prototypes.unsqueeze(dim=0)
-            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
-            proto = self.protos[k][indexs].squeeze(dim=0)
-            prototypes = prototypes.squeeze(dim=0)
-            x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
-            diagonal = distances_c[0] * x
-
-            # l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
-            l = l + (1.0 * torch.mean((1.0-WP)*diagonal))
-
             proto = prototypes.unsqueeze(dim=0)
             distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
             l = l + (1.0 / torch.mean(distances))
 
             loss = loss + l
-
-            self.update(prototypes, mask_unique_value, k)
-        self.iteration = self.iteration + 1
 
         return loss
 
