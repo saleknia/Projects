@@ -1192,7 +1192,7 @@ class disparity_loss(nn.Module):
 
         proto = prototypes.unsqueeze(dim=0)
         distances = torch.cdist(proto, proto, p=2.0)
-        loss = (1.0 / torch.mean(distances))
+        loss = torch.mean(distances)
         return loss
 
 
