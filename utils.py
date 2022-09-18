@@ -1167,42 +1167,33 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 #####################################################################################################
 
 
-# class prototype_loss_mean(nn.Module):
-#     def __init__(self):
-#         super(prototype_loss_mean, self).__init__()
+class disparity_loss(nn.Module):
+    def __init__(self):
+        super(disparity_loss, self).__init__()
 
-#     def forward(self, masks, outputs):
-#         loss = 0.0
-        
-#         temp_masks = masks
-#         B,C,H,W = outputs.shape
+    def forward(self, masks, outputs):
+        loss = 0.0
+        prototypes = []
+        B,C,H,W = outputs.shape
 
-#         mask_unique_value = torch.unique(temp_masks)
-#         mask_unique_value = mask_unique_value[1:]
-#         unique_num = len(mask_unique_value)
+        mask_unique_value = torch.unique(masks)
+        unique_num = len(mask_unique_value)
         
-#         if unique_num<2:
-#             return 0
-#         var = 0
-#         for count,p in enumerate(mask_unique_value):
-#             p = p.long()
-#             bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-#             bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
-#             temp = 0.0
-#             batch_counter = 0
-#             for t in range(B):
-#                 if torch.sum(bin_mask[t])!=0:
-#                     v = bin_mask[t]*outputs[t]
-#                     v = v.sum(dim=0)
-#                     v_shape_0, v_shape_1 = v.shape
-#                     v = torch.nn.functional.normalize(v.reshape(-1), dim=0, p=2.0, eps=1e-12, out=None)
-#                     v = v.reshape(v_shape_0, v_shape_1)
-#                     temp = temp + torch.var(v)
-#                     batch_counter = batch_counter + 1
-#             temp = temp / batch_counter
-#             var = var + temp
-#         loss = var / unique_num
-#         return loss
+        if unique_num<2:
+            return 0.0
+
+        masks = masks.unsqueeze(dim=1).expand_as(outputs)
+        for t in range(B):
+            if torch.sum(masks[t])!=0:
+                v = torch.sum(masks[t]*outputs[t],dim=[1,2])/torch.sum(masks[t],dim=[1,2])
+                v = torch.nn.functional.normalize(v, dim=0, p=2.0, eps=1e-12, out=None)
+                prototypes.append(v)
+        prototypes = torch.tensor(prototypes)
+
+        proto = prototypes.unsqueeze(dim=0)
+        distances = torch.cdist(proto, proto, p=2.0)
+        loss = (1.0 / torch.mean(distances))
+        return loss
 
 
 # class prototype_loss(nn.Module):

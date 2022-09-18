@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity, dice_iou
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity, disparity_loss
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -84,6 +84,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
     kd_loss = CriterionPixelWise()
+    att_loss = disparity_loss()
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
@@ -110,10 +111,10 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # print(targets.shape)
         # print(outputs.shape)
         soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long()).permute(0,3,1,2))
-        loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label) * 0.1
-        # loss_att = attention_loss(up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_kd = 0.0
-        loss_att = 0.0
+        # loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label) * 0.1
+        loss_att = att_loss(masks=targets, outputs=outputs)
+        loss_kd = 0.0
+        # loss_att = 0.0
         loss_ce = ce_loss(outputs, targets[:].long()) 
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd + loss_att
