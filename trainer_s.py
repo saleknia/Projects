@@ -82,8 +82,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
-        dice, _ = dice_iou(gt_image=targets.cpu().numpy(),pre_image=predictions.cpu().numpy())
-        accuracy_eval.update(dice)
         accuracy.update(Eval.Pixel_Accuracy())
 
         print_progress(
@@ -96,8 +94,11 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
   
     acc = 100*accuracy.avg
     mIOU = 100*Eval.Mean_Intersection_over_Union()
-    Dice,Dice_per_class = Eval.Dice(per_class=True)
-    Dice,Dice_per_class = 100*Dice,100*Dice_per_class
+
+    Dice = Eval.Dice()
+    Dice_per_class = Dice
+    # Dice,Dice_per_class = Eval.Dice(per_class=True)
+    # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
 
     if lr_scheduler is not None:
         lr_scheduler.step()        
