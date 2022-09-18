@@ -716,28 +716,18 @@ class Evaluator(object):
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        numerator = 2 * self.confusion_matrix[1,1]
-        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix))
+        numerator = self.confusion_matrix[1,1]
+        denominator = self.confusion_matrix[1,1] + self.confusion_matrix[1,0] + self.confusion_matrix[0,1]  
         MIoU = numerator/denominator
         MIoU = torch.tensor(MIoU)
         return MIoU
 
     def Dice(self,per_class=False,show=False):
-        numerator = 2*np.diag(self.confusion_matrix) 
-        denominator = 2*np.diag(self.confusion_matrix) + 
-        if show:
-            # print('Intersection Pixels: ',numerator)
-            # print('Union Pixels: ',denominator)
-            print('Dice Per Class: ',numerator/denominator)
-        class_Dice = numerator/denominator
-        class_Dice = class_Dice[1:]
-        Dice = np.nanmean(class_Dice)
+        numerator = (2 * self.confusion_matrix[1,1])
+        denominator =  (2 * self.confusion_matrix[1,1]) + (self.confusion_matrix[1,0]) + (self.confusion_matrix[0,1])
+        Dice = numerator/denominator
         Dice = torch.tensor(Dice)
-        class_Dice = torch.tensor(class_Dice)
-        if per_class:
-            return Dice,class_Dice
-        else:
-            return Dice
+        return Dice
 
 
     # def Mean_Intersection_over_Union(self,per_class=False,show=False):
