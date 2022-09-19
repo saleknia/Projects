@@ -112,7 +112,7 @@ def main(args):
 
     elif MODEL_NAME=='UCTransNet':
         config_vit = get_CTranS_config()
-        model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+        model = UCTransNet(config_vit,n_channels=3,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet_GT':
         config_vit = get_CTranS_config()
@@ -166,7 +166,7 @@ def main(args):
 
     elif MODEL_NAME == 'Mobile_NetV2_loss':
         model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
-               
+
     else: 
         raise TypeError('Please enter a valid name for the model type')
 

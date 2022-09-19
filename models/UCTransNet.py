@@ -130,7 +130,7 @@ class UpBlock_attention(nn.Module):
         return self.nConvs(x)
 
 class UCTransNet(nn.Module):
-    def __init__(self, config,n_channels=3, n_classes=1,img_size=224,vis=False):
+    def __init__(self, config,n_channels=3, n_classes=1,img_size=256,vis=False):
         super().__init__()
         self.vis = vis
         self.n_channels = n_channels
@@ -185,12 +185,13 @@ class UCTransNet(nn.Module):
         # logits = logits + self.outc_3(self.att_3(F.interpolate(up3, x.size()[2:], mode='bilinear', align_corners=False))) 
         # # logits = logits + F.interpolate(self.outc_4(up4), x.size()[2:], mode='bilinear', align_corners=False) 
 
-        if self.training:
-            # return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
-            return logits, up4, up3, up2, up1, x5
+        return logits
+        # if self.training:
+        #     # return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
+        #     return logits, up4, up3, up2, up1, x5
 
-        else:
-            return logits
+        # else:
+        #     return logits
 
         # if self.n_classes ==1:
         #     logits = self.last_activation(self.outc(x))
