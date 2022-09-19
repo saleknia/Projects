@@ -252,7 +252,7 @@ class Mobile_netV2_loss(nn.Module):
         self.up = nn.Upsample(8)
     def forward(self, x):
         input_size = x.shape[-2:]
-        x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
+        # x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)

@@ -35,6 +35,8 @@ from models.GT_UNet import GT_U_Net
 from models.ENet import ENet
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
+from models.Mobile_netV2 import Mobile_netV2
+from models.Mobile_netV2_loss import Mobile_netV2_loss
 from models.ESPNet import ESPNet
 from models.ESPNet_loss import ESPNet_loss
 from models.ENet_loss import ENet_loss
@@ -158,7 +160,13 @@ def main(args):
 
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
-        
+
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2_loss':
+        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+               
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
