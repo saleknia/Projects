@@ -1187,8 +1187,8 @@ class disparity_loss(nn.Module):
             if torch.sum(masks[t])!=0:
                 v = torch.sum(masks[t]*outputs[t],dim=[1,2])/torch.sum(masks[t],dim=[1,2])
                 v = torch.nn.functional.normalize(v, dim=0, p=2.0, eps=1e-12, out=None)
-                prototypes.append(v)
-        prototypes = np.array(prototypes.cpu())
+                prototypes.append(v.cpu())
+        prototypes = np.array(prototypes)
         prototypes = torch.from_numpy(prototypes)
 
         proto = prototypes.unsqueeze(dim=0)
