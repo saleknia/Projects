@@ -116,7 +116,7 @@ class InputInjection(nn.Module):
 
 
 class DABNet_loss(nn.Module):
-    def __init__(self, num_classes=19, block_1=3, block_2=6):
+    def __init__(self, classes=19, block_1=3, block_2=6):
         super().__init__()
         self.init_conv = nn.Sequential(
             Conv(3, 32, 3, 2, padding=1, bn_acti=True),
@@ -128,75 +128,48 @@ class DABNet_loss(nn.Module):
         self.down_2 = InputInjection(2)  # down-sample the image 2 times
         self.down_3 = InputInjection(3)  # down-sample the image 3 times
 
-        # self.bn_prelu_1 = BNPReLU(32 + 3)
-        self.bn_prelu_1 = BNPReLU(32)
-
+        self.bn_prelu_1 = BNPReLU(32 + 3)
 
         # DAB Block 1
-        # self.downsample_1 = DownSamplingBlock(32 + 3, 64)
-        self.downsample_1 = DownSamplingBlock(32, 64)
+        self.downsample_1 = DownSamplingBlock(32 + 3, 64)
         self.DAB_Block_1 = nn.Sequential()
         for i in range(0, block_1):
             self.DAB_Block_1.add_module("DAB_Module_1_" + str(i), DABModule(64, d=2))
-
-        # self.bn_prelu_2 = BNPReLU(128 + 3)
-        self.bn_prelu_2 = BNPReLU(128)
-
+        self.bn_prelu_2 = BNPReLU(128 + 3)
 
         # DAB Block 2
         dilation_block_2 = [4, 4, 8, 8, 16, 16]
-        # self.downsample_2 = DownSamplingBlock(128 + 3, 128)
-        self.downsample_2 = DownSamplingBlock(128, 128)
-
+        self.downsample_2 = DownSamplingBlock(128 + 3, 128)
         self.DAB_Block_2 = nn.Sequential()
         for i in range(0, block_2):
             self.DAB_Block_2.add_module("DAB_Module_2_" + str(i),
                                         DABModule(128, d=dilation_block_2[i]))
+        self.bn_prelu_3 = BNPReLU(256 + 3)
 
-        # self.bn_prelu_3 = BNPReLU(256 + 3)
-        self.bn_prelu_3 = BNPReLU(256)
+        self.classifier = nn.Sequential(Conv(259, classes, 1, 1, padding=0))
+        self.up = nn.Upsample(4)
 
-        # self.classifier = nn.Sequential(Conv(259, num_classes, 1, 1, padding=0))
-        self.classifier = nn.Sequential(Conv(256, num_classes, 1, 1, padding=0))
-        self.up = nn.Upsample(scale_factor=8)
+    def forward(self, input):
 
-    def forward(self, x):
-        x = torch.cat([x, x, x], dim=1)
-        output0 = self.init_conv(x)
+        output0 = self.init_conv(input)
 
-        down_1 = self.down_1(x)
-        down_2 = self.down_2(x)
-        down_3 = self.down_3(x)
+        down_1 = self.down_1(input)
+        down_2 = self.down_2(input)
+        down_3 = self.down_3(input)
 
-        # output0_cat = self.bn_prelu_1(torch.cat([output0, down_1], 1))
-        output0_cat = self.bn_prelu_1(output0)
-
+        output0_cat = self.bn_prelu_1(torch.cat([output0, down_1], 1))
 
         # DAB Block 1
         output1_0 = self.downsample_1(output0_cat)
         output1 = self.DAB_Block_1(output1_0)
-        # output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0, down_2], 1))
-        output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0], 1))
-
+        output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0, down_2], 1))
 
         # DAB Block 2
         output2_0 = self.downsample_2(output1_cat)
         output2 = self.DAB_Block_2(output2_0)
-        # output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
-        output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0], 1))
+        output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
 
-        up3 = output2
-        up2 = output1
+        out = self.classifier(output2_cat)
+        out = self.up(out)
 
-        up4 = self.classifier(output2_cat)
-        up1 = self.up(up4)
-
-        if self.training:
-            return up1, up4, up3, up2, up1, None, None, None, None, None # [1.0, 0.25, 0.125, 0.125] [9, 64, 128, 9]
-        else:
-            return up1
-
-
-
-
-
+        return out
