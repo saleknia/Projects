@@ -98,8 +98,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
         inputs = inputs.float()
-        # outputs = model(inputs)
-        outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
+        outputs = model(inputs)
+        # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
 
 
         # targets = targets.long()
