@@ -74,10 +74,9 @@ class ISIC2017(Dataset):
         return img, seg[0]
                
     def apply_augmentation(self, img, seg):
-        if random.random() > 0.5:
-            img, seg = random_rot_flip(img, seg)
-        elif random.random() > 0.5:
-            img, seg = random_rotate(img, seg)
+        if random.random() < 0.5:
+            img  = np.flip(img,  axis=1)
+            seg  = np.flip(seg,  axis=1)
         return img, seg
 
     def __len__(self):
@@ -190,7 +189,7 @@ def random_rot_flip(image, label):
     return image, label
 
 def random_rotate(image, label):
-    angle = np.random.randint(-90, 90)
+    angle = np.random.randint(-20, 20)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
     label = ndimage.rotate(label, angle, order=0, reshape=False)
     return image, label
