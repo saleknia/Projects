@@ -170,5 +170,5 @@ class DABNet_loss(nn.Module):
         output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
 
         out = self.classifier(output2_cat)
-        out = self.up(out)
-        return out
+        logits = self.up(out)
+        return out, logits
