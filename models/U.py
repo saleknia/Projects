@@ -173,7 +173,7 @@ class U(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         # logits = self.outc(up4)
-        logits = self.head(up4, up3, up2, up1)
+        logits = self.head(up4=up1, up3=up2, up2=up3, up1=up4)
 
         return logits
 
