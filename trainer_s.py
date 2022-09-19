@@ -108,13 +108,13 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # t_masks = targets * overlap
         # targets = targets.float()
 
-        soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long(), num_classes=13).permute(0,3,1,2))
-        loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label) * 0.1
-        # loss_kd = 0.0
+        # soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long(), num_classes=13).permute(0,3,1,2))
+        # loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label) * 0.1
+        loss_kd = 0.0
         loss_att = 0.0
         loss_ce = ce_loss(outputs, targets[:].long()) 
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss = 0.5 * loss_ce + 0.5 * loss_dice + loss_kd + loss_att
+        loss = loss_ce + loss_kd + loss_att
  
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
@@ -150,8 +150,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     acc = 100*accuracy.avg
     mIOU = 100*Eval.Mean_Intersection_over_Union()
 
-    Dice = Eval.Dice()
-    Dice_per_class = Dice
+    Dice = Eval.Dice() * 100.0
+    Dice_per_class = Dice * 100.0
     # Dice,Dice_per_class = Eval.Dice(per_class=True)
     # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
 
