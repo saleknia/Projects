@@ -147,7 +147,7 @@ class DABNet_loss(nn.Module):
         self.bn_prelu_3 = BNPReLU(256 + 3)
 
         self.classifier = nn.Sequential(Conv(259, classes, 1, 1, padding=0))
-        self.up = nn.Upsample(4)
+        self.up = nn.Upsample(scale_factor=8)
 
     def forward(self, input):
 
@@ -171,5 +171,4 @@ class DABNet_loss(nn.Module):
 
         out = self.classifier(output2_cat)
         out = self.up(out)
-
         return out
