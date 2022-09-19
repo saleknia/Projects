@@ -249,8 +249,7 @@ class Mobile_netV2_loss(nn.Module):
         self.layer3 = model.layer3
         self.layer4 = model.layer4
         self.last_conv = nn.Conv2d(512, num_classes, kernel_size=1)
-        # self.head = seg_head(num_class=9)
-
+        self.up = nn.Upsample(8)
     def forward(self, x):
         input_size = x.shape[-2:]
         x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
@@ -260,23 +259,11 @@ class Mobile_netV2_loss(nn.Module):
         x = self.maxpool(x)
 
         x = self.layer1(x)
-        x1 = x
         x = self.layer2(x)
-        x2 = x
         x = self.layer3(x)
-        x3 = x
         x = self.layer4(x)
-        x4 = x
         x = self.last_conv(x)
-        # x = self.head(x4, x3, x2, x1)
-        x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=True)
-        if self.training:
-            # print(x4.shape)
-            # print(x3.shape)
-            # print(x2.shape)
-            # print(x1.shape)
-            return x, x4, x3, x2, x1, None, None, None, None, None
+        x = self.up(x)
+        return x
 
-        else:
-            return x
 
