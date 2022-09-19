@@ -1,7 +1,42 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
 
+
+class seg_head(nn.Module):
+    def __init__(self, num_class=2):
+        super().__init__()
+        self.scale_4 = nn.Upsample(scale_factor=2)
+        self.scale_3 = nn.Upsample(scale_factor=2)
+        self.scale_2 = nn.Upsample(scale_factor=2)
+        self.conv_4 =  nn.Conv2d(512, 256, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
+        self.conv_2 =  nn.Conv2d(128, 64 , kernel_size=(1,1), stride=(1,1))
+
+        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.BN_out = nn.BatchNorm2d(64)
+        self.RELU6_out = nn.ReLU6()
+
+        self.out = nn.Conv2d(64, num_class, kernel_size=(1,1), stride=(1,1))
+
+    def forward(self, up4, up3, up2, up1):
+        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        up4 = self.scale_4(self.conv_4(up4))
+        up3 = up3 + up4
+        up3 = self.scale_3(self.conv_3(up3))
+        up2 = up3 + up2
+        up2 = self.scale_2(self.conv_2(up2))
+        up = up2 + up1
+        
+        up = self.conv(up)
+        up = self.BN_out(up)
+        up = self.RELU6_out(up)
+        up = self.out(up)
+
+        return up
 
 # class depthwise_separable_conv(nn.Module):
 #  def __init__(self, nin, nout): 
@@ -123,8 +158,9 @@ class U(nn.Module):
         self.up2 = Up(in_channels*8 , in_channels*4 // factor, bilinear)
         self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
-        self.outc = OutConv(in_channels , n_classes)
+        # self.outc = OutConv(in_channels , n_classes)
         # self.sigmoid = torch.nn.Sigmoid()
+        self.head = seg_head()
 
     def forward(self, x, teacher=False):
         x1 = self.inc(x)
@@ -136,10 +172,11 @@ class U(nn.Module):
         up2 = self.up2(up1, x3)
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
-        logits = self.outc(up4)
+        # logits = self.outc(up4)
+        logits = self.head(up4, up3, up2, up1)
 
         return logits
-        
+
         # if self.training:
         #     return logits, up4, up3, up2, up1, x5, x4, x3, x2, x1
         # else:
