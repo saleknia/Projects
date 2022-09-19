@@ -137,11 +137,13 @@ class U(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
-        # outputs = self.sigmoid(logits)
-        if self.training:
-            return logits, up4, up3, up2, up1, x5, x4, x3, x2, x1
-        else:
-            return logits
+
+        return logits
+        
+        # if self.training:
+        #     return logits, up4, up3, up2, up1, x5, x4, x3, x2, x1
+        # else:
+        #     return logits
         
         # if self.training:
         #     return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
