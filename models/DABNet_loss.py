@@ -171,4 +171,7 @@ class DABNet_loss(nn.Module):
 
         out = self.classifier(output2_cat)
         logits = self.up(out)
-        return logits, out
+        if self.training:
+            return logits, out
+        else:
+            return logits
