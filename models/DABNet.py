@@ -114,19 +114,6 @@ class InputInjection(nn.Module):
 
         return input
 
-class UpBlock(nn.Module):
-    """Upscaling then conv"""
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU',PA=True):
-        super(UpBlock, self).__init__()
-        self.up = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
-
-    def forward(self, x, skip_x):
-        out = self.up(x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.nConvs(x) 
-        return x
-
 
 class DABNet(nn.Module):
     def __init__(self, classes=19, block_1=3, block_2=6):
@@ -140,79 +127,49 @@ class DABNet(nn.Module):
         self.down_1 = InputInjection(1)  # down-sample the image 1 times
         self.down_2 = InputInjection(2)  # down-sample the image 2 times
         self.down_3 = InputInjection(3)  # down-sample the image 3 times
-        
-        base = 32
-        self.up_1 = UpBlock(in_channels=base*6, out_channels=base*2)  # up-sample & concatenate 
-        self.up_2 = UpBlock(in_channels=base*4, out_channels=base)  # up-sample & concatenate 
-        self.up_3 = UpBlock(in_channels=base*2, out_channels=base)  # up-sample & concatenate 
 
-
-        # self.bn_prelu_1 = BNPReLU(32 + 3)
-        self.bn_prelu_1 = BNPReLU(32)
-
+        self.bn_prelu_1 = BNPReLU(32 + 3)
 
         # DAB Block 1
-        # self.downsample_1 = DownSamplingBlock(32 + 3, 64)
-        self.downsample_1 = DownSamplingBlock(32, 64)
+        self.downsample_1 = DownSamplingBlock(32 + 3, 64)
         self.DAB_Block_1 = nn.Sequential()
         for i in range(0, block_1):
             self.DAB_Block_1.add_module("DAB_Module_1_" + str(i), DABModule(64, d=2))
-
-        # self.bn_prelu_2 = BNPReLU(128 + 3)
-        self.bn_prelu_2 = BNPReLU(128)
-
+        self.bn_prelu_2 = BNPReLU(128 + 3)
 
         # DAB Block 2
         dilation_block_2 = [4, 4, 8, 8, 16, 16]
-        # self.downsample_2 = DownSamplingBlock(128 + 3, 128)
-        self.downsample_2 = DownSamplingBlock(128, 128)
-
+        self.downsample_2 = DownSamplingBlock(128 + 3, 128)
         self.DAB_Block_2 = nn.Sequential()
         for i in range(0, block_2):
             self.DAB_Block_2.add_module("DAB_Module_2_" + str(i),
                                         DABModule(128, d=dilation_block_2[i]))
+        self.bn_prelu_3 = BNPReLU(256 + 3)
 
-        # self.bn_prelu_3 = BNPReLU(256 + 3)
-        self.bn_prelu_3 = BNPReLU(256)
+        self.classifier = nn.Sequential(Conv(259, classes, 1, 1, padding=0))
+        self.up = nn.Upsample(4)
 
-        # self.classifier = nn.Sequential(Conv(259, classes, 1, 1, padding=0))
-        self.classifier = nn.Sequential(Conv(256, classes, 1, 1, padding=0))
+    def forward(self, input):
 
+        output0 = self.init_conv(input)
 
-    def forward(self, x):
-        x = torch.cat([x, x, x], dim=1)
-        output0 = self.init_conv(x)
+        down_1 = self.down_1(input)
+        down_2 = self.down_2(input)
+        down_3 = self.down_3(input)
 
-        down_1 = self.down_1(x)
-        down_2 = self.down_2(x)
-        down_3 = self.down_3(x)
-
-
-        # output0_cat = self.bn_prelu_1(torch.cat([output0, down_1], 1))
-        output0_cat = self.bn_prelu_1(output0)
-
+        output0_cat = self.bn_prelu_1(torch.cat([output0, down_1], 1))
 
         # DAB Block 1
         output1_0 = self.downsample_1(output0_cat)
         output1 = self.DAB_Block_1(output1_0)
-        # output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0, down_2], 1))
-        output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0], 1))
-
+        output1_cat = self.bn_prelu_2(torch.cat([output1, output1_0, down_2], 1))
 
         # DAB Block 2
         output2_0 = self.downsample_2(output1_cat)
         output2 = self.DAB_Block_2(output2_0)
-        # output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
-        output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0], 1))
-
+        output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
 
         out = self.classifier(output2_cat)
-        out = F.interpolate(out, x.size()[2:], mode='bilinear', align_corners=False)
+        out = self.up(out)
 
         return out
-
-
-
-
-
-
