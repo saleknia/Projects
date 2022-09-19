@@ -42,6 +42,8 @@ from models.ESPNet_loss import ESPNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
+from models.Fast_SCNN import Fast_SCNN
+from models.Fast_SCNN_loss import Fast_SCNN_loss
 # from models.original_UNet import original_UNet
 import utils
 from utils import color
@@ -160,6 +162,12 @@ def main(args):
 
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN':
+        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN_loss':
+        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'Mobile_NetV2':
         model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
