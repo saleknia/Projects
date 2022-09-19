@@ -75,9 +75,9 @@ class ISIC2017(Dataset):
                
     def apply_augmentation(self, img, seg):
         if random.random() > 0.5:
-            image, label = random_rot_flip(image, label)
+            img, seg = random_rot_flip(img, seg)
         elif random.random() > 0.5:
-            image, label = random_rotate(image, label)
+            img, seg = random_rotate(img, seg)
         return img, seg
 
     def __len__(self):
