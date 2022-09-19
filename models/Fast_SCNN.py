@@ -29,7 +29,7 @@ class Fast_SCNN(nn.Module):
             )
 
     def forward(self, x):
-        x = torch.cat([x, x, x], dim=1)
+        # x = torch.cat([x, x, x], dim=1)
         size = x.size()[2:]
         higher_res_features = self.learning_to_downsample(x)
         x = self.global_feature_extractor(higher_res_features)
