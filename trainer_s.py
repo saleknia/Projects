@@ -108,7 +108,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # t_masks = targets * overlap
         # targets = targets.float()
 
-        soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long(), num_classes=13).permute(0,3,1,2)
+        soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long(), num_classes=13).permute(0,3,1,2))
         # loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label) * 0.1
         loss_kd = 0.0
         loss_att = 0.0
