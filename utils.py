@@ -1175,7 +1175,7 @@ class disparity_loss(nn.Module):
         loss = 0.0
         prototypes = []
         B,C,H,W = outputs.shape
-
+        outputs = F.interpolate(outputs, masks.size()[2:], mode='bilinear', align_corners=False)
         mask_unique_value = torch.unique(masks)
         unique_num = len(mask_unique_value)
         
