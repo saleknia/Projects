@@ -414,7 +414,7 @@ class UpBlock(nn.Module):
         # self.up_2 = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         # self.gamma = nn.parameter.Parameter(torch.zeros(1))
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
-        # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
+        self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
         # self.se = SEAttention(channel=in_channels, reduction=8)
         # self.CA_skip = CAM_Module()
         # self.CA_x = CAM_Module()
@@ -428,7 +428,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
-        # out = self.att(out)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
@@ -525,7 +525,7 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, PA=False)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        self.seg_head = seg_head()
+        # self.seg_head = seg_head()
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -547,8 +547,8 @@ class UNet(nn.Module):
         up2 = self.up2(up3, x2)
         up1 = self.up1(up2, x1)
 
-        logits = self.seg_head(up4, up3, up2, up1)
-        # logits = self.outc(up1)
+        # logits = self.seg_head(up4, up3, up2, up1)
+        logits = self.outc(up1)
         return logits
 
 
