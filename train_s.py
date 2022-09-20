@@ -27,6 +27,8 @@ from models.UNet_plus_loss import NestedUNet_loss
 from models.att_unet import AttentionUNet
 from models.att_unet_loss import AttentionUNet_loss
 from models.multi_res_unet import MultiResUnet
+from models.ERFNet import ERFNet
+from models.ERFNet_loss import ERFNet_loss
 from models.U import U
 from models.U_loss import U_loss
 from models.multi_res_unet_loss import MultiResUnet_loss
@@ -150,6 +152,12 @@ def main(args):
 
     elif MODEL_NAME == 'ENet_loss':
         model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
+        
+    elif MODEL_NAME == 'ERFNet':
+        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet_loss':
+        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'ESPNet':
         model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
