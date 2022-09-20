@@ -1171,9 +1171,11 @@ class disparity_loss(nn.Module):
     def __init__(self):
         super(disparity_loss, self).__init__()
 
-    def forward(self, masks, outputs):
+    def forward(self, masks, t_masks, outputs):
         loss = 0.0
         prototypes = []
+        prototypes_true = []
+        prototypes_predict = []
         B,C,H,W = outputs.shape
         outputs = F.interpolate(outputs, masks.size()[1:], mode='bilinear', align_corners=False)
         mask_unique_value = torch.unique(masks)
@@ -1183,15 +1185,26 @@ class disparity_loss(nn.Module):
             return 0.0
 
         masks = masks.unsqueeze(dim=1).expand_as(outputs)
+        t_masks = t_masks.unsqueeze(dim=1).expand_as(outputs)
         for t in range(B):
             if torch.sum(masks[t])!=0:
                 v = torch.sum(masks[t]*outputs[t],dim=[1,2])/torch.sum(masks[t],dim=[1,2])
                 v = torch.nn.functional.normalize(v, dim=0, p=2.0, eps=1e-12, out=None)
                 prototypes.append(v)
+            if torch.sum(masks[t])!=0 and torch.sum(t_masks[t])!=0:
+                g = torch.sum(t_masks[t]*outputs[t],dim=[1,2])/torch.sum(t_masks[t],dim=[1,2])
+                g = torch.nn.functional.normalize(g, dim=0, p=2.0, eps=1e-12, out=None)
+                prototypes_true.append(v)
+                prototypes_predict.append(g)
+
         prototypes = torch.stack(prototypes)
+        prototypes_true = torch.stack(prototypes_true)
+        prototypes_predict = torch.stack(prototypes_predict)
+
         proto = prototypes.unsqueeze(dim=0)
         distances = torch.cdist(proto, proto, p=2.0)
-        loss = torch.mean(distances)
+        loss = loss + torch.mean(distances)
+        loss = loss + torch.mean(torch.sqrt(torch.sum((prototypes_true-prototypes_predict)**2 , dim=1)))
         return loss
 
 
