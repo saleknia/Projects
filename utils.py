@@ -1170,6 +1170,7 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
 class disparity_loss(nn.Module):
     def __init__(self):
         super(disparity_loss, self).__init__()
+        self.dist = nn.PairwiseDistance(p=2)
 
     def forward(self, masks, t_masks, outputs):
         loss = 0.0
@@ -1204,7 +1205,7 @@ class disparity_loss(nn.Module):
         proto = prototypes.unsqueeze(dim=0)
         distances = torch.cdist(proto, proto, p=2.0)
         loss = loss + torch.mean(distances)
-        loss = loss + torch.mean(torch.sum(torch.sqrt((prototypes_true-prototypes_predict)**2) , dim=1))
+        loss = loss + torch.mean(self.dist(prototypes_true, prototypes_predict))
         return loss
 
 
