@@ -102,7 +102,7 @@ def main(args):
 # LOAD_MODEL
 
     if MODEL_NAME=='UNet':
-        model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+        model = UNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
         # model = original_UNet().to(DEVICE)
 
     elif MODEL_NAME=='UNet_loss':
@@ -152,7 +152,7 @@ def main(args):
 
     elif MODEL_NAME == 'ENet_loss':
         model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
-        
+
     elif MODEL_NAME == 'ERFNet':
         model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
 

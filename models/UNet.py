@@ -439,20 +439,20 @@ class seg_head(nn.Module):
         self.scale_4 = nn.Upsample(scale_factor=2)
         self.scale_3 = nn.Upsample(scale_factor=2)
         self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
+        self.conv_4 =  nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
+        self.conv_3 =  nn.Conv2d(64 , 32, kernel_size=(1,1), stride=(1,1))
+        self.conv_2 = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
 
-        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
-        self.BN_out = nn.BatchNorm2d(64)
+        self.conv = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
+        self.BN_out = nn.BatchNorm2d(32)
         self.RELU6_out = nn.ReLU6()
 
-        self.out = nn.Conv2d(64, 9, kernel_size=(1,1), stride=(1,1))
+        self.out = nn.Conv2d(32, 2, kernel_size=(1,1), stride=(1,1))
 
     def forward(self, up4, up3, up2, up1):
-        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-        up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
+        # up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+        # up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+        # up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
         up4 = self.scale_4(self.conv_4(up4))
         up3 = up3 + up4
         up3 = self.scale_3(self.conv_3(up3))
@@ -480,7 +480,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
         # Question here
-        in_channels = 12
+        in_channels = 32
 
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
@@ -501,7 +501,7 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, PA=False)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        # self.seg_head = seg_head()
+        self.seg_head = seg_head()
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -523,16 +523,20 @@ class UNet(nn.Module):
         up2 = self.up2(up3, x2)
         up1 = self.up1(up2, x1)
 
-        # logits = self.seg_head(up4, up3, up2, up1)
-        if self.last_activation is not None:
-            logits = self.last_activation(self.outc(up1))
-        else:
-            logits = self.outc(up1)
+        logits = self.seg_head(up4, up3, up2, up1)
+        # logits = self.outc(up1)
+        return logits
 
-        if self.training:
-            return logits, up4, up3, up2, up1
-        else:
-            return logits
+
+        # if self.last_activation is not None:
+        #     logits = self.last_activation(self.outc(up1))
+        # else:
+        #     logits = self.outc(up1)
+
+        # if self.training:
+        #     return logits, up4, up3, up2, up1
+        # else:
+        #     return logits
 
 
 
