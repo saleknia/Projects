@@ -433,63 +433,41 @@
 #         x = self.nConvs(x) 
 #         return x
 
-# # class seg_head(nn.Module):
-# #     def __init__(self):
-# #         super().__init__()
-# #         self.scale_4 = nn.Upsample(scale_factor=2)
-# #         self.scale_3 = nn.Upsample(scale_factor=2)
-# #         self.scale_2 = nn.Upsample(scale_factor=2)
-# #         self.conv_4 =  nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
-# #         self.conv_3 =  nn.Conv2d(64 , 32, kernel_size=(1,1), stride=(1,1))
-# #         self.conv_2 = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
-
-# #         self.conv = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
-# #         self.BN_out = nn.BatchNorm2d(32)
-# #         self.RELU6_out = nn.ReLU6()
-
-# #         self.out = nn.Conv2d(32, 2, kernel_size=(1,1), stride=(1,1))
-
-# #     def forward(self, up4, up3, up2, up1):
-# #         # up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-# #         # up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-# #         # up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-# #         up4 = self.scale_4(self.conv_4(up4))
-# #         up3 = up3 + up4
-# #         up3 = self.scale_3(self.conv_3(up3))
-# #         up2 = up3 + up2
-# #         up2 = self.scale_2(self.conv_2(up2))
-# #         up = up2 + up1
-        
-# #         up = self.conv(up)
-# #         up = self.BN_out(up)
-# #         up = self.RELU6_out(up)
-# #         up = self.out(up)
-
-# #         return up
-
 # class seg_head(nn.Module):
 #     def __init__(self):
 #         super().__init__()
-#         self.scale_4 = nn.Upsample(scale_factor=8)
-#         self.scale_3 = nn.Upsample(scale_factor=4)
+#         self.scale_4 = nn.Upsample(scale_factor=2)
+#         self.scale_3 = nn.Upsample(scale_factor=2)
 #         self.scale_2 = nn.Upsample(scale_factor=2)
-#         self.conv_4 =  _make_nConv(in_channels=128, out_channels=32, nb_Conv=1, kernel_size=1, padding=0) 
-#         self.conv_3 =  _make_nConv(in_channels=64 , out_channels=32, nb_Conv=1, kernel_size=1, padding=0) 
-#         self.conv_2 =  _make_nConv(in_channels=32 , out_channels=32, nb_Conv=1, kernel_size=1, padding=0) 
-#         self.conv_1 =  _make_nConv(in_channels=32 , out_channels=32, nb_Conv=1, kernel_size=1, padding=0) 
+#         self.conv_4 =  nn.Conv2d(128, 64, kernel_size=(1,1), stride=(1,1))
+#         self.conv_3 =  nn.Conv2d(64 , 32, kernel_size=(1,1), stride=(1,1))
+#         self.conv_2 = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
+
+#         self.conv = nn.Conv2d(32, 32, kernel_size=(1,1), stride=(1,1))
+#         self.BN_out = nn.BatchNorm2d(32)
+#         self.RELU6_out = nn.ReLU6()
 
 #         self.out = nn.Conv2d(32, 2, kernel_size=(1,1), stride=(1,1))
 
 #     def forward(self, up4, up3, up2, up1):
-
+#         # up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
+#         # up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
+#         # up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
 #         up4 = self.scale_4(self.conv_4(up4))
+#         up3 = up3 + up4
 #         up3 = self.scale_3(self.conv_3(up3))
+#         up2 = up3 + up2
 #         up2 = self.scale_2(self.conv_2(up2))
-#         up = self.conv_1(up4 + up3 + up2 + up1)
+#         up = up2 + up1
         
+#         up = self.conv(up)
+#         up = self.BN_out(up)
+#         up = self.RELU6_out(up)
 #         up = self.out(up)
 
 #         return up
+
+
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=9):
@@ -564,172 +542,31 @@
 
 
 import torch
-import timm
-from torchvision import models as resnet_model
-from torch import nn
-
-
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
-
-
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
-
-
-class SEBlock(nn.Module):
-    def __init__(self, channel, r=16):
-        super(SEBlock, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        # Squeeze
-        y = self.avg_pool(x).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        y = torch.mul(x, y)
-        return y
-
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision.models import resnet18
+import torchvision
 
 class UNet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
+    def __init__(self, n_channels=3, n_classes=2):
         super(UNet, self).__init__()
-
-        transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
-        resnet = resnet_model.resnet34(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
-
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
-
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAMBlock2 = FAMBlock(channels=128)
-        self.FAMBlock3 = FAMBlock(channels=256)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
-
-        filters = [64, 128, 256, 512]
-        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
-        self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
-
-        self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
-
+        self.model = torchvision.models.segmentation.deeplabv3_resnet50(pretrained=False, num_classes=2)
 
     def forward(self, x):
-        b, c, h, w = x.shape
+        # input_size = x.shape[-2:]
+        # # x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
+        # x = self.conv1(x)
+        # x = self.bn1(x)
+        # x = self.relu(x)
+        # x = self.maxpool(x)
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        feature_cnn = self.encoder4(e3)
-
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-
-        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        feature_out = self.conv2d(feature_att)
-
-        for i in range(2):
-            e3 = self.FAM3[i](e3)
-        for i in range(4):
-            e2 = self.FAM2[i](e2)
-        for i in range(6):
-            e1 = self.FAM1[i](e1)
-        d4 = self.decoder4(feature_out) + e3
-        d3 = self.decoder3(d4) + e2
-        d2 = self.decoder2(d3) + e1
-
-        out1 = self.final_conv1(d2)
-        out1 = self.final_relu1(out1)
-        out = self.final_conv2(out1)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-
-        return out
-
+        # x = self.layer1(x)
+        # x = self.layer2(x)
+        # x = self.layer3(x)
+        # x = self.layer4(x)
+        # x = self.last_conv(x)
+        # x = self.up(x)
+        return self.model(x)['out']
 
 
 
