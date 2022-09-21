@@ -119,12 +119,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_dice + 0.5 * loss_ce + loss_kd + loss_att
  
-        # lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1        
+        iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
