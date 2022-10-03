@@ -368,7 +368,7 @@ class ESPNet(nn.Module):
         :param input: RGB image
         :return: transformed feature map
         '''
-        input = torch.cat([input, input, input], dim=1)  # 扩充为3通道
+        # input = torch.cat([input, input, input], dim=1)  # 扩充为3通道
         output0 = self.en_modules[0](input)
         inp1 = self.en_modules[1](input)
         inp2 = self.en_modules[2](input)
