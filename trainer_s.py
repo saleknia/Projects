@@ -98,10 +98,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
         inputs = inputs.float()
-        outputs = model(inputs)
-        # outputs, up4 = model(inputs)
+        # outputs = model(inputs)
+        outputs, up4 = model(inputs)
         # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
-        # print(outputs.shape)/
 
 
         targets = targets.long()
@@ -119,7 +118,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
         loss = 0.5 * loss_dice + 0.5 * loss_ce + loss_kd + loss_att
  
-        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
