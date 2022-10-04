@@ -243,6 +243,8 @@ class ConvBatchNorm(nn.Module):
 
     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
         super(ConvBatchNorm, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
         self.conv = nn.Conv2d(in_channels, out_channels,
                               kernel_size=kernel_size, padding=padding)
         self.norm = nn.BatchNorm2d(out_channels)
@@ -251,7 +253,10 @@ class ConvBatchNorm(nn.Module):
     def forward(self, x):
         out = self.conv(x)
         out = self.norm(out)
-        return self.activation(out)
+        if self.in_channels==self.out_channels:
+            return self.activation(out)+x
+        else:
+            return self.activation(out)
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
@@ -422,7 +427,7 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
