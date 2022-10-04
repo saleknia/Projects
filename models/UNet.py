@@ -673,7 +673,7 @@ class UNet(nn.Module):
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         self.DAB = DABNet()
-        self.concat = ConvBatchNorm(in_channels=in_channels*8 + 259, out_channels=in_channels*8, activation='ReLU', kernel_size=1, padding=1)
+        self.concat = ConvBatchNorm(in_channels=((in_channels*8) + 259), out_channels=in_channels*8, activation='ReLU', kernel_size=1, padding=0)
 
         # self.seg_head = seg_head()
 
@@ -691,7 +691,6 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-
         x5 = torch.cat([DAB, x5], dim=1)
         x5 = self.concat(x5)
 
