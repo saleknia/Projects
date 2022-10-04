@@ -490,19 +490,12 @@ class UNet(nn.Module):
         self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
         self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
 
-        # self.Conv1 = _make_bot_layer(ch_in=n_channels,ch_out=64)
-        # self.Conv2 = _make_bot_layer(ch_in=64, ch_out=128)
-        # self.Conv3 = _make_bot_layer(ch_in=128, ch_out=256)
-        # self.Conv4 = _make_bot_layer(ch_in=256, ch_out=512)
-        # self.Conv5 = _make_bot_layer(ch_in=512, ch_out=512) # original ch_out was 1024.
-
-
-
         self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, PA=False)
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, PA=False)
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, PA=False)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+
         # self.seg_head = seg_head()
 
         if n_classes == 1:
