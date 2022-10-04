@@ -253,10 +253,12 @@ class ConvBatchNorm(nn.Module):
     def forward(self, x):
         out = self.conv(x)
         out = self.norm(out)
-        if self.in_channels==self.out_channels:
-            return self.activation(out)+x
-        else:
-            return self.activation(out)
+        return self.activation(out)
+
+        # if self.in_channels==self.out_channels:
+        #     return self.activation(out)+x
+        # else:
+        #     return self.activation(out)
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
@@ -433,7 +435,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
-        skip_x = self.se(decoder=out, encoder=skip_x)
+        # skip_x = self.se(decoder=out, encoder=skip_x)
         out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
