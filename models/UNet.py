@@ -175,7 +175,7 @@ class DABNet(nn.Module):
         output2 = self.DAB_Block_2(output2_0)
         output2_cat = self.bn_prelu_3(torch.cat([output2, output2_0, down_3], 1))
 
-        out = self.classifier(output2_cat)
+        out = output2_cat
         out = F.avg_pool2d(out, kernel_size=2)
 
         return out
