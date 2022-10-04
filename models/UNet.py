@@ -114,11 +114,11 @@ class SEAttention(nn.Module):
                 if m.bias is not None:
                     init.constant_(m.bias, 0)
 
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
+    def forward(self, decoder, encoder):
+        b, c, _, _ = decoder.size()
+        y = self.avg_pool(decoder).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
+        return encoder * y.expand_as(encoder)
 
 class UpConv(nn.Module):
 
@@ -420,20 +420,21 @@ class UpBlock(nn.Module):
         # self.gamma = nn.parameter.Parameter(torch.zeros(1))
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
         # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
-        # self.se = SEAttention(channel=in_channels, reduction=8)
+        self.se = SEAttention(channel=in_channels//2, reduction=8)
         # self.CA_skip = CAM_Module()
         # self.CA_x = CAM_Module()
         # self.PA = PA
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
-        # out = self.att(out)
+        skip_x = self.se(decoder=out, encoder=skip_x)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
