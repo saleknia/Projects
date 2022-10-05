@@ -431,14 +431,14 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
         # skip_x = self.se(decoder=out, encoder=skip_x)
-        out = self.att(out)
+        # out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
@@ -542,7 +542,7 @@ class UNet(nn.Module):
 
         # logits = self.seg_head(up4, up3, up2, up1)
         logits = self.outc(up1)
-        return logits
+        return logits, up1
 
 
         # if self.last_activation is not None:
