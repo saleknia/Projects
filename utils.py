@@ -1340,6 +1340,7 @@ class discriminate(nn.Module):
     def forward(self, masks, outputs):
         B,C,H,W = outputs.shape
         prototypes = torch.zeros(size=(B, C))
+        outputs = nn.functional.interpolate(outputs, scale_factor=2.0, mode='nearest')
         for b in range(B):       
             output = outputs[b]
             mask = masks[b]
