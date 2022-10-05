@@ -26,6 +26,8 @@ from torch import nn
 from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score,jaccard_score
 
+# disparity
+
 def dice_iou(gt_image, pre_image):
     gt_image = (gt_image).astype(np.float32)
     pre_image = (pre_image).astype(np.float32)
@@ -1331,34 +1333,54 @@ class disparity_loss(nn.Module):
 ###################################################################################
 ###################################################################################
 # freeze
+
 class discriminate(nn.Module):
     def __init__(self):
         super(discriminate, self).__init__()
-        self.epsilon = 1e-6
-
     def forward(self, masks, outputs):
-        loss = 0.0
         B,C,H,W = outputs.shape
-
+        prototypes = torch.zeros(size=(B, C))
         for b in range(B):       
             output = outputs[b]
             mask = masks[b]
-            mask_unique_value = torch.unique(mask)
-            unique_num = len(mask_unique_value)
-            if 1 < unique_num:
-                prototypes = torch.zeros(size=(unique_num, C))
-                for count,p in enumerate(mask_unique_value):
-                    p = p.long()
-                    bin_mask = torch.tensor(mask==p,dtype=torch.int8)
-                    s = torch.sum(bin_mask)
-                    bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
-                    v = torch.sum(bin_mask*output,dim=[1,2])/s
-                    prototypes[count] = v
-                    
-                distances = torch.cdist(prototypes, prototypes, p=2.0)
-                loss = loss +  1.0 / torch.mean(distances)
+            bin_mask = torch.tensor(mask==1.0, dtype=torch.int8)
+            s = torch.sum(bin_mask)
+            bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
+            v = torch.sum(bin_mask*output,dim=[1,2])/s
+            prototypes[b] = v
+                
+        distances = torch.cdist(prototypes, prototypes, p=2.0)
+        loss = 1.0 / torch.mean(distances)
         
         return loss
+
+# class discriminate(nn.Module):
+#     def __init__(self):
+#         super(discriminate, self).__init__()
+#         self.epsilon = 1e-6
+
+#     def forward(self, masks, outputs):
+#         loss = 0.0
+#         B,C,H,W = outputs.shape
+#         for b in range(B):       
+#             output = outputs[b]
+#             mask = masks[b]
+#             mask_unique_value = torch.unique(mask)
+#             unique_num = len(mask_unique_value)
+#             if 1 < unique_num:
+#                 prototypes = torch.zeros(size=(unique_num, C))
+#                 for count,p in enumerate(mask_unique_value):
+#                     p = p.long()
+#                     bin_mask = torch.tensor(mask==p,dtype=torch.int8)
+#                     s = torch.sum(bin_mask)
+#                     bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
+#                     v = torch.sum(bin_mask*output,dim=[1,2])/s
+#                     prototypes[count] = v
+                    
+#                 distances = torch.cdist(prototypes, prototypes, p=2.0)
+#                 loss = loss +  1.0 / torch.mean(distances)
+        
+#         return loss
 
 
 class proto(nn.Module):
