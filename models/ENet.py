@@ -89,7 +89,7 @@ class ENet(nn.Module):
         x = self.bottleneck5_0(x, max_indices1)
         x = self.bottleneck5_1(x)
         # out
-        return self.fullconv_1(x)
+        return self.fullconv_1(x), x
      
     
 
