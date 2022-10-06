@@ -295,7 +295,7 @@ def get_activation(activation_type):
 
 def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1 ):
     layers = []
-    layers.append(DConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
 
     for _ in range(nb_Conv - 1):
         layers.append(ConvBatchNorm(out_channels, out_channels, activation))
@@ -506,8 +506,10 @@ class UpBlock(nn.Module):
         # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
+        self.deconve = DeformableConv2d(in_channels=in_channels//2, out_channels=in_channels//2)
 
     def forward(self, x, skip_x):
+        skip_x = self.deconve(skip_x)  
         out = self.up_1(x)
         # skip_x = self.se(decoder=out, encoder=skip_x)
         # out = self.att(out)
