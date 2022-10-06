@@ -542,7 +542,7 @@ class UNet(nn.Module):
 
         # logits = self.seg_head(up4, up3, up2, up1)
         logits = self.outc(up1)
-        return logits, up1
+        return logits
 
 
         # if self.last_activation is not None:
