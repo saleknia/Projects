@@ -28,6 +28,7 @@ import pickle
 from torch.utils.data import Dataset, DataLoader
 from einops.layers.torch import Rearrange
 from scipy.ndimage.morphology import binary_dilation
+import skimage
 
 # ===== normalize over the dataset 
 def dataset_normalized(imgs):
@@ -63,6 +64,8 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
+        print(img.shape)
+        print(seg.shape)
 
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
@@ -83,8 +86,8 @@ class ISIC2017(Dataset):
         return img, seg
 
     def resize(self, img, seg):
-        img[0] = zoom(img[0], (224.0 / img[0].shape[0], 224.0 / img[0].shape[1]), order=0)  # why not 3?
-        seg[0] = zoom(seg[0], (224.0 / seg[0].shape[0], 224.0 / seg[0].shape[1]), order=0)
+        img = skimage.transform.resize(img, (224, 224, 3))
+        seg = skimage.transform.resize(seg, (224, 224, 1))
         return img, seg
 
     def __len__(self):
