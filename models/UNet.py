@@ -322,7 +322,7 @@ class DConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
-        super(ConvBatchNorm, self).__init__()
+        super(DConvBatchNorm, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.conv = DeformableConv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size)
