@@ -29,6 +29,7 @@ from torch.utils.data import Dataset, DataLoader
 from einops.layers.torch import Rearrange
 from scipy.ndimage.morphology import binary_dilation
 import skimage
+import skimage.transform
 
 # ===== normalize over the dataset 
 def dataset_normalized(imgs):
