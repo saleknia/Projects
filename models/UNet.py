@@ -12,7 +12,68 @@ import math
 from torch.nn import Module, Sequential, Conv2d, ReLU,AdaptiveMaxPool2d, AdaptiveAvgPool2d,NLLLoss, BCELoss, CrossEntropyLoss, AvgPool2d, MaxPool2d, Parameter, Linear, Sigmoid, Softmax, Dropout, Embedding
 from torch.nn import functional as F
 from torch.autograd import Variable
+import torchvision.ops
 
+class DeformableConv2d(nn.Module):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride=1,
+                 padding=1,
+                 bias=False):
+
+        super(DeformableConv2d, self).__init__()
+        
+        assert type(kernel_size) == tuple or type(kernel_size) == int
+
+        kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
+        self.stride = stride if type(stride) == tuple else (stride, stride)
+        self.padding = padding
+        
+        self.offset_conv = nn.Conv2d(in_channels, 
+                                     2 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
+
+        nn.init.constant_(self.offset_conv.weight, 0.)
+        nn.init.constant_(self.offset_conv.bias, 0.)
+        
+        self.modulator_conv = nn.Conv2d(in_channels, 
+                                     1 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
+
+        nn.init.constant_(self.modulator_conv.weight, 0.)
+        nn.init.constant_(self.modulator_conv.bias, 0.)
+        
+        self.regular_conv = nn.Conv2d(in_channels=in_channels,
+                                      out_channels=out_channels,
+                                      kernel_size=kernel_size,
+                                      stride=stride,
+                                      padding=self.padding,
+                                      bias=bias)
+
+    def forward(self, x):
+        #h, w = x.shape[2:]
+        #max_offset = max(h, w)/4.
+
+        offset = self.offset_conv(x)#.clamp(-max_offset, max_offset)
+        modulator = 2. * torch.sigmoid(self.modulator_conv(x))
+        
+        x = torchvision.ops.deform_conv2d(input=x, 
+                                          offset=offset, 
+                                          weight=self.regular_conv.weight, 
+                                          bias=self.regular_conv.bias, 
+                                          padding=self.padding,
+                                          mask=modulator,
+                                          stride=self.stride,
+                                          )
+        return x
 
 
 class ParallelPolarizedSelfAttention(nn.Module):
@@ -234,7 +295,7 @@ def get_activation(activation_type):
 
 def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1 ):
     layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
+    layers.append(DConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
 
     for _ in range(nb_Conv - 1):
         layers.append(ConvBatchNorm(out_channels, out_channels, activation))
@@ -257,10 +318,21 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
-        # if self.in_channels==self.out_channels:
-        #     return self.activation(out)+x
-        # else:
-        #     return self.activation(out)
+class DConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
+        super(ConvBatchNorm, self).__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.conv = DeformableConv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
