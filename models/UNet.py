@@ -952,7 +952,7 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
 
         # transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
-        transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=False)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
