@@ -64,8 +64,6 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
-        print(img.shape)
-        print(seg.shape)
 
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
