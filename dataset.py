@@ -63,10 +63,11 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
-        img = zoom(img, (224.0 / img.shape[0], 224.0 / img.shape[1]), order=0)  # why not 3?
-        seg = zoom(seg, (224.0 / seg.shape[0], 224.0 / seg.shape[1]), order=0)
+
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
+        
+        img, seg = self.resize(img, seg)
         
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
@@ -79,6 +80,11 @@ class ISIC2017(Dataset):
         if random.random() < 0.5:
             img  = np.flip(img,  axis=1)
             seg  = np.flip(seg,  axis=1)
+        return img, seg
+
+    def resize(self, img, seg):
+        img[0] = zoom(img[0], (224.0 / img[0].shape[0], 224.0 / img[0].shape[1]), order=0)  # why not 3?
+        seg[0] = zoom(seg[0], (224.0 / seg[0].shape[0], 224.0 / seg[0].shape[1]), order=0)
         return img, seg
 
     def __len__(self):
