@@ -486,6 +486,26 @@ class Indentity(nn.Module):
     def forward(self, x):
         return x
 
+
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -506,10 +526,12 @@ class UpBlock(nn.Module):
         # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
-        self.deconve = DeformableConv2d(in_channels=in_channels//2, out_channels=in_channels//2)
+        # self.deconve = DConvBatchNorm(in_channels=in_channels//2, out_channels=in_channels//2)
+        self.FAM = FAMBlock(channels=in_channels//2)
 
     def forward(self, x, skip_x):
-        skip_x = self.deconve(skip_x)  
+        # skip_x = self.deconve(skip_x)  
+        skip_x = self.FAM(skip_x)
         out = self.up_1(x)
         # skip_x = self.se(decoder=out, encoder=skip_x)
         # out = self.att(out)
