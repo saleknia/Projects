@@ -63,6 +63,8 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
+        img = zoom(img, (224.0 / img.shape[0], 224.0 / img.shape[1]), order=0)  # why not 3?
+        seg = zoom(seg, (224.0 / seg.shape[0], 224.0 / seg.shape[1]), order=0)
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
