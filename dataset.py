@@ -69,7 +69,7 @@ class ISIC2017(Dataset):
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
-        # img, seg = self.resize(img, seg)
+        img, seg = self.resize(img, seg)
         
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
