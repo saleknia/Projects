@@ -523,7 +523,7 @@ class UpBlock(nn.Module):
         # if self.PA:
         #     self.PA = PAM_Module(in_dim=in_channels//2)
 
-        # self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
+        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
 
         # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
         # self.deconve = DConvBatchNorm(in_channels=in_channels//2, out_channels=in_channels//2)
@@ -534,7 +534,7 @@ class UpBlock(nn.Module):
         # skip_x = self.FAM(skip_x)
         out = self.up_1(x)
         # skip_x = self.se(decoder=out, encoder=skip_x)
-        # out = self.att(out)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
@@ -604,8 +604,7 @@ class UNet(nn.Module):
         in_channels = 16
 
         nb_Conv = 4
-        self.inc = _make_nConv(in_channels=n_channels, out_channels=in_channels, nb_Conv=nb_Conv, activation='ReLU')
-        # self.inc = ConvBatchNorm(n_channels, in_channels)
+        self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
         self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
