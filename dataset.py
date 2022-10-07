@@ -78,10 +78,17 @@ class ISIC2017(Dataset):
         
         return img, seg[0]
                
+    # def apply_augmentation(self, img, seg):
+    #     if random.random() < 0.5:
+    #         img  = np.flip(img,  axis=1)
+    #         seg  = np.flip(seg,  axis=1)
+    #     return img, seg
+
     def apply_augmentation(self, img, seg):
-        if random.random() < 0.5:
-            img  = np.flip(img,  axis=1)
-            seg  = np.flip(seg,  axis=1)
+        if random.random() > 0.5:
+            img, seg = random_rot_flip(img, seg)
+        elif random.random() > 0.5:
+            img, seg = random_rotate(img, seg)
         return img, seg
 
     def resize(self, img, seg):
