@@ -69,7 +69,7 @@ class ISIC2017(Dataset):
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
-        img, seg = self.resize(img, seg)
+        # img, seg = self.resize(img, seg)
         
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
@@ -78,18 +78,18 @@ class ISIC2017(Dataset):
         
         return img, seg[0]
                
-    # def apply_augmentation(self, img, seg):
-    #     if random.random() < 0.5:
-    #         img  = np.flip(img,  axis=1)
-    #         seg  = np.flip(seg,  axis=1)
-    #     return img, seg
-
     def apply_augmentation(self, img, seg):
-        if random.random() > 0.5:
-            img, seg = random_rot_flip(img, seg)
-        elif random.random() > 0.5:
-            img, seg = random_rotate(img, seg)
+        if random.random() < 0.5:
+            img  = np.flip(img,  axis=1)
+            seg  = np.flip(seg,  axis=1)
         return img, seg
+
+    # def apply_augmentation(self, img, seg):
+    #     if random.random() > 0.5:
+    #         img, seg = random_rot_flip(img, seg)
+    #     elif random.random() > 0.5:
+    #         img, seg = random_rotate(img, seg)
+    #     return img, seg
 
     def resize(self, img, seg):
         img = skimage.transform.resize(img, (224, 224, 3))
