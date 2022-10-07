@@ -603,12 +603,13 @@ class UNet(nn.Module):
         # Question here
         in_channels = 16
 
-        self.inc = _make_nConv(in_channels=n_channels, out_channels=in_channels, nb_Conv=4, activation='ReLU')
+        nb_Conv = 4
+        self.inc = _make_nConv(in_channels=n_channels, out_channels=in_channels, nb_Conv=nb_Conv, activation='ReLU')
         # self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=4)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=4)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=4)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=4)
+        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv)
+        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
+        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
+        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv)
 
         self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, PA=False)
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, PA=False)
