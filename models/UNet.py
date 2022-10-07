@@ -603,7 +603,7 @@ class UNet(nn.Module):
         # Question here
         in_channels = 16
 
-        nb_Conv = 4
+        nb_Conv = 2
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
