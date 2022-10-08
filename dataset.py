@@ -206,7 +206,7 @@ def random_rot_flip(image, label):
     return image, label
 
 def random_rotate(image, label):
-    angle = np.random.randint(-90, 90)
+    angle = np.random.randint(-20, 20)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
     label = ndimage.rotate(label, angle, order=0, reshape=False)
     return image, label
