@@ -293,7 +293,7 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1 ):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1):
     layers = []
     layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
 
@@ -514,7 +514,7 @@ class UpBlock(nn.Module):
         self.up_1 = nn.Upsample(scale_factor=2)
         # self.up_2 = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         # self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        # self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0)
         # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
         # self.se = SEAttention(channel=in_channels//2, reduction=8)
         # self.CA_skip = CAM_Module()
@@ -538,6 +538,7 @@ class UpBlock(nn.Module):
         # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.nConvs(x) 
         x = out + skip_x
+        x = self.nConvs(x) 
         return x
 
 # class seg_head(nn.Module):
