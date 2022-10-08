@@ -330,7 +330,7 @@ class ESPNet(nn.Module):
     This class defines the ESPNet network
     '''
 
-    def __init__(self, num_classes=19, p=4, q=6, encoderFile=None):
+    def __init__(self, num_classes=19, p=2, q=3, encoderFile=None):
         '''
         :param num_classes: number of num_classes in the dataset. Default is 20 for the cityscapes
         :param p: depth multiplier
