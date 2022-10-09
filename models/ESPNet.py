@@ -420,9 +420,13 @@ class ESPNet(nn.Module):
                             RUM-based light weight decoder. See paper for more details.
         '''
         super().__init__()
-        self.models = []
-        for i in range(7):
-            self.models.append(ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None))
+        model_0 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_1 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_2 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_3 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_4 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_5 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        model_6 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
 
     def forward(self, input):
         outputs = self.models[0](input), self.models[1](input), self.models[2](input), self.models[4](input), self.models[5](input), self.models[6](input), self.models[7](input),
