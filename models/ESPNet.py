@@ -420,7 +420,6 @@ class ESPNet(nn.Module):
                             RUM-based light weight decoder. See paper for more details.
         '''
         super().__init__()
-        self.encoder = ESPNet_Encoder(num_classes, p, q)
         self.models = []
         for i in range(7):
             self.models.append(ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None))
