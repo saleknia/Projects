@@ -110,7 +110,7 @@ class DoubleConv(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
             nn.Conv2d(out_channels, out_channels*ratio, kernel_size=1, padding=0, bias=False),
             nn.BatchNorm2d(out_channels*ratio),
             nn.ReLU(inplace=True)
