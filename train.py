@@ -388,8 +388,6 @@ def main(args):
             
             if epoch==end_epoch:
                 if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    # pretrained_model_path = os.path.join(os.path.abspath('checkpoint'), CKPT_NAME + '_best.pth')
-                    # pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
                     pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
                     loaded_data = torch.load(pretrained_model_path, map_location='cuda')
                     pretrained = loaded_data['net']
