@@ -41,7 +41,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     ce_loss = CrossEntropyLoss()
 
     ##################################################################
-    
+
     total_batchs = len(dataloader)
     loader = dataloader 
 
@@ -57,31 +57,18 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         outputs, up4, up3, up2, up1, x1, x2, x3, x4, x5 = model(inputs)
 
-        with torch.no_grad():
-            outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,teacher=True)
+        # with torch.no_grad():
+        #     outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,teacher=True)
 
-
-        # targets = targets.long()
-        # predictions = torch.argmax(input=outputs,dim=1).long()
-        # overlap = (predictions==targets).float()
-        # t_masks = targets * overlap
-        # targets = targets.float()
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        # loss_disparity = disparity_loss(masks=targets, t_masks=t_masks, outputs=outputs, up4=up4, up3=up3, up2=up2, up1=up1)
-        # loss_disparity = Criterion_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_disparity = imd(student=up4, teacher=up4_t) + imd(student=up3, teacher=up3_t) + imd(student=up2, teacher=up2_t) + imd(student=up1, teacher=up1_t)
-        loss_disparity = loss_disparity + Criterion_loss(preds_S=outputs, preds_T=outputs_t)
-        # loss_disparity = 0.0
+
         ###############################################
         alpha = 0.5
         beta = 0.5
         gamma = 1.0
-        loss = alpha * loss_dice + beta * loss_ce + gamma * loss_disparity
-        # loss = alpha * loss_dice + beta * loss_ce      
-        # loss = 0.5 * loss_ce + 0.5 * loss_dice + beta * loss_kd
-        # loss = loss_kd 
+        loss = alpha * loss_dice + beta * loss_ce
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -94,13 +81,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        # lr_scheduler.step()
-
 
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_disparity_total.update(loss_disparity)
 
         ###############################################
         targets = targets.long()
@@ -114,17 +98,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , Att_loss = {loss_att_total.avg:.6f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss={loss_ce_total.avg:.4f} , mIoU = {Eval.Mean_Intersection_over_Union()*100:.2f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , proto_loss = {alpha*loss_proto_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',         
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f}, Disparity_loss = {gamma*loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {0.5*loss_dice_total.avg:.4f} , CE_loss = {0.5*loss_ce_total.avg:.4f} , loss_kd = {beta*loss_kd_total.avg:.8f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
   
-    # acc = 100*accuracy.avg
-    # mIOU = 100*Eval.Mean_Intersection_over_Union()
-    # Dice = 100*Eval.Dice()
     acc = 100*accuracy.avg
     mIOU = 100*Eval.Mean_Intersection_over_Union()
     Dice,Dice_per_class = Eval.Dice(per_class=True)
@@ -146,10 +123,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ckpt.save_best(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
     if ckpt is not None:
         ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (epoch_num==end_epoch):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
-    # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
-    #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)  
+
 
 
 
