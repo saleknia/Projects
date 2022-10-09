@@ -406,6 +406,37 @@ class ESPNet_S(nn.Module):
         return classifier#, output0, output2_cat
 
 
+# class ESPNet(nn.Module):
+#     '''
+#     This class defines the ESPNet network
+#     '''
+
+#     def __init__(self, num_classes=19, p=2, q=3, encoderFile=None):
+#         '''
+#         :param num_classes: number of num_classes in the dataset. Default is 20 for the cityscapes
+#         :param p: depth multiplier
+#         :param q: depth multiplier
+#         :param encoderFile: pretrained encoder weights. Recall that we first trained the ESPNet-C and then attached the
+#                             RUM-based light weight decoder. See paper for more details.
+#         '''
+#         super().__init__()
+#         self.model_0 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_1 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_2 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_3 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_4 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_5 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+#         self.model_6 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+
+#     def forward(self, input):
+#         out_0, out_1, out_2, out_3, out_4, out_5, out_6 = self.model_0(input), self.model_1(input), self.model_2(input), self.model_3(input), self.model_4(input), self.model_5(input), self.model_6(input),
+
+#         if self.training:
+#             return (out_0, out_1, out_2, out_3, out_4, out_5, out_6) 
+#         else:
+#              output = (out_0 + out_1 + out_2 + out_3 + out_4 + out_5 + out_6 ) / 7
+#              return output
+
 class ESPNet(nn.Module):
     '''
     This class defines the ESPNet network
@@ -423,16 +454,12 @@ class ESPNet(nn.Module):
         self.model_0 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
         self.model_1 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
         self.model_2 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
-        self.model_3 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
-        self.model_4 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
-        self.model_5 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
-        self.model_6 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
 
     def forward(self, input):
-        out_0, out_1, out_2, out_3, out_4, out_5, out_6 = self.model_0(input), self.model_1(input), self.model_2(input), self.model_3(input), self.model_4(input), self.model_5(input), self.model_6(input),
+        out_0, out_1, out_2 = self.model_0(input), self.model_1(input), self.model_2(input)
 
         if self.training:
-            return (out_0, out_1, out_2, out_3, out_4, out_5, out_6) 
+            return (out_0, out_1, out_2) 
         else:
-             output = torch.mean(torch.tensor((out_0, out_1, out_2, out_3, out_4, out_5, out_6 )), dim=0)
+             output = (out_0 + out_1 + out_2) / 7
              return output
