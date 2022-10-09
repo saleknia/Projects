@@ -20,8 +20,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
 
-    teacher_model=teacher_model.to(device)
-    teacher_model.eval()
+    if teacher_model is not None:
+        teacher_model=teacher_model.to(device)
+        teacher_model.eval()
 
     model=model.to(device)
     model.train()
