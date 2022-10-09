@@ -281,8 +281,6 @@ def main(args):
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
         valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
-        # valid_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
@@ -291,7 +289,6 @@ def main(args):
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
-                                # generator=g
                                 )
         valid_loader = DataLoader(valid_dataset,
                                 batch_size=1,
@@ -300,7 +297,6 @@ def main(args):
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
-                                # generator=g
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader}
