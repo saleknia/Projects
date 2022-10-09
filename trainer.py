@@ -15,6 +15,46 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
+class CriterionPixelWise(nn.Module):
+    def __init__(self, use_weight=True, reduce=True):
+        super(CriterionPixelWise, self).__init__()
+        self.criterion = torch.nn.CrossEntropyLoss(reduce=reduce)
+
+    def forward(self, preds_S, preds_T):
+        preds_T[0].detach()
+        assert preds_S[0].shape == preds_T[0].shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S[0].shape
+        softmax_pred_T = F.softmax(preds_T[0].permute(0,2,3,1).contiguous().view(-1,C), dim=1)
+        logsoftmax = nn.LogSoftmax(dim=1)
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S[0].permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        return loss
+
+def at(x, exp):
+    """
+    attention value of a feature map
+    :param x: feature
+    :return: attention value
+    """
+    return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
+
+
+def importance_maps_distillation(student, teacher, exp=4):
+    """
+    importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+    Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+    https://arxiv.org/abs/1612.03928
+    :param exp: exponent
+    :param s: student feature maps
+    :param t: teacher feature maps
+    :return: imd loss value
+    """
+    loss = 0.0
+    for s,t in zip(student, teacher):
+        if s.shape[2] != t.shape[2]:
+            s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+        loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
+    return loss
+
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -58,8 +98,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         outputs, up1, up2, up3, up4, x1, x2, x3, x4, x5 = model(inputs,multiple=True)
 
-        # with torch.no_grad():
-        #     outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,teacher=True)
+        if teacher_model is not None:
+            with torch.no_grad():
+                outputs_t, up4_t, up3_t, up2_t, up1_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
