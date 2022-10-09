@@ -100,9 +100,8 @@ class DoubleConv(nn.Module):
 
     def __init__(self, in_channels, out_channels, mid_channels=None, ratio=4.0):
         super().__init__()
-        if not mid_channels:
-            mid_channels = out_channels // ratio
-            out_channels = out_channels // ratio
+        mid_channels = out_channels // ratio
+        out_channels = out_channels // ratio
 
         self.double_conv = nn.Sequential(
             nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
