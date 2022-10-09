@@ -239,14 +239,7 @@ def main(args):
             current_num_epoch=last_num_epoch+current_num_epoch
 
             optimizer.load_state_dict(loaded_data['optimizer'])
-            # lr_scheduler.load_state_dict(loaded_data['lr_scheduler'])
 
-            # if last_num_epoch-initial_best_epoch < early_stopping:
-            #     count_es = last_num_epoch-initial_best_epoch
-            #     es = False
-            # elif early_stopping < last_num_epoch-initial_best_epoch:
-            #     count_es = early_stopping + 1
-            #     es = True
             table = tabulate(
                             tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
                             headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
