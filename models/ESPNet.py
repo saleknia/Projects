@@ -325,7 +325,7 @@ class ESPNet_Encoder(nn.Module):
         return out
 
 
-class ESPNet(nn.Module):
+class ESPNet_S(nn.Module):
     '''
     This class defines the ESPNet network
     '''
@@ -404,3 +404,32 @@ class ESPNet(nn.Module):
         classifier = self.classifier(concat_features)
 
         return classifier#, output0, output2_cat
+
+
+class ESPNet(nn.Module):
+    '''
+    This class defines the ESPNet network
+    '''
+
+    def __init__(self, num_classes=19, p=2, q=3, encoderFile=None):
+        '''
+        :param num_classes: number of num_classes in the dataset. Default is 20 for the cityscapes
+        :param p: depth multiplier
+        :param q: depth multiplier
+        :param encoderFile: pretrained encoder weights. Recall that we first trained the ESPNet-C and then attached the
+                            RUM-based light weight decoder. See paper for more details.
+        '''
+        super().__init__()
+        self.encoder = ESPNet_Encoder(num_classes, p, q)
+        self.models = []
+        for i in range(7):
+            self.models.append(ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None))
+
+    def forward(self, input):
+        outputs = self.models[0](input), self.models[1](input), self.models[2](input), self.models[4](input), self.models[5](input), self.models[6](input), self.models[7](input),
+        
+        if self.training:
+            return outputs
+        else:
+             output = torch.mean(torch.tensor(outputs), dim=0)
+             return output
