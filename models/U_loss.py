@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import torchvision
+
 
 class depthwise_separable_conv(nn.Module):
  def __init__(self, nin, nout): 
@@ -30,7 +32,8 @@ class DoubleConv(nn.Module):
         )
 
     def forward(self, x):
-        return self.double_conv(x)
+        x = self.double_conv(x)
+        return x
 
 # class DoubleConv(nn.Module):
 #     """(convolution => [BN] => ReLU) * 2"""
@@ -65,7 +68,6 @@ class Down(nn.Module):
     def forward(self, x):
         return self.maxpool_conv(x)
 
-
 class Up(nn.Module):
     """Upscaling then double conv"""
 
@@ -94,7 +96,6 @@ class Up(nn.Module):
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 
-
 class OutConv(nn.Module):
     def __init__(self, in_channels, out_channels):
         super(OutConv, self).__init__()
@@ -103,11 +104,9 @@ class OutConv(nn.Module):
     def forward(self, x):
         return self.conv(x)
 
-
-
-class U_loss(nn.Module):
-    def __init__(self, n_channels=1, n_classes=4, bilinear=False):
-        super(U_loss, self).__init__()
+class U(nn.Module):
+    def __init__(self, n_channels=1, n_classes=9, bilinear=False):
+        super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
@@ -124,7 +123,7 @@ class U_loss(nn.Module):
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
         self.outc = OutConv(in_channels , n_classes)
 
-    def forward(self, x):
+    def forward(self, x, multiple=False):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -135,7 +134,8 @@ class U_loss(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
-        if self.training:
+
+        if multiple:
             return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
         else:
             return logits
