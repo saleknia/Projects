@@ -432,7 +432,7 @@ class ESPNet(nn.Module):
         out_0, out_1, out_2, out_3, out_4, out_5, out_6 = self.model_0(input), self.model_1(input), self.model_2(input), self.model_3(input), self.model_4(input), self.model_5(input), self.model_6(input),
 
         if self.training:
-            return outputs
+            return (out_0, out_1, out_2, out_3, out_4, out_5, out_6) 
         else:
-             output = torch.mean(torch.tensor(outputs), dim=0)
+             output = torch.mean(torch.tensor((out_0, out_1, out_2, out_3, out_4, out_5, out_6 )), dim=0)
              return output
