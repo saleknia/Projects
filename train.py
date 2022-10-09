@@ -367,10 +367,7 @@ def main(args):
         logger.info('Training Phase')
         logger.info(50*'*')
         loss_function = proto()
-        # loss_function = prototype_loss()
-        # loss_function = prototype_loss_kd()
         for epoch in range(start_epoch,end_epoch+1):
-            # set_epoch(epoch,g)
             trainer(
                 end_epoch=end_epoch,
                 epoch_num=epoch,
