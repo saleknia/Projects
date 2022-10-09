@@ -15,185 +15,6 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
-def one_hot_loss(exist_pred, targets):
-    targets=targets.cpu()
-    exist_pred=exist_pred.cpu()
-    yp = torch.zeros(6,9)
-    for i in range(6):
-        unique_num = torch.unique(targets[i])
-        for j in range(9):
-            if j in unique_num:
-                yp[i,j] = 1.0
-            else:
-                yp[i,j] = 0.0
-    loss = torch.nn.functional.binary_cross_entropy(input=exist_pred, target=yp)
-    return loss
-
-def loss_kd_regularization(outputs, masks):
-    """
-    loss function for mannually-designed regularization: Tf-KD_{reg}
-    """
-    correct_prob = 0.95    # the probability for correct class in u(k)
-    K = outputs.size(1)
-
-    teacher_scores = torch.ones_like(outputs).cuda()
-    teacher_scores = teacher_scores*(1-correct_prob)/(K-1)  # p^d(k)
-
-    teacher_scores[masks] = correct_prob
-
-    return teacher_scores
-
-def prediction_map_distillation(y, masks) :
-    """
-    basic KD loss function based on "Distilling the Knowledge in a Neural Network"
-    https://arxiv.org/abs/1503.02531
-    :param y: student score map
-    :param teacher_scores: teacher score map
-    :param T:  for softmax
-    :return: loss value
-    """
-    y = y.cuda()
-    masks = masks.long()
-    masks = masks.cuda()
-
-    masks_temp = F.one_hot(masks, num_classes=9)
-    masks_temp = torch.permute(masks_temp, (0, 3, 1, 2))
-    masks_temp = masks_temp.bool()
-
-    teacher_scores = loss_kd_regularization(outputs=y, masks=masks_temp)
-
-    return teacher_scores
-
-def flatten(tensor):
-    """Flattens a given tensor such that the channel axis is first.
-    The shapes are transformed as follows:
-       (N, C, D, H, W) -> (C, N * D * H * W)
-    """
-    # number of channels
-    C = tensor.size(1)
-    # new axis order
-    axis_order = (1, 0) + tuple(range(2, tensor.dim()))
-    # Transpose: (N, C, D, H, W) -> (C, N, D, H, W)
-    transposed = tensor.permute(axis_order)
-    # Flatten: (C, N, D, H, W) -> (C, N * D * H * W)
-    return transposed.contiguous().view(C, -1)
-
-class _AbstractDiceLoss(nn.Module):
-    """
-    Base class for different implementations of Dice loss.
-    """
-
-    def __init__(self, weight=None, normalization='sigmoid'):
-        super(_AbstractDiceLoss, self).__init__()
-        self.register_buffer('weight', weight)
-        # The output from the network during training is assumed to be un-normalized probabilities and we would
-        # like to normalize the logits. Since Dice (or soft Dice in this case) is usually used for binary data,
-        # normalizing the channels with Sigmoid is the default choice even for multi-class segmentation problems.
-        # However if one would like to apply Softmax in order to get the proper probability distribution from the
-        # output, just specify `normalization=Softmax`
-        assert normalization in ['sigmoid', 'softmax', 'none']
-        if normalization == 'sigmoid':
-            self.normalization = nn.Sigmoid()
-        elif normalization == 'softmax':
-            self.normalization = nn.Softmax(dim=1)
-        else:
-            self.normalization = lambda x: x
-
-    def dice(self, input, target, weight):
-        # actual Dice score computation; to be implemented by the subclass
-        raise NotImplementedError
-
-    def forward(self, input, target):
-        # get probabilities from logits
-        input = self.normalization(input)
-
-        # compute per channel Dice coefficient
-        per_channel_dice = self.dice(input, target, weight=self.weight)
-
-        # average Dice score across all channels/classes
-        return 1. - torch.mean(per_channel_dice)
-
-class GeneralizedDiceLoss(_AbstractDiceLoss):
-    """Computes Generalized Dice Loss (GDL) as described in https://arxiv.org/pdf/1707.03237.pdf.
-    """
-
-    def __init__(self, num_classes, normalization='softmax', epsilon=1e-6):
-        super().__init__(weight=None, normalization=normalization)
-        self.epsilon = epsilon
-        self.num_classes = num_classes
-    def _one_hot_encoder(self, input_tensor):
-        tensor_list = []
-        for i in range(self.num_classes):
-            temp_prob = input_tensor == i  # * torch.ones_like(input_tensor)
-            tensor_list.append(temp_prob.unsqueeze(1))
-        output_tensor = torch.cat(tensor_list, dim=1)
-        return output_tensor.float()
-
-    def dice(self, input, target, weight):
-        target = self._one_hot_encoder(target)
-        assert input.size() == target.size(), "'input' and 'target' must have the same shape"
-
-        input = flatten(input)
-        target = flatten(target)
-        target = target.float()
-
-        if input.size(0) == 1:
-            # for GDL to make sense we need at least 2 channels (see https://arxiv.org/pdf/1707.03237.pdf)
-            # put foreground and background voxels in separate channels
-            input = torch.cat((input, 1 - input), dim=0)
-            target = torch.cat((target, 1 - target), dim=0)
-
-        # GDL weighting: the contribution of each label is corrected by the inverse of its volume
-        w_l = target.sum(-1)
-        w_l = 1 / (w_l * w_l).clamp(min=self.epsilon)
-        w_l.requires_grad = False
-
-        intersect = (input * target).sum(-1)
-        intersect = intersect * w_l
-
-        denominator = (input + target).sum(-1)
-        denominator = (denominator * w_l).clamp(min=self.epsilon)
-
-        return 2 * (intersect.sum() / denominator.sum())
-
-class WeightedCrossEntropyLoss(nn.Module):
-    """WeightedCrossEntropyLoss (WCE) as described in https://arxiv.org/pdf/1707.03237.pdf
-    """
-
-    def __init__(self, ignore_index=-1):
-        super(WeightedCrossEntropyLoss, self).__init__()
-        self.ignore_index = ignore_index
-
-    def forward(self, input, target):
-        weight = self._class_weights(input)
-        return F.cross_entropy(input, target, weight=weight, ignore_index=self.ignore_index)
-
-    @staticmethod
-    def _class_weights(input):
-        # normalize the input first
-        input = F.softmax(input, dim=1)
-        flattened = flatten(input)
-        nominator = (1. - flattened).sum(-1)
-        denominator = flattened.sum(-1)
-        class_weights = Variable(nominator / denominator, requires_grad=False)
-        return class_weights
-
-class CriterionPixelWise(nn.Module):
-    def __init__(self, ignore_index=255, use_weight=True, reduce=True):
-        super(CriterionPixelWise, self).__init__()
-        self.ignore_index = ignore_index
-        self.criterion = torch.nn.CrossEntropyLoss(ignore_index=ignore_index, reduce=reduce)
-        if not reduce:
-            print("disabled the reduce.")
-
-    def forward(self, preds_S, preds_T):
-        preds_T.detach()
-        assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
-        N,C,W,H = preds_S.shape
-        softmax_pred_T = F.softmax(preds_T.permute(0,2,3,1).contiguous().view(-1,C), dim=1)
-        logsoftmax = nn.LogSoftmax(dim=1)
-        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
-        return loss
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -208,7 +29,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_disparity_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -219,9 +39,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    disparity_loss = disparity()
-    Criterion_loss = CriterionPixelWise()
+
     ##################################################################
+    
     total_batchs = len(dataloader)
     loader = dataloader 
 
