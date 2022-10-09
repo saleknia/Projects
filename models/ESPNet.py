@@ -461,5 +461,5 @@ class ESPNet(nn.Module):
         if self.training:
             return (out_0, out_1, out_2) 
         else:
-             output = (out_0 + out_1 + out_2) / 7
+             output = (out_0 + out_1 + out_2) / 3
              return output
