@@ -126,10 +126,8 @@ class U(nn.Module):
         self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
         self.outc = OutConv(in_channels , n_classes)
-        # self.sigmoid = torch.nn.Sigmoid()
-        # self.head = seg_head()
 
-    def forward(self, x, teacher=False):
+    def forward(self, x, multiple=False):
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -140,19 +138,6 @@ class U(nn.Module):
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
         logits = self.outc(up4)
-        # logits = self.head(up4=up1, up3=up2, up2=up3, up1=up4)
 
-        return logits
-
-        # if self.training:
-        #     return logits, up4, up3, up2, up1, x5, x4, x3, x2, x1
-        # else:
-        #     return logits
-        
-        # if self.training:
-        #     return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
-        # else:
-        #     if teacher:
-        #         return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
-        #     else:
-        #         return logits
+        if multiple:
+        return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
