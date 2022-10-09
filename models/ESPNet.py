@@ -420,13 +420,13 @@ class ESPNet(nn.Module):
                             RUM-based light weight decoder. See paper for more details.
         '''
         super().__init__()
-        self.model_0 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_1 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_2 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_3 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_4 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_5 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
-        self.model_6 = ESPNet_S(num_classes=19, p=2, q=3, encoderFile=None)
+        self.model_0 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_1 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_2 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_3 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_4 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_5 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
+        self.model_6 = ESPNet_S(num_classes=num_classes, p=2, q=3, encoderFile=None)
 
     def forward(self, input):
         out_0, out_1, out_2, out_3, out_4, out_5, out_6 = self.model_0(input), self.model_1(input), self.model_2(input), self.model_3(input), self.model_4(input), self.model_5(input), self.model_6(input),
