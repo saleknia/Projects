@@ -21,12 +21,12 @@ class CriterionPixelWise(nn.Module):
         self.criterion = torch.nn.CrossEntropyLoss(reduce=reduce)
 
     def forward(self, preds_S, preds_T):
-        preds_T[0].detach()
-        assert preds_S[0].shape == preds_T[0].shape,'the output dim of teacher and student differ'
-        N,C,W,H = preds_S[0].shape
-        softmax_pred_T = F.softmax(preds_T[0].permute(0,2,3,1).contiguous().view(-1,C), dim=1)
+        preds_T.detach()
+        assert preds_S.shape == preds_T.shape,'the output dim of teacher and student differ'
+        N,C,W,H = preds_S.shape
+        softmax_pred_T = F.softmax(preds_T.permute(0,2,3,1).contiguous().view(-1,C), dim=1)
         logsoftmax = nn.LogSoftmax(dim=1)
-        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S[0].permute(0,2,3,1).contiguous().view(-1,C))))/W/H
+        loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
 def at(x, exp):
