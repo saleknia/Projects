@@ -642,7 +642,7 @@ class UNet(nn.Module):
         # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         
         self.up = nn.Upsample(scale_factor=16)
-        self.out = nn.Conv2d(512, n_classes, kernel_size=(1,1))
+        self.out = nn.Conv2d(192, n_classes, kernel_size=(1,1))
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
