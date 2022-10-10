@@ -495,12 +495,10 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up_1 = nn.Upsample(scale_factor=2)
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=ghost)
-        self.se = SEAttention(channel=in_channels//2)
 
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
-        skip_x = self.se(decoder=out, encoder=skip_x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
