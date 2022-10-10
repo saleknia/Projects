@@ -648,6 +648,7 @@ class UNet(nn.Module):
             self.last_activation = None
 
     def forward(self, x):
+        b, c, h, w = x.shape
         # Question here
         x = x.float()
         x1 = self.inc(x)
