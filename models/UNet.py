@@ -455,7 +455,6 @@ class UpBlock(nn.Module):
         self.up_1 = nn.Upsample(scale_factor=2)
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=ghost)
 
-
     def forward(self, x, skip_x):
         out = self.up_1(x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
@@ -637,10 +636,13 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)       
+        # self.se = SEBlock(channel=1024)
+        # self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)       
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        
+        self.up = nn.Upsample(scale_factor=8)
+        self.out = nn.Conv2d(512, n_classes, kernel_size=(1,1))
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -672,7 +674,7 @@ class UNet(nn.Module):
         up1 = self.up1(up2, x1)
 
         logits = self.outc(up1)
-        return logits
+        return logits, self.out(self.up(feature_tf))
 
 
 
