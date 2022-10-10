@@ -664,9 +664,7 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((x5, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x5 = self.conv2d(feature_att)
+        x5 = feature_tf + x5
 
         up4 = self.up4(x5 , x4)
         up3 = self.up3(up4, x3)
