@@ -453,7 +453,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', ghost=False):
         super(UpBlock, self).__init__()
         self.up_1 = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=False)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=ghost)
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
@@ -651,16 +651,6 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, ghost=ghost)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, ghost=ghost)
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
-
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         
 
@@ -678,17 +668,6 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-
-        feature_cat = torch.cat((x5, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x5 = self.conv2d(feature_att)
 
         up4 = self.up4(x5 , x4)
         up3 = self.up3(up4, x3)
