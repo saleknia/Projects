@@ -584,13 +584,13 @@ class MobileViTAttention(nn.Module):
     def __init__(self,in_channel=3,dim=512,kernel_size=3,patch_size=1,depth=3,mlp_dim=1024):
         super().__init__()
         self.ph,self.pw=patch_size,patch_size
-        self.conv1=nn.Conv2d(in_channel,in_channel,kernel_size=kernel_size,padding=kernel_size//2)
+        self.conv1=GhostModule(inp=in_channel, oup=in_channel, kernel_size=3, ratio=8, dw_size=3, stride=1, relu=True)
         self.conv2=nn.Conv2d(in_channel,dim,kernel_size=1)
 
         self.trans=Transformer(dim=dim,depth=depth,heads=8,head_dim=64,mlp_dim=mlp_dim)
 
         self.conv3=nn.Conv2d(dim,in_channel,kernel_size=1)
-        self.conv4=nn.Conv2d(2*in_channel,in_channel,kernel_size=kernel_size,padding=kernel_size//2)
+        self.conv4=GhostModule(inp=2*in_channel, oup=in_channel, kernel_size=3, ratio=8, dw_size=3, stride=1, relu=True)
 
     def forward(self,x):
         y=x.clone() #bs,c,h,w
