@@ -500,7 +500,6 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
-        out = self.att(out)
         skip_x = self.se(decoder=out, encoder=skip_x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
