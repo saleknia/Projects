@@ -16,67 +16,7 @@ import torchvision.ops
 from torch.nn.modules import conv
 from torch.nn.modules.conv import Conv2d
 from einops import rearrange
-
-class DeformableConv2d(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=3,
-                 stride=1,
-                 padding=1,
-                 bias=False):
-
-        super(DeformableConv2d, self).__init__()
-        
-        assert type(kernel_size) == tuple or type(kernel_size) == int
-
-        kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
-        self.stride = stride if type(stride) == tuple else (stride, stride)
-        self.padding = padding
-        
-        self.offset_conv = nn.Conv2d(in_channels, 
-                                     2 * kernel_size[0] * kernel_size[1],
-                                     kernel_size=kernel_size, 
-                                     stride=stride,
-                                     padding=self.padding, 
-                                     bias=True)
-
-        nn.init.constant_(self.offset_conv.weight, 0.)
-        nn.init.constant_(self.offset_conv.bias, 0.)
-        
-        self.modulator_conv = nn.Conv2d(in_channels, 
-                                     1 * kernel_size[0] * kernel_size[1],
-                                     kernel_size=kernel_size, 
-                                     stride=stride,
-                                     padding=self.padding, 
-                                     bias=True)
-
-        nn.init.constant_(self.modulator_conv.weight, 0.)
-        nn.init.constant_(self.modulator_conv.bias, 0.)
-        
-        self.regular_conv = nn.Conv2d(in_channels=in_channels,
-                                      out_channels=out_channels,
-                                      kernel_size=kernel_size,
-                                      stride=stride,
-                                      padding=self.padding,
-                                      bias=bias)
-
-    def forward(self, x):
-        #h, w = x.shape[2:]
-        #max_offset = max(h, w)/4.
-
-        offset = self.offset_conv(x)#.clamp(-max_offset, max_offset)
-        modulator = 2. * torch.sigmoid(self.modulator_conv(x))
-        
-        x = torchvision.ops.deform_conv2d(input=x, 
-                                          offset=offset, 
-                                          weight=self.regular_conv.weight, 
-                                          bias=self.regular_conv.bias, 
-                                          padding=self.padding,
-                                          mask=modulator,
-                                          stride=self.stride,
-                                          )
-        return x
+from collections import OrderedDict
 
 
 class ParallelPolarizedSelfAttention(nn.Module):
@@ -120,38 +60,57 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
-# class SEAttention(nn.Module):
+class SKAttention(nn.Module):
 
-#     def __init__(self, channel=512,reduction=16):
-#         super().__init__()
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         self.fc = nn.Sequential(
-#             nn.Linear(channel, channel // reduction, bias=False),
-#             nn.ReLU(inplace=True),
-#             nn.Linear(channel // reduction, channel, bias=False),
-#             nn.Sigmoid()
-#         )
+    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=16,group=1,L=32):
+        super().__init__()
+        self.d=max(L,channel//reduction)
+        self.convs=nn.ModuleList([])
+        for k in kernels:
+
+            self.convs.append(GhostModule(in_channels, out_channels))
+
+            # self.convs.append(
+            #     nn.Sequential(OrderedDict([
+            #         ('conv',nn.Conv2d(channel,channel,kernel_size=k,padding=k//2,groups=group)),
+            #         ('bn',nn.BatchNorm2d(channel)),
+            #         ('relu',nn.ReLU())
+            #     ]))
+            # )
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(len(kernels)):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
 
 
-#     def init_weights(self):
-#         for m in self.modules():
-#             if isinstance(m, nn.Conv2d):
-#                 init.kaiming_normal_(m.weight, mode='fan_out')
-#                 if m.bias is not None:
-#                     init.constant_(m.bias, 0)
-#             elif isinstance(m, nn.BatchNorm2d):
-#                 init.constant_(m.weight, 1)
-#                 init.constant_(m.bias, 0)
-#             elif isinstance(m, nn.Linear):
-#                 init.normal_(m.weight, std=0.001)
-#                 if m.bias is not None:
-#                     init.constant_(m.bias, 0)
 
-#     def forward(self, skip_x_att , skip_x):
-#         b, c, _, _ = skip_x_att.size()
-#         y = self.avg_pool(skip_x_att).view(b, c)
-#         y = self.fc(y).view(b, c, 1, 1)
-#         return skip_x * y.expand_as(skip_x)
+    def forward(self, x):
+        bs, c, _, _ = x.size()
+        conv_outs=[]
+        ### split
+        for conv in self.convs:
+            conv_outs.append(conv(x))
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
+        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weughts*feats).sum(0)
+        return V
 
 class SEAttention(nn.Module):
 
@@ -659,7 +618,7 @@ class UNet(nn.Module):
         # Question here
         in_channels = 64
 
-        nb_Conv = 4
+        nb_Conv = 2
         ghost=True
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv, ghost=ghost)
