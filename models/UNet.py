@@ -453,7 +453,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', ghost=False):
         super(UpBlock, self).__init__()
         self.up_1 = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=ghost)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=False)
 
     def forward(self, x, skip_x):
         out = self.up_1(x)
