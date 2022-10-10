@@ -674,8 +674,11 @@ class UNet(nn.Module):
         up1 = self.up1(up2, x1)
 
         logits = self.outc(up1)
-        return logits, self.out(self.up(feature_tf))
 
+        if self.training:
+            return logits, self.out(self.up(feature_tf))
+        else:
+            return logits
 
 
 
