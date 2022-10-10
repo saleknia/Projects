@@ -294,30 +294,54 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1, ghost=False):
     layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding, ghost=ghost))
 
     for _ in range(nb_Conv - 1):
         layers.append(ConvBatchNorm(out_channels, out_channels, activation))
     return nn.Sequential(*layers)
 
+class GhostModule(nn.Module):
+    def __init__(self, inp, oup, kernel_size=3, ratio=8, dw_size=3, stride=1, relu=True):
+        super(GhostModule, self).__init__()
+        self.oup = oup
+        init_channels = math.ceil(oup / ratio)
+        new_channels = init_channels*(ratio-1)
+
+        self.primary_conv = nn.Sequential(
+            nn.Conv2d(inp, init_channels, kernel_size, stride, kernel_size//2, bias=False),
+            nn.BatchNorm2d(init_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+        self.cheap_operation = nn.Sequential(
+            nn.Conv2d(init_channels, new_channels, dw_size, 1, dw_size//2, groups=init_channels, bias=False),
+            nn.BatchNorm2d(new_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+    def forward(self, x):
+        x1 = self.primary_conv(x)
+        x2 = self.cheap_operation(x1)
+        out = torch.cat([x1,x2], dim=1)
+        return out[:,:self.oup,:,:]
+
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, ghost=False):
         super(ConvBatchNorm, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
+
+        if ghost:
+            self.op = GhostModule(in_channels, out_channels)
+        else:
+            self.op = nn.Sequential(nn.Conv2d(in_channels, out_channels,kernel_size=kernel_size, padding=padding), nn.BatchNorm2d(out_channels), get_activation(activation))
 
     def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
+        return self.op(x)
 
 class DConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -338,10 +362,10 @@ class DConvBatchNorm(nn.Module):
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', ghost=False):
         super(DownBlock, self).__init__()
         self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, ghost=ghost)
 
     def forward(self, x):
         out = self.maxpool(x)
@@ -370,51 +394,6 @@ class Conv(nn.Module):
         out = self.conv(x)
         return out
 
-# class DownBlock_BN(nn.Module):
-#     """Downscaling with maxpool convolution"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', dilations=[2,3]):
-#         super(DownBlock_BN, self).__init__()
-#         self.maxpool = nn.MaxPool2d(2)
-#         self.shortcut = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-#         self.mhsa = MHSA(in_channels=in_channels, heads=4, curr_h=8, curr_w=8,pos_enc_type='relative')
-#         # self.bottleneck_dimension = out_channels // 2
-
-#         # self.conv1 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=1, stride=1, dilation=1)
-#         # self.conv2 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=dilations[0], stride=1, dilation=dilations[0])
-#         # self.conv3 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=dilations[1], stride=1, dilation=dilations[1])
-
-#         # self.conv4 = Conv(self.bottleneck_dimension*2, out_channels, kernel_size=1, padding=0, stride=1)
-#         # self.conv5 = Conv(out_channels*2 ,out_channels , kernel_size=1, padding=0, stride=1)
-#         # self.BN_1 = BatchNorm(in_channels=out_channels, activation='ReLU')
-#         # self.BN_2 = BatchNorm(in_channels=out_channels, activation='ReLU')
-
-#     def forward(self, x):
-#         x = self.maxpool(x)
-#         out = self.shortcut(x)
-
-#         Q_h = Q_w = 8
-#         N, C, H, W = out.shape
-#         P_h, P_w = H // Q_h, W // Q_w
-
-#         out = out.reshape(N * P_h * P_w, C, Q_h, Q_w)
-
-#         out = self.mhsa(out)
-#         out = out.permute(0, 3, 1, 2)  # back to pytorch dim order
-#         N1, C1, H1, W1 = out.shape
-#         out = out.reshape(N, C1, int(H), int(W))
-
-
-#         # out = torch.cat((self.conv2(x),self.conv3(x)),dim=1)
-#         # out = self.conv4(out)
-#         # out = self.BN_1(out)
-
-#         # out = torch.cat((out,shortcut),dim=1)
-#         # out = self.conv5(out)
-#         # out = self.BN_2(out)
-#         # out = out + shortcut
-
-#         return out
 
 class PAM_Module(Module):
     """ Position attention module"""
@@ -510,86 +489,18 @@ class FAMBlock(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU',PA=True):
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', ghost=False):
         super(UpBlock, self).__init__()
         self.up_1 = nn.Upsample(scale_factor=2)
-        # self.up_2 = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
-        # self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0)
-        # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
-        # self.se = SEAttention(channel=in_channels//2, reduction=8)
-        # self.CA_skip = CAM_Module()
-        # self.CA_x = CAM_Module()
-        # self.PA = PA
-        # if self.PA:
-        #     self.PA = PAM_Module(in_dim=in_channels//2)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', kernel_size=1, padding=0, ghost=ghost)
 
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
-
-        # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
-        # self.deconve = DConvBatchNorm(in_channels=in_channels//2, out_channels=in_channels//2)
-        # self.FAM = FAMBlock(channels=in_channels//2)
 
     def forward(self, x, skip_x):
-        # skip_x = self.deconve(skip_x)  
-        # skip_x = self.FAM(skip_x)
         out = self.up_1(x)
-        # skip_x = self.se(decoder=out, encoder=skip_x)
-        out = self.att(out)
-        # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.nConvs(x) 
-        x = out + skip_x
+        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.nConvs(x) 
         return x
 
-# class seg_head(nn.Module):
-#     def __init__(self):
-#         super().__init__()
-#         self.scale_4 = nn.Upsample(scale_factor=8)
-#         self.scale_3 = nn.Upsample(scale_factor=4)
-#         self.scale_2 = nn.Upsample(scale_factor=2)
-#         self.conv_4 =  nn.Conv2d(64, 2, kernel_size=(1,1), stride=(1,1))
-#         self.conv_3 =  nn.Conv2d(32, 2, kernel_size=(1,1), stride=(1,1))
-#         self.conv_2 =  nn.Conv2d(16, 2, kernel_size=(1,1), stride=(1,1))
-#         self.conv_2 =  nn.Conv2d(16, 2, kernel_size=(1,1), stride=(1,1))
-
-#     def forward(self, up4, up3, up2, up1):
-#         # up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-#         # up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-#         # up4 = torchvision.ops.stochastic_depth(input=up4, p=0.5, mode='batch')
-#         up4 = self.scale_4(self.conv_4(up4))
-#         up3 = up3 + up4
-#         up3 = self.scale_3(self.conv_3(up3))
-#         up2 = up3 + up2
-#         up2 = self.scale_2(self.conv_2(up2))
-#         up = up2 + up1
-        
-#         up = self.conv(up)
-#         up = self.BN_out(up)
-#         up = self.RELU6_out(up)
-#         up = self.out(up)
-
-#         return up
-
-
-class seg_head(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.scale_4 = nn.Upsample(scale_factor=8)
-        self.scale_3 = nn.Upsample(scale_factor=4)
-        self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(64, 2, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(32, 2, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 =  nn.Conv2d(16, 2, kernel_size=(1,1), stride=(1,1))
-        self.conv_1 =  nn.Conv2d(16, 2, kernel_size=(1,1), stride=(1,1))
-
-    def forward(self, up4, up3, up2, up1):
-        up4 = self.scale_4(self.conv_4(up4))
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = self.scale_2(self.conv_2(up2))
-        up1 = self.conv_1(up1)
-        up = up4 + up3 + up2 + up1
-        return up
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=False):
@@ -625,7 +536,7 @@ class DecoderBottleneckLayer(nn.Module):
         return x
 
 class UNet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=9):
+    def __init__(self, n_channels=3, n_classes=2):
         '''
         n_channels : number of channels of the input.
                         By default 3, because we have RGB images
@@ -637,27 +548,22 @@ class UNet(nn.Module):
         self.n_classes = n_classes
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
         # Question here
-        in_channels = 16
+        in_channels = 64
 
         nb_Conv = 2
+        ghost=True
         self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
-        self.down4 = DownBlock(in_channels*8, in_channels*16, nb_Conv=nb_Conv)
+        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv, ghost=ghost)
+        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv, ghost=ghost)
+        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
+        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
 
-        # self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, PA=False)
-        # self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, PA=False)
-        # self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, PA=False)
-        # self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, PA=False)
-
-        self.up4 = DecoderBottleneckLayer(in_channels=in_channels*16, n_filters=in_channels*8)
-        self.up3 = DecoderBottleneckLayer(in_channels=in_channels*8 , n_filters=in_channels*4)
-        self.up2 = DecoderBottleneckLayer(in_channels=in_channels*4 , n_filters=in_channels*2)
-        self.up1 = DecoderBottleneckLayer(in_channels=in_channels*2 , n_filters=in_channels*1)
+        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, ghost=ghost)
+        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, ghost=ghost)
+        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, ghost=ghost)
+        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, ghost=ghost)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        # self.seg_head = seg_head()
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -673,31 +579,15 @@ class UNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        up4 = self.up4(x5)  + x4
-        up3 = self.up3(up4) + x3
-        up2 = self.up2(up3) + x2
-        up1 = self.up1(up2) + x1
+        up4 = self.up4(x5 , x4)
+        up3 = self.up3(up4, x3)
+        up2 = self.up2(up3, x2)
+        up1 = self.up1(up2, x1)
 
-
-        # up4 = self.up4(x5 , x4)
-        # up3 = self.up3(up4, x3)
-        # up2 = self.up2(up3, x2)
-        # up1 = self.up1(up2, x1)
-
-        # logits = self.seg_head(up4, up3, up2, up1)
         logits = self.outc(up1)
         return logits
 
 
-        # if self.last_activation is not None:
-        #     logits = self.last_activation(self.outc(up1))
-        # else:
-        #     logits = self.outc(up1)
-
-        # if self.training:
-        #     return logits, up4, up3, up2, up1
-        # else:
-        #     return logits
 
 
 # import torch
