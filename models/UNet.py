@@ -619,27 +619,27 @@ class UNet(nn.Module):
 
         nb_Conv = 2
         ghost=True
-        self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv, ghost=ghost)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv, ghost=ghost)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
+        # self.inc = ConvBatchNorm(n_channels, in_channels)
+        # self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv, ghost=ghost)
+        # self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv, ghost=ghost)
+        # self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
+        # self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv, ghost=ghost)
 
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, ghost=ghost)
-        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, ghost=ghost)
-        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, ghost=ghost)
-        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, ghost=ghost)
+        # self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, ghost=ghost)
+        # self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, ghost=ghost)
+        # self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, ghost=ghost)
+        # self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, ghost=ghost)
 
         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
         # self.se = SEBlock(channel=1024)
         # self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)       
 
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         
         self.up = nn.Upsample(scale_factor=16)
         self.out = nn.Conv2d(512, n_classes, kernel_size=(1,1))
@@ -653,32 +653,32 @@ class UNet(nn.Module):
         b, c, h, w = x.shape
         # Question here
         x = x.float()
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
+        # x1 = self.inc(x)
+        # x2 = self.down1(x1)
+        # x3 = self.down2(x2)
+        # x4 = self.down3(x3)
+        # x5 = self.down4(x4)
 
         emb = self.patch_embed(x)
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
+        # feature_tf = self.conv_seq_img(feature_tf)
 
-        x5 = feature_tf + x5
+        return self.out(self.up(feature_tf))
 
-        up4 = self.up4(x5 , x4)
-        up3 = self.up3(up4, x3)
-        up2 = self.up2(up3, x2)
-        up1 = self.up1(up2, x1)
+        # x5 = feature_tf + x5
 
-        logits = self.outc(up1)
+        # up4 = self.up4(x5 , x4)
+        # up3 = self.up3(up4, x3)
+        # up2 = self.up2(up3, x2)
+        # up1 = self.up1(up2, x1)
 
-        if self.training:
-            return logits, self.out(self.up(feature_tf))
-        else:
-            return logits
+        # logits = self.outc(up1)
+
+        # return logits
+
 
 
 
