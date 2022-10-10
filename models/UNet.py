@@ -659,7 +659,7 @@ class UNet(nn.Module):
         # Question here
         in_channels = 64
 
-        nb_Conv = 2
+        nb_Conv = 4
         ghost=True
         self.inc = ConvBatchNorm(n_channels, in_channels)
         self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=nb_Conv, ghost=ghost)
