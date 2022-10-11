@@ -281,7 +281,7 @@ class disparity(nn.Module):
                     if torch.sum(bin_mask[t])!=0:
                         v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                         v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        loss = loss + torch.cdist(v, v_t, p=2)
+                        loss = loss + nn.functional.mse_loss(v, v_t)
 
         return loss
 
