@@ -104,21 +104,26 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        # loss_ce = ce_loss(outputs, targets[:].long())
+        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        # loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        # loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t)) + 0.01 * (im_distill(x1, x1_t) + im_distill(x2, x2_t) + im_distill(x3, x3_t) + im_distill(x4, x4_t))
+        loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
+        loss_kd = loss_kd + nn.functional.mse_loss(x1, x1_t) + nn.functional.mse_loss(x2, x2_t) + nn.functional.mse_loss(x3, x3_t) + nn.functional.mse_loss(x4, x4_t) + nn.functional.mse_loss(x5, x5_t)
+        loss_kd = loss_kd + nn.functional.mse_loss(up1, up1_t) + nn.functional.mse_loss(up2, up2_t) + nn.functional.mse_loss(up3, up3_t) + nn.functional.mse_loss(up4, up4_t) 
+        loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t)) + 0.01 * (im_distill(x1, x1_t) + im_distill(x2, x2_t) + im_distill(x3, x3_t) + im_distill(x4, x4_t))
 
         ###############################################
         alpha = 0.5
         beta = 0.5
 
-        loss = alpha * loss_dice + beta * loss_ce
-        loss_kd = 0.0
-        loss_att = 0.0
+        # loss = alpha * loss_dice + beta * loss_ce
+        # loss_kd = 0.0
+        # loss_att = 0.0
 
         # loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att
+        loss = loss_kd + loss_att
+        loss_ce = 0
+        loss_dice = 0
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
