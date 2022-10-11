@@ -30,6 +30,12 @@ class CriterionPixelWise(nn.Module):
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
+p = Pool(1)
+
+def im_loss(student, teacher):
+    loss = p.map(im_distill ,student, teacher)
+    return sum(loss)
+
 def at(x, exp):
     """
     attention value of a feature map
@@ -57,9 +63,7 @@ def im_distill(student, teacher):
         loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
     return loss
 
-def im_loss(student, teacher):
-    loss = Pool.map(im_distill ,student, teacher)
-    return sum(loss)
+
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
