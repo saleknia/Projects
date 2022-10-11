@@ -56,11 +56,11 @@ def im_distill(student, teacher):
     :param t: teacher feature maps
     :return: imd loss value
     """
-    loss = 0.0
-    for s,t in zip(student, teacher):
-        if s.shape[2] != t.shape[2]:
-            s = F.interpolate(s, t.size()[-2:], mode='bilinear')
-        loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
+    s = student
+    t = teacher
+    if s.shape[2] != t.shape[2]:
+        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    loss = torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
     return loss
 
 
