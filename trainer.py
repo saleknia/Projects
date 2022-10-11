@@ -144,17 +144,17 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_proto = 0.01 * proto_loss(targets, up, up_t, x, x_t)
         # loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
         # loss_att = 0.01 * im_loss(up+x, up_t+x_t)
-        loss_kd = kd_loss(student=x5, teacher=x5_t)
+        # loss_kd = kd_loss(student=x5, teacher=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
 
-        # # loss = alpha * loss_dice + beta * loss_ce
+        # loss = alpha * loss_dice + beta * loss_ce
         # loss_kd = 0.0
-        loss_att = 0.0
-        loss_proto = 0.0
+        # loss_att = 0.0
+        # loss_proto = 0.0
 
-        loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto
+        # loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
