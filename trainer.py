@@ -32,7 +32,7 @@ class StyleLoss(nn.Module):
         G_s = gram_matrix(student)
         G_t = gram_matrix(teacher.detach())
         loss = F.mse_loss(G_s, G_t)
-        return loss
+        return loss * 10000
 
 class CriterionPixelWise(nn.Module):
     def __init__(self, use_weight=True, reduce=True):
