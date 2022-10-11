@@ -106,13 +106,17 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
+            up = [up1, up2, up3, up4]
+            up_t = [up1_t, up2_t, up3_t, up4_t]
+            x = [x1, x2, x3, x4]
+            x_t = [x1_t, x2_t, x3_t, x4_t]
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_proto = 0.01 * proto_loss(targets, up4, up3, up2, up1, up4_t, up3_t, up2_t, up1_t)
+        loss_proto = 0.01 * proto_loss(targets, up, up_t, x, x_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
+        loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t)) + 0.01 * (im_distill(x1, x1_t) + im_distill(x2, x2_t) + im_distill(x3, x3_t) + im_distill(x4, x4_t))
 
         ###############################################
         alpha = 0.5
