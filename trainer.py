@@ -16,6 +16,24 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
+def gram_matrix(input):
+    a, b, c, d = input.size()  # a=batch size(=1) # b=number of feature maps # (c,d)=dimensions of a f. map (N=c*d)
+    features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
+    G = torch.mm(features, features.t())  # compute the gram product
+    # we 'normalize' the values of the gram matrix
+    # by dividing by the number of element in each feature maps.
+    return G.div(a * b * c * d)
+
+class StyleLoss(nn.Module):
+    def __init__(self):
+        super(StyleLoss, self).__init__()
+
+    def forward(self, student, teacher):
+        G_s = gram_matrix(student)
+        G_t = gram_matrix(teacher.detach())
+        loss = F.mse_loss(G_s, G_t)
+        return loss
+
 class CriterionPixelWise(nn.Module):
     def __init__(self, use_weight=True, reduce=True):
         super(CriterionPixelWise, self).__init__()
