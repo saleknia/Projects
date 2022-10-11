@@ -251,13 +251,14 @@ class disparity(nn.Module):
         super(disparity, self).__init__()
 
         self.down_scales = [1.0, 0.5, 0.25, 0.125]
-        num_class = 2
+        num_class = 9
 
         self.num_class = num_class
 
-    def forward(self, masks, up4, up3, up2, up1):
+    def forward(self, masks, up4, up3, up2, up1, up4_t, up3_t, up2_t, up1_t):
         loss = 0.0
         up = [up1, up2, up3, up4]
+        up_t = [up1_t, up2_t, up3_t, up4_t]
 
         for k in range(4):
             B,C,H,W = up[k].shape
@@ -268,9 +269,6 @@ class disparity(nn.Module):
             mask_unique_value = torch.unique(temp_masks)
             unique_num = len(mask_unique_value)
             
-            if unique_num<2:
-                return 0
-
             prototypes = torch.zeros(size=(unique_num,C))
 
             for count,p in enumerate(mask_unique_value):
@@ -282,17 +280,8 @@ class disparity(nn.Module):
                 for t in range(B):
                     if torch.sum(bin_mask[t])!=0:
                         v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
-                prototypes[count] = temp
-
-            l = 0.0
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
-
-            loss = loss + l
+                        v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        loss = loss + torch.cdist(v, v_t, p=2)
 
         return loss
 
