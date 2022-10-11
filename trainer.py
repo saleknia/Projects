@@ -108,8 +108,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
             up = [up1, up2, up3, up4]
             up_t = [up1_t, up2_t, up3_t, up4_t]
-            x = [x1, x2, x3, x4]
-            x_t = [x1_t, x2_t, x3_t, x4_t]
+            x = [x4, x3, x2, x1]
+            x_t = [x4_t, x3_t, x2_t, x1_t]
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
