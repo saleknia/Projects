@@ -39,7 +39,8 @@ def at(x, exp):
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
 
-def im_distill(student, teacher, exp=4):
+def im_distill(student, teacher):
+    exp=4
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -56,6 +57,9 @@ def im_distill(student, teacher, exp=4):
         loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
     return loss
 
+def im_loss(student, teacher):
+    loss = Pool.map(im_distill ,student, teacher)
+    return sum(loss)
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -117,7 +121,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_proto = 0.01 * proto_loss(targets, up, up_t, x, x_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_att = 0.01 * sum(Pool.map(im_distill, up+x, up_t+x_t))
+        loss_att = 0.01 * im_loss(up+x, up_t+x_t)
 
         ###############################################
         alpha = 0.5
