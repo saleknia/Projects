@@ -3,6 +3,7 @@ from utils import cosine_scheduler
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from multiprocessing.pool import Pool
 from torch.nn.modules.loss import CrossEntropyLoss
 from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity
 from tqdm import tqdm
@@ -116,7 +117,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_proto = 0.01 * proto_loss(targets, up, up_t, x, x_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_att = 0.01 * sum(map(im_distill, up+x, up_t+x_t))
+        loss_att = 0.01 * sum(Pool.map(im_distill, up+x, up_t+x_t))
 
         ###############################################
         alpha = 0.5
