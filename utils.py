@@ -258,7 +258,7 @@ class disparity(nn.Module):
     def forward(self, masks,  up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t):
         loss = 0.0
         up = [up1, up2, up3, up4]
-        up = [up1_t, up2_t, up3_t, up4_t]
+        up_t = [up1_t, up2_t, up3_t, up4_t]
         for k in range(4):
             B,C,H,W = up[k].shape
             
