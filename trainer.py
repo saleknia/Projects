@@ -27,7 +27,7 @@ def ct_loss(student, teacher):
     # teacher = torch.nn.functional.avg_pool2d(teacher, kernel_size=2)
     G_s = gram_matrix(student)
     G_t = gram_matrix(teacher.detach())
-    loss = torch.mean((G_t-G_s)^2)
+    loss = torch.mean((G_t-G_s)**2)
     return loss
 
 class CriterionPixelWise(nn.Module):
