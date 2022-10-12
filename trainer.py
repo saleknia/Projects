@@ -71,11 +71,11 @@ def im_distill(student, teacher):
     :param t: teacher feature maps
     :return: imd loss value
     """
-    s = student
-    t = teacher
-    if s.shape[2] != t.shape[2]:
-        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
-    loss = torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
+    loss = 0.0
+    for s,t in zip(student, teacher):
+        if s.shape[2] != t.shape[2]:
+            s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+        loss = loss + torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
     return loss
 
 
@@ -97,6 +97,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_kd_total = utils.AverageMeter()
     loss_proto_total = utils.AverageMeter()
     loss_att_total = utils.AverageMeter()
+    loss_ct_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -107,8 +108,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    # kd_loss = CriterionPixelWise()
-    kd_loss = StyleLoss()
+    kd_loss = CriterionPixelWise()
+    ct_loss = StyleLoss()
     proto_loss = disparity()
 
     ##################################################################
@@ -139,18 +140,18 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        # loss_proto = 0.01 * proto_loss(targets, up, up_t, x, x_t)
-        # loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        # loss_att = 0.01 * im_loss(up+x, up_t+x_t)
-        loss_kd = 0.001 * kd_loss(student=x5, teacher=x5_t)
+        loss_proto = 0.01 * proto_loss(targets, up, up_t)
+        loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
+        loss_att = 0.01 * im_distill(up, up_t)
+        loss_ct = 0.001 * ct_loss(student=x5, teacher=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
 
         # loss = alpha * loss_dice + beta * loss_ce
         # loss_kd = 0.0
-        loss_att = 0.0
-        loss_proto = 0.0
+        # loss_att = 0.0
+        # loss_proto = 0.0
 
         loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto
         ###############################################
@@ -172,6 +173,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_kd_total.update(loss_kd)
         loss_att_total.update(loss_att)
         loss_proto_total.update(loss_proto)
+        loss_ct_total.update(loss_ct)
         ###############################################
         targets = targets.long()
 
@@ -184,7 +186,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, ct_loss = {loss_ct_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
+            # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
   

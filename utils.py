@@ -255,7 +255,7 @@ class disparity(nn.Module):
 
         self.num_class = num_class
 
-    def forward(self, masks, up, up_t, down, down_t):
+    def forward(self, masks, up, up_t):
         loss = 0.0
 
         for k in range(4):
@@ -280,10 +280,10 @@ class disparity(nn.Module):
                         v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                         v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        # p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        loss = loss + nn.functional.mse_loss(v, v_t) + nn.functional.mse_loss(p, p_t)
+                        loss = loss + nn.functional.mse_loss(v, v_t) # + nn.functional.mse_loss(p, p_t)
 
         return loss
 
