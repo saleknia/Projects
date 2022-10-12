@@ -23,6 +23,8 @@ def gram_matrix(input):
     return G
 
 def ct_loss(student, teacher):
+    student = torch.nn.functional.avg_pool2d(student, kernel_size=2)
+    teacher = torch.nn.functional.avg_pool2d(teacher, kernel_size=2)
     G_s = gram_matrix(student)
     G_t = gram_matrix(teacher.detach())
     loss = F.mse_loss(G_s, G_t)
