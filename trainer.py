@@ -135,8 +135,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_proto = 0.01 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
-        loss_ct = 0.001 * ct_loss(student=x5, teacher=x5_t)
+        loss_att = 0.1 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
+        # loss_ct = 0.001 * ct_loss(student=x5, teacher=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
@@ -145,6 +145,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_kd = 0.0
         # loss_att = 0.0
         # loss_proto = 0.0
+        loss_ct = 0.0
 
         loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto
         ###############################################
