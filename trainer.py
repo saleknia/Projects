@@ -35,17 +35,27 @@ class StyleLoss(nn.Module):
         return loss
 
 class FSP(nn.Module):
+	'''
+	A Gift from Knowledge Distillation: Fast Optimization, Network Minimization and Transfer Learning
+	http://openaccess.thecvf.com/content_cvpr_2017/papers/Yim_A_Gift_From_CVPR_2017_paper.pdf
+	'''
 	def __init__(self):
 		super(FSP, self).__init__()
 
-	def forward(self, student, teacher):
-		loss = F.mse_loss(self.fsp_matrix(student), self.fsp_matrix(teacher))
+	def forward(self, fm_s1, fm_s2, fm_t1, fm_t2):
+		loss = F.mse_loss(self.fsp_matrix(fm_s1,fm_s2), self.fsp_matrix(fm_t1,fm_t2))
+
 		return loss
 
-	def fsp_matrix(self, fm):
-		fm = fm.view(fm.size(0), fm.size(1), -1)
-		fm_t = fm.view(fm.size(0), fm.size(1), -1).transpose(1,2)
-		fsp = torch.bmm(fm, fm_t) / fm.size(2)
+	def fsp_matrix(self, fm1, fm2):
+		if fm1.size(2) > fm2.size(2):
+			fm1 = F.adaptive_avg_pool2d(fm1, (fm2.size(2), fm2.size(3)))
+
+		fm1 = fm1.view(fm1.size(0), fm1.size(1), -1)
+		fm2 = fm2.view(fm2.size(0), fm2.size(1), -1).transpose(1,2)
+
+		fsp = torch.bmm(fm1, fm2) / fm1.size(2)
+
 		return fsp
 
 class CriterionPixelWise(nn.Module):
@@ -154,7 +164,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_proto = 0.01 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
         loss_att = 0.1 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
-        loss_ct = ct_loss(student=x5, teacher=x5_t)
+        loss_ct = ct_loss(fm_s1=x4, fm_s2=x5, fm_t1=x4_t, fm_t2=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
