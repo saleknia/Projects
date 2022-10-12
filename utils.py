@@ -255,10 +255,14 @@ class disparity(nn.Module):
 
         self.num_class = num_class
 
-    def forward(self, masks,  up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t):
+    def forward(self, masks, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t, x1, x2, x3, x4, x1_t, x2_t, x3_t, x4_t):
         loss = 0.0
         up = [up1, up2, up3, up4]
         up_t = [up1_t, up2_t, up3_t, up4_t]
+
+        down = [x4, x3, x2, x1]
+        down_t = [x4_t, x3_t, x2_t, x1_t]
+
         for k in range(4):
             B,C,H,W = up[k].shape
             
@@ -281,10 +285,10 @@ class disparity(nn.Module):
                         v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                         v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        # p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                        p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        loss = loss + nn.functional.mse_loss(v, v_t) # + nn.functional.mse_loss(p, p_t)
+                        loss = loss + nn.functional.mse_loss(v, v_t) + nn.functional.mse_loss(p, p_t)
 
         return loss
 
