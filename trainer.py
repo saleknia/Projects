@@ -571,5 +571,3 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 #     #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
 #     # if ckpt is not None and (early_stopping < ckpt.early_stopping(epoch_num)):
 #     #     ckpt.save_last(acc=Dice, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)  
-
-
