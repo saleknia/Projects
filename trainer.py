@@ -22,15 +22,11 @@ def gram_matrix(input):
     G = torch.mm(features, features.t())  # compute the gram product
     return G
 
-class StyleLoss(nn.Module):
-    def __init__(self):
-        super(StyleLoss, self).__init__()
-
-    def forward(self, student, teacher):
-        G_s = gram_matrix(student)
-        G_t = gram_matrix(teacher.detach())
-        loss = F.mse_loss(G_s, G_t)
-        return loss
+def ct_loss(student, teacher):
+    G_s = gram_matrix(student)
+    G_t = gram_matrix(teacher.detach())
+    loss = F.mse_loss(G_s, G_t)
+    return loss
 
 class CriterionPixelWise(nn.Module):
     def __init__(self, use_weight=True, reduce=True):
@@ -109,7 +105,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
     kd_loss = CriterionPixelWise()
-    ct_loss = StyleLoss()
     proto_loss = disparity()
 
     ##################################################################
