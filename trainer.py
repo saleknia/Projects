@@ -17,18 +17,36 @@ from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
 def gram_matrix(input):
-    a, b, c, d = input.size()  # a=batch size(=1) # b=number of feature maps # (c,d)=dimensions of a f. map (N=c*d)
-    features = input.view(a * b, c * d)  # resise F_XL into \hat F_XL
-    G = torch.mm(features, features.t())  # compute the gram product
+    B, C, H, W = input.size()  # a=batch size(=1) # b=number of feature maps # (c,d)=dimensions of a f. map (N=c*d)
+    features = input.view(B , C, H * W)  # resise F_XL into \hat F_XL
+    G = torch.mm(features, torch.permute(features, (2, 0, 1)))  # compute the gram product
     return G
 
-def ct_loss(student, teacher):
-    # student = torch.nn.functional.avg_pool2d(student, kernel_size=2)
-    # teacher = torch.nn.functional.avg_pool2d(teacher, kernel_size=2)
-    G_s = gram_matrix(student)
-    G_t = gram_matrix(teacher.detach())
-    loss = torch.mean((G_t-G_s)**2)
-    return loss
+class StyleLoss(nn.Module):
+
+    def __init__(self, target_feature):
+        super(StyleLoss, self).__init__()
+        self.target = gram_matrix(target_feature).detach()
+
+    def forward(self, student, teacher):
+        G_s = gram_matrix(student)
+        G_t = gram_matrix(teacher.detach())
+        loss = nn.functional.mse_loss(G_s, G_t)
+        return loss
+
+class FSP(nn.Module):
+	def __init__(self):
+		super(FSP, self).__init__()
+
+	def forward(self, student, teacher):
+		loss = F.mse_loss(self.fsp_matrix(student), self.fsp_matrix(teacher))
+		return loss
+
+	def fsp_matrix(self, fm):
+		fm = fm.view(fm.size(0), fm.size(1), -1)
+		fm_t = fm.view(fm.size(0), fm.size(1), -1).transpose(1,2)
+		fsp = torch.bmm(fm, fm_t) / fm.size(2)
+		return fsp
 
 class CriterionPixelWise(nn.Module):
     def __init__(self, use_weight=True, reduce=True):
@@ -108,7 +126,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     ce_loss = CrossEntropyLoss()
     kd_loss = CriterionPixelWise()
     proto_loss = disparity()
-
+    ct_loss = FSP()
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -136,7 +154,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_proto = 0.01 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
         loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
         loss_att = 0.1 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
-        # loss_ct = 0.001 * ct_loss(student=x5, teacher=x5_t)
+        loss_ct = ct_loss(student=x5, teacher=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
@@ -145,9 +163,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_kd = 0.0
         # loss_att = 0.0
         # loss_proto = 0.0
-        loss_ct = 0.0
+        # loss_ct = 0.0
 
-        loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto
+        loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto + loss_ct
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
