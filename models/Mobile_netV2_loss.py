@@ -1,3 +1,4 @@
+
 # import torch
 # import torch.nn as nn
 # import torch.nn.functional as F
@@ -216,7 +217,7 @@ class Mobile_netV2_loss(nn.Module):
         self.layer3 = model.layer3
         self.layer4 = model.layer4
         self.avgpool = model.avgpool
-        self.fc = nn.Linear(in_features=512, out_features=num_classes)
+        self.fc = nn.Linear(in_features=512, out_features=40)
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
@@ -228,6 +229,7 @@ class Mobile_netV2_loss(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         x = self.avgpool(x)
+        x = x.view(x.size(0, -1))
         x = self.fc(x)
         return x
 
