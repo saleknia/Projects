@@ -399,7 +399,7 @@ def main(args):
                 end_epoch=end_epoch,
                 epoch_num=epoch,
                 model=model,
-                teacher_model = teacher_model,
+                teacher_model = None,
                 dataloader=data_loader['train'],
                 optimizer=optimizer,
                 device=DEVICE,

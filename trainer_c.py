@@ -29,12 +29,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     model.train()
 
     loss_total = utils.AverageMeter()
-    loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_kd_total = utils.AverageMeter()
-    loss_proto_total = utils.AverageMeter()
-    loss_att_total = utils.AverageMeter()
-    loss_ct_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
