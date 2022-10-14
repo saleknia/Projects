@@ -46,7 +46,7 @@ if log:
 LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 8
-NUM_EPOCHS = 30
+NUM_EPOCHS = 2
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -56,8 +56,8 @@ early_stopping = 200
 LOAD_MODEL = True
 CONTINUE = True
 
-TEACHER = True
-# TEACHER = False
+# TEACHER = True
+TEACHER = False
 
 
 SAVE_MODEL = True
@@ -66,7 +66,7 @@ DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
-task_ids = ['1','2','3','4','5','6','7','8']
+task_ids = ['1','2','3','4','5','6','7','8','9']
 task_table = tabulate(
                     tabular_data=[
                         ['COVID-19', 1],
@@ -76,7 +76,8 @@ task_table = tabulate(
                         ['SSL', 5],
                         ['TCIA',6],
                         ['camvid',7],
-                        ['ISIC2017',8]],
+                        ['ISIC2017',8],
+                        ['Standford40',9]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -122,6 +123,9 @@ elif task_id==8:
     NUM_CLASS = 2
     TASK_NAME = 'ISIC2017'
 
+elif task_id==9:
+    NUM_CLASS = 40
+    TASK_NAME = 'Standford40'
 
 
 
