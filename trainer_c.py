@@ -58,7 +58,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets.long())
 
         ###############################################
-        loss = alpha * loss_dice + beta * loss_ce
+        loss = loss_ce
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -73,26 +73,18 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         optimizer.step()
 
         loss_total.update(loss)
-        loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_kd_total.update(loss_kd)
-        loss_att_total.update(loss_att)
-        loss_proto_total.update(loss_proto)
-        loss_ct_total.update(loss_ct)
         ###############################################
         targets = targets.long()
 
         predictions = torch.argmax(input=outputs,dim=1).long()
-        Eval.add_batch(gt_image=targets,pre_image=predictions)
 
-        accuracy.update(Eval.Pixel_Accuracy())
 
         print_progress(
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, ct_loss = {loss_ct_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
-            # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , Accuracy = {accuracy.avg:.4f}',          
             bar_length=45
         )  
   
