@@ -12,8 +12,6 @@ import random
 import pickle
 import argparse
 from torch.backends import cudnn
-# from albumentations.pytorch.transforms import ToTensorV2
-# import albumentations as A
 import matplotlib.pyplot as plt
 from torchvision import transforms
 import torchvision.transforms.functional as TF
@@ -46,7 +44,7 @@ from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
-# from models.original_UNet import original_UNet
+from torchvision import datasets, transforms 
 import utils
 from utils import color
 from utils import Save_Checkpoint
@@ -57,8 +55,6 @@ from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
-# from testing import inference
-# from testingV2 import inferenceV2
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -355,6 +351,37 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader}
         # data_loader={'train':train_loader,'valid':train_loader}
+
+    elif TASK_NAME=='Standford40':
+
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([
+            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8
+            ),
+            transforms.RandomGrayscale(0.2),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        transform_test = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        trainset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/train/',
+                                        transform=transform_train)
+        trainloader = torch.utils.data.DataLoader(
+            trainset, batch_size=32, shuffle=True, num_workers=NUM_WORKERS)
+
+        testset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/test/',
+                                        transform=transform_test)
+        testloader = torch.utils.data.DataLoader(
+            testset, batch_size=32, shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':trainloader,'test':testloader}
 
 
     if SAVE_MODEL:
