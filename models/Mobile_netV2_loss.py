@@ -203,7 +203,7 @@ import torchvision
 
 
 class Mobile_netV2_loss(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=False):
         super(Mobile_netV2_loss, self).__init__()
         model = resnet18(pretrained)
 
