@@ -374,12 +374,12 @@ def main(args):
         trainset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
-            trainset, batch_size=40, shuffle=True, num_workers=NUM_WORKERS)
+            trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         testset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/test/',
                                         transform=transform_test)
         test_loader = torch.utils.data.DataLoader(
-            testset, batch_size=40, shuffle=True, num_workers=NUM_WORKERS)
+            testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
