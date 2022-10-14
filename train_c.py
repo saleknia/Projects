@@ -49,6 +49,7 @@ import utils
 from utils import color
 from utils import Save_Checkpoint
 from trainer import trainer
+from trainer_c import trainer
 from tester import tester
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
