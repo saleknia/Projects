@@ -218,7 +218,9 @@ class Mobile_netV2_loss(nn.Module):
         self.layer3 = model.layer3
         self.layer4 = model.layer4
         self.avgpool = model.avgpool
-        self.fc = nn.Linear(in_features=512, out_features=40)
+        # self.fc = nn.Linear(in_features=512, out_features=40)
+        self.fc = nn.Linear(in_features=2048, out_features=40)
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
