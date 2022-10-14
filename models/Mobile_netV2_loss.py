@@ -200,42 +200,9 @@ import torch.nn.functional as F
 from torchvision.models import resnet18
 import torchvision
 
-class seg_head(nn.Module):
-    def __init__(self, num_class):
-        super().__init__()
-        self.scale_4 = nn.Upsample(scale_factor=2)
-        self.scale_3 = nn.Upsample(scale_factor=2)
-        self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(512 , 256, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(256 , 128, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 =  nn.Conv2d(128 , 64 , kernel_size=(1,1), stride=(1,1))
-
-        self.conv = nn.Conv2d(64, 64, kernel_size=(1,1), stride=(1,1))
-        self.BN_out = nn.BatchNorm2d(64)
-        self.RELU6_out = nn.ReLU6()
-
-        self.out = nn.Conv2d(64, num_class, kernel_size=(1,1), stride=(1,1))
-
-    def forward(self, up4, up3, up2, up1):
-        up1 = torchvision.ops.stochastic_depth(input=up1, p=0.5, mode='batch')
-        up2 = torchvision.ops.stochastic_depth(input=up2, p=0.5, mode='batch')
-        up3 = torchvision.ops.stochastic_depth(input=up3, p=0.5, mode='batch')
-        up4 = self.scale_4(self.conv_4(up4))
-        up3 = up3 + up4
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = up3 + up2
-        up2 = self.scale_2(self.conv_2(up2))
-        up = up2 + up1
-        
-        up = self.conv(up)
-        up = self.BN_out(up)
-        up = self.RELU6_out(up)
-        up = self.out(up)
-
-        return up
 
 class Mobile_netV2_loss(nn.Module):
-    def __init__(self, num_classes=2, pretrained=False):
+    def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
         model = resnet18(pretrained)
 
@@ -248,11 +215,9 @@ class Mobile_netV2_loss(nn.Module):
         self.layer2 = model.layer2
         self.layer3 = model.layer3
         self.layer4 = model.layer4
-        self.last_conv = nn.Conv2d(512, num_classes, kernel_size=1)
-        self.up = nn.Upsample(scale_factor=32)
+        self.avgpool = model.avgpool
+        self.fc = nn.Linear(in_features=512, out_features=num_classes)
     def forward(self, x):
-        input_size = x.shape[-2:]
-        # x = torch.cat([x, x, x], dim=1)  # 扩充为3通道
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -262,8 +227,8 @@ class Mobile_netV2_loss(nn.Module):
         x = self.layer2(x)
         x = self.layer3(x)
         x = self.layer4(x)
-        x = self.last_conv(x)
-        x = self.up(x)
+        x = self.avgpool(x)
+        x = self.fc(x)
         return x
 
 
