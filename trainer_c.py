@@ -31,18 +31,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class)
-
-    mIOU = 0.0
-    Dice = 0.0
-
     accuracy = utils.AverageMeter()
 
-    dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    kd_loss = CriterionPixelWise()
-    proto_loss = disparity()
-    ct_loss = FSP()
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -58,30 +49,16 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        outputs, up1, up2, up3, up4, x1, x2, x3, x4, x5 = model(inputs,multiple=True)
+        outputs = model(inputs)
 
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        loss_ce = ce_loss(outputs, targets.long())
 
-        loss_proto = 0.01 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t, x1, x2, x3, x4, x1_t, x2_t, x3_t, x4_t)
-        loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        loss_att = 0.1 * ((im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t)) + (im_distill(x1, x1_t) + im_distill(x2, x2_t) + im_distill(x3, x3_t) + im_distill(x4, x4_t)))
-        # loss_ct = ct_loss(fm_s1=x4, fm_s2=x5, fm_t1=x4_t, fm_t2=x5_t)
         ###############################################
-        alpha = 0.5
-        beta = 0.5
-
-        # loss = alpha * loss_dice + beta * loss_ce
-        # loss_kd = 0.0
-        # loss_att = 0.0
-        # loss_proto = 0.0
-        loss_ct = 0.0
-
-        loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto + loss_ct
+        loss = alpha * loss_dice + beta * loss_ce
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
