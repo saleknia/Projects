@@ -14,7 +14,9 @@ from utils import focal_loss
 from torch.autograd import Variable
 from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
+import os
 warnings.filterwarnings("ignore")
+
 
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
@@ -82,7 +84,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , Accuracy = {accuracy.avg:.4f}',          
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',          
             bar_length=45
         )  
   
@@ -91,13 +93,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , mIoU: {mIOU:.2f} , Dice: {Dice:.2f} , Pixel Accuracy: {acc:.2f}, lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Accuracy : {acc:.2f} , lr: {optimizer.param_groups[0]["lr"]}')
 
     # Save checkpoint
     if ckpt is not None:
-        ckpt.save_best(acc=acc, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
+        ckpt.save_best(acc=acc, acc_per_class=acc, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
     if ckpt is not None:
-        ckpt.save_last(acc=acc, acc_per_class=Dice_per_class, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
+        ckpt.save_last(acc=acc, acc_per_class=acc, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
 
 
 
