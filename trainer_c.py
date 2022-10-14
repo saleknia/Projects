@@ -50,7 +50,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         targets = targets.float()
 
         outputs = model(inputs)
-
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
@@ -77,7 +78,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ###############################################
         targets = targets.long()
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
+
 
 
         print_progress(
