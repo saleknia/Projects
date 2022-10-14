@@ -198,14 +198,15 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18
+from torchvision.models import resnet18, resnet50
 import torchvision
 
 
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
-        model = resnet18(pretrained)
+        # model = resnet18(pretrained)
+        model = resnet50(pretrained)
 
         # take pretrained resnet, except AvgPool and FC
         self.conv1 = model.conv1
