@@ -944,7 +944,7 @@ class UNet(nn.Module):
 
     def forward(self, x):
         b, c, h, w = x.shape
-        return self.transformer(x)
+        return self.transformer(x)[0]
 
         # e0 = self.firstconv(x)
         # e0 = self.firstbn(e0)
