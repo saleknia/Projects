@@ -23,6 +23,7 @@ def disparity(labels, outputs):
     prototypes = torch.zeros(len(unique), N, device='cuda')
     for i,p in enumerate(unique):
         prototypes[i] = torch.mean(outputs[outputs==p],dim=0)
+    prototypes = torch.unsqueeze(prototypes, dim=0)
     loss = 1.0 / torch.mean(torch.cdist(prototypes, prototypes, p=2.0))
     return loss
 
