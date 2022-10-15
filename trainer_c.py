@@ -39,6 +39,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
+    loss_disparity_total = utils.AverageMeter()
 
     accuracy = utils.AverageMeter()
 
@@ -58,7 +59,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        outputs = model(inputs)
+        # outputs = model(inputs)
+        outputs, features = model(inputs)
+
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
@@ -67,9 +70,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
         loss_ce = ce_loss(outputs, targets.long())
+        loss_disparity = disparity(labels=targets, outputs=features)
 
         ###############################################
-        loss = loss_ce
+        # loss = loss_ce
+        loss = loss_ce + loss_disparity
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -85,6 +90,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
+        loss_disparity_total.update(loss_disparity)
         ###############################################
         targets = targets.long()
 
@@ -101,7 +107,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss: {loss_total.avg:.4f} , Accuracy : {acc:.2f} , lr: {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss_CE : {loss_ce_total.avg:.4f} , Loss_disparity : {loss_disparity_total.avg:.4f} , Accuracy : {acc:.2f} , lr: {optimizer.param_groups[0]["lr"]}')
 
     # Save checkpoint
     if ckpt is not None:

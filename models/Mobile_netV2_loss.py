@@ -233,7 +233,8 @@ class Mobile_netV2_loss(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
+        y = x
         x = self.fc(x)
-        return x
+        return x, y
 
 
