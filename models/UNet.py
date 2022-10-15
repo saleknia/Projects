@@ -919,7 +919,7 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
 
         # transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
-        self.transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.transformer = deit_base_distilled_patch16_224(pretrained=True)
         self.transformer.head = nn.Linear(in_features=192, out_features=40, bias=True)
         # resnet = resnet_model.resnet34(pretrained=True)
 
