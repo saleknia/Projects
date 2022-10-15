@@ -235,6 +235,9 @@ class Mobile_netV2_loss(nn.Module):
         x = x.view(x.size(0), -1)
         y = x
         x = self.fc(x)
-        return x, y
+        if self.training:
+            return x, y
+        else:
+            return x
 
 

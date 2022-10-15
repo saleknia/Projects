@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from multiprocessing.pool import Pool
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
