@@ -371,12 +371,12 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        trainset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/train/',
+        trainset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordAction/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
             trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        testset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordActionDataset/test/',
+        testset = datasets.ImageFolder(root='/content/drive/MyDrive/StanfordAction/test/',
                                         transform=transform_test)
         test_loader = torch.utils.data.DataLoader(
             testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
