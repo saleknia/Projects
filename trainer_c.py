@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 def disparity(labels, outputs):
     B, N = outputs.shape
     unique = torch.unique(labels)
-    prototypes = torch.zeros(len(unique), N)
+    prototypes = torch.zeros(len(unique), N, device='cuda')
     for i,p in enumerate(unique):
         prototypes[i] = torch.mean(outputs[outputs==p],dim=0)
     loss = torch.cdist(prototypes, prototypes)
