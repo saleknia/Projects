@@ -17,7 +17,14 @@ from utils import importance_maps_distillation as imd
 import os
 warnings.filterwarnings("ignore")
 
-
+def disparity(labels, outputs):
+    B, N = outputs.shape
+    unique = torch.unique(labels)
+    prototypes = torch.zeros(len(unique), N)
+    for i,p in enumerate(unique):
+        prototypes[i] = torch.mean(outputs[outputs==p],dim=0)
+    loss = torch.cdist(prototypes, prototypes)
+    return loss
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
