@@ -1,4 +1,4 @@
-
+# 
 # import torch
 # import torch.nn as nn
 # import torch.nn.functional as F
@@ -205,8 +205,8 @@ import torchvision
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
-        # model = resnet18(pretrained)
-        model = resnet50(pretrained)
+        model = resnet18(pretrained)
+        # model = resnet50(pretrained)
 
         # take pretrained resnet, except AvgPool and FC
         self.conv1 = model.conv1
@@ -218,8 +218,8 @@ class Mobile_netV2_loss(nn.Module):
         self.layer3 = model.layer3
         self.layer4 = model.layer4
         self.avgpool = model.avgpool
-        # self.fc = nn.Linear(in_features=512, out_features=40)
-        self.fc = nn.Linear(in_features=2048, out_features=40)
+        self.fc = nn.Linear(in_features=512, out_features=40)
+        # self.fc = nn.Linear(in_features=2048, out_features=40)
 
     def forward(self, x):
         x = self.conv1(x)
