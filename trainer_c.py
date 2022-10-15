@@ -72,8 +72,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
         loss_ce = ce_loss(outputs, targets.long())
-        # loss_disparity = disparity(labels=targets, outputs=outputs)
-        loss_disparity = 0.0
+        loss_disparity = disparity(labels=targets, outputs=features)
+        # loss_disparity = 0.0
         ###############################################
         # loss = loss_ce
         loss = loss_ce + loss_disparity
