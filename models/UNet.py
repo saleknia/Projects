@@ -920,7 +920,7 @@ class UNet(nn.Module):
 
         # transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        resnet = resnet_model.resnet50(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn = resnet.bn1
@@ -937,10 +937,9 @@ class UNet(nn.Module):
         )
         self.maxpool_2 = nn.MaxPool2d(kernel_size=2)
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=2048+512)
-        self.conv2d = nn.Conv2d(in_channels=2048+512, out_channels=512, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=1024)
         self.avgpool = resnet.avgpool
-        self.fc = nn.Linear(in_features=512, out_features=40)
+        self.fc = nn.Linear(in_features=1024, out_features=40)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -964,8 +963,7 @@ class UNet(nn.Module):
 
         feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
         feature_att = self.se(feature_cat)
-        feature_out = self.conv2d(feature_att)
-        x = self.avgpool(feature_out)
+        x = self.avgpool(feature_att)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
         return x
