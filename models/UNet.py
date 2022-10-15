@@ -919,54 +919,57 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
 
         # transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        resnet = resnet_model.resnet34(pretrained=True)
+        self.transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.transformer.head = nn.Linear(in_features=192, out_features=40, bias=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool_1 = resnet.maxpool
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.maxpool_1 = resnet.maxpool
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = resnet.layer2
+        # self.encoder3 = resnet.layer3
+        # self.encoder4 = resnet.layer4
 
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-        self.maxpool_2 = nn.MaxPool2d(kernel_size=2)
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.avgpool = resnet.avgpool
-        self.fc = nn.Linear(in_features=1024, out_features=40)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
+        # self.maxpool_2 = nn.MaxPool2d(kernel_size=2)
+        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        # self.se = SEBlock(channel=1024)
+        # self.avgpool = resnet.avgpool
+        
 
     def forward(self, x):
         b, c, h, w = x.shape
+        return self.transformer(x)
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool_1(e0)
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        feature_cnn = self.encoder4(e3)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # e0 = self.maxpool_1(e0)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # feature_cnn = self.encoder4(e3)
 
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-        feature_tf = self.maxpool_2(feature_tf)
+        # emb = self.patch_embed(x)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # print(emb.shape)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # feature_tf = self.conv_seq_img(feature_tf)
+        # feature_tf = self.maxpool_2(feature_tf)
 
-        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x = self.avgpool(feature_att)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
-        return x
+        # feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
+        # feature_att = self.se(feature_cat)
+        # x = self.avgpool(feature_att)
+        # x = x.view(x.size(0), -1)
+        # x = self.fc(x)
+        # return x
 
 
 
