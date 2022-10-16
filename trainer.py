@@ -161,7 +161,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        loss_proto = 0.001 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
+        loss_proto = 0.01 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
         # loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
         # loss_att = 0.01 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
         # loss_ct = ct_loss(fm_s1=x4, fm_s2=x5, fm_t1=x4_t, fm_t2=x5_t)
