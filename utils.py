@@ -254,6 +254,7 @@ class disparity(nn.Module):
         num_class = 9
 
         self.num_class = num_class
+        self.cosine = torch.nn.CosineEmbeddingLoss()
 
     def forward(self, masks, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t):
         loss = 0.0
@@ -289,7 +290,8 @@ class disparity(nn.Module):
                     # p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
                     # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                    loss = loss + nn.functional.mse_loss(v, v_t) 
+                    # loss = loss + nn.functional.mse_loss(v, v_t) 
+                    loss = loss + self.cosine(v, v_t, torch.tensor([1.0], device='cuda'))
 
         return loss
 
