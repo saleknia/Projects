@@ -263,32 +263,33 @@ class disparity(nn.Module):
         # down = [x4, x3, x2, x1]
         # down_t = [x4_t, x3_t, x2_t, x1_t]
 
-        for k in range(4):
-            B,C,H,W = up[k].shape
-            
-            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_masks = temp_masks.squeeze(dim=1)
+        # for k in range(4):
+        k = 3
+        B,C,H,W = up[k].shape
+        
+        temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+        temp_masks = temp_masks.squeeze(dim=1)
 
-            mask_unique_value = torch.unique(temp_masks)
-            unique_num = len(mask_unique_value)
-            
-            prototypes = torch.zeros(size=(unique_num,C))
+        mask_unique_value = torch.unique(temp_masks)
+        unique_num = len(mask_unique_value)
+        
+        prototypes = torch.zeros(size=(unique_num,C))
 
-            for count,p in enumerate(mask_unique_value):
-                p = p.long()
-                bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                temp = 0.0
-                batch_counter = 0
-                for t in range(B):
-                    if torch.sum(bin_mask[t])!=0:
-                        v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+        for count,p in enumerate(mask_unique_value):
+            p = p.long()
+            bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+            bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+            temp = 0.0
+            batch_counter = 0
+            for t in range(B):
+                if torch.sum(bin_mask[t])!=0:
+                    v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    v_t = torch.sum(bin_mask[t]*up_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        # p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                        # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    # p = torch.sum(bin_mask[t]*down[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
-                        loss = loss + nn.functional.mse_loss(v, v_t) 
+                    loss = loss + nn.functional.mse_loss(v, v_t) 
 
         return loss
 
