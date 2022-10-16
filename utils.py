@@ -291,7 +291,7 @@ class disparity(nn.Module):
                     # p_t = torch.sum(bin_mask[t]*down_t[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
 
                     # loss = loss + nn.functional.mse_loss(v, v_t) 
-                    loss = loss + self.cosine(v, v_t, torch.tensor([1.0], device='cuda'))
+                    loss = loss + self.cosine(torch.unsqueeze(v, dim=0), torch.unsqueeze(v_t, dim=0), torch.tensor([1.0], device='cuda'))
 
         return loss
 
