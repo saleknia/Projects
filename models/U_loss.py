@@ -4,46 +4,46 @@ import torch.nn.functional as F
 import torchvision
 import math
 
-# class DoubleConv(nn.Module):
-#     """(convolution => [BN] => ReLU) * 2"""
+class DoubleConv(nn.Module):
+    """(convolution => [BN] => ReLU) * 2"""
 
-#     def __init__(self, in_channels, out_channels, mid_channels=None):
-#         super().__init__()
-#         if not mid_channels:
-#             mid_channels = out_channels
-#         self.double_conv = nn.Sequential(
-#             GhostModule(in_channels, mid_channels),
-#             GhostModule(mid_channels, out_channels),
-#         )
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        super().__init__()
+        if not mid_channels:
+            mid_channels = out_channels
+        self.double_conv = nn.Sequential(
+            GhostModule(in_channels, mid_channels),
+            GhostModule(mid_channels, out_channels),
+        )
 
-#     def forward(self, x):
-#         x = self.double_conv(x)
-#         return x
+    def forward(self, x):
+        x = self.double_conv(x)
+        return x
 
-# class GhostModule(nn.Module):
-#     def __init__(self, inp, oup, kernel_size=3, ratio=8, dw_size=3, stride=1, relu=True):
-#         super(GhostModule, self).__init__()
-#         self.oup = oup
-#         init_channels = math.ceil(oup / ratio)
-#         new_channels = init_channels*(ratio-1)
+class GhostModule(nn.Module):
+    def __init__(self, inp, oup, kernel_size=3, ratio=8, dw_size=3, stride=1, relu=True):
+        super(GhostModule, self).__init__()
+        self.oup = oup
+        init_channels = math.ceil(oup / ratio)
+        new_channels = init_channels*(ratio-1)
 
-#         self.primary_conv = nn.Sequential(
-#             nn.Conv2d(inp, init_channels, kernel_size, stride, kernel_size//2, bias=False),
-#             nn.BatchNorm2d(init_channels),
-#             nn.ReLU(inplace=True) if relu else nn.Sequential(),
-#         )
+        self.primary_conv = nn.Sequential(
+            nn.Conv2d(inp, init_channels, kernel_size, stride, kernel_size//2, bias=False),
+            nn.BatchNorm2d(init_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
 
-#         self.cheap_operation = nn.Sequential(
-#             nn.Conv2d(init_channels, new_channels, dw_size, 1, dw_size//2, groups=init_channels, bias=False),
-#             nn.BatchNorm2d(new_channels),
-#             nn.ReLU(inplace=True) if relu else nn.Sequential(),
-#         )
+        self.cheap_operation = nn.Sequential(
+            nn.Conv2d(init_channels, new_channels, dw_size, stride, dw_size//2, groups=init_channels, bias=False),
+            nn.BatchNorm2d(new_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
 
-#     def forward(self, x):
-#         x1 = self.primary_conv(x)
-#         x2 = self.cheap_operation(x1)
-#         out = torch.cat([x1,x2], dim=1)
-#         return out[:,:self.oup,:,:]
+    def forward(self, x):
+        x1 = self.primary_conv(x)
+        x2 = self.cheap_operation(x1)
+        out = torch.cat([x1,x2], dim=1)
+        return out[:,:self.oup,:,:]
 
 # class depthwise_separable_conv(nn.Module):
 #  def __init__(self, nin, nout): 
@@ -95,31 +95,31 @@ class DoubleConv_s(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
+# class DoubleConv(nn.Module):
+#     """(convolution => [BN] => ReLU) * 2"""
 
-    def __init__(self, in_channels, out_channels, mid_channels=None):
-        super().__init__()
-        int_in_channels = in_channels // 4
-        int_out_channels = out_channels // 4
+#     def __init__(self, in_channels, out_channels, mid_channels=None):
+#         super().__init__()
+#         int_in_channels = in_channels // 4
+#         int_out_channels = out_channels // 4
         
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, int_in_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(int_in_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_in_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(int_out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_out_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(int_out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_out_channels, out_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),           
-        )
+#         self.double_conv = nn.Sequential(
+#             nn.Conv2d(in_channels, int_in_channels, kernel_size=1, padding=0, bias=False),
+#             nn.BatchNorm2d(int_in_channels),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(int_in_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
+#             nn.BatchNorm2d(int_out_channels),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(int_out_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
+#             nn.BatchNorm2d(int_out_channels),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(int_out_channels, out_channels, kernel_size=1, padding=0, bias=False),
+#             nn.BatchNorm2d(out_channels),
+#             nn.ReLU(inplace=True),           
+#         )
 
-    def forward(self, x):
-        return self.double_conv(x)
+#     def forward(self, x):
+#         return self.double_conv(x)
 
 
 class Down(nn.Module):
