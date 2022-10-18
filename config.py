@@ -43,7 +43,7 @@ if log:
 
 
 # Hyperparameters etc.
-LEARNING_RATE = 0.01
+LEARNING_RATE = 0.001
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 8
 NUM_EPOCHS = 30
@@ -56,8 +56,8 @@ early_stopping = 200
 LOAD_MODEL = True
 CONTINUE = True
 
-TEACHER = True
-# TEACHER = False
+# TEACHER = True
+TEACHER = False
 
 
 SAVE_MODEL = True
