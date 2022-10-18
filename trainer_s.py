@@ -73,7 +73,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_kd_total = utils.AverageMeter()
     loss_att_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=num_class)
+    Eval = utils.Evaluator(num_class=2)
 
     mIOU = 0.0
     Dice = 0.0
@@ -82,7 +82,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     accuracy_eval = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
-    ce_loss = CrossEntropyLoss()
+    # ce_loss = CrossEntropyLoss()
+    ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
     kd_loss = CriterionPixelWise()
     att_loss = discriminate()
 
@@ -103,12 +104,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
 
 
-        # targets = targets.long()
-        # predictions = torch.argmax(input=outputs,dim=1).long()
-        # overlap = (predictions==targets).float()
-        # t_masks = targets * overlap
-        # targets = targets.float()
-
         # soft_label = 0.5 * (torch.nn.functional.softmax(outputs) + torch.nn.functional.one_hot(targets.long(), num_classes=2).permute(0,3,1,2))
         # loss_kd = kd_loss(preds_S=outputs, preds_T=soft_label)
         # loss_att = att_loss(masks=targets, outputs=up4)
@@ -116,7 +111,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_att = 0.0
 
 
-        loss_ce = ce_loss(outputs, targets[:].long()) 
+        loss_ce = ce_loss(outputs, targets) 
         # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
         # loss_ce = 0.0
@@ -150,7 +145,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         targets = targets.long()
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
+        predictions = torch.squeeze(outputs, dim=1).long()
+        # predictions = torch.argmax(input=outputs, dim=1).long()
         Eval.add_batch(gt_image=targets,pre_image=predictions)
         accuracy.update(Eval.Pixel_Accuracy())
 

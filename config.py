@@ -120,7 +120,7 @@ elif task_id==7:
     TASK_NAME = 'camvid'
 
 elif task_id==8:
-    NUM_CLASS = 2
+    NUM_CLASS = 1
     TASK_NAME = 'ISIC2017'
 
 elif task_id==9:
