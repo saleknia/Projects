@@ -321,4 +321,4 @@ class UNet(nn.Module):
         self.model.classifier[4] = nn.Conv2d(256, n_classes, kernel_size=(1, 1), stride=(1, 1))
 
     def forward(self, x):
-        out = self.model['out']
+        out = self.model(x)['out']
