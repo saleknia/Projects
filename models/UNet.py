@@ -322,3 +322,4 @@ class UNet(nn.Module):
 
     def forward(self, x):
         out = self.model(x)['out']
+        return out
