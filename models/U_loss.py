@@ -21,7 +21,7 @@ class DoubleConv(nn.Module):
         return x
 
 class GhostModule(nn.Module):
-    def __init__(self, inp, oup, kernel_size=3, ratio=16, dw_size=3, stride=1, relu=True):
+    def __init__(self, inp, oup, kernel_size=3, ratio=14, dw_size=3, stride=1, relu=True):
         super(GhostModule, self).__init__()
         self.oup = oup
         init_channels = math.ceil(oup / ratio)
@@ -177,6 +177,7 @@ class U_loss(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
+        # self.bilinear = True
         in_channels = 64
         self.inc = DoubleConv_s(n_channels, in_channels)
         self.down1 = Down(in_channels  , in_channels*2)
