@@ -21,7 +21,7 @@ class DoubleConv(nn.Module):
         return x
 
 class GhostModule(nn.Module):
-    def __init__(self, inp, oup, kernel_size=3, ratio=10, dw_size=3, stride=1, relu=True):
+    def __init__(self, inp, oup, kernel_size=3, ratio=12, dw_size=3, stride=1, relu=True):
         super(GhostModule, self).__init__()
         self.oup = oup
         init_channels = math.ceil(oup / ratio)
