@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torchvision
 import torch.nn.functional as F
+from torchvision import models as resnet_model
+import math 
 
 class CBR(nn.Module):
     '''
@@ -207,20 +209,20 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
         layers.append(ConvBatchNorm(out_channels, out_channels, activation))
     return nn.Sequential(*layers)
 
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
+# class ConvBatchNorm(nn.Module):
+#     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
+#     def __init__(self, in_channels, out_channels, activation='ReLU'):
+#         super(ConvBatchNorm, self).__init__()
+#         self.conv = nn.Conv2d(in_channels, out_channels,
+#                               kernel_size=3, padding=1)
+#         self.norm = nn.BatchNorm2d(out_channels)
+#         self.activation = get_activation(activation)
 
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
+#     def forward(self, x):
+#         out = self.conv(x)
+#         out = self.norm(out)
+#         return self.activation(out)
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
@@ -247,6 +249,59 @@ class UpBlock(nn.Module):
         out = self.up(x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU'):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = GhostModule(in_channels, out_channels)
+
+    def forward(self, x):
+        out = self.conv(x)
+        return out
+
+
+# class DoubleConv(nn.Module):
+#     """(convolution => [BN] => ReLU) * 2"""
+
+#     def __init__(self, in_channels, out_channels, mid_channels=None):
+#         super().__init__()
+#         if not mid_channels:
+#             mid_channels = out_channels
+#         self.double_conv = nn.Sequential(
+#             GhostModule(in_channels, mid_channels),
+#             GhostModule(mid_channels, out_channels),
+#         )
+
+#     def forward(self, x):
+#         x = self.double_conv(x)
+#         return x
+
+class GhostModule(nn.Module):
+    def __init__(self, inp, oup, kernel_size=3, ratio=10, dw_size=3, stride=1, relu=True):
+        super(GhostModule, self).__init__()
+        self.oup = oup
+        init_channels = math.ceil(oup / ratio)
+        new_channels = init_channels*(ratio-1)
+
+        self.primary_conv = nn.Sequential(
+            nn.Conv2d(inp, init_channels, kernel_size, stride, kernel_size//2, bias=False),
+            nn.BatchNorm2d(init_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+        self.cheap_operation = nn.Sequential(
+            nn.Conv2d(init_channels, new_channels, dw_size, stride, dw_size//2, groups=init_channels, bias=False),
+            nn.BatchNorm2d(new_channels),
+            nn.ReLU(inplace=True) if relu else nn.Sequential(),
+        )
+
+    def forward(self, x):
+        x1 = self.primary_conv(x)
+        x2 = self.cheap_operation(x1)
+        out = torch.cat([x1,x2], dim=1)
+        return out[:,:self.oup,:,:]
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -281,6 +336,8 @@ class UNet(nn.Module):
         self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
         
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
         else:
@@ -294,13 +351,18 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
+
         x = self.up4(x5, x4)
         x = self.esp4(x)
+
         x = self.up3(x, x3)
         x = self.esp3(x)
+
         x = self.up2(x, x2)
         x = self.esp2(x)
+
         x = self.up1(x, x1)
+
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(x))
         else:
