@@ -276,9 +276,9 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
+        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
         
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         if n_classes == 1:
@@ -295,11 +295,11 @@ class UNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
         x = self.up4(x5, x4)
-        # x = self.esp4(x)
+        x = self.esp4(x)
         x = self.up3(x, x3)
-        # x = self.esp3(x)
+        x = self.esp3(x)
         x = self.up2(x, x2)
-        # x = self.esp2(x)
+        x = self.esp2(x)
         x = self.up1(x, x1)
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(x))
