@@ -244,9 +244,11 @@ class UpBlock(nn.Module):
 
         self.up = nn.Upsample(scale_factor=2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.se = SEBlock(channel=in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
+        skip_x = self.se(encoder=skip_x, decoder=x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
