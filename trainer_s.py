@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity, disparity_loss, discriminate
+from utils import atten_loss,prototype_loss,IM_loss,M_loss, disparity, disparity_loss, discriminate
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -15,6 +15,24 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 warnings.filterwarnings("ignore")
+
+class DiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1e-5):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        # inputs = F.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
+        
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        
+        return 1 - dice
 
 def at(x, exp):
     """
@@ -81,7 +99,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     accuracy = utils.AverageMeter()
     accuracy_eval = utils.AverageMeter()
 
-    dice_loss = DiceLoss(num_class)
+    dice_loss = DiceLoss()
     # ce_loss = CrossEntropyLoss()
     ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
     kd_loss = CriterionPixelWise()
@@ -112,10 +130,11 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
 
         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-
+        loss_dice = dice_loss(inputs=outputs, targets=targets)
+        loss = 0.6 * loss_ce + 0.4 * loss_dice
+        
         # loss_ce = 0.0
-        loss_dice = 0.0
+        # loss_dice = 0.0
         # for output in outputs:
         #     loss_ce = loss_ce + ce_loss(output, targets[:].long()) 
         #     loss_dice = loss_dice + dice_loss(inputs=output, target=targets, softmax=True)
@@ -123,8 +142,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # outputs = outputs[0]
 
 
-        loss = loss_ce
-        # loss = 0.5 * loss_dice + 0.5 * loss_ce + loss_kd + loss_att
+
  
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 

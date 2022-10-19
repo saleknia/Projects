@@ -1,14 +1,32 @@
 import utils
 import torch
+import torch.nn as nn
 from utils import print_progress
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss, hd95
+from utils import hd95
 import warnings
 from medpy import metric
 import medpy
 import numpy as np
 warnings.filterwarnings("ignore")
 
+class DiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
+
+    def forward(self, inputs, targets, smooth=1e-5):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        # inputs = F.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
+        
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        
+        return 1 - dice
 
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
@@ -19,8 +37,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     Dice = 0.0
     accuracy = utils.AverageMeter()
 
-    # dice_loss = DiceLoss(num_class)
-    # ce_loss = CrossEntropyLoss()
+    dice_loss = DiceLoss()
     ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
 
     total_batchs = len(dataloader)
@@ -34,10 +51,9 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             targets = targets.float()
             outputs = model(inputs)
 
-            loss = ce_loss(outputs, targets.unsqueeze(dim=1))
-            # loss_ce = ce_loss(outputs, targets[:].long())
-            # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-            # loss = 0.5 * loss_ce + 0.5 * loss_dice
+            loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
+            loss_dice = dice_loss(inputs=outputs, targets=targets)
+            loss = 0.6 * loss_ce + 0.4 * loss_dice
 
             loss_total.update(loss)
 
