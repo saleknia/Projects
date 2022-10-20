@@ -389,10 +389,11 @@ class UNet(nn.Module):
 
         self.inc = ConvBatchNorm(n_channels, in_channels)
 
-        self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=2)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
+        nb_Conv = 4
+        self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
+        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
+        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
+        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv)
 
         self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
@@ -423,7 +424,7 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        
+
         up4 = self.up4(x5, x4)
         up4 = self.esp4(up4)
 
