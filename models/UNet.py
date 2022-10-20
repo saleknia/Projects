@@ -293,8 +293,7 @@ class ConvBatchNorm(nn.Module):
 
     def __init__(self, in_channels, out_channels, activation='ReLU'):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -330,6 +329,28 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
+class seghead(nn.Module):
+    def __init__(self):
+        super(seghead, self).__init__()
+
+        self.up_sample_2 = nn.Upsample(scale_factor=2)
+        self.up_sample_4 = nn.Upsample(scale_factor=4)
+
+        self.Convs_1 = self.conv = nn.Conv2d(64 , 1, kernel_size=1, padding=0)
+        self.Convs_2 = self.conv = nn.Conv2d(64 , 1, kernel_size=1, padding=0)
+        self.Convs_3 = self.conv = nn.Conv2d(128, 1, kernel_size=1, padding=0)
+
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+
+    def forward(self, up1, up2, up3):
+        up3 = self.sigmoid_1(self.up_sample_2(self.Convs_3(up3)))
+        up2 = self.sigmoid_2(self.up_sample_2(self.Convs_2(up2)))
+        up1 = self.sigmoid_3(self.Convs_1(up1))
+        out = (up3 + up2 + up1) / 3.0
+        return out
+
 
 
 class UNet(nn.Module):
@@ -360,11 +381,12 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
+        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
 
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        self.head = seghead()
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -381,21 +403,22 @@ class UNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        x = self.up4(x5, x4)
-        x = self.esp4(x)
+        up4 = self.up4(x5, x4)
+        # up4 = self.esp4(up4)
 
-        x = self.up3(x, x3)
-        x = self.esp3(x)
+        up3 = self.up3(up4, x3)
+        # up3 = self.esp3(up3)
 
-        x = self.up2(x, x2)
-        x = self.esp2(x)
+        up2 = self.up2(up3, x2)
+        # up2 = self.esp2(up2)
 
-        x = self.up1(x, x1)
+        up1 = self.up1(up2, x1)
+        logits = self.head(up1, up2, up3)
+        # if self.last_activation is not None:
+        #     logits = self.last_activation(self.outc(x))
+        # else:
+        #     logits = self.outc(x)
 
-        if self.last_activation is not None:
-            logits = self.last_activation(self.outc(x))
-        else:
-            logits = self.outc(x)
         return logits
 
 
