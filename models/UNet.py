@@ -380,7 +380,7 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        x5 = self.transformer(x5) + x5
+        x5 = self.transformer(x5)
         x = self.up4(x5, x4)
         x = self.esp4(x)
 
