@@ -399,7 +399,7 @@ class UNet(nn.Module):
 
     def forward(self, x):
         # Question here
-        
+
         b, c, h, w = x.shape
 
         x = x.float()
@@ -424,10 +424,11 @@ class UNet(nn.Module):
         # up2 = self.esp2(up2)
         up1 = self.up1(up2, x1)
         # logits = self.head(up1, up2, up3)
+        
         if self.last_activation is not None:
-            logits = self.last_activation(self.outc(x))
+            logits = self.last_activation(self.outc(up1))
         else:
-            logits = self.outc(x)
+            logits = self.outc(up1)
 
         return logits
 
