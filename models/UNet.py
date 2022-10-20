@@ -420,7 +420,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        skip_x = self.se(encoder=skip_x, decoder=x)
+        skip_x = self.se(x=skip_x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -435,15 +435,15 @@ class SEBlock(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, encoder, decoder):
-        b, c, _, _ = encoder.size()
+    def forward(self, x):
+        b, c, _, _ = x.size()
         # Squeeze
-        y = self.avg_pool(decoder).view(b, c)
+        y = self.avg_pool(x).view(b, c)
         # Excitation
         y = self.fc(y).view(b, c, 1, 1)
         # Fusion
-        encoder = torch.mul(encoder, y)
-        return encoder
+        y = torch.mul(x, y)
+        return y
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -479,16 +479,6 @@ class UNet(nn.Module):
         
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        transformer = deit_small_patch16_224(pretrained=True)
-        transformer.patch_embed.proj = nn.Conv2d(in_channels, 384, kernel_size=(16, 16), stride=(16, 16))
-
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0) 
-
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
         else:
@@ -503,15 +493,6 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-
-        emb = self.patch_embed(x1)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-
-        x5 = x5 + feature_tf
 
         x = self.up4(x5, x4)
         x = self.esp4(x)
