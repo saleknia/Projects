@@ -487,7 +487,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=1, padding=0) 
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0) 
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
