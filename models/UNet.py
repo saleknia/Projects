@@ -381,9 +381,9 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
+        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
 
         # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         self.head = seghead()
@@ -404,13 +404,13 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         up4 = self.up4(x5, x4)
-        # up4 = self.esp4(up4)
+        up4 = self.esp4(up4)
 
         up3 = self.up3(up4, x3)
-        # up3 = self.esp3(up3)
+        up3 = self.esp3(up3)
 
         up2 = self.up2(up3, x2)
-        # up2 = self.esp2(up2)
+        up2 = self.esp2(up2)
 
         up1 = self.up1(up2, x1)
         logits = self.head(up1, up2, up3)
