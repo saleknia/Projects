@@ -238,7 +238,7 @@ class DownBlock(nn.Module):
 
 class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_transpose=False):
-        super(DecoderBottleneckLayer, self).__init__()
+        super(UpBlock, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
         self.norm1 = nn.BatchNorm2d(in_channels // 4)
