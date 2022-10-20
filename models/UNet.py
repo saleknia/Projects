@@ -236,6 +236,39 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, use_transpose=False):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
+        self.norm3 = nn.BatchNorm2d(out_channels)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x, x_skip):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x + x_skip
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -296,10 +329,15 @@ class UNet(nn.Module):
         self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
         self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
 
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
-        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
-        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
-        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+        # self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
+        # self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
+        # self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
+        # self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+
+        self.up4 = UpBlock(in_channels*8, in_channels*4)
+        self.up3 = UpBlock(in_channels*4, in_channels*2)
+        self.up2 = UpBlock(in_channels*2, in_channels*1)
+        self.up1 = UpBlock(in_channels*1, in_channels*1)
 
         self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
         self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
@@ -307,7 +345,6 @@ class UNet(nn.Module):
         
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
         else:
