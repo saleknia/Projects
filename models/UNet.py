@@ -236,7 +236,7 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
-class DecoderBottleneckLayer(nn.Module):
+class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, use_transpose=False):
         super(DecoderBottleneckLayer, self).__init__()
 
@@ -269,21 +269,21 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.relu3(x)
         return x + x_skip
 
-class UpBlock(nn.Module):
-    """Upscaling then conv"""
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock, self).__init__()
+#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+#         super(UpBlock, self).__init__()
 
-        self.up = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.se = SEBlock(channel=in_channels//2)
+#         self.up = nn.Upsample(scale_factor=2)
+#         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+#         self.se = SEBlock(channel=in_channels//2)
 
-    def forward(self, x, skip_x):
-        out = self.up(x)
-        skip_x = self.se(encoder=skip_x, decoder=x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return self.nConvs(x)
+#     def forward(self, x, skip_x):
+#         out = self.up(x)
+#         skip_x = self.se(encoder=skip_x, decoder=x)
+#         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+#         return self.nConvs(x)
 
 class SEBlock(nn.Module):
     def __init__(self, channel, r=16):
