@@ -508,7 +508,7 @@ class UNet(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
         x5 = x5 + feature_tf
