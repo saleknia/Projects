@@ -334,10 +334,10 @@ class UNet(nn.Module):
         # self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         # self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        self.up4 = UpBlock(in_channels*8, in_channels*4)
-        self.up3 = UpBlock(in_channels*4, in_channels*2)
-        self.up2 = UpBlock(in_channels*2, in_channels*1)
-        self.up1 = UpBlock(in_channels*1, in_channels*1)
+        self.up4 = UpBlock(in_channels*8, in_channels*8)
+        self.up3 = UpBlock(in_channels*8, in_channels*4)
+        self.up2 = UpBlock(in_channels*4, in_channels*2)
+        self.up1 = UpBlock(in_channels*2, in_channels*1)
 
         self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
         self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
