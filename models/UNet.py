@@ -652,6 +652,7 @@ class UNet(nn.Module):
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.last_activation = nn.Sigmoid()
 
 
     def forward(self, x):
@@ -692,5 +693,5 @@ class UNet(nn.Module):
         out = self.final_conv2(out1)
         out = self.final_relu2(out)
         out = self.final_conv3(out)
-
+        out = self.last_activation(out)
         return out
