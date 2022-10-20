@@ -405,13 +405,6 @@ class UNet(nn.Module):
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        self.FAMBlock1 = FAMBlock(channels=in_channels*2)
-        self.FAMBlock2 = FAMBlock(channels=in_channels*4)
-        self.FAMBlock3 = FAMBlock(channels=in_channels*8)
-         
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -430,14 +423,7 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-
-        for i in range(2):
-            x4 = self.FAM3[i](x4)
-        for i in range(4):
-            x3 = self.FAM2[i](x3)
-        for i in range(6):
-            x2 = self.FAM1[i](x2)
-
+        
         up4 = self.up4(x5, x4)
         up4 = self.esp4(up4)
 
