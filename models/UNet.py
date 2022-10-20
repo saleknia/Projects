@@ -399,13 +399,20 @@ class UNet(nn.Module):
 
     def forward(self, x):
         # Question here
+        
         b, c, h, w = x.shape
+
         x = x.float()
+
         x1 = self.inc(x)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
+
+        x2 = self.esp2(x2)
+        x3 = self.esp3(x3)
+        x4 = self.esp4(x4)
 
         up4 = self.up4(x5, x4)
         # up4 = self.esp4(up4)
