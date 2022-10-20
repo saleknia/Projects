@@ -339,9 +339,13 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels*2)
         self.up1 = UpBlock(in_channels*2, in_channels*1)
 
-        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
+        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*8, nOut=in_channels*8)
+        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+
+        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
         
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         
