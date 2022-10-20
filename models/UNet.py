@@ -363,7 +363,6 @@ class UNet(nn.Module):
         self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
         self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
         self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
-        self.esp1 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
@@ -392,7 +391,6 @@ class UNet(nn.Module):
         x = self.esp2(x)
 
         x = self.up1(x, x1)
-        x = self.esp1(x)
 
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(x))
