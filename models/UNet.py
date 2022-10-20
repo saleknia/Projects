@@ -345,7 +345,7 @@ class seghead(nn.Module):
         self.sigmoid_3 = nn.Sigmoid()
 
     def forward(self, up1, up2, up3):
-        up3 = self.sigmoid_1(self.up_sample_2(self.Convs_3(up3)))
+        up3 = self.sigmoid_1(self.up_sample_4(self.Convs_3(up3)))
         up2 = self.sigmoid_2(self.up_sample_2(self.Convs_2(up2)))
         up1 = self.sigmoid_3(self.Convs_1(up1))
         out = (up3 + up2 + up1) / 3.0
