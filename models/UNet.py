@@ -368,7 +368,7 @@ class FAMBlock(nn.Module):
         x1 = self.relu1(x1)
         out = x3 + x1
 
-        return 
+        return out
 
 
 class UNet(nn.Module):
