@@ -6,84 +6,6 @@ from torchvision import models as resnet_model
 import math 
 from einops import rearrange
 
-class PreNorm(nn.Module):
-    def __init__(self,dim,fn):
-        super().__init__()
-        self.ln=nn.LayerNorm(dim)
-        self.fn=fn
-    def forward(self,x,**kwargs):
-        return self.fn(self.ln(x),**kwargs)
-
-class FeedForward(nn.Module):
-    def __init__(self,dim,mlp_dim,dropout) :
-        super().__init__()
-        self.net=nn.Sequential(
-            nn.Linear(dim,mlp_dim),
-            nn.SiLU(),
-            nn.Dropout(dropout),
-            nn.Linear(mlp_dim,dim),
-            nn.Dropout(dropout)
-        )
-    def forward(self,x):
-        return self.net(x)
-
-class Attention(nn.Module):
-    def __init__(self,dim,heads,head_dim,dropout):
-        super().__init__()
-        inner_dim=heads*head_dim
-        project_out=not(heads==1 and head_dim==dim)
-
-        self.heads=heads
-        self.scale=head_dim**-0.5
-
-        self.attend=nn.Softmax(dim=-1)
-        self.to_qkv=nn.Linear(dim,inner_dim*3,bias=False)
-        
-        self.to_out=nn.Sequential(
-            nn.Linear(inner_dim,dim),
-            nn.Dropout(dropout)
-        ) if project_out else nn.Identity()
-
-    def forward(self,x):
-        qkv=self.to_qkv(x).chunk(3,dim=-1)
-        q,k,v=map(lambda t:rearrange(t,'b p n (h d) -> b p h n d',h=self.heads),qkv)
-        dots=torch.matmul(q,k.transpose(-1,-2))*self.scale
-        attn=self.attend(dots)
-        out=torch.matmul(attn,v)
-        out=rearrange(out,'b p h n d -> b p n (h d)')
-        return self.to_out(out)
-
-class Transformer(nn.Module):
-    def __init__(self,dim,depth,heads,head_dim,mlp_dim,dropout=0.):
-        super().__init__()
-        self.layers=nn.ModuleList([])
-        for _ in range(depth):
-            self.layers.append(nn.ModuleList([
-                PreNorm(dim,Attention(dim,heads,head_dim,dropout)),
-                PreNorm(dim,FeedForward(dim,mlp_dim,dropout))
-            ]))
-
-
-    def forward(self,x):
-        out=x
-        for att,ffn in self.layers:
-            out=out+att(out)
-            out=out+ffn(out)
-        return out
-
-class MobileViTAttention(nn.Module):
-    def __init__(self,in_channel=512,kernel_size=3,patch_size=1):
-        super().__init__()
-        self.ph,self.pw=patch_size,patch_size
-        self.trans=Transformer(dim=in_channel,depth=4,heads=8,head_dim=64,mlp_dim=1024)
-    def forward(self,x):
-        y=x.clone() #bs,c,h,w
-        _,_,h,w=y.shape
-        y=rearrange(y,'bs dim (nh ph) (nw pw) -> bs (ph pw) (nh nw) dim',ph=self.ph,pw=self.pw) #bs,h,w,dim
-        y=self.trans(y)
-        y=rearrange(y,'bs (ph pw) (nh nw) dim -> bs dim (nh ph) (nw pw)',ph=self.ph,pw=self.pw,nh=h//self.ph,nw=w//self.pw) #bs,dim,h,w
-        return y
-
 class CBR(nn.Module):
     '''
     This class defines the convolution layer with batch normalization and PReLU activation
@@ -291,16 +213,21 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, activation='ReLU', esp=True):
         super(ConvBatchNorm, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
+        self.esp = esp
+        self.esp_block = DilatedParllelResidualBlockB(nIn=out_channels, nOut=out_channels)
 
     def forward(self, x):
         out = self.conv(x)
         out = self.norm(out)
-        return self.activation(out)
+        out = self.activation(out)
+        if self.esp:
+            out = self.esp_block(out)
+        return out
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
@@ -387,9 +314,9 @@ class UNet(nn.Module):
 
         in_channels = 64
 
-        self.inc = ConvBatchNorm(n_channels, in_channels)
+        self.inc = ConvBatchNorm(n_channels, in_channels, esp=False)
 
-        nb_Conv = 4
+        nb_Conv = 2
         self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
         self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
@@ -400,9 +327,9 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
+        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
+        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
@@ -426,13 +353,13 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         up4 = self.up4(x5, x4)
-        up4 = self.esp4(up4)
+        # up4 = self.esp4(up4)
 
         up3 = self.up3(up4, x3)
-        up3 = self.esp3(up3)
+        # up3 = self.esp3(up3)
 
         up2 = self.up2(up3, x2)
-        up2 = self.esp2(up2)
+        # up2 = self.esp2(up2)
 
         up1 = self.up1(up2, x1)
 
