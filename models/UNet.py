@@ -219,14 +219,14 @@ class ConvBatchNorm(nn.Module):
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
         self.esp = esp
-        self.esp_block = DilatedParllelResidualBlockB(nIn=out_channels, nOut=out_channels)
+        # self.esp_block = DilatedParllelResidualBlockB(nIn=out_channels, nOut=out_channels)
 
     def forward(self, x):
         out = self.conv(x)
         out = self.norm(out)
         out = self.activation(out)
-        if self.esp:
-            out = self.esp_block(out)
+        # if self.esp:
+        #     out = self.esp_block(out)
         return out
 
 class DownBlock(nn.Module):
@@ -297,9 +297,8 @@ class FAMBlock(nn.Module):
 
         return out
 
-
-class UNet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
+class UNet_first(nn.Module):
+    def __init__(self, n_channels=3):
         '''
         n_channels : number of channels of the input.
                         By default 3, because we have RGB images
@@ -308,7 +307,6 @@ class UNet(nn.Module):
         '''
         super().__init__()
         self.n_channels = n_channels
-        self.n_classes = n_classes
 
         # Question here
 
@@ -327,17 +325,6 @@ class UNet(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*4, nOut=in_channels*4)
-        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels, nOut=in_channels)
-
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-
-
-        if n_classes == 1:
-            self.last_activation = nn.Sigmoid()
-        else:
-            self.last_activation = None
 
     def forward(self, x):
         # Question here
@@ -353,17 +340,60 @@ class UNet(nn.Module):
         x5 = self.down4(x4)
 
         up4 = self.up4(x5, x4)
-        # up4 = self.esp4(up4)
-
         up3 = self.up3(up4, x3)
-        # up3 = self.esp3(up3)
-
         up2 = self.up2(up3, x2)
-        # up2 = self.esp2(up2)
-
         up1 = self.up1(up2, x1)
 
-        # logits = self.head(up1, up2, up3)
+        return up1
+
+class UNet_second(nn.Module):
+    def __init__(self, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_classes = n_classes
+
+        # Question here
+        in_channels = 64
+        nb_Conv = 2
+        self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
+        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
+        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
+        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv)
+
+        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
+        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
+        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
+        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+
+
+        if n_classes == 1:
+            self.last_activation = nn.Sigmoid()
+        else:
+            self.last_activation = None
+
+    def forward(self, x):
+        # Question here
+
+        b, c, h, w = x.shape
+
+        x1 = x.float()
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
+
+        up4 = self.up4(x5, x4)
+        up3 = self.up3(up4, x3)
+        up2 = self.up2(up3, x2)
+
+        up1 = self.up1(up2, x1)
 
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(up1))
@@ -372,6 +402,30 @@ class UNet(nn.Module):
 
         return logits
 
+class UNet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        self.unet_first = UNet_first(n_channels=n_channels)
+        self.unet_second = UNet_second(n_classes=n_classes)
+
+        if n_classes == 1:
+            self.last_activation = nn.Sigmoid()
+        else:
+            self.last_activation = None
+
+    def forward(self, x):
+        y = self.unet_first(x)
+        y = self.unet_second(y)
+        return y
 
 
 
