@@ -297,7 +297,8 @@ class FAMBlock(nn.Module):
 
         return out
 
-class UNet_first(nn.Module):
+
+class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -306,64 +307,12 @@ class UNet_first(nn.Module):
                       By default 3 (2 labels + 1 for the background)
         '''
         super().__init__()
+        self.n_classes = n_classes
         self.n_channels = n_channels
-        self.n_classes = n_classes
 
         # Question here
-
         in_channels = 64
-
         self.inc = ConvBatchNorm(n_channels, in_channels, esp=False)
-
-        nb_Conv = 2
-        self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=nb_Conv)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=nb_Conv)
-
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
-        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
-        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
-        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        self.last_activation = nn.Sigmoid()
-
-
-
-    def forward(self, x):
-        # Question here
-
-        b, c, h, w = x.shape
-
-        x = x.float()
-
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-
-        up4 = self.up4(x5, x4)
-        up3 = self.up3(up4, x3)
-        up2 = self.up2(up3, x2)
-        up1 = self.up1(up2, x1)
-        logits = self.last_activation(self.outc(up1))
-
-        return up1, logits
-
-class UNet_second(nn.Module):
-    def __init__(self, n_classes=1):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_classes = n_classes
-
-        # Question here
-        in_channels = 64
         nb_Conv = 2
         self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
@@ -375,8 +324,19 @@ class UNet_second(nn.Module):
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
 
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
 
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=512)
+        self.conv2d = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, padding=0)
+
+    
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -388,17 +348,29 @@ class UNet_second(nn.Module):
 
         b, c, h, w = x.shape
 
-        x1 = x.float()
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
+        x = x.float() 
+        x1 = self.inc(x)
+        x2 = self.down1(x1) 
+        x3 = self.down2(x2) 
+        x4 = self.down3(x3) 
+        x5 = self.down4(x4) 
 
-        up4 = self.up4(x5, x4)
-        up3 = self.up3(up4, x3)
-        up2 = self.up2(up3, x2)
+        
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
 
-        up1 = self.up1(up2, x1)
+        feature_cat = torch.cat((x5, feature_tf), dim=1)
+        feature_att = self.se(feature_cat)
+        x5 = self.conv2d(feature_att)
+
+        up4 = self.up4(x5, x4) 
+        up3 = self.up3(up4, x3) 
+        up2 = self.up2(up3, x2) 
+        up1 = self.up1(up2, x1) 
 
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(up1))
@@ -407,29 +379,208 @@ class UNet_second(nn.Module):
 
         return logits
 
-class UNet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-
-        self.unet_first = UNet_first(n_channels=self.n_channels, n_classes=self.n_classes)
-        self.unet_second = UNet_second(n_classes=n_classes)
+class SEBlock(nn.Module):
+    def __init__(self, channel, r=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            nn.Sigmoid(),
+        )
 
     def forward(self, x):
-        y1, logits = self.unet_first(x)
-        y2 = self.unet_second(y1)
+        b, c, _, _ = x.size()
+        # Squeeze
+        y = self.avg_pool(x).view(b, c)
+        # Excitation
+        y = self.fc(y).view(b, c, 1, 1)
+        # Fusion
+        y = torch.mul(x, y)
+        return y
+
+
+# Copyright (c) 2015-present, Facebook, Inc.
+# All rights reserved.
+import torch
+import torch.nn as nn
+from functools import partial
+import os
+os.system('pip install timm')
+
+from timm.models.vision_transformer import VisionTransformer, _cfg
+from timm.models.registry import register_model
+from timm.models.layers import trunc_normal_
+
+
+__all__ = [
+    'deit_tiny_patch16_224', 'deit_small_patch16_224', 'deit_base_patch16_224',
+    'deit_tiny_distilled_patch16_224', 'deit_small_distilled_patch16_224',
+    'deit_base_distilled_patch16_224', 'deit_base_patch16_384',
+    'deit_base_distilled_patch16_384',
+]
+
+
+class DistilledVisionTransformer(VisionTransformer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dist_token = nn.Parameter(torch.zeros(1, 1, self.embed_dim))
+        num_patches = self.patch_embed.num_patches
+        self.pos_embed = nn.Parameter(torch.zeros(1, num_patches + 2, self.embed_dim))
+        self.head_dist = nn.Linear(self.embed_dim, self.num_classes) if self.num_classes > 0 else nn.Identity()
+
+        trunc_normal_(self.dist_token, std=.02)
+        trunc_normal_(self.pos_embed, std=.02)
+        self.head_dist.apply(self._init_weights)
+
+    def forward_features(self, x):
+        # taken from https://github.com/rwightman/pytorch-image-models/blob/master/timm/models/vision_transformer.py
+        # with slight modifications to add the dist_token
+        B = x.shape[0]
+        x = self.patch_embed(x)
+
+        cls_tokens = self.cls_token.expand(B, -1, -1)  # stole cls_tokens impl from Phil Wang, thanks
+        dist_token = self.dist_token.expand(B, -1, -1)
+        x = torch.cat((cls_tokens, dist_token, x), dim=1)
+
+        x = x + self.pos_embed
+        x = self.pos_drop(x)
+
+        for blk in self.blocks:
+            x = blk(x)
+
+        x = self.norm(x)
+        return x[:, 0], x[:, 1]
+
+    def forward(self, x):
+        x, x_dist = self.forward_features(x)
+        x = self.head(x)
+        x_dist = self.head_dist(x_dist)
         if self.training:
-            return y2, logits
+            return x, x_dist
         else:
-            return y2
+            # during inference, return the average of both classifier predictions
+            return (x + x_dist) / 2
 
 
+@register_model
+def deit_tiny_patch16_224(pretrained=False, **kwargs):
+    model = VisionTransformer(
+        patch_size=16, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_tiny_patch16_224-a1311bcf.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_small_patch16_224(pretrained=False, **kwargs):
+    model = VisionTransformer(
+        patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_small_patch16_224-cd65a155.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_base_patch16_224(pretrained=False, **kwargs):
+    model = VisionTransformer(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_base_patch16_224-b5f2ef4d.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_tiny_distilled_patch16_224(pretrained=False, **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16, embed_dim=192, depth=12, num_heads=3, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_tiny_distilled_patch16_224-b40b3cf7.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_small_distilled_patch16_224(pretrained=False, **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16, embed_dim=384, depth=12, num_heads=6, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_small_distilled_patch16_224-649709d9.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_base_distilled_patch16_224(pretrained=False, **kwargs):
+    model = DistilledVisionTransformer(
+        patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_base_distilled_patch16_224-df68dfff.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_base_patch16_384(pretrained=False, **kwargs):
+    model = VisionTransformer(
+        img_size=384, patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_base_patch16_384-8de9b5d1.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
+
+
+@register_model
+def deit_base_distilled_patch16_384(pretrained=False, **kwargs):
+    model = DistilledVisionTransformer(
+        img_size=384, patch_size=16, embed_dim=768, depth=12, num_heads=12, mlp_ratio=4, qkv_bias=True,
+        norm_layer=partial(nn.LayerNorm, eps=1e-6), **kwargs)
+    model.default_cfg = _cfg()
+    if pretrained:
+        checkpoint = torch.hub.load_state_dict_from_url(
+            url="https://dl.fbaipublicfiles.com/deit/deit_base_distilled_patch16_384-d0272ac0.pth",
+            map_location="cpu", check_hash=True
+        )
+        model.load_state_dict(checkpoint["model"])
+    return model
 
 
