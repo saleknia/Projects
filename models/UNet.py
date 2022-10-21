@@ -425,7 +425,10 @@ class UNet(nn.Module):
     def forward(self, x):
         y1, logits = self.unet_first(x)
         y2 = self.unet_second(y1)
-        return y2, logits
+        if self.training:
+            return y2, logits
+        else:
+            return y2
 
 
 
