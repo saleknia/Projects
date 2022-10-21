@@ -298,7 +298,7 @@ class FAMBlock(nn.Module):
         return out
 
 class UNet_first(nn.Module):
-    def __init__(self, n_channels=3):
+    def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
                         By default 3, because we have RGB images
@@ -307,6 +307,7 @@ class UNet_first(nn.Module):
         '''
         super().__init__()
         self.n_channels = n_channels
+        self.n_classes = n_classes
 
         # Question here
 
@@ -324,6 +325,9 @@ class UNet_first(nn.Module):
         self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
         self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+        self.last_activation = nn.Sigmoid()
+
 
 
     def forward(self, x):
@@ -343,8 +347,9 @@ class UNet_first(nn.Module):
         up3 = self.up3(up4, x3)
         up2 = self.up2(up3, x2)
         up1 = self.up1(up2, x1)
+        logits = self.last_activation(self.outc(up1))
 
-        return up1
+        return up1, logits
 
 class UNet_second(nn.Module):
     def __init__(self, n_classes=1):
@@ -414,18 +419,13 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.unet_first = UNet_first(n_channels=n_channels)
+        self.unet_first = UNet_first(n_channels=self.n_channels, n_classes=self.n_classes)
         self.unet_second = UNet_second(n_classes=n_classes)
 
-        if n_classes == 1:
-            self.last_activation = nn.Sigmoid()
-        else:
-            self.last_activation = None
-
     def forward(self, x):
-        y1 = self.unet_first(x)
+        y1, logits = self.unet_first(x)
         y2 = self.unet_second(y1)
-        return y2, y1
+        return y2, logits
 
 
 
