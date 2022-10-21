@@ -331,9 +331,9 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=512)
-        self.conv2d = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=1024)
+        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
 
     
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
