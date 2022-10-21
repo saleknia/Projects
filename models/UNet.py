@@ -423,9 +423,9 @@ class UNet(nn.Module):
             self.last_activation = None
 
     def forward(self, x):
-        y = self.unet_first(x)
-        y = self.unet_second(y)
-        return y
+        y1 = self.unet_first(x)
+        y2 = self.unet_second(y1)
+        return y2, y1
 
 
 
