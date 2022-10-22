@@ -73,12 +73,12 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 class U(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9, bilinear=False):
+    def __init__(self, n_channels=1, n_classes=9, bilinear=True):
         super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        in_channels = 24
+        in_channels = 16
         self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels  , in_channels*2)
         self.down2 = Down(in_channels*2, in_channels*4)
