@@ -205,7 +205,7 @@ import torchvision
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True, multiple=False):
         super(Mobile_netV2_loss, self).__init__()
-        model = resnet50(pretrained)
+        model = resnet18(pretrained)
 
         # take pretrained resnet, except AvgPool and FC
         self.conv1 = model.conv1
@@ -217,7 +217,7 @@ class Mobile_netV2_loss(nn.Module):
         self.layer3 = model.layer3
         self.layer4 = model.layer4
         self.avgpool = model.avgpool
-        self.fc = nn.Linear(in_features=2048, out_features=40)
+        self.fc = nn.Linear(in_features=512, out_features=40)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -231,14 +231,9 @@ class Mobile_netV2_loss(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
 
-        x1 = x
-
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-
-        if multiple:
-            return x, x1
-        else:
-            return x
+        
+        return x
 
 

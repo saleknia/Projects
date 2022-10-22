@@ -75,11 +75,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = 100 * disparity(labels=targets, outputs=features)
         loss_disparity = 0.0
         ###############################################
-        # loss = loss_ce
-        loss = loss_ce + loss_disparity
+        loss = loss_ce
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
