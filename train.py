@@ -87,10 +87,10 @@ def main(args):
         model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='U':
-        model = U(bilinear=False, n_classes=NUM_CLASS).to(DEVICE)
+        model = U(n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='U_loss':
-        model = U_loss(bilinear=False).to(DEVICE)
+        model = U_loss().to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet':
         config_vit = get_CTranS_config()
