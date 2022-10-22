@@ -178,12 +178,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto + loss_ct
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr_
+        # for param_group in optimizer.param_groups:
+        #     param_group['lr'] = lr_
 
-        iter_num = iter_num + 1        
+        # iter_num = iter_num + 1        
         
         optimizer.zero_grad()
         loss.backward()
