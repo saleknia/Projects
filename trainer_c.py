@@ -17,6 +17,21 @@ from utils import importance_maps_distillation as imd
 import os
 warnings.filterwarnings("ignore")
 
+def loss_label_smoothing(outputs, labels):
+    """
+    loss function for label smoothing regularization
+    """
+    alpha = 0.1
+    N = outputs.size(0)  # batch_size
+    C = outputs.size(1)  # number of classes
+    smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
+    smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+
+    log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
+    loss = -torch.sum(log_prob * smoothed_labels) / N
+
+    return loss
+
 def loss_kd_regularization(outputs, labels):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
@@ -91,7 +106,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
-        loss_ce = ce_loss(outputs, targets.long())
+        # loss_ce = ce_loss(outputs, targets.long())
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
         # loss_disparity = 100 * disparity(labels=targets, outputs=features)
         loss_disparity = 0.0
         ###############################################
