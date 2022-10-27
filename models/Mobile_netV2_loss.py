@@ -90,8 +90,17 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
+        model_c = enet()
+        loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_c = loaded_data_c['net']
+        model_c.load_state_dict(pretrained_c)
+
+        for param in model_c.parameters():
+            param.requires_grad = False
+
         self.model_a = model_a
         self.model_b = model_b
+        self.model_c = model_c
 
         # self.features_a = model_a.features
         # self.features_b = model_b.features
@@ -131,7 +140,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
-        x = 0.5 * (self.model_a(x) + self.model_b(x))
+        x = (self.model_a(x) + self.model_b(x) + self.model_c(x)) / 3.0
         return x
 
 
