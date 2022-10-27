@@ -90,8 +90,8 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
-        self.model_a = model_a.model
-        self.model_b = model_b.model
+        self.model_a = model_a
+        self.model_b = model_b
 
         # self.features_a = model_a.features
         # self.features_b = model_b.features
