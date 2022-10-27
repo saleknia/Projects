@@ -97,12 +97,12 @@ class Mobile_netV2_loss(nn.Module):
         self.avgpool_b = nn.AdaptiveAvgPool2d(output_size=1)
 
         self.classifier_a = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
+            # nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=640, bias=True),
         )
 
         self.classifier_b = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
+            # nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=640, bias=True),
         )
 
