@@ -111,9 +111,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         if teacher_model is not None:
             loss_ce = ce_loss(outputs, targets.long()) * weights
+            loss_ce = torch.mean(loss_ce)
         else:
             loss_ce = ce_loss(outputs, targets.long())
-            
+
         loss_disparity = 0.0
         ###############################################
         loss = loss_ce
