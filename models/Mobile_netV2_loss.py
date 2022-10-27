@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights
+from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights
 import torchvision
 
 
@@ -19,6 +19,32 @@ class enet(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=256, out_features=40, bias=True),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+class Mobile_netV2(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2, self).__init__()
+
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        
+        self.features = model.features
+        self.avgpool = model.avgpool
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.4),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.ReLU(),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
 
@@ -114,12 +140,20 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_e.parameters():
             param.requires_grad = False
 
+        model_g = Mobile_netV2()
+        loaded_data_g = torch.load('/content/drive/MyDrive/checkpoint_a_1/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_g = loaded_data_g['net']
+        model_g.load_state_dict(pretrained_g)
+
+        for param in model_g.parameters():
+            param.requires_grad = False
 
         self.model_a = model_a
         self.model_b = model_b
         self.model_c = model_c
         self.model_d = model_d
         self.model_e = model_e
+        self.model_g = model_g
 
         # self.features_a = model_a.features
         # self.features_b = model_b.features
