@@ -11,7 +11,7 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
-        self.feature = model.features
+        self.features = model.features
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
