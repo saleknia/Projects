@@ -107,7 +107,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             with torch.no_grad():
                 outputs_t = teacher_model(inputs)
                 weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
-                weights = weights / weights.max()
+                weights = 1.0 + (weights / weights.max())
                 weights = weights.detach()
 
         if teacher_model is not None:
