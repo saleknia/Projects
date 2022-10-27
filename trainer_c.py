@@ -97,24 +97,21 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         targets = targets.float()
 
         outputs = model(inputs)
-        # outputs, features = model(inputs)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
         if teacher_model is not None:
             with torch.no_grad():
-                outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
+                outputs_t = teacher_model(inputs)
 
-        # loss_ce = ce_loss(outputs, targets.long())
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
-        # loss_disparity = 100 * disparity(labels=targets, outputs=features)
+        loss_ce = ce_loss(outputs, targets.long())
         loss_disparity = 0.0
         ###############################################
         loss = loss_ce
         ###############################################
 
-        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
