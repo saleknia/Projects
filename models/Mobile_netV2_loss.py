@@ -90,44 +90,48 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
-        self.features_a = model_a.features
-        self.features_b = model_b.features
+        self.model_a = model_a.model
+        self.model_b = model_b.model
 
-        self.avgpool_a = nn.AdaptiveAvgPool2d(output_size=1)
-        self.avgpool_b = nn.AdaptiveAvgPool2d(output_size=1)
+        # self.features_a = model_a.features
+        # self.features_b = model_b.features
 
-        self.classifier_a = nn.Sequential(
-            # nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=640, bias=True),
-        )
+        # self.avgpool_a = nn.AdaptiveAvgPool2d(output_size=1)
+        # self.avgpool_b = nn.AdaptiveAvgPool2d(output_size=1)
 
-        self.classifier_b = nn.Sequential(
-            # nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=640, bias=True),
-        )
+        # self.classifier_a = nn.Sequential(
+        #     # nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=640, bias=True),
+        # )
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
+        # self.classifier_b = nn.Sequential(
+        #     # nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=640, bias=True),
+        # )
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=40, bias=True),
+        # )
 
     def forward(self, x):
-        x_a = self.features_a(x)
-        x_a = self.avgpool_a(x_a)
-        x_a = x_a.view(x_a.size(0), -1)
-        x_a = self.classifier_a(x_a)
+        # x_a = self.features_a(x)
+        # x_a = self.avgpool_a(x_a)
+        # x_a = x_a.view(x_a.size(0), -1)
+        # x_a = self.classifier_a(x_a)
 
-        x_b = self.features_b(x)
-        x_b = self.avgpool_b(x_b)
-        x_b = x_b.view(x_b.size(0), -1)
-        x_b = self.classifier_b(x_b)
+        # x_b = self.features_b(x)
+        # x_b = self.avgpool_b(x_b)
+        # x_b = x_b.view(x_b.size(0), -1)
+        # x_b = self.classifier_b(x_b)
 
-        x = torch.cat([x_a, x_b], dim=1)
-        x = self.classifier(x)
+        # x = torch.cat([x_a, x_b], dim=1)
+        # x = self.classifier(x)
+        x = 0.5 * (self.model_a(x) + self.model_b(x))
         return x
 
 
