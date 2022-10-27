@@ -178,8 +178,8 @@ def main(args):
         lr_scheduler =  None     
 
     if TEACHER is True:
-        teacher_model = U(bilinear=False).to(DEVICE)
-        checkpoint_path = '/content/drive/MyDrive/checkpoint_1/U_Synapse_best.pth'
+        teacher_model = Mobile_netV2().to(DEVICE)
+        checkpoint_path = '/content/drive/MyDrive/checkpoint_a/Mobile_NetV2_Standford40_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
             pretrained_model_path = checkpoint_path
