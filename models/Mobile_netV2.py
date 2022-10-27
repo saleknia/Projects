@@ -13,13 +13,13 @@ class Mobile_netV2(nn.Module):
         self.features = model.features
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=1280, out_features=512, bias=True),
             nn.ReLU(),
-            nn.Dropout(p=0.4, inplace=True),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.ReLU(),
-            nn.Dropout(p=0.4, inplace=True),
+            nn.Dropout(p=0.4),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
 
