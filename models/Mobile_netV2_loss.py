@@ -140,12 +140,12 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_e.parameters():
             param.requires_grad = False
 
-        model_g = Mobile_netV2()
-        loaded_data_g = torch.load('/content/drive/MyDrive/checkpoint_a_1/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_g = loaded_data_g['net']
-        model_g.load_state_dict(pretrained_g)
+        model_f = Mobile_netV2()
+        loaded_data_f = torch.load('/content/drive/MyDrive/checkpoint_a_1/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_f = loaded_data_f['net']
+        model_f.load_state_dict(pretrained_f)
 
-        for param in model_g.parameters():
+        for param in model_f.parameters():
             param.requires_grad = False
 
         self.model_a = model_a
@@ -153,7 +153,7 @@ class Mobile_netV2_loss(nn.Module):
         self.model_c = model_c
         self.model_d = model_d
         self.model_e = model_e
-        self.model_g = model_g
+        self.model_f = model_f
 
         # self.features_a = model_a.features
         # self.features_b = model_b.features
@@ -193,7 +193,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
-        x = (self.model_a(x) + self.model_d(x) + self.model_e(x)) / 3.0
+        x = (self.model_a(x) + self.model_b(x) + self.model_c(x) + self.model_d(x) + self.model_e(x) + self.model_f(x)) / 6.0
         return x
 
 
