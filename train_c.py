@@ -179,7 +179,7 @@ def main(args):
 
     if TEACHER is True:
         teacher_model = Mobile_netV2().to(DEVICE)
-        checkpoint_path = '/content/drive/MyDrive/checkpoint_c/Mobile_NetV2_Standford40_best.pth'
+        checkpoint_path = '/content/drive/MyDrive/checkpoint_d/Mobile_NetV2_Standford40_best.pth'
         logger.info('Loading Teacher Checkpoint...')
         if os.path.isfile(checkpoint_path):
             pretrained_model_path = checkpoint_path
