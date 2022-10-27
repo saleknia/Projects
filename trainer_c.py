@@ -79,8 +79,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_disparity_total = utils.AverageMeter()
 
     accuracy = utils.AverageMeter()
-
-    ce_loss = CrossEntropyLoss()
+    if teacher_model is not None:
+        ce_loss = CrossEntropyLoss(reduce=False)
+    else:
+        ce_loss = CrossEntropyLoss()
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -104,8 +106,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t = teacher_model(inputs)
+                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
+                weights = weights / weights.max()
 
-        loss_ce = ce_loss(outputs, targets.long())
+        if teacher_model is not None:
+            loss_ce = ce_loss(outputs, targets.long()) * weights
+        else:
+            loss_ce = ce_loss(outputs, targets.long())
+            
         loss_disparity = 0.0
         ###############################################
         loss = loss_ce
