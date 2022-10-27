@@ -159,7 +159,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
-        x = (self.model_a(x) + self.model_c(x) + self.model_e(x)) / 3.0
+        x = (self.model_a(x) + self.model_d(x) + self.model_e(x)) / 3.0
         return x
 
 
