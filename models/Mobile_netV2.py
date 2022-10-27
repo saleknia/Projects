@@ -36,9 +36,5 @@ class Mobile_netV2(nn.Module):
         x = self.layer4(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        y = x
         x = self.fc(x)
-        if self.training:
-            return x, y
-        else:
-            return x
+        return x
