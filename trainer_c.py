@@ -108,6 +108,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 outputs_t = teacher_model(inputs)
                 weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
                 weights = weights / weights.max()
+                weights = weights.detach()
 
         if teacher_model is not None:
             loss_ce = ce_loss(outputs, targets.long()) * weights
