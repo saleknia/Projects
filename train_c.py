@@ -178,33 +178,8 @@ def main(args):
         lr_scheduler =  None     
 
     if TEACHER is True:
-        teacher_model = Mobile_netV2().to(DEVICE)
-        checkpoint_path = '/content/drive/MyDrive/checkpoint_d/Mobile_NetV2_Standford40_best.pth'
         logger.info('Loading Teacher Checkpoint...')
-        if os.path.isfile(checkpoint_path):
-            pretrained_model_path = checkpoint_path
-            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-            pretrained = loaded_data['net']
-            model2_dict = teacher_model.state_dict()
-            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-            model2_dict.update(state_dict)
-            teacher_model.load_state_dict(model2_dict)
-
-            loaded_acc=loaded_data['acc']
-            initial_best_epoch=loaded_data['best_epoch']
-
-            for param in teacher_model.parameters():
-                param.requires_grad = False
-
-            table = tabulate(
-                            tabular_data=[[loaded_acc, initial_best_epoch]],
-                            headers=['Loaded Teacher Model Acc', 'Best Epoch Number'],
-                            tablefmt="fancy_grid"
-                            )
-            logger.info(table)
-        else:
-            logger.info(f'No Such file : {checkpoint_path}')
-        logger.info('\n')
+        teacher_model = Mobile_netV2_loss().to(DEVICE)
     else:
         teacher_model =  None     
 
