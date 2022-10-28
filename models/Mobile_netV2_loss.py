@@ -29,31 +29,31 @@ class enet(nn.Module):
         x = self.classifier(x)
         return x
 
-class Mobile_netV2(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2, self).__init__()
+# class Mobile_netV2(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(Mobile_netV2, self).__init__()
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+#         model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         
-        self.features = model.features
-        self.avgpool = model.avgpool
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.ReLU(),
-            nn.Dropout(p=0.4),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.ReLU(),
-            nn.Dropout(p=0.4),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
+#         self.features = model.features
+#         self.avgpool = model.avgpool
+#         self.classifier = nn.Sequential(
+#             nn.Dropout(p=0.4),
+#             nn.Linear(in_features=1280, out_features=512, bias=True),
+#             nn.ReLU(),
+#             nn.Dropout(p=0.4),
+#             nn.Linear(in_features=512, out_features=256, bias=True),
+#             nn.ReLU(),
+#             nn.Dropout(p=0.4),
+#             nn.Linear(in_features=256, out_features=40, bias=True),
+#         )
 
-    def forward(self, x):
-        x = self.features(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
+#     def forward(self, x):
+#         x = self.features(x)
+#         x = self.avgpool(x)
+#         x = x.view(x.size(0), -1)
+#         x = self.classifier(x)
+#         return x
 
 
 # class Mobile_netV2_loss(nn.Module):
@@ -116,44 +116,44 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
-        model_c = enet()
-        loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_c = loaded_data_c['net']
-        model_c.load_state_dict(pretrained_c)
+        # model_c = enet()
+        # loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_c = loaded_data_c['net']
+        # model_c.load_state_dict(pretrained_c)
 
-        for param in model_c.parameters():
-            param.requires_grad = False
+        # for param in model_c.parameters():
+        #     param.requires_grad = False
 
-        model_d = enet()
-        loaded_data_d = torch.load('/content/drive/MyDrive/checkpoint_d/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_d = loaded_data_d['net']
-        model_d.load_state_dict(pretrained_d)
+        # model_d = enet()
+        # loaded_data_d = torch.load('/content/drive/MyDrive/checkpoint_d/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_d = loaded_data_d['net']
+        # model_d.load_state_dict(pretrained_d)
 
-        for param in model_d.parameters():
-            param.requires_grad = False
+        # for param in model_d.parameters():
+        #     param.requires_grad = False
 
-        model_e = enet()
-        loaded_data_e = torch.load('/content/drive/MyDrive/checkpoint_e/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_e = loaded_data_e['net']
-        model_e.load_state_dict(pretrained_e)
+        # model_e = enet()
+        # loaded_data_e = torch.load('/content/drive/MyDrive/checkpoint_e/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_e = loaded_data_e['net']
+        # model_e.load_state_dict(pretrained_e)
 
-        for param in model_e.parameters():
-            param.requires_grad = False
+        # for param in model_e.parameters():
+        #     param.requires_grad = False
 
-        model_f = Mobile_netV2()
-        loaded_data_f = torch.load('/content/drive/MyDrive/checkpoint_a_1/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_f = loaded_data_f['net']
-        model_f.load_state_dict(pretrained_f)
+        # model_f = Mobile_netV2()
+        # loaded_data_f = torch.load('/content/drive/MyDrive/checkpoint_a_1/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_f = loaded_data_f['net']
+        # model_f.load_state_dict(pretrained_f)
 
-        for param in model_f.parameters():
-            param.requires_grad = False
+        # for param in model_f.parameters():
+        #     param.requires_grad = False
 
         self.model_a = model_a
         self.model_b = model_b
-        self.model_c = model_c
-        self.model_d = model_d
-        self.model_e = model_e
-        self.model_f = model_f
+        # self.model_c = model_c
+        # self.model_d = model_d
+        # self.model_e = model_e
+        # self.model_f = model_f
 
         # self.features_a = model_a.features
         # self.features_b = model_b.features
@@ -193,7 +193,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
-        x = (self.model_a(x) + self.model_b(x) + self.model_c(x) + self.model_d(x) + self.model_e(x) + (2.0 * self.model_f(x))) / 7.0
+        x = (self.model_a(x) + self.model_b(x)) / 2.0
         return x
 
 
