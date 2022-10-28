@@ -101,7 +101,7 @@ class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
         model_a = enet()
-        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_a/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_a = loaded_data_a['net']
         model_a.load_state_dict(pretrained_a)
 
