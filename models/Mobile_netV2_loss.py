@@ -117,7 +117,7 @@ class Mobile_netV2_loss(nn.Module):
             param.requires_grad = False
 
         model_c = enet()
-        loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_c = loaded_data_c['net']
         model_c.load_state_dict(pretrained_c)
 
