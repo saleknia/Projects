@@ -103,7 +103,7 @@ class Mobile_netV2(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        x = self.avgpool(x)
+        x = self.avgpool(feature_tf)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         return x
