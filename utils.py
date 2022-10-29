@@ -116,7 +116,7 @@ class disparity_har(nn.Module):
             mask_unique_value = mask_unique_value - 1
             unique_num = len(mask_unique_value)
 
-            prototypes = torch.zeros(size=(unique_num,C))
+            prototypes = torch.zeros(size=(unique_num,C), device='cuda')
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
