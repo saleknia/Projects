@@ -99,8 +99,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        # outputs = model(inputs)
-        outputs, x2, x3, x4 = model(inputs)
+        outputs = model(inputs)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -118,8 +117,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
             loss_ce = ce_loss(outputs, targets.long())
 
-        # loss_disparity = 0.0
-        loss_disparity = disparity_loss(labels=targets.long(), layer_2=x2, layer_3=x3, layer_4=x4)
+        loss_disparity = 0.0
+        # loss_disparity = disparity_loss(labels=targets.long(), layer_2=x2, layer_3=x3, layer_4=x4)
         ###############################################
         loss = loss_ce + loss_disparity
         ###############################################
