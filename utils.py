@@ -109,11 +109,10 @@ class disparity_har(nn.Module):
         layer_4 = torch.nn.functional.adaptive_avg_pool2d(layer_4, output_size=1)[:, :, 0, 0]
 
         layers = [layer_2, layer_3, layer_4]
-
+        labels = labels - 1
         for k in range(3):
             B,C = layers[k].shape
             mask_unique_value = torch.unique(labels)
-            mask_unique_value = mask_unique_value - 1
             unique_num = len(mask_unique_value)
 
             prototypes = torch.zeros(size=(unique_num,C), device='cuda')
