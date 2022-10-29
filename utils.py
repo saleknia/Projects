@@ -134,7 +134,7 @@ class disparity_har(nn.Module):
             x = torch.eye(distances_c[0].shape[0],distances_c[0].shape[1], device='cuda')
             diagonal = distances_c[0] * x
 
-            l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
+            # l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
             l = l + (1.0 * torch.mean(diagonal))
             loss = loss + l
 
