@@ -113,7 +113,10 @@ class Mobile_netV2(nn.Module):
         x = self.avgpool(features_b)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-        return x, features_a, features_b
+        if self.training:
+            return x, features_a, features_b
+        else:
+            return x
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
