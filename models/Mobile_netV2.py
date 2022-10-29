@@ -70,8 +70,6 @@ class Mobile_netV2(nn.Module):
 
         model = resnet50(pretrained)
         # model = resnet18(pretrained)
-        for param in model.parameters():
-            param.requires_grad = False
 
         # take pretrained resnet, except AvgPool and FC
         self.conv1 = model.conv1
@@ -82,9 +80,6 @@ class Mobile_netV2(nn.Module):
         self.layer2 = model.layer2
         self.layer3 = model.layer3
         self.layer4 = model.layer4
-
-        for param in self.layer4.parameters():
-            param.requires_grad = True
 
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
