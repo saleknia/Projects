@@ -4,6 +4,26 @@ import torch.nn.functional as F
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights
 import torchvision
 
+class SEBlock(nn.Module):
+    def __init__(self, channel, r=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        # Squeeze
+        y = self.avg_pool(x).view(b, c)
+        # Excitation
+        y = self.fc(y).view(b, c, 1, 1)
+        # Fusion
+        y = torch.mul(x, y)
+        return y
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -14,6 +34,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = False
 
         self.features = model.features
+        self.SE = SEBlock(channel=1280)
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -53,6 +74,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.fc(x)
         x = self.features(x)
+        x = self.SE(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
