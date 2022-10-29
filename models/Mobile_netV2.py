@@ -90,11 +90,6 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
-
-        self.SP_1 = ConvBatchNorm(in_channels=256 , out_channels=256 )
-        self.SP_2 = ConvBatchNorm(in_channels=512 , out_channels=512 )
-        self.SP_3 = ConvBatchNorm(in_channels=1024, out_channels=1024)
-
         # self.SE_2 = SEBlock(channel=512 )
         # self.SE_3 = SEBlock(channel=1024)
         self.SE_4 = SEBlock(channel=2048)
@@ -105,11 +100,8 @@ class Mobile_netV2(nn.Module):
         x = self.maxpool(x)
 
         x = self.layer1(x)
-        x = self.SP_1(x)
         x = self.layer2(x)
-        x = self.SP_2(x)
         x = self.layer3(x)
-        x = self.SP_3(x)
         x = self.layer4(x)
         x = self.SE_4(x)
         x = self.avgpool(x)
