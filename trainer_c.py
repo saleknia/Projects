@@ -41,6 +41,28 @@ class FSP(nn.Module):
 
 		return fsp
 
+def at(x, exp):
+    """
+    attention value of a feature map
+    :param x: feature
+    :return: attention value
+    """
+    return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
+
+
+def importance_maps_distillation(s, t, exp=4):
+    """
+    importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
+    Improving the Performance of Convolutional Neural Networks via Attention Transfer"
+    https://arxiv.org/abs/1612.03928
+    :param exp: exponent
+    :param s: student feature maps
+    :param t: teacher feature maps
+    :return: imd loss value
+    """
+    if s.shape[2] != t.shape[2]:
+        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
@@ -79,8 +101,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        outputs = model(inputs)
-        # outputs, features_a, features_b = model(inputs)
+        # outputs = model(inputs)
+        outputs, layer1, layer2, layer3, layer4 = model(inputs)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -98,7 +120,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
             loss_ce = ce_loss(outputs, targets.long())
 
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
+        loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
