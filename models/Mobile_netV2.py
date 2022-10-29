@@ -46,7 +46,6 @@ class Mobile_netV2(nn.Module):
         # )
 
         model = resnet50(pretrained)
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         for param in model.parameters():
             param.requires_grad = False
 
