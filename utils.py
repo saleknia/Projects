@@ -85,9 +85,9 @@ def cosine_scheduler(base_value, final_value, epochs, niter_per_ep, warmup_epoch
     assert len(schedule) == epochs * niter_per_ep
     return schedule
 
-class disparity(nn.Module):
+class disparity_har(nn.Module):
     def __init__(self):
-        super(disparity, self).__init__()
+        super(disparity_har, self).__init__()
         self.epsilon = 1e-6
         num_class = 40
         self.num_class = num_class
@@ -113,6 +113,7 @@ class disparity(nn.Module):
         for k in range(3):
             B,C = layers[k].shape
             mask_unique_value = torch.unique(labels)
+            mask_unique_value = mask_unique_value - 1
             unique_num = len(mask_unique_value)
 
             prototypes = torch.zeros(size=(unique_num,C))
@@ -122,7 +123,7 @@ class disparity(nn.Module):
                 temp = torch.mean(layers[k][labels==p], dim=0)
                 prototypes[count] = temp
 
-            indexs = [x.item()-1 for x in mask_unique_value]
+            indexs = [x.item() for x in mask_unique_value]
             indexs.sort()
 
             l = 0.0
