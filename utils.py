@@ -92,6 +92,10 @@ class disparity(nn.Module):
         num_class = 40
         self.num_class = num_class
 
+        self.proto_2 = torch.zeros(num_class,512 ,device='cuda',requires_grad=False)
+        self.proto_3 = torch.zeros(num_class,1024,device='cuda',requires_grad=False)
+        self.proto_4 = torch.zeros(num_class,2048,device='cuda',requires_grad=False)
+        
         self.protos = [self.proto_2, self.proto_3, self.proto_4]
         self.momentum = torch.tensor(0.0)
         self.iteration = 0
@@ -99,11 +103,14 @@ class disparity(nn.Module):
 
     def forward(self, labels, layer_2, layer_3, layer_4):
         loss = 0.0
+
+        layer_2 = torch.nn.functional.adaptive_avg_pool2d(layer_2, output_size=1)[:, :, 0, 0]
+        layer_3 = torch.nn.functional.adaptive_avg_pool2d(layer_3, output_size=1)[:, :, 0, 0]
+        layer_4 = torch.nn.functional.adaptive_avg_pool2d(layer_4, output_size=1)[:, :, 0, 0]
+
         layers = [layer_2, layer_3, layer_4]
 
         for k in range(3):
-            indexs = []
-            WP = []
             B,C = layers[k].shape
             mask_unique_value = torch.unique(labels)
             unique_num = len(mask_unique_value)
@@ -112,15 +119,8 @@ class disparity(nn.Module):
 
             for count,p in enumerate(mask_unique_value):
                 p = p.long()
-                temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                        batch_counter = batch_counter + 1
-                temp = temp / batch_counter
+                temp = torch.mean(layers[k][labels==p], dim=0)
                 prototypes[count] = temp
-                # WP.append(torch.sum(bin_mask_t)/torch.sum(bin_mask))
-
-            # WP = torch.tensor(WP)
-            # WP = torch.diag(WP)
-            # WP = WP.detach()
 
             indexs = [x.item()-1 for x in mask_unique_value]
             indexs.sort()
@@ -134,21 +134,8 @@ class disparity(nn.Module):
             x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
             diagonal = distances_c[0] * x
 
-            # weights = 1.0 / distances_c.clamp(min=self.epsilon)
-            # weights = weights / weights.max()
-            # weights = weights.detach()
-
-
-            proto = prototypes.unsqueeze(dim=0)
-            distances = torch.cdist(proto.clone().detach(), proto, p=2.0)
-            l = l + (1.0 / torch.mean(distances))
-
             l = l + (1.0 / torch.mean((distances_c[0]-diagonal)))
             l = l + (1.0 * torch.mean(diagonal))
-
-            # l = l + 0.5 * cosine_loss
-
-
             loss = loss + l
 
             self.update(prototypes, mask_unique_value, k)
