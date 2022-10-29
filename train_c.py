@@ -51,7 +51,7 @@ from utils import Save_Checkpoint
 from trainer_c import trainer
 from tester_c import tester
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
-from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
+from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto,disparity_har
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
@@ -368,7 +368,7 @@ def main(args):
         logger.info(50*'*')
         logger.info('Training Phase')
         logger.info(50*'*')
-        loss_function = proto()
+        loss_function = disparity_har()
         for epoch in range(start_epoch,end_epoch+1):
             trainer(
                 end_epoch=end_epoch,

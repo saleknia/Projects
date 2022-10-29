@@ -90,8 +90,8 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
-        # self.SE_2 = SEBlock(channel=512 )
-        # self.SE_3 = SEBlock(channel=1024)
+        self.SE_2 = SEBlock(channel=512 )
+        self.SE_3 = SEBlock(channel=1024)
         self.SE_4 = SEBlock(channel=2048)
     def forward(self, x):
         x = self.conv1(x)
@@ -101,9 +101,11 @@ class Mobile_netV2(nn.Module):
 
         x = self.layer1(x)
         x = self.layer2(x)
+        x2 = self.SE_2(x)
         x = self.layer3(x)
+        x3 = self.SE_3(x)
         x = self.layer4(x)
-        x = self.SE_4(x)
+        x4 = self.SE_4(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
@@ -112,7 +114,7 @@ class Mobile_netV2(nn.Module):
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
-        return x
+        return x, x2, x3, x4
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
