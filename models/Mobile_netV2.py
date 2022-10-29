@@ -87,12 +87,7 @@ class Mobile_netV2(nn.Module):
 
         self.avgpool = nn.AdaptiveAvgPool2d(output_size=1)
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=192, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
+            nn.Linear(in_features=192, out_features=40, bias=True),
         )
 
 
