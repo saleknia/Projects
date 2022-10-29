@@ -17,51 +17,31 @@ from utils import importance_maps_distillation as imd
 import os
 warnings.filterwarnings("ignore")
 
-def loss_label_smoothing(outputs, labels):
-    """
-    loss function for label smoothing regularization
-    """
-    alpha = 0.05
-    N = outputs.size(0)  # batch_size
-    C = outputs.size(1)  # number of classes
-    smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
-    smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+class FSP(nn.Module):
+	'''
+	A Gift from Knowledge Distillation: Fast Optimization, Network Minimization and Transfer Learning
+	http://openaccess.thecvf.com/content_cvpr_2017/papers/Yim_A_Gift_From_CVPR_2017_paper.pdf
+	'''
+	def __init__(self):
+		super(FSP, self).__init__()
 
-    log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
-    loss = -torch.sum(log_prob * smoothed_labels) / N
+	def forward(self, fm_s, fm_t):
+		loss = F.mse_loss(self.fsp_matrix(fm_s,fm_s), self.fsp_matrix(fm_t,fm_t))
 
-    return loss
+		return loss
 
-def loss_kd_regularization(outputs, labels):
-    """
-    loss function for mannually-designed regularization: Tf-KD_{reg}
-    """
-    alpha = params.reg_alpha
-    T = params.reg_temperature
-    correct_prob = 0.99    # the probability for correct class in u(k)
-    loss_CE = F.cross_entropy(outputs, labels)
-    K = outputs.size(1)
+	def fsp_matrix(self, fm1, fm2):
+		if fm1.size(2) > fm2.size(2):
+			fm1 = F.adaptive_avg_pool2d(fm1, (fm2.size(2), fm2.size(3)))
 
-    teacher_soft = torch.ones_like(outputs).cuda()
-    teacher_soft = teacher_soft*(1-correct_prob)/(K-1)  # p^d(k)
-    for i in range(outputs.shape[0]):
-        teacher_soft[i ,labels[i]] = correct_prob
-    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))*params.multiplier
+		fm1 = fm1.view(fm1.size(0), fm1.size(1), -1)
+		fm2 = fm2.view(fm2.size(0), fm2.size(1), -1).transpose(1,2)
 
-    KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
+		fsp = torch.bmm(fm1, fm2) / fm1.size(2)
 
-    return KD_loss
+		return fsp
 
-def disparity(labels, outputs):
-    B, N = outputs.shape
-    unique = torch.unique(labels)
-    prototypes = torch.zeros(len(unique), N, device='cuda')
-    for i,p in enumerate(unique):
-        prototypes[i] = torch.mean(outputs[labels==p],dim=0)
-    prototypes = torch.unsqueeze(prototypes, dim=0)
-    distances = torch.cdist(prototypes, prototypes, p=2.0)
-    loss = 1.0 / torch.mean(distances)
-    return loss
+
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -83,7 +63,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ce_loss = CrossEntropyLoss(reduce=False)
     else:
         ce_loss = CrossEntropyLoss()
-    disparity_loss = loss_function
+    disparity_loss = FSP()
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -99,7 +79,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        outputs = model(inputs)
+        # outputs = model(inputs)
+        outputs, features_a, features_b = model(inputs)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -117,13 +98,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
             loss_ce = ce_loss(outputs, targets.long())
 
-        loss_disparity = 0.0
-        # loss_disparity = disparity_loss(labels=targets.long(), layer_2=x2, layer_3=x3, layer_4=x4)
+        # loss_disparity = 0.0
+        loss_disparity = disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
