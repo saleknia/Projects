@@ -99,7 +99,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets.long())
 
         # loss_disparity = 0.0
-        loss_disparity = disparity_loss(fm_s=features_b, fm_t=features_a)
+        loss_disparity = 10 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
         ###############################################
