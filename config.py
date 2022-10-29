@@ -20,7 +20,7 @@ def logger_config(log_path):
 
 # get_CTranS_config
 
-SEED = 666
+SEED = 42
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 os.environ['PYTHONHASHSEED'] = str(SEED)
