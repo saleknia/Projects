@@ -129,7 +129,7 @@ class disparity_har(nn.Module):
             l = 0.0
             proto = self.protos[k][indexs].unsqueeze(dim=0)
             prototypes = prototypes.unsqueeze(dim=0)
-            distances_c = torch.cdist(proto.clone().detach(), prototypes, p=2.0)
+            distances_c = torch.cdist(proto, prototypes, p=2.0)
             proto = self.protos[k][indexs].squeeze(dim=0)
             prototypes = prototypes.squeeze(dim=0)
             x = (torch.eye(distances_c[0].shape[0],distances_c[0].shape[1]))
