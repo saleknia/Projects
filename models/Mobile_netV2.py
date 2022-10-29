@@ -10,7 +10,9 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        
+        for param in model.parameters():
+            param.requires_grad = False
+
         self.features = model.features
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
