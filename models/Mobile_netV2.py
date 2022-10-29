@@ -82,6 +82,10 @@ class Mobile_netV2(nn.Module):
         self.layer2 = model.layer2
         self.layer3 = model.layer3
         self.layer4 = model.layer4
+
+        for param in self.layer4.parameters():
+            param.requires_grad = True
+
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
