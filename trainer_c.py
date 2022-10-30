@@ -101,8 +101,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        # outputs = model(inputs)
-        outputs, layer1, layer2, layer3, layer4 = model(inputs)
+        outputs = model(inputs)
+        # outputs, layer1, layer2, layer3, layer4 = model(inputs)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
