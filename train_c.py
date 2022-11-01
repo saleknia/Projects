@@ -331,7 +331,7 @@ def main(args):
     elif TASK_NAME=='Standford40':
 
         transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(224),
+            transforms.RandomCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply(
             [
