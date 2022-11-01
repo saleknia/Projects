@@ -345,7 +345,7 @@ def main(args):
             transforms.Resize((224, 224)),
             transforms.RandomRotation((-23,23)),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomAffine(translate=0.2)
+            transforms.RandomAffine(translate=0.2),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
