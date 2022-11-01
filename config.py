@@ -41,7 +41,6 @@ if log:
     logger.info(f'Logging Directory: {logging_log}')   
 ##########################################################################
 
-
 # Hyperparameters etc.
 LEARNING_RATE = 0.0001
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
