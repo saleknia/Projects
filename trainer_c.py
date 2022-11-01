@@ -84,7 +84,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     disparity_loss = FSP()
     ##################################################################
 
@@ -132,10 +132,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # for param_group in optimizer.param_groups:
         #     param_group['lr'] = lr_
 
-        iter_num = iter_num + 1 
-        if iter_num % (total_batchs*10)==0:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.1
+        # iter_num = iter_num + 1 
+        # if iter_num % (total_batchs*10)==0:
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = param_group['lr'] * 0.1
 
 
         optimizer.zero_grad()
