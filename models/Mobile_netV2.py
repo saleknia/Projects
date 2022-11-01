@@ -9,9 +9,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model_a = efficientnet_b0()
-
-        # model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.features_a = model_a.features
         self.avgpool = model_a.avgpool
