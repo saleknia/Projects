@@ -329,14 +329,23 @@ def main(args):
 
     elif TASK_NAME=='Standford40':
 
+        # transform_train = transforms.Compose([
+        #     transforms.RandomResizedCrop(size=224),
+        #     transforms.RandomHorizontalFlip(),
+        #     transforms.RandomApply(
+        #     [
+        #         transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
+        #     ], p=0.8),
+        #     transforms.RandomGrayscale(p=0.2),
+        #     transforms.ToTensor(),
+        #     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        # ])
+
         transform_train = transforms.Compose([
-            # transforms.RandomResizedCrop(size=224, scale=(0.25, 1.0)),
             transforms.Resize((224, 224)),
-            transforms.RandomRotation((-20,20)),
+            transforms.RandomRotation((-23,23)),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([
-            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
+            transforms.RandomAffine(translate=0.2)
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
