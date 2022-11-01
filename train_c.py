@@ -330,12 +330,12 @@ def main(args):
     elif TASK_NAME=='Standford40':
 
         transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(size=224, scale=(0.25, 1.0)),
+            transforms.RandomResizedCrop(size=224),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([
-            transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8
-            ),
-            transforms.RandomGrayscale(0.2),
+            # transforms.RandomApply([
+            # transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8
+            # ),
+            # transforms.RandomGrayscale(0.2),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
