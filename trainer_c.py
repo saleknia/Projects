@@ -72,7 +72,7 @@ def distillation(outputs, labels):
         p = p.long()
         prototypes[count] = torch.mean(outputs[labels==p], dim=0)
     distances = torch.cdist(prototypes, prototypes, p=2.0)
-    return torch.mean(distances) * 0.1
+    return (1.0/torch.mean(distances)) * 0.1
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
