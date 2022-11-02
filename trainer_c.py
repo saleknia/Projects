@@ -68,11 +68,11 @@ def distillation(outputs, labels):
     unique = torch.unique(labels)
     unique_num = len(unique)
     prototypes = torch.zeros(unique_num, 40)
-    for count, p in enumerate(unique_num):
+    for count, p in enumerate(unique):
         p = p.long()
         prototypes[count] = torch.mean(outputs[labels==p], dim=0)
     distances = torch.cdist(prototypes, prototypes, p=2.0)
-    return torch.sum(distances)
+    return torch.mean(distances) * 0.1
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -129,7 +129,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
             loss_ce = ce_loss(outputs, targets.long())
 
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
+        loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
