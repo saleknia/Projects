@@ -64,6 +64,15 @@ def importance_maps_distillation(s, t, exp=4):
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
+def distillation(outputs, labels):
+    unique = torch.unique(labels)
+    unique_num = len(unique)
+    prototypes = torch.zeros(unique_num, 40)
+    for count, p in enumerate(unique_num):
+        p = p.long()
+        prototypes[count] = torch.mean(outputs[labels==p], dim=0)
+    distances = torch.cdist(prototypes, prototypes, p=2.0)
+    return torch.sum(distances)
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -84,7 +93,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.4)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     disparity_loss = FSP()
     ##################################################################
 
