@@ -8,10 +8,10 @@ class enet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(enet, self).__init__()
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.features = model.features
-        self.avgpool = model.avgpool
+        self.features_a = model_a.features
+        self.avgpool = model_a.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=512, bias=True),
@@ -102,35 +102,22 @@ class enet(nn.Module):
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
-        model_a = enet()
-        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_a/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_a = loaded_data_a['net']
-        model_a.load_state_dict(pretrained_a)
+        # model_a = enet()
+        # loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_a/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_a = loaded_data_a['net']
+        # model_a.load_state_dict(pretrained_a)
 
-        for param in model_a.parameters():
-            param.requires_grad = False
+        # for param in model_a.parameters():
+        #     param.requires_grad = False
 
         model_b = enet()
-        loaded_data_b = torch.load('/content/drive/MyDrive/checkpoint_b/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b = torch.load('/content/drive/MyDrive/checkpoint_S04/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b = loaded_data_b['net']
         model_b.load_state_dict(pretrained_b)
 
         for param in model_b.parameters():
             param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
-        self.features = model.features
-        self.avgpool = model.avgpool
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=2, bias=True),
-            nn.Softmax(dim=1),
-        )
 
         # model_c = enet()
         # loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -164,7 +151,7 @@ class Mobile_netV2_loss(nn.Module):
         # for param in model_f.parameters():
         #     param.requires_grad = False
 
-        self.model_a = model_a
+        # self.model_a = model_a
         self.model_b = model_b
         # self.model_c = model_c
         # self.model_d = model_d
@@ -211,12 +198,8 @@ class Mobile_netV2_loss(nn.Module):
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
 
-        y = self.features(x)
-        y = self.avgpool(y)
-        y = y.view(y.size(0), -1)
-        weights = self.classifier(y)
 
-        x = ((weights[:,0].unsqueeze(dim=1).expand(b,40) * self.model_a(x)) + (weights[:,1].unsqueeze(dim=1).expand(b,40) * self.model_b(x)))
+        x = self.model_b(x)
         return x
 
 

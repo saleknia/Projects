@@ -136,7 +136,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9     
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
