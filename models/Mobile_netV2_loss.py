@@ -13,6 +13,11 @@ class Mobile_netV2_loss(nn.Module):
 
         model_a = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
+        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_B1_81_71/Mobile_NetV2_loss_Standford40_best.pth', map_location='cuda')
+        pretrained_a = loaded_data_a['net']
+        model_a.load_state_dict(pretrained_a)
+
+
         self.features_a = model_a.features
         self.avgpool = model_a.avgpool
         self.classifier = nn.Sequential(

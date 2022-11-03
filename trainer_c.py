@@ -64,15 +64,11 @@ def importance_maps_distillation(s, t, exp=4):
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def distillation(outputs, labels):
-    unique = torch.unique(labels)
-    unique_num = len(unique)
-    prototypes = torch.zeros(unique_num, 40)
-    for count, p in enumerate(unique):
-        p = p.long()
-        prototypes[count] = torch.mean(outputs[labels==p], dim=0)
-    distances = torch.cdist(prototypes, prototypes, p=2.0)
-    return (1.0/torch.mean(distances)) 
+def distillation(outputs_s, outputs_t):
+    distances_s = torch.cdist(outputs_s, outputs_s, p=2.0)
+    distances_t = torch.cdist(outputs_t, outputs_t, p=2.0)
+    loss = nn.functional.mse_loss(input=distances_s, target=distances_t)
+    return loss
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -90,11 +86,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_disparity_total = utils.AverageMeter()
 
     accuracy = utils.AverageMeter()
-    if teacher_model is not None:
-        ce_loss = CrossEntropyLoss(reduce=False)
-    else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
-    disparity_loss = FSP()
+    # if teacher_model is not None:
+    #     ce_loss = CrossEntropyLoss(reduce=False)
+    # else:
+    #     ce_loss = CrossEntropyLoss(label_smoothing=0.0)
+    ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -119,18 +115,20 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t = teacher_model(inputs)
-                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
-                weights = 1.0 + (weights / weights.max())
-                weights = weights.detach()
+                # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
+                # weights = 1.0 + (weights / weights.max())
+                # weights = weights.detach()
 
-        if teacher_model is not None:
-            loss_ce = ce_loss(outputs, targets.long()) * weights
-            loss_ce = torch.mean(loss_ce)
-        else:
-            loss_ce = ce_loss(outputs, targets.long())
+        # if teacher_model is not None:
+        #     loss_ce = ce_loss(outputs, targets.long()) * weights
+        #     loss_ce = torch.mean(loss_ce)
+        # else:
+        #     loss_ce = ce_loss(outputs, targets.long())
 
-        loss_disparity = 0.0
-        # loss_disparity = distillation(outputs, targets.long())
+        loss_ce = ce_loss(outputs, targets.long())
+
+        # loss_disparity = 0.0
+        loss_disparity = distillation(outputs, outputs_t)
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
