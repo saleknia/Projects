@@ -118,25 +118,27 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
-        # model_b = enet()
-        # loaded_data_b = torch.load('/content/drive/MyDrive/checkpoint_sm04/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b = loaded_data_b['net']
-        # model_b.load_state_dict(pretrained_b)
 
-        # for param in model_b.parameters():
-        #     param.requires_grad = False
+        model_c = enet()
+        loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_sm04/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_c = loaded_data_c['net']
+        model_c.load_state_dict(pretrained_c)
 
-        # model_c = enet()
-        # loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_sm03/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_c = loaded_data_c['net']
-        # model_c.load_state_dict(pretrained_c)
+        for param in model_c.parameters():
+            param.requires_grad = False
 
-        # for param in model_c.parameters():
-        #     param.requires_grad = False
+        model_d = enet()
+        loaded_data_d = torch.load('/content/drive/MyDrive/checkpoint_sm03/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_d = loaded_data_d['net']
+        model_d.load_state_dict(pretrained_d)
+
+        for param in model_d.parameters():
+            param.requires_grad = False
 
         self.model_a = model_a
         self.model_b = model_b
-        # self.model_c = model_c
+        self.model_c = model_c
+        self.model_d = model_d
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -153,7 +155,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
 
-        x = (self.model_a(x) + self.model_b(x)) / 2.0
+        x = (self.model_a(x) + self.model_b(x) + self.model_c(x) + self.model_d(x)) / 4.0
         # x = self.model_a(x)
 
         return x
