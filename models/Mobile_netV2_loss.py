@@ -197,6 +197,7 @@ class Mobile_netV2_loss(nn.Module):
         # )
 
     def forward(self, x):
+        b, c, h, w = x.shape
         # x_a = self.features_a(x)
         # x_a = self.avgpool_a(x_a)
         # x_a = x_a.view(x_a.size(0), -1)
@@ -215,7 +216,7 @@ class Mobile_netV2_loss(nn.Module):
         y = y.view(y.size(0), -1)
         weights = self.classifier(y)
 
-        x = ((weights[:,0].unsqueeze(dim=1).expand(32,40) * self.model_a(x)) + (weights[:,1].unsqueeze(dim=1).expand(32,40) * self.model_b(x)))
+        x = ((weights[:,0].unsqueeze(dim=1).expand(b,40) * self.model_a(x)) + (weights[:,1].unsqueeze(dim=1).expand(b,40) * self.model_b(x)))
         return x
 
 
