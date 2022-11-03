@@ -11,7 +11,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model_a = efficientnet_b4(weights=EfficientNet_B4_Weights)
+        model_a = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
         self.features_a = model_a.features
         self.avgpool = model_a.avgpool
