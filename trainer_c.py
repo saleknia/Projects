@@ -65,6 +65,8 @@ def importance_maps_distillation(s, t, exp=4):
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 def distillation(outputs_s, outputs_t):
+    outputs_s = torch.nn.functional.s
+    outputs_t = 
     distances_s = torch.cdist(outputs_s, outputs_s, p=2.0)
     distances_t = torch.cdist(outputs_t, outputs_t, p=2.0)
     return 0.01 * nn.functional.mse_loss(input=distances_s, target=distances_t)
