@@ -87,11 +87,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_disparity_total = utils.AverageMeter()
 
     accuracy = utils.AverageMeter()
-    # if teacher_model is not None:
-    #     ce_loss = CrossEntropyLoss(reduce=False)
-    # else:
-    #     ce_loss = CrossEntropyLoss(label_smoothing=0.0)
-    ce_loss = CrossEntropyLoss(label_smoothing=0.3)
+    if teacher_model is not None:
+        ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.5)
+    else:
+        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -120,13 +119,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 weights = 1.0 + (weights / weights.max())
                 weights = weights.detach()
 
-        # if teacher_model is not None:
-        #     loss_ce = ce_loss(outputs, targets.long()) * weights
-        #     loss_ce = torch.mean(loss_ce)
-        # else:
-        #     loss_ce = ce_loss(outputs, targets.long())
+        if teacher_model is not None:
+            loss_ce = ce_loss(outputs, targets.long()) * weights
+            loss_ce = torch.mean(loss_ce)
+        else:
+            loss_ce = ce_loss(outputs, targets.long())
 
-        loss_ce = ce_loss(outputs, targets.long())
+        # loss_ce = ce_loss(outputs, targets.long())
 
         loss_disparity = 0.0
         # loss_disparity = distillation(outputs, outputs_t)
