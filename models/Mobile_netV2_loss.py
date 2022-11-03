@@ -4,19 +4,11 @@ import torch.nn.functional as F
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights
 import torchvision
 
-
-class Mobile_netV2_loss(nn.Module):
+class enet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2_loss, self).__init__()
-
-        # model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        super(enet, self).__init__()
 
         model_a = efficientnet_b1(weights=EfficientNet_B1_Weights)
-
-        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_B1_81_71/Mobile_NetV2_loss_Standford40_best.pth', map_location='cuda')
-        pretrained_a = loaded_data_a['net']
-        model_a.load_state_dict(pretrained_a)
-
 
         self.features_a = model_a.features
         self.avgpool = model_a.avgpool
@@ -28,6 +20,35 @@ class Mobile_netV2_loss(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
+
+    def forward(self, x):
+        x = self.features_a(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+class Mobile_netV2_loss(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2_loss, self).__init__()
+        model_a = enet()
+        # model_a = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        loaded_data_a = torch.load('/content/drive/MyDrive/checkpoint_B1_81_71/Mobile_NetV2_loss_Standford40_best.pth', map_location='cuda')
+        pretrained_a = loaded_data_a['net']
+        model_a.load_state_dict(pretrained_a)
+        self.model_a = model_a
+
+
+        # self.features_a = model_a.features
+        # self.avgpool = model_a.avgpool
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=40, bias=True),
+        # )
 
         # model = resnet50(pretrained)
         # # # model = resnet18(pretrained)
@@ -65,10 +86,11 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.avgpool(layer4)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
-        x = self.features_a(x)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.features_a(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
+        x = self.model_a(x)
         return x
 
 
