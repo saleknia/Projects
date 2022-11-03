@@ -5,9 +5,9 @@ from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet
 import torchvision
 
 
-class Mobile_netV2(nn.Module):
+class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2, self).__init__()
+        super(Mobile_netV2_loss, self).__init__()
 
         # model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
