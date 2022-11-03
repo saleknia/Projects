@@ -8,10 +8,10 @@ class enet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(enet, self).__init__()
 
-        model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.features_a = model_a.features
-        self.avgpool = model_a.avgpool
+        self.features = model.features
+        self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=512, bias=True),
@@ -22,7 +22,7 @@ class enet(nn.Module):
         )
 
     def forward(self, x):
-        x = self.features_a(x)
+        x = self.features(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
@@ -118,19 +118,19 @@ class Mobile_netV2_loss(nn.Module):
         for param in model_b.parameters():
             param.requires_grad = False
 
-        # model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # self.features_a = model_a.features
-        # self.avgpool = model_a.avgpool
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=512, out_features=256, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=256, out_features=2, bias=True),
-        #     nn.Softmax(dim=1),
-        # )
+        self.features = model.features
+        self.avgpool = model.avgpool
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=256, out_features=2, bias=True),
+            nn.Softmax(dim=1),
+        )
 
         # model_c = enet()
         # loaded_data_c = torch.load('/content/drive/MyDrive/checkpoint_c_c/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -209,7 +209,13 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = torch.cat([x_a, x_b], dim=1)
         # x = self.classifier(x)
-        x = (self.model_a(x) + self.model_b(x)) / 2.0
+
+        y = self.features(x)
+        y = self.avgpool(y)
+        y = y.view(y.size(0), -1)
+        weights = self.classifier(y)
+
+        x = ((weights[:,0] * self.model_a(x)) + (weights[:,1] * self.model_b(x)))
         return x
 
 
