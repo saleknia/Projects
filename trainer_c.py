@@ -91,7 +91,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     #     ce_loss = CrossEntropyLoss(reduce=False)
     # else:
     #     ce_loss = CrossEntropyLoss(label_smoothing=0.0)
-    ce_loss = CrossEntropyLoss(label_smoothing=0.0)
+    ce_loss = CrossEntropyLoss(label_smoothing=0.5)
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -116,9 +116,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t = teacher_model(inputs)
-                # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
-                # weights = 1.0 + (weights / weights.max())
-                # weights = weights.detach()
+                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False)
+                weights = 1.0 + (weights / weights.max())
+                weights = weights.detach()
 
         # if teacher_model is not None:
         #     loss_ce = ce_loss(outputs, targets.long()) * weights
