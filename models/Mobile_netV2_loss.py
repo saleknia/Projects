@@ -8,10 +8,10 @@ class enet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(enet, self).__init__()
 
-        model_a = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.features_a = model_a.features
-        self.avgpool = model_a.avgpool
+        self.features = model.features
+        self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=512, bias=True),
