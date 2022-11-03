@@ -93,7 +93,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     disparity_loss = FSP()
     ##################################################################
 
