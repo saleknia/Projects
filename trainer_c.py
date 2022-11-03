@@ -91,7 +91,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     #     ce_loss = CrossEntropyLoss(reduce=False)
     # else:
     #     ce_loss = CrossEntropyLoss(label_smoothing=0.0)
-    ce_loss = CrossEntropyLoss(label_smoothing=0.4)
+    ce_loss = CrossEntropyLoss(label_smoothing=0.3)
     ##################################################################
 
     total_batchs = len(dataloader)
