@@ -24,20 +24,16 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', esp=True):
+    def __init__(self, in_channels, out_channels, activation='ReLU'):
         super(ConvBatchNorm, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
-        self.esp = esp
-        # self.esp_block = DilatedParllelResidualBlockB(nIn=out_channels, nOut=out_channels)
 
     def forward(self, x):
         out = self.conv(x)
         out = self.norm(out)
         out = self.activation(out)
-        # if self.esp:
-        #     out = self.esp_block(out)
         return out
 
 class DownBlock(nn.Module):
@@ -81,7 +77,7 @@ class UNet(nn.Module):
 
         # Question here
         in_channels = 64
-        self.inc = ConvBatchNorm(n_channels, in_channels, esp=False)
+        self.inc = ConvBatchNorm(n_channels, in_channels)
         nb_Conv = 2
         self.down1 = DownBlock(in_channels*1, in_channels*2, nb_Conv=nb_Conv)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=nb_Conv)
