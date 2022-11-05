@@ -360,15 +360,15 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut / 5)  # K=5,
-        n1 = nOut - 4 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
+        n = int(nOut / 4)  # K=5,
+        n1 = nOut - 3 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
         self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
+        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
         self.bn = BR(nOut)
         self.add = add
 
