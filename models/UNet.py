@@ -107,7 +107,7 @@ class UNet(nn.Module):
         self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, up=True)
         self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
         self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=False)
-
+        self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
         if n_classes == 1:
@@ -132,6 +132,7 @@ class UNet(nn.Module):
         x = self.up3(x, x3)
         x = self.up2(x, x2)
         x = self.up1(x, x1)
+        x = self.up(x)
 
 
         if self.last_activation is not None:
