@@ -111,6 +111,10 @@ class UNet(nn.Module):
         self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
+        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
         else:
@@ -130,8 +134,11 @@ class UNet(nn.Module):
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
         x = self.up4(x5, x4)
+        x = self.esp4(x)
         x = self.up3(x, x3)
+        x = self.esp3(x)
         x = self.up2(x, x2)
+        x = self.esp2(x)
         x = self.up1(x, x1)
         x = self.up(x)
 
