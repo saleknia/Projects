@@ -161,7 +161,7 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
 
         for i in range(1):
-            x5 = self.FAM3[i](x5)       
+            x5 = self.FAM4[i](x5)       
         for i in range(2):
             x4 = self.FAM3[i](x4)
         for i in range(4):
