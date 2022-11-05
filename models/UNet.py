@@ -87,7 +87,6 @@ class UNet(nn.Module):
         # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
         resnet = resnet_model.resnet34(pretrained=True)
-        resnet.conv1.stride=1
 
         self.inc = nn.Sequential(
             resnet.conv1,
@@ -115,11 +114,11 @@ class UNet(nn.Module):
     def forward(self, x):
         # Question here
         x = x.float()
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
+        x1 = self.inc(x) # 112
+        x2 = self.down1(x1) # 56
+        x3 = self.down2(x2) # 28
+        x4 = self.down3(x3) # 14
+        x5 = self.down4(x4) # 7
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
         x = self.up2(x, x2)
