@@ -78,7 +78,7 @@ class U(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         self.bilinear = bilinear
-        in_channels = 16
+        in_channels = 64
         self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels  , in_channels*2)
         self.down2 = Down(in_channels*2, in_channels*4)

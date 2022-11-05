@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from torchvision import models as resnet_model
 
 def get_activation(activation_type):
     activation_type = activation_type.lower()
@@ -69,18 +70,42 @@ class UNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
+
         # Question here
+
         in_channels = 64
-        self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
-        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
-        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
-        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+
+        # self.inc = ConvBatchNorm(n_channels, in_channels)
+        # self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
+        # self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2)
+        # self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
+        # self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
+        # self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2)
+        # self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2)
+        # self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2)
+        # self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2)
+        # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.inc = nn.Sequential(
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu,
+        )
+
+        self.down1 = resnet.layer1 # 64
+        self.down2 = resnet.layer2 # 128
+        self.down3 = resnet.layer3 # 256
+        self.down4 = resnet.layer4 # 512
+
+        self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2)
+        self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2)
+        self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2)
+        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2)
+
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
+
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
         else:
@@ -94,10 +119,13 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
+
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
         x = self.up2(x, x2)
         x = self.up1(x, x1)
+
+
         if self.last_activation is not None:
             logits = self.last_activation(self.outc(x))
             # print("111")
