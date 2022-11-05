@@ -4,7 +4,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import atten_loss,prototype_loss,IM_loss,M_loss, disparity, disparity_loss, discriminate
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
