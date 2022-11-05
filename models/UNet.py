@@ -47,15 +47,19 @@ class DownBlock(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', up=True):
         super(UpBlock, self).__init__()
-
-        self.up = nn.Upsample(scale_factor=2)
+        self.up = up
+        if up:
+            self.up = nn.Upsample(scale_factor=2)
         # self.up = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
-        out = self.up(x)
+        if self.up:
+            out = self.up(x)
+        else:
+            out = x
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -99,10 +103,10 @@ class UNet(nn.Module):
         self.down3 = resnet.layer3 # 256
         self.down4 = resnet.layer4 # 512
 
-        self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2)
-        self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2)
-        self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2)
-        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2)
+        self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2, up=True)
+        self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, up=True)
+        self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
+        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=False)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
@@ -115,10 +119,15 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         x1 = self.inc(x) # 112
-        x2 = self.down1(x1) # 56
-        x3 = self.down2(x2) # 28
-        x4 = self.down3(x3) # 14
-        x5 = self.down4(x4) # 7
+        x2 = self.down1(x1) # 112
+        x3 = self.down2(x2) # 56
+        x4 = self.down3(x3) # 28
+        x5 = self.down4(x4) # 14
+        # torch.Size([8, 64, 112, 112])
+        # torch.Size([8, 64, 112, 112])
+        # torch.Size([8, 128, 56, 56])
+        # torch.Size([8, 256, 28, 28])
+        # torch.Size([8, 512, 14, 14])
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
         x = self.up2(x, x2)
