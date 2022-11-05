@@ -132,14 +132,9 @@ class UNet(nn.Module):
         self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAMBlock2 = FAMBlock(channels=128)
-        self.FAMBlock3 = FAMBlock(channels=256)
-        self.FAMBlock4 = FAMBlock(channels=512)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(8)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
-        self.FAM4 = nn.ModuleList([self.FAMBlock4 for i in range(1)])
+        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -160,18 +155,12 @@ class UNet(nn.Module):
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
 
-        for i in range(1):
-            x5 = self.FAM4[i](x5)       
-        for i in range(2):
-            x4 = self.FAM3[i](x4)
-        for i in range(4):
-            x3 = self.FAM2[i](x3)
-        for i in range(8):
-            x2 = self.FAM1[i](x2)
-
         x = self.up4(x5, x4)
+        x = self.esp4(x)
         x = self.up3(x, x3)
+        x = self.esp3(x)
         x = self.up2(x, x2)
+        x = self.esp1(x)
         x = self.up1(x, x1)
         x = self.up(x)
 
@@ -380,7 +369,6 @@ class DilatedParllelResidualBlockB(nn.Module):
         self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
         self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
         self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
-        self.d16 = CDilated(n, n, 3, 1, 16)  # dilation rate of 2^4
         self.bn = BR(nOut)
         self.add = add
 
@@ -396,17 +384,14 @@ class DilatedParllelResidualBlockB(nn.Module):
         d2 = self.d2(output1)
         d4 = self.d4(output1)
         d8 = self.d8(output1)
-        d16 = self.d16(output1)
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
         add1 = d2
         add2 = add1 + d4
         add3 = add2 + d8
-        add4 = add3 + d16
-
         # merge
-        combine = torch.cat([d1, add1, add2, add3, add4], 1)
+        combine = torch.cat([d1, add1, add2, add3], 1)
 
         # if residual version
         if self.add:
