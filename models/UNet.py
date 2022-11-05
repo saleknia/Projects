@@ -3,6 +3,25 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models as resnet_model
 
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
+
 def get_activation(activation_type):
     activation_type = activation_type.lower()
     if hasattr(nn, activation_type):
@@ -92,6 +111,8 @@ class UNet(nn.Module):
         # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
         resnet = resnet_model.resnet34(pretrained=True)
+        for param in resnet.parameters():
+            param.requires_grad = False
 
         self.inc = nn.Sequential(
             resnet.conv1,
@@ -111,9 +132,14 @@ class UNet(nn.Module):
         self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
-        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAMBlock4 = FAMBlock(channels=512)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(8)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAM4 = nn.ModuleList([self.FAMBlock4 for i in range(1)])
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -133,12 +159,19 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
+
+        for i in range(1):
+            x5 = self.FAM3[i](x5)       
+        for i in range(2):
+            x4 = self.FAM3[i](x4)
+        for i in range(4):
+            x3 = self.FAM2[i](x3)
+        for i in range(8):
+            x2 = self.FAM1[i](x2)
+
         x = self.up4(x5, x4)
-        x = self.esp4(x)
         x = self.up3(x, x3)
-        x = self.esp3(x)
         x = self.up2(x, x2)
-        x = self.esp2(x)
         x = self.up1(x, x1)
         x = self.up(x)
 
