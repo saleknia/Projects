@@ -111,8 +111,8 @@ class UNet(nn.Module):
         # self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
         resnet = resnet_model.resnet34(pretrained=True)
-        for param in resnet.parameters():
-            param.requires_grad = False
+        # for param in resnet.parameters():
+        #     param.requires_grad = False
 
         self.inc = nn.Sequential(
             resnet.conv1,
