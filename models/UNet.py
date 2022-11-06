@@ -231,10 +231,15 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
-
+        self.psi = nn.Sequential(
+            nn.Conv2d(192, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+        self.up2  = nn.Upsample(scale_factor=2)
+        self.up4  = nn.Upsample(scale_factor=4)
+        self.up8  = nn.Upsample(scale_factor=8)  
+        self.up16 = nn.Upsample(scale_factor=16)  
 
         # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
         # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
@@ -267,10 +272,12 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
-
-        feature_cat = torch.cat((x5, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x5 = self.conv2d(feature_att)
+        psi = self.conv2d(feature_tf)
+        
+        x1 = x1 * self.up16(psi)
+        x2 = x2 * self.up8(psi)
+        x3 = x3 * self.up4(psi)
+        x4 = x4 * self.up2(psi)
 
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
