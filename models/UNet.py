@@ -119,7 +119,6 @@ class UpBlock(nn.Module):
             self.up = nn.Upsample(scale_factor=2)
         # self.up = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.att = ParallelPolarizedSelfAttention(channel=in_channels//2)
 
     def forward(self, x, skip_x):
         if self.up:
@@ -160,13 +159,15 @@ class UNet(nn.Module):
         resnet = resnet_model.resnet34(pretrained=True)
         # for param in resnet.parameters():
         #     param.requires_grad = False
+        resnet.conv1.stride = 1
 
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
-            resnet.relu,
+            resnet.relu
         )
 
+        self.maxpool = resnet.maxpool
         self.down1 = resnet.layer1 # 64
         self.down2 = resnet.layer2 # 128
         self.down3 = resnet.layer3 # 256
@@ -175,14 +176,14 @@ class UNet(nn.Module):
         self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2, up=True)
         self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, up=True)
         self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
-        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=False)
-        self.up = nn.Upsample(scale_factor=2) 
+        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
+        # self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
-        self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
-        self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
-        self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
-        self.esp1 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
+        # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
+        # self.esp1 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
 
         if n_classes == 1:
             self.last_activation = nn.Sigmoid()
@@ -193,7 +194,7 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         x1 = self.inc(x) # 112
-        x2 = self.down1(x1) # 112
+        x2 = self.down1(self.maxpool(x1)) # 112
         x3 = self.down2(x2) # 56
         x4 = self.down3(x3) # 28
         x5 = self.down4(x4) # 14
@@ -211,7 +212,7 @@ class UNet(nn.Module):
         # x = self.esp2(x)
         x = self.up1(x, x1)
         # x = self.esp1(x)
-        x = self.up(x)
+        # x = self.up(x)
 
 
         if self.last_activation is not None:
