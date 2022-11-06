@@ -125,7 +125,6 @@ class UpBlock(nn.Module):
             out = self.up(x)
         else:
             out = x
-        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
