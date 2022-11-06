@@ -73,7 +73,7 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 class U(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9, bilinear=True):
+    def __init__(self, n_channels=3, n_classes=1, bilinear=False):
         super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
@@ -90,6 +90,7 @@ class U(nn.Module):
         self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
         self.up4 = Up(in_channels*2 , in_channels , bilinear)
         self.outc = OutConv(in_channels , n_classes)
+        self.last_activation = nn.Sigmoid()
 
     def forward(self, x, multiple=False):
         x1 = self.inc(x)
@@ -101,9 +102,6 @@ class U(nn.Module):
         up2 = self.up2(up1, x3)
         up3 = self.up3(up2, x2)
         up4 = self.up4(up3, x1)
-        logits = self.outc(up4)
-
-        if multiple:
-            return logits, up1, up2, up3, up4
-        else:
-            return logits
+        x = self.outc(up4)
+        logits = self.last_activation(x)
+        return logits
