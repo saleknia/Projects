@@ -225,21 +225,21 @@ class UNet(nn.Module):
         self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, channel=64 , up=True)
         # self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
+        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
 
-        self.psi = nn.Sequential(
-            nn.Conv2d(192, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-        self.ups2  = nn.Upsample(scale_factor=2)
-        self.ups4  = nn.Upsample(scale_factor=4)
-        self.ups8  = nn.Upsample(scale_factor=8)  
-        self.ups16 = nn.Upsample(scale_factor=16)  
+        # self.psi = nn.Sequential(
+        #     nn.Conv2d(192, 1, kernel_size=1, stride=1, padding=0, bias=True),
+        #     nn.BatchNorm2d(1),
+        #     nn.Sigmoid()
+        # )
+        # self.ups2  = nn.Upsample(scale_factor=2)
+        # self.ups4  = nn.Upsample(scale_factor=4)
+        # self.ups8  = nn.Upsample(scale_factor=8)  
+        # self.ups16 = nn.Upsample(scale_factor=16)  
 
         # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
         # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
@@ -266,22 +266,22 @@ class UNet(nn.Module):
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
 
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        psi = self.psi(feature_tf)
+        # emb = self.patch_embed(x)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # psi = self.psi(feature_tf)
 
-        x1 = x1 * self.ups16(psi)
-        x2 = x2 * self.ups8(psi)
-        x3 = x3 * self.ups4(psi)
-        x4 = x4 * self.ups2(psi)
+        # x1 = x1 * self.ups16(psi)
+        # x2 = x2 * self.ups8(psi)
+        # x3 = x3 * self.ups4(psi)
+        # x4 = x4 * self.ups2(psi)
 
         x = self.up4(x5, x4)
-        x = self.up3(x, x3)
-        x = self.up2(x, x2)
-        x = self.up1(x, x1)
+        x = self.up3(x , x3)
+        x = self.up2(x , x2)
+        x = self.up1(x , x1)
 
 
 
