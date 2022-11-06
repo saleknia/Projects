@@ -119,18 +119,18 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
 
 
-        soft_label = 0.5 * (outputs.detach().clone() + targets.long().unsqueeze(dim=1))
+        # soft_label = 0.5 * (outputs.detach().clone() + targets.long().unsqueeze(dim=1))
         loss_kd = 0.0
         loss_att = 0.0
 
-        # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        loss_ce = ce_loss(outputs, soft_label) 
+        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        # loss_ce = ce_loss(outputs, soft_label) 
         loss_dice = dice_loss(inputs=outputs, targets=targets)
         # loss = 0.5 * loss_ce + 0.5 * loss_dice
         loss = loss_ce
 
  
-        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
