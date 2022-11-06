@@ -236,10 +236,10 @@ class UNet(nn.Module):
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
-        self.up2  = nn.Upsample(scale_factor=2)
-        self.up4  = nn.Upsample(scale_factor=4)
-        self.up8  = nn.Upsample(scale_factor=8)  
-        self.up16 = nn.Upsample(scale_factor=16)  
+        self.ups2  = nn.Upsample(scale_factor=2)
+        self.ups4  = nn.Upsample(scale_factor=4)
+        self.ups8  = nn.Upsample(scale_factor=8)  
+        self.ups16 = nn.Upsample(scale_factor=16)  
 
         # self.esp4 = DilatedParllelResidualBlockB(nIn=in_channels*2, nOut=in_channels*2)
         # self.esp3 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
@@ -273,10 +273,10 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         psi = self.psi(feature_tf)
 
-        x1 = x1 * self.up16(psi)
-        x2 = x2 * self.up8(psi)
-        x3 = x3 * self.up4(psi)
-        x4 = x4 * self.up2(psi)
+        x1 = x1 * self.ups16(psi)
+        x2 = x2 * self.ups8(psi)
+        x3 = x3 * self.ups4(psi)
+        x4 = x4 * self.ups2(psi)
 
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
