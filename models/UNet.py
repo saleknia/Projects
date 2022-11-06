@@ -112,19 +112,21 @@ class DownBlock(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', up=True):
+    def __init__(self, in_channels, out_channels, nb_Conv, channel, activation='ReLU', up=True):
         super(UpBlock, self).__init__()
         self.up = up
         if up:
             self.up = nn.Upsample(scale_factor=2)
         # self.up = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.att = ParallelPolarizedSelfAttention(channel=channel)
 
     def forward(self, x, skip_x):
         if self.up:
             out = self.up(x)
         else:
             out = x
+        out = self.att(x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -172,10 +174,10 @@ class UNet(nn.Module):
         self.down3 = resnet.layer3 # 256
         self.down4 = resnet.layer4 # 512
 
-        self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2, up=True)
-        self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, up=True)
-        self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
-        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, up=True)
+        self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2, channel=512, up=True)
+        self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, channel=128, up=True)
+        self.up2 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, channel=64 , up=True)
+        self.up1 = UpBlock(in_channels*2 , in_channels*1, nb_Conv=2, channel=64 , up=True)
         # self.up = nn.Upsample(scale_factor=2) 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
 
