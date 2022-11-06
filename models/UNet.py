@@ -271,9 +271,8 @@ class UNet(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-        psi = self.conv2d(feature_tf)
-        
+        psi = self.psi(feature_tf)
+
         x1 = x1 * self.up16(psi)
         x2 = x2 * self.up8(psi)
         x3 = x3 * self.up4(psi)
