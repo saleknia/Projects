@@ -66,7 +66,6 @@ def attention_loss(up4, up3, up2, up1):
 class CriterionPixelWise(nn.Module):
     def __init__(self):
         super(CriterionPixelWise, self).__init__()
-        self.criterion = torch.nn.CrossEntropyLoss()
 
     def forward(self, preds_S, preds_T):
         preds_T.detach()
@@ -101,6 +100,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     dice_loss = DiceLoss()
     # ce_loss = CrossEntropyLoss()
     ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
+    # kd_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
 
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
@@ -119,13 +119,13 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
 
 
-        # soft_label = (0.3 * torch.round(outputs.detach().clone())) + (0.7 * torch.nn.functional.one_hot(targets.long(), num_classes=2).permute(0,3,1,2))
-
+        soft_label = 0.5 * (outputs.detach().clone() + torch.nn.functional.one_hot(targets.long(), num_classes=2).permute(0,3,1,2))
         loss_kd = 0.0
         loss_att = 0.0
 
 
-        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        loss_ce = ce_loss(outputs, soft_label.unsqueeze(dim=1)) 
         loss_dice = dice_loss(inputs=outputs, targets=targets)
         # loss = 0.5 * loss_ce + 0.5 * loss_dice
         loss = loss_ce
