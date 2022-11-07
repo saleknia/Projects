@@ -246,7 +246,7 @@ class UNet(nn.Module):
         # self.esp2 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
         # self.esp1 = DilatedParllelResidualBlockB(nIn=in_channels*1, nOut=in_channels*1)
 
-        if n_classes == 1:
+        if n_classes == 0:
             self.last_activation = nn.Sigmoid()
         else:
             self.last_activation = None

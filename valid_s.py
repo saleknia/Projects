@@ -75,7 +75,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     # accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
+    ce_loss = torch.nn.BCEWithLogitsLoss()
+    # ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
 
     total_batchs = len(dataloader)
     loader = dataloader
@@ -100,8 +101,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             targets = targets.long()
 
-            predictions = torch.round(torch.squeeze(outputs, dim=1))
-            # predictions = torch.argmax(input=outputs,dim=1).long()
+            # predictions = torch.round(torch.squeeze(outputs, dim=1))
+            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
 
             # accuracy.update(Eval.Pixel_Accuracy())
