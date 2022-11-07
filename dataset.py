@@ -95,8 +95,9 @@ class ISIC2017(Dataset):
         return img, seg
 
     def resize(self, img, seg):
-        img = skimage.transform.resize(img, (224, 224, 3))
-        seg = skimage.transform.resize(seg, (224, 224, 1))
+        size = 384
+        img = skimage.transform.resize(img, (size, size, 3))
+        seg = skimage.transform.resize(seg, (size, size, 1))
         return img, seg
 
     def __len__(self):
