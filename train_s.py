@@ -398,7 +398,7 @@ def main(args):
                                 drop_last=True,
                                 )
         test_loader = DataLoader(test_dataset,
-                                batch_size=BATCH_SIZE,
+                                batch_size=1,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,

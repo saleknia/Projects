@@ -72,7 +72,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Valid {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Pixel Accuracy= {Eval.Pixel_Accuracy()*100:.2f} ,  Dice = {Eval.Dice()*100:.2f}',
+                suffix=f'loss= {loss_total.avg:.4f} , Pixel Accuracy= {Eval.Pixel_Accuracy()*100.0:.2f} ,  Dice = {Eval.Dice()*100.0:.2f}',
                 bar_length=45
             )  
 
