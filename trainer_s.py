@@ -80,7 +80,7 @@ class CriterionPixelWise(nn.Module):
 class Evaluator(object):
     ''' For using this evaluator target and prediction
         dims should be [B,H,W] '''
-    def __init__(self, num_class):
+    def __init__(self):
         self.reset()
         
     def Pixel_Accuracy(self):

@@ -8,6 +8,8 @@ import warnings
 from medpy import metric
 import medpy
 import numpy as np
+from sklearn.metrics import confusion_matrix
+
 warnings.filterwarnings("ignore")
 
 class DiceLoss(nn.Module):
@@ -31,7 +33,7 @@ class DiceLoss(nn.Module):
 class Evaluator(object):
     ''' For using this evaluator target and prediction
         dims should be [B,H,W] '''
-    def __init__(self, num_class):
+    def __init__(self):
         self.reset()
         
     def Pixel_Accuracy(self):
