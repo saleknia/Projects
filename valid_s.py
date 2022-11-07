@@ -34,7 +34,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     loss_total = utils.AverageMeter()
     Eval = utils.Evaluator(num_class=2)
     mIOU = 0.0
-    accuracy = utils.AverageMeter()
+    # accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss()
     ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
@@ -66,21 +66,22 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             # predictions = torch.argmax(input=outputs,dim=1).long()
             Eval.add_batch(gt_image=targets,pre_image=predictions)
 
-            accuracy.update(Eval.Pixel_Accuracy())
+            # accuracy.update(Eval.Pixel_Accuracy())
 
             print_progress(
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Valid {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Pixel Accuracy= {accuracy.avg*100:.2f} ,  Dice = {Eval.Dice()*100:.2f}',
+                suffix=f'loss= {loss_total.avg:.4f} , Pixel Accuracy= {Eval.Pixel_Accuracy()*100:.2f} ,  Dice = {Eval.Dice()*100:.2f}',
                 bar_length=45
             )  
 
-    acc = 100*accuracy.avg
+    # acc = 100*accuracy.avg
+    acc =  Eval.Pixel_Accuracy() * 100.0
     mIOU = 100*Eval.Mean_Intersection_over_Union()
 
-    Dice = Eval.Dice()
-    Dice_per_class = Dice
+    Dice = Eval.Dice() * 100.0
+    Dice_per_class = Dice * 100.0
     # Dice,Dice_per_class = Eval.Dice(per_class=True)
     # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
    
