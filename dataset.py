@@ -30,6 +30,7 @@ from einops.layers.torch import Rearrange
 from scipy.ndimage.morphology import binary_dilation
 import skimage
 import skimage.transform
+from skimage.color import rgb2gray
 
 # ===== normalize over the dataset 
 def dataset_normalized(imgs):
@@ -65,7 +66,9 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
+        gray_image = rgb2gray(img)
         # (256, 256, 3)
+        print(gray_image.shape)
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
@@ -212,9 +215,8 @@ def random_rotate(image, label):
     return image, label
 
 def random_gray(image, label):
-    angle = np.random.randint(-20, 20)
-    image = ndimage.rotate(image, angle, order=0, reshape=False)
-    label = ndimage.rotate(label, angle, order=0, reshape=False)
+    gray_image = rgb2gray(image)
+
     return image, label
 
 def crop_image(img,label,tol=0):
