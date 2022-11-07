@@ -37,7 +37,7 @@ class Evaluator(object):
         self.reset()
         
     def Pixel_Accuracy(self):
-        Acc = (self.tp + self.fn) / (self.tp + self.tn + self.fp + self.fn)
+        Acc = (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
         Acc = torch.tensor(Acc)
         return Acc
 
