@@ -13,6 +13,7 @@ from torch.autograd import Variable
 from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 from valid_s import valid_s
+from sklearn.metrics import confusion_matrix
 warnings.filterwarnings("ignore")
 
 class DiceLoss(nn.Module):
@@ -76,6 +77,42 @@ class CriterionPixelWise(nn.Module):
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
+class Evaluator(object):
+    ''' For using this evaluator target and prediction
+        dims should be [B,H,W] '''
+    def __init__(self, num_class):
+        self.reset()
+        
+    def Pixel_Accuracy(self):
+        Acc = (self.tp + self.fn) / (self.tp + self.tn + self.fp + self.fn)
+        Acc = torch.tensor(Acc)
+        return Acc
+
+    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+        IoU = (self.tp) / (self.tp + self.fp + self.fn)
+        IoU = torch.tensor(IoU)
+        return IoU
+
+    def Dice(self,per_class=False,show=False):
+        Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
+        Dice = torch.tensor(Dice)
+        return Dice
+
+    def add_batch(self, gt_image, pre_image):
+        gt_image=gt_image.int().detach().cpu().numpy()
+        pre_image=pre_image.int().detach().cpu().numpy()
+        tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
+        self.tn = self.tn + tn
+        self.fp = self.fp + fp
+        self.fn = self.fn + fn
+        self.tp = self.tp + tp  
+
+    def reset(self):
+        self.tn = 0
+        self.fp = 0
+        self.fn = 0
+        self.tp = 0
+
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
     print(f'Epoch: {epoch_num} ---> Train , lr: {optimizer.param_groups[0]["lr"]}')
@@ -89,7 +126,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_kd_total = utils.AverageMeter()
     loss_att_total = utils.AverageMeter()
 
-    Eval = utils.Evaluator(num_class=2)
+    Eval = Evaluator()
 
     mIOU = 0.0
     Dice = 0.0

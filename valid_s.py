@@ -28,11 +28,47 @@ class DiceLoss(nn.Module):
         
         return 1 - dice
 
+class Evaluator(object):
+    ''' For using this evaluator target and prediction
+        dims should be [B,H,W] '''
+    def __init__(self, num_class):
+        self.reset()
+        
+    def Pixel_Accuracy(self):
+        Acc = (self.tp + self.fn) / (self.tp + self.tn + self.fp + self.fn)
+        Acc = torch.tensor(Acc)
+        return Acc
+
+    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+        IoU = (self.tp) / (self.tp + self.fp + self.fn)
+        IoU = torch.tensor(IoU)
+        return IoU
+
+    def Dice(self,per_class=False,show=False):
+        Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
+        Dice = torch.tensor(Dice)
+        return Dice
+
+    def add_batch(self, gt_image, pre_image):
+        gt_image=gt_image.int().detach().cpu().numpy()
+        pre_image=pre_image.int().detach().cpu().numpy()
+        tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
+        self.tn = self.tn + tn
+        self.fp = self.fp + fp
+        self.fn = self.fn + fn
+        self.tp = self.tp + tp  
+
+    def reset(self):
+        self.tn = 0
+        self.fp = 0
+        self.fn = 0
+        self.tp = 0
+
 def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer):
     model=model.to(device)
     model.eval()
     loss_total = utils.AverageMeter()
-    Eval = utils.Evaluator(num_class=2)
+    Eval = Evaluator()
     mIOU = 0.0
     # accuracy = utils.AverageMeter()
 
