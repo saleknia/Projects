@@ -75,7 +75,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     # accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss()
+    pos_weight = torch.tensor([1.0, 4.0])
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
 
     total_batchs = len(dataloader)
