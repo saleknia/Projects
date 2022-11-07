@@ -167,11 +167,11 @@ class UpBlock(nn.Module):
         self.up = nn.Upsample(scale_factor=2)
         # self.up = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.att = ParallelPolarizedSelfAttention(channel=channel)
+        # self.att = ParallelPolarizedSelfAttention(channel=channel)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.att(out)
+        # out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 

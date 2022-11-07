@@ -65,7 +65,7 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
-
+        # (256, 256, 3)
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
@@ -73,8 +73,8 @@ class ISIC2017(Dataset):
         
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
-        img = img.permute( 2, 0, 1)
-        seg = seg.permute( 2, 0, 1)
+        img = img.permute(2, 0, 1)
+        seg = seg.permute(2, 0, 1)
         
         return img, seg[0]
                
@@ -87,7 +87,7 @@ class ISIC2017(Dataset):
     def apply_augmentation(self, img, seg):
         if random.random() > 0.5:
             img, seg = random_rot_flip(img, seg)
-        elif random.random() > 0.5:
+        if random.random() > 0.5:
             img, seg = random_rotate(img, seg)
         return img, seg
 
@@ -206,6 +206,12 @@ def random_rot_flip(image, label):
     return image, label
 
 def random_rotate(image, label):
+    angle = np.random.randint(-20, 20)
+    image = ndimage.rotate(image, angle, order=0, reshape=False)
+    label = ndimage.rotate(label, angle, order=0, reshape=False)
+    return image, label
+
+def random_gray(image, label):
     angle = np.random.randint(-20, 20)
     image = ndimage.rotate(image, angle, order=0, reshape=False)
     label = ndimage.rotate(label, angle, order=0, reshape=False)
