@@ -23,7 +23,7 @@ class DiceLoss(nn.Module):
     def forward(self, inputs, targets, smooth=1e-5):
         
         #comment out if your model contains a sigmoid or equivalent activation layer
-        # inputs = F.sigmoid(inputs)       
+        inputs = F.sigmoid(inputs)       
         
         #flatten label and prediction tensors
         inputs = inputs.view(-1)
@@ -164,7 +164,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
         # loss_ce = ce_loss(outputs, soft_label) 
         loss_dice = dice_loss(inputs=outputs, targets=targets)
-        loss = loss_ce
+        loss = 0.6 * loss_ce + 0.4 * loss_dice
         # loss = loss_ce
 
  

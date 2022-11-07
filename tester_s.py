@@ -8,6 +8,7 @@ import warnings
 from medpy import metric
 import medpy
 import numpy as np
+import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix
 
 warnings.filterwarnings("ignore")
@@ -19,7 +20,7 @@ class DiceLoss(nn.Module):
     def forward(self, inputs, targets, smooth=1e-5):
         
         #comment out if your model contains a sigmoid or equivalent activation layer
-        # inputs = F.sigmoid(inputs)       
+        inputs = F.sigmoid(inputs)       
         
         #flatten label and prediction tensors
         inputs = inputs.view(-1)
