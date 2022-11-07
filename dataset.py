@@ -66,9 +66,7 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
-        gray_image = rgb2gray(img)
         # (256, 256, 3)
-        print(gray_image.shape)
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
         
@@ -92,6 +90,8 @@ class ISIC2017(Dataset):
             img, seg = random_rot_flip(img, seg)
         if random.random() > 0.5:
             img, seg = random_rotate(img, seg)
+        if random.random() > 0.5:
+            img, seg = random_gray(img, seg)
         return img, seg
 
     def resize(self, img, seg):
@@ -216,8 +216,9 @@ def random_rotate(image, label):
 
 def random_gray(image, label):
     gray_image = rgb2gray(image)
-
-    return image, label
+    arrays = [gray_image for _ in range(3)]
+    gray_image = np.stack(arrays, axis=-1)
+    return gray_image, label
 
 def crop_image(img,label,tol=0):
     img = np.array(img)
