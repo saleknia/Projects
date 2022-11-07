@@ -123,7 +123,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     # Dice,Dice_per_class = Eval.Dice(per_class=True)
     # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
    
-    logger.info(f'Epoch: {epoch_num} ---> Valid , Loss = {loss_total.avg:.4f} , mIoU = {mIOU:.2f} , Dice = {Dice:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Valid , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f}  , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
 
     # # Save checkpoint
     if ckpt is not None:
