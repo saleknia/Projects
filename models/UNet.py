@@ -295,6 +295,8 @@ class UpBlock(nn.Module):
 #         # print(logits.size())
 #         return logits
 
+# os
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -790,7 +792,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         return output
 
 import os
-os.system('pip install timm')
+# os.system('pip install timm')
 import torch
 import torch.nn as nn
 from functools import partial
