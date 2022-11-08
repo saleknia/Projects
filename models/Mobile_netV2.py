@@ -88,7 +88,7 @@ class Mobile_netV2(nn.Module):
         # alpha = random.randint(0, 4)
         # beta = random.randint(0, 4)
         b, c, h, w = x.shape
-        prob = torch.randint(0, 2, (b, c, h, w))
+        prob = torch.randint(0, 2, (b, c, h, w), device='cuda')
         if self.training:
             # x = self.avgpool(x[:, :, alpha:alpha+3, beta:beta+3])
             x = self.avgpool(prob * x)
