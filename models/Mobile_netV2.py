@@ -85,14 +85,14 @@ class Mobile_netV2(nn.Module):
         # x = self.classifier(x)
         # return x
 
-        alpha = random.randint(0, 6)
-        beta = random.randint(0, 6)
+        alpha = random.randint(0, 5)
+        beta = random.randint(0, 5)
 
         if self.training:
-            x = self.avgpool(x[:, :, alpha, beta])
+            x = self.avgpool(x[:, :, alpha:alpha+2, beta:beta+2])
         else:
             x = self.avgpool(x)
-            
+
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
