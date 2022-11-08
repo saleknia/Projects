@@ -67,6 +67,7 @@ class Mobile_netV2(nn.Module):
         # )
 
     def forward(self, x):
+        b, c, h, w = x.shape
         # x = self.conv1(x)
         # x = self.bn1(x)
         # x = self.relu(x)
@@ -85,11 +86,12 @@ class Mobile_netV2(nn.Module):
         # x = self.classifier(x)
         # return x
 
-        alpha = random.randint(0, 5)
-        beta = random.randint(0, 5)
-
+        # alpha = random.randint(0, 4)
+        # beta = random.randint(0, 4)
+        prob = torch.randint(0, 2, (b, c, h, w))
         if self.training:
-            x = self.avgpool(x[:, :, alpha:alpha+2, beta:beta+2])
+            # x = self.avgpool(x[:, :, alpha:alpha+3, beta:beta+3])
+            x = self.avgpool(prob * x)
         else:
             x = self.avgpool(x)
 
