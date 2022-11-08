@@ -32,7 +32,7 @@ class Mobile_netV2(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
         self.features = model.features
-        # self.attention = SEBlock(channel=1280)
+        self.attention = SEBlock(channel=1280)
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -80,6 +80,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
         x = self.features(x)
+        x = self.attention(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
