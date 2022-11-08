@@ -103,7 +103,11 @@ class Mobile_netV2(nn.Module):
             x4 = x4.view(x4.size(0), -1)
             x4 = self.classifier(x4)
 
-            return (x1 + x2 + x3 + x4) / 4.0
+            x5 = self.avgpool(x)
+            x5 = x5.view(x5.size(0), -1)
+            x5 = self.classifier(x5)
+
+            return (x1 + x2 + x3 + x4 + x5) / 5.0
 
 
 

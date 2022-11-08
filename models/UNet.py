@@ -1,11 +1,11 @@
-# import torch
-# import torch.nn as nn
-# import torch.nn.functional as F
-# from torchvision import models as resnet_model
-# import numpy as np
-# from torch.nn import init
-# from collections import OrderedDict
-# import torchvision
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torchvision import models as resnet_model
+import numpy as np
+from torch.nn import init
+from collections import OrderedDict
+import torchvision
 
 
 # class SKAttention(nn.Module):
