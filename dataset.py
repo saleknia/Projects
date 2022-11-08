@@ -33,16 +33,16 @@ import skimage.transform
 from skimage.color import rgb2gray
 
 # ===== normalize over the dataset 
-def dataset_normalized(imgs):
-    imgs_normalized = np.empty(imgs.shape)
-    imgs_std = np.std(imgs)
-    imgs_mean = np.mean(imgs)
+# def dataset_normalized(imgs):
+#     imgs_normalized = np.empty(imgs.shape)
+#     imgs_std = np.std(imgs)
+#     imgs_mean = np.mean(imgs)
 
-    imgs_normalized = (imgs-imgs_mean)/imgs_std
-    for i in range(imgs.shape[0]):
-        imgs_normalized[i] = ((imgs_normalized[i] - np.min(imgs_normalized[i])) / (np.max(imgs_normalized[i])-np.min(imgs_normalized[i])))*255
-    return imgs_normalized
-       
+#     imgs_normalized = (imgs-imgs_mean)/imgs_std
+#     for i in range(imgs.shape[0]):
+#         imgs_normalized[i] = ((imgs_normalized[i] - np.min(imgs_normalized[i])) / (np.max(imgs_normalized[i])-np.min(imgs_normalized[i])))*255
+#     return imgs_normalized
+     
 
 class ISIC2017(Dataset):
     def __init__(self, path_Data='/content/drive/MyDrive/ISIC2017_dataset/', split='train'):
@@ -60,9 +60,10 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_val.npy')
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
-        self.data   = dataset_normalized(self.data)
-        self.mask   = np.expand_dims(self.mask, axis=3)
-        self.mask   = self.mask /255.0
+        # self.data   = dataset_normalized(self.data)
+        self.data = self.data / 255.0
+        self.mask = np.expand_dims(self.mask, axis=3)
+        self.mask = self.mask /255.0
          
     def __getitem__(self, indx):
         img = self.data[indx]
@@ -76,7 +77,7 @@ class ISIC2017(Dataset):
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
         img = img.permute(2, 0, 1)
-        # img = F.normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        img = F.normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         seg = seg.permute(2, 0, 1)
         
         return img, seg[0]
