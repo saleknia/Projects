@@ -316,12 +316,27 @@ class UNet(nn.Module):
         self.layer4 = features[4:6]
         self.layer5 = features[6:8]
 
+        self.FAMBlock1_0 = FAMBlock(in_channels=16 , out_channels=64  )
+        self.FAMBlock2_0 = FAMBlock(in_channels=24 , out_channels=128 )
+        self.FAMBlock3_0 = FAMBlock(in_channels=40 , out_channels=256 )
+        self.FAMBlock4_0 = FAMBlock(in_channels=112, out_channels=512 )
+        self.FAMBlock5_0 = FAMBlock(in_channels=320, out_channels=1024)
 
-        self.up4 = UpBlock(432, 40, nb_Conv=2, channel=512, up=True)
-        self.up3 = UpBlock(80 , 24, nb_Conv=2, channel=128, up=True)
-        self.up2 = UpBlock(48 , 16, nb_Conv=2, channel=64 , up=True)
-        self.up1 = UpBlock(32 , 16, nb_Conv=2, channel=64 , up=True)
-        self.outc = nn.Conv2d(16, n_classes, kernel_size=(1,1))
+        self.FAMBlock1 = FAMBlock(in_channels=64 , out_channels=64 )
+        self.FAMBlock2 = FAMBlock(in_channels=128, out_channels=128)
+        self.FAMBlock3 = FAMBlock(in_channels=256, out_channels=256)
+        self.FAMBlock4 = FAMBlock(in_channels=512, out_channels=512)
+
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAM4 = nn.ModuleList([self.FAMBlock4 for i in range(1)])
+
+        self.up4 = UpBlock(64 * 24, 64 * 4, nb_Conv=2, channel=512, up=True)
+        self.up3 = UpBlock(64 * 8 , 64 * 2, nb_Conv=2, channel=128, up=True)
+        self.up2 = UpBlock(64 * 4 , 64 * 1, nb_Conv=2, channel=64 , up=True)
+        self.up1 = UpBlock(64 * 2 , 64 * 1, nb_Conv=2, channel=64 , up=True)
+        self.outc = nn.Conv2d(64, n_classes, kernel_size=(1,1))
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -332,11 +347,26 @@ class UNet(nn.Module):
         x4 = self.layer4(x3) 
         x5 = self.layer5(x4) 
 
-        # torch.Size([8, 16, 224, 224])
-        # torch.Size([8, 24, 112, 112])
-        # torch.Size([8, 40, 56, 56])
-        # torch.Size([8, 112, 28, 28])
-        # torch.Size([8, 320, 14, 14])
+        # torch.Size([8, 16, 224, 224]) ---> 64
+        # torch.Size([8, 24, 112, 112]) ---> 128
+        # torch.Size([8, 40, 56, 56])   ---> 256
+        # torch.Size([8, 112, 28, 28])  ---> 512
+        # torch.Size([8, 320, 14, 14])  ---> 1024
+
+        x1 = self.FAMBlock1_0(x1)
+        x2 = self.FAMBlock2_0(x2)
+        x3 = self.FAMBlock3_0(x3)
+        x4 = self.FAMBlock4_0(x4)
+        x5 = self.FAMBlock5_0(x5)
+
+        for i in range(1):
+            x4 = self.FAM4[i](x4)
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
         x = self.up4(x5, x4)
         x = self.up3(x , x3)
@@ -372,11 +402,11 @@ from torch import nn
 
 
 class FAMBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels, out_channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
