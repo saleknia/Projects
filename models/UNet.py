@@ -483,7 +483,7 @@ class UNet(nn.Module):
         # out = self.final_relu2(out)
         # out = self.final_conv3(out)
         # out = self.last_activation(out)
-        out = feature_tf
+        out = self.up(feature_tf)
         return out
 
 
