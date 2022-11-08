@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights
 import torchvision
+import random
 
 class SEBlock(nn.Module):
     def __init__(self, channel, r=8):
@@ -84,27 +85,36 @@ class Mobile_netV2(nn.Module):
         # x = self.classifier(x)
         # return x
 
-        x1 = self.avgpool(x[:, :, 0:4, 0:4])
-        x1 = x1.view(x1.size(0), -1)
-        x1 = self.classifier(x1)
+        alpha = random.randint(0, 6)
+        beta = random.randint(0, 6)
 
-        x2 = self.avgpool(x[:, :, 4: , 0:4])
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.classifier(x2)
+        if self.training:
+            x = self.avgpool(x[:, :, alpha, beta])
+        else:
+            x = self.avgpool(x)
+            
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
-        x3 = self.avgpool(x[:, :, 0:4, 4: ])
-        x3 = x3.view(x3.size(0), -1)
-        x3 = self.classifier(x3)
+        return x
 
-        x4 = self.avgpool(x[:, :, 4: , 4: ])
-        x4 = x4.view(x4.size(0), -1)
-        x4 = self.classifier(x4)
+        # x1 = self.avgpool(x[:, :, 0:4, 0:4])
+        # x1 = x1.view(x1.size(0), -1)
+        # x1 = self.classifier(x1)
 
-        x5 = self.avgpool(x)
-        x5 = x5.view(x5.size(0), -1)
-        x5 = self.classifier(x5)
+        # x2 = self.avgpool(x[:, :, 4: , 0:4])
+        # x2 = x2.view(x2.size(0), -1)
+        # x2 = self.classifier(x2)
 
-        return (x1 + x2 + x3 + x4 + x5) / 5.0
+        # x3 = self.avgpool(x[:, :, 0:4, 4: ])
+        # x3 = x3.view(x3.size(0), -1)
+        # x3 = self.classifier(x3)
+
+        # x4 = self.avgpool(x[:, :, 4: , 4: ])
+        # x4 = x4.view(x4.size(0), -1)
+        # x4 = self.classifier(x4)
+
+        # return (x1 + x2 + x3 + x4) / 5.0
 
 
 
