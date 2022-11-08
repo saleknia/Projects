@@ -81,33 +81,10 @@ class Mobile_netV2(nn.Module):
         # x = self.classifier(x)
         x = self.features(x)
         x = self.attention(x)
-        if self.training:
-            x = self.avgpool(x)
-            x = x.view(x.size(0), -1)
-            x = self.classifier(x)
-            return x
-        else:
-            x1 = self.avgpool(x[:, :, 0:4, 0:4])
-            x1 = x1.view(x1.size(0), -1)
-            x1 = self.classifier(x1)
-
-            x2 = self.avgpool(x[:, :, 4: , 0:4])
-            x2 = x2.view(x2.size(0), -1)
-            x2 = self.classifier(x2)
-
-            x3 = self.avgpool(x[:, :, 0:4, 4: ])
-            x3 = x3.view(x3.size(0), -1)
-            x3 = self.classifier(x3)
-
-            x4 = self.avgpool(x[:, :, 4: , 4: ])
-            x4 = x4.view(x4.size(0), -1)
-            x4 = self.classifier(x4)
-
-            x5 = self.avgpool(x)
-            x5 = x5.view(x5.size(0), -1)
-            x5 = self.classifier(x5)
-
-            return (x1 + x2 + x3 + x4 + x5) / 5.0
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
 
 
 
