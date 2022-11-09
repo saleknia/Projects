@@ -123,7 +123,7 @@ class ASPP(nn.Module):
         self.bn4 = nn.BatchNorm2d(num_features=self.mid_channels)
         self.relu4 = nn.ReLU(inplace=True)
 
-        self.aspp5 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(3,3), stride=(1,1), padding=(0,0), dilation=1, bias=False)
+        self.aspp5 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(1,1), stride=(1,1), padding=(0,0), dilation=1, bias=False)
         self.bn5 = nn.BatchNorm2d(num_features=self.mid_channels)
         self.relu5 = nn.ReLU(inplace=True)
 
