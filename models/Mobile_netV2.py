@@ -34,7 +34,7 @@ class Mobile_netV2(nn.Module):
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model = efficientnet_b6(weights=EfficientNet_B6_Weights)
         self.patch_embed = model.patch_embed
-        self.models = nn.ModuleList(
+        self.transformers = nn.ModuleList(
             [model.blocks[i] for i in range(12)]
         )
         self.norm = model.norm
