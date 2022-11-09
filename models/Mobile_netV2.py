@@ -52,6 +52,7 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
+        self.aspp = ASPP(in_channels=1280)
 
         # model = resnet50(pretrained)
         # # # model = resnet18(pretrained)
@@ -90,6 +91,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
         x = self.features(x)
+        x = self.aspp(x)
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
@@ -97,8 +99,61 @@ class Mobile_netV2(nn.Module):
 
 
 
+class ASPP(nn.Module):
+
+    def __init__(self, in_channels):
+        super(ASPP, self).__init__()
+        self.in_channels = in_channels
+        self.mid_channels = in_channels // 5
+        self.global_pooling = nn.AdaptiveAvgPool2d(1)
+
+        self.aspp1 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(1,1), stride=(1,1), padding=(0,0), dilation=1, bias=False)
+        self.bn1 = nn.BatchNorm2d(num_features=self.mid_channels)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        self.aspp2 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(3,3), stride=(1,1), padding=(2,2), dilation=2, bias=False)
+        self.bn2 = nn.BatchNorm2d(num_features=self.mid_channels)
+        self.relu2 = nn.ReLU(inplace=True)
+
+        self.aspp3 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(3,3), stride=(1,1), padding=(4,4), dilation=4, bias=False)
+        self.bn3 = nn.BatchNorm2d(num_features=self.mid_channels)
+        self.relu3 = nn.ReLU(inplace=True)
+
+        self.aspp4 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(3,3), stride=(1,1), padding=(8,8), dilation=8, bias=False)
+        self.bn4 = nn.BatchNorm2d(num_features=self.mid_channels)
+        self.relu4 = nn.ReLU(inplace=True)
+
+        self.aspp5 = nn.Conv2d(in_channels=self.in_channels, out_channels=self.mid_channels, kernel_size=(3,3), stride=(1,1), padding=(0,0), dilation=1, bias=False)
+        self.bn5 = nn.BatchNorm2d(num_features=self.mid_channels)
+        self.relu5 = nn.ReLU(inplace=True)
 
 
+    def forward(self, x):
+        x1 = self.aspp1(x)
+        x1 = self.bn1(x1)
+        x1 = self.relu1(x1)
+
+        x2 = self.aspp2(x)
+        x2 = self.bn2(x2)
+        x2 = self.relu2(x2)
+
+        x3 = self.aspp3(x)
+        x3 = self.bn3(x3)
+        x3 = self.relu3(x3)
+
+        x4 = self.aspp4(x)
+        x4 = self.bn4(x4)
+        x4 = self.relu4(x4)
+
+        x5 = self.global_pooling(x)
+        x5 = self.aspp5(x5)
+        x5 = self.bn5(x5)
+        x5 = self.relu5(x5)
+
+        x5 = nn.Upsample((x.shape[2], x.shape[3]), mode='bilinear', align_corners=True)(x5)
+        x = torch.cat((x1, x2, x3, x4, x5), 1)
+
+        return x
 
 
 
