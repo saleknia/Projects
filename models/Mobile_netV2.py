@@ -30,7 +30,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         
         self.features = model.features
         self.avgpool = model.avgpool
@@ -80,43 +80,13 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
         x = self.features(x)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
-        # return x
-
-        # alpha = random.randint(0, 4)
-        # beta = random.randint(0, 4)
-        b, c, h, w = x.shape
-        prob = torch.randint(0, 2, (b, c, h, w), device='cuda')
-        if self.training:
-            # x = self.avgpool(x[:, :, alpha:alpha+3, beta:beta+3])
-            x = self.avgpool(prob * x)
-        else:
-            x = self.avgpool(x)
-
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-
         return x
 
-        # x1 = self.avgpool(x[:, :, 0:4, 0:4])
-        # x1 = x1.view(x1.size(0), -1)
-        # x1 = self.classifier(x1)
 
-        # x2 = self.avgpool(x[:, :, 4: , 0:4])
-        # x2 = x2.view(x2.size(0), -1)
-        # x2 = self.classifier(x2)
 
-        # x3 = self.avgpool(x[:, :, 0:4, 4: ])
-        # x3 = x3.view(x3.size(0), -1)
-        # x3 = self.classifier(x3)
-
-        # x4 = self.avgpool(x[:, :, 4: , 4: ])
-        # x4 = x4.view(x4.size(0), -1)
-        # x4 = self.classifier(x4)
-
-        # return (x1 + x2 + x3 + x4) / 5.0
 
 
 
