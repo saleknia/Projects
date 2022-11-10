@@ -404,11 +404,11 @@ import torchvision
 
 
 class FAMBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
