@@ -151,6 +151,10 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
+
+        targets = targets + 1.0
+        targets[targets==2.0] = 0.0
+        
         inputs = inputs.float()
         outputs = model(inputs)
         # outputs, up4 = model(inputs)

@@ -88,6 +88,10 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             inputs, targets = inputs.to(device), targets.to(device)
             inputs = inputs.float()
             targets = targets.float()
+
+            targets = targets + 1.0
+            targets[targets==2.0] = 0.0
+
             outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
