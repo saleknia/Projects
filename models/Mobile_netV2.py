@@ -66,6 +66,7 @@ class Mobile_netV2(nn.Module):
 
         # # take pretrained resnet, except AvgPool and FC
         self.conv1 = model.conv1
+        self.conv1.stride = (1, 1)
         self.bn1 = model.bn1
         self.relu = model.relu
         self.maxpool = model.maxpool
