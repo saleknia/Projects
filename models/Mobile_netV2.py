@@ -245,7 +245,7 @@ class DistilledVisionTransformer(VisionTransformer):
         else:
             # during inference, return the average of both classifier predictions
             # return (x + x_dist) / 2
-            return x
+            return x, x_dist
 
 
 @register_model
