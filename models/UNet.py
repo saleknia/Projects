@@ -175,7 +175,7 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
-class UNet(nn.Module):
+class UNet_s(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -242,6 +242,34 @@ class UNet(nn.Module):
             logits = self.outc(x)
 
         return logits
+
+class UNet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+        self.FG = UNet_s()
+        loaded_data_fg = torch.load('/content/drive/MyDrive/checkpoint_FG/UNet_ISIC2017_best.pth', map_location='cuda')
+        pretrained_fg = loaded_data_fg['net']
+        self.FG.load_state_dict(pretrained_fg)
+
+        self.BG = UNet_s()
+        loaded_data_bg = torch.load('/content/drive/MyDrive/checkpoint_BG/UNet_ISIC2017_best.pth', map_location='cuda')
+        pretrained_bg = loaded_data_bg['net']
+        self.BG.load_state_dict(pretrained_bg)
+
+    def forward(self, x):
+        # Question here
+        logits_fg = self.FG(x) 
+        logits_bg = self.BG(x)
+        return logits_fg, logits_bg
+
 
 class SEBlock(nn.Module):
     def __init__(self, channel, r=16):

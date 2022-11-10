@@ -225,27 +225,20 @@ def main(args):
             model2_dict.update(state_dict)
             model.load_state_dict(model2_dict)
 
-            initial_best_acc=loaded_data['best_acc']
-            loaded_acc=loaded_data['acc']
-            initial_best_epoch=loaded_data['best_epoch']
-            last_num_epoch=loaded_data['num_epoch']
-            current_num_epoch=last_num_epoch+current_num_epoch
+            # initial_best_acc=loaded_data['best_acc']
+            # loaded_acc=loaded_data['acc']
+            # initial_best_epoch=loaded_data['best_epoch']
+            # last_num_epoch=loaded_data['num_epoch']
+            # current_num_epoch=last_num_epoch+current_num_epoch
 
-            optimizer.load_state_dict(loaded_data['optimizer'])
-            # lr_scheduler.load_state_dict(loaded_data['lr_scheduler'])
+            # optimizer.load_state_dict(loaded_data['optimizer'])
 
-            # if last_num_epoch-initial_best_epoch < early_stopping:
-            #     count_es = last_num_epoch-initial_best_epoch
-            #     es = False
-            # elif early_stopping < last_num_epoch-initial_best_epoch:
-            #     count_es = early_stopping + 1
-            #     es = True
-            table = tabulate(
-                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-                            headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
-                            tablefmt="fancy_grid"
-                            )
-            logger.info(table)
+            # table = tabulate(
+            #                 tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+            #                 headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+            #                 tablefmt="fancy_grid"
+            #                 )
+            # logger.info(table)
         else:
             logger.info(f'No Such file : {checkpoint_path}')
         logger.info('\n')
