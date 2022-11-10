@@ -89,8 +89,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             inputs = inputs.float()
             targets = targets.float()
 
-            targets = targets + 1.0
-            targets[targets==2.0] = 0.0
+            # targets = targets + 1.0
+            # targets[targets==2.0] = 0.0
 
             outputs = model(inputs)
 
