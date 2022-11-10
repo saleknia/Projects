@@ -478,6 +478,49 @@ class DecoderBottleneckLayer(nn.Module):
 #         y = torch.mul(x, y)
 #         return y
 
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+        self.up = nn.Upsample(scale_factor=2.0)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        gate = self.up(gate)
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -500,6 +543,10 @@ class UNet(nn.Module):
         self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
         self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
 
+        self.Att4 = AttentionBlock(F_g=512, F_l=256, n_coefficients=128)
+        self.Att3 = AttentionBlock(F_g=256, F_l=128, n_coefficients=64 )
+        self.Att2 = AttentionBlock(F_g=128, F_l=64 , n_coefficients=32 )
+
         self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -518,9 +565,9 @@ class UNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        d4 = self.decoder4(e4) + e3
-        d3 = self.decoder3(d4) + e2
-        d2 = self.decoder2(d3) + e1
+        d4 = self.decoder4(e4) + self.Att4(gate=e4, skip_connection=e3)
+        d3 = self.decoder3(d4) + self.Att3(gate=d4, skip_connection=e2)
+        d2 = self.decoder2(d3) + self.Att2(gate=d3, skip_connection=e1)
 
         out1 = self.final_conv1(d2)
         out1 = self.final_relu1(out1)
