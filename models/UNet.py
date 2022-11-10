@@ -493,12 +493,6 @@ class UNet(nn.Module):
         self.encoder3 = resnet.layer3
         self.encoder4 = resnet.layer4
 
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAMBlock2 = FAMBlock(channels=128)
-        self.FAMBlock3 = FAMBlock(channels=256)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         filters = [64, 128, 256, 512]
         self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
@@ -523,13 +517,6 @@ class UNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
-
-        for i in range(2):
-            e3 = self.FAM3[i](e3)
-        for i in range(4):
-            e2 = self.FAM2[i](e2)
-        for i in range(6):
-            e1 = self.FAM1[i](e1)
 
         d4 = self.decoder4(e4) + e3
         d3 = self.decoder3(d4) + e2
