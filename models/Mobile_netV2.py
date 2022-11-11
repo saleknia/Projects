@@ -30,16 +30,16 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.model = deit_base_distilled_patch16_224(pretrained=True)
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=768, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # self.model = deit_base_distilled_patch16_224(pretrained=True)
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=768, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=40, bias=True),
+        # )
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model = efficientnet_b6(weights=EfficientNet_B6_Weights)
         # self.patch_embed = model.patch_embed
         # self.transformers = nn.ModuleList(
@@ -48,9 +48,9 @@ class Mobile_netV2(nn.Module):
         # self.norm = model.norm
         # self.avgpool = model.fc_norm
         # self.classifier = nn.Linear(in_features=192, out_features=40, bias=True)
-        # self.features = model.features
+        self.features = model.features
         # self.features[0][0].stride = (1, 1)
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.4, inplace=True),
         #     nn.Linear(in_features=2304, out_features=512, bias=True),
@@ -59,14 +59,14 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.4, inplace=True),
         #     nn.Linear(in_features=256, out_features=40, bias=True),
         # )
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=512, out_features=256, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=256, out_features=40, bias=True),
-        # )
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=256, out_features=40, bias=True),
+        )
         # self.aspp = ASPP(in_channels=1280)
 
         # model = resnet50(pretrained)
@@ -94,7 +94,7 @@ class Mobile_netV2(nn.Module):
         # )
 
     def forward(self, x):
-        # b, c, w, h = x.shape
+        b, c, w, h = x.shape
         # x = self.conv1(x)
         # x = self.bn1(x)
         # x = self.relu(x)
@@ -109,10 +109,10 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        # x = self.features(x)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
         # emb = self.patch_embed(x)
         # for i in range(12):
         #     emb = self.transformers[i](emb)
@@ -121,8 +121,8 @@ class Mobile_netV2(nn.Module):
         # emb = self.avgpool(emb)
         # print(emb.shape)
         # emb = self.classifier(emb)
-        out, _ = self.model(x)
-        return out
+        # out, _ = self.model(x)
+        return x
 
 
 
