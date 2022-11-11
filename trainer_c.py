@@ -38,7 +38,7 @@ def loss_kd_regularization(outputs, labels):
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
     alpha = 0.4
-    T = 5
+    T = 20
     correct_prob = 0.99    # the probability for correct class in u(k)
     loss_CE = F.cross_entropy(outputs, labels)
     K = outputs.size(1)
@@ -162,7 +162,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
         else:
             # loss_ce = ce_loss(outputs, targets.long())
-            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+            loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
+            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
         # loss_ce = ce_loss(outputs, targets.long())
 
