@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 from .CTrans import ChannelTransformer
+from torchvision import models as resnet_model
 
 class ParallelPolarizedSelfAttention(nn.Module):
 
@@ -160,26 +161,35 @@ class UCTransNet(nn.Module):
         self.down4 = resnet.layer4 # 512
         # (14,14) , 512
 
-        self.reduc_1 = ConvBatchNorm(in_channels=128, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduc_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduc_3 = ConvBatchNorm(in_channels=512, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=128, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=512, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
 
-        self.mtc = ChannelTransformer(config, vis, img_size,
-                                     channel_num=[in_channels, in_channels*2, in_channels*4, in_channels*8],
-                                     patchSize=config.patch_sizes)
-                                     
+        self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+
+        self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+
+        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
+
         self.up4 = UpBlock_attention(in_channels*16, in_channels*4, nb_Conv=2)
         self.up3 = UpBlock_attention(in_channels*8, in_channels*2, nb_Conv=2)
         self.up2 = UpBlock_attention(in_channels*4, in_channels, nb_Conv=2)
         self.up1 = UpBlock_attention(in_channels*2, in_channels, nb_Conv=2)
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
-        # self.outc_1 = nn.Conv2d(64 , n_classes, kernel_size=1, stride=1, padding=0)
+        self.up_5 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=2)
+        self.up_3 = nn.Upsample(scale_factor=4)
+
+        self.outc = nn.Conv2d(128 , n_classes, kernel_size=1, stride=1, padding=0)
         # self.outc_2 = nn.Conv2d(64 , n_classes, kernel_size=1, stride=1, padding=0)
         # self.outc_3 = nn.Conv2d(128, n_classes, kernel_size=1, stride=1, padding=0)
         # self.outc_4 = nn.Conv2d(256, n_classes, kernel_size=1, stride=1, padding=0)
         # self.att_2 = ParallelPolarizedSelfAttention(channel = 64)
         # self.att_3 = ParallelPolarizedSelfAttention(channel = 128)
-        self.last_activation = nn.Sigmoid() # if using BCELoss
+        # self.last_activation = nn.Sigmoid() # if using BCELoss
 
     def forward(self, x):
         x = x.float()
@@ -189,103 +199,33 @@ class UCTransNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        x1,x2,x3,x4,att_weights = self.mtc(x1,x2,x3,x4)
+        x3 = self.reduce_3(x3)
+        x4 = self.reduce_4(x4)
+        x5 = self.reduce_5(x5)
 
-        # x = self.up4(x5, x4)
-        # x = self.up3(x, x3)
-        # x = self.up2(x, x2)
-        # x = self.up1(x, x1)
+        t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
 
-        up4 = self.up4(x5, x4)
-        up3 = self.up3(up4, x3)
-        up2 = self.up2(up3, x2)
-        up1 = self.up1(up2, x1)
+        t5 = torch.cat([x5, t5], dim=1)
+        t5 = self.fam5(t5) 
 
-        logits = self.outc(up1)
-        # logits = self.outc_1(up1)
-        # # logits = logits + self.att_2(F.interpolate(self.outc_2(up2), x.size()[2:], mode='bilinear', align_corners=False))
-        # # logits = logits + self.att_3(F.interpolate(self.outc_3(up3), x.size()[2:], mode='bilinear', align_corners=False)) 
-        # logits = logits + self.outc_2(self.att_2(F.interpolate(up2, x.size()[2:], mode='bilinear', align_corners=False)))
-        # logits = logits + self.outc_3(self.att_3(F.interpolate(up3, x.size()[2:], mode='bilinear', align_corners=False))) 
-        # # logits = logits + F.interpolate(self.outc_4(up4), x.size()[2:], mode='bilinear', align_corners=False) 
+        t4 = torch.cat([x4, t4], dim=1)
+        t4 = self.fam4(t4) 
+
+        t3 = torch.cat([x3, t3], dim=1)
+        t3 = self.fam3(t3) 
+
+        t5 = self.up_5(t5)
+        t4 = torch.cat([t4, t5], dim=1)
+        t4 = self.pam4(t4) 
+
+        t4 = self.up_4(t4)
+        t3 = torch.cat([t3, t4], dim=1)
+        t3 = self.pam3(t3) 
+
+        logits = self.up_3(self.outc(t3))
 
         return logits
-        # if self.training:
-        #     # return logits, probs1, probs2, probs3, probs4, up4, up3, up2, up1
-        #     return logits, up4, up3, up2, up1, x5
 
-        # else:
-        #     return logits
-
-        # if self.n_classes ==1:
-        #     logits = self.last_activation(self.outc(x))
-        # else:
-        #     logits = self.outc(x) # if nusing BCEWithLogitsLoss or class>1
-            
-        # return logits
-
-        # if self.training:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(up1))
-        #     else:
-        #         logits = self.outc(up1) # if nusing BCEWithLogitsLoss or class>1
-                
-        #     if self.vis: # visualize the attention maps
-        #         return logits, x4, x3, x2, x1
-        #     else:
-        #         return logits, up4, up3, up2, up1
-
-        # else:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(up1))
-        #     else:
-        #         logits = self.outc(up1) # if nusing BCEWithLogitsLoss or class>1
-        #     if self.vis: # visualize the attention maps
-        #         return logits
-        #     else:
-        #         return logits
-
-        # if self.training:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(up1))
-        #     else:
-        #         logits = self.outc(up1) # if nusing BCEWithLogitsLoss or class>1
-
-        #     if self.vis: # visualize the attention maps
-        #         return logits, up4, up3, up2, up1
-        #     else:
-        #         return logits, up4, up3, up2, up1
-
-        # else:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(up1))
-        #     else:
-        #         logits = self.outc(up1) # if nusing BCEWithLogitsLoss or class>1
-        #     if self.vis: # visualize the attention maps
-        #         return logits
-        #     else:
-        #         return logits
-
-        # if self.training:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(x))
-        #     else:
-        #         logits = self.outc(x) # if nusing BCEWithLogitsLoss or class>1
-
-        #     if self.vis: # visualize the attention maps
-        #         return logits, x
-        #     else:
-        #         return logits, x
-
-        # else:
-        #     if self.n_classes ==1:
-        #         logits = self.last_activation(self.outc(x))
-        #     else:
-        #         logits = self.outc(x) # if nusing BCEWithLogitsLoss or class>1
-        #     if self.vis: # visualize the attention maps
-        #         return logits
-        #     else:
-        #         return logits
 
 
 
