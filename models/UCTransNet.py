@@ -62,10 +62,9 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -136,14 +135,39 @@ class UCTransNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         in_channels = config.base_channel
-        self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
+        
+        resnet = resnet_model.resnet34(pretrained=True)
+        resnet.conv1.stride = 1
+        self.inc = nn.Sequential(
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu
+        )
+        # 224, 64
+
+        self.down1 = nn.Sequential(
+            resnet.maxpool,
+            resnet.layer1,
+        )
+        # (112,112) , 64
+
+        self.down2 = resnet.layer2 
+        # (56,56) , 128
+
+        self.down3 = resnet.layer3 # 256
+        # (28,28) , 256
+
+        self.down4 = resnet.layer4 # 512
+        # (14,14) , 512
+
+        self.reduc_1 = ConvBatchNorm(in_channels=128, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduc_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduc_3 = ConvBatchNorm(in_channels=512, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+
         self.mtc = ChannelTransformer(config, vis, img_size,
                                      channel_num=[in_channels, in_channels*2, in_channels*4, in_channels*8],
                                      patchSize=config.patch_sizes)
+                                     
         self.up4 = UpBlock_attention(in_channels*16, in_channels*4, nb_Conv=2)
         self.up3 = UpBlock_attention(in_channels*8, in_channels*2, nb_Conv=2)
         self.up2 = UpBlock_attention(in_channels*4, in_channels, nb_Conv=2)
@@ -165,7 +189,7 @@ class UCTransNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        x1,x2,x3,x4,att_weights, probs1, probs2, probs3, probs4 = self.mtc(x1,x2,x3,x4)
+        x1,x2,x3,x4,att_weights = self.mtc(x1,x2,x3,x4)
 
         # x = self.up4(x5, x4)
         # x = self.up3(x, x3)

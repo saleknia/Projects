@@ -7,31 +7,31 @@ import math
 
 
 
-# class DoubleConv(nn.Module):
-#     """(convolution => [BN] => ReLU) * 2"""
+class DoubleConv(nn.Module):
+    """(convolution => [BN] => ReLU) * 2"""
 
-#     def __init__(self, in_channels, out_channels, mid_channels=None):
-#         super().__init__()
-#         int_in_channels = in_channels // 4
-#         int_out_channels = out_channels // 4
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        super().__init__()
+        int_in_channels = in_channels
+        int_out_channels = out_channels
         
-#         self.double_conv = nn.Sequential(
-#             nn.Conv2d(in_channels, int_in_channels, kernel_size=1, padding=0, bias=False),
-#             nn.BatchNorm2d(int_in_channels),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(int_in_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-#             nn.BatchNorm2d(int_out_channels),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(int_out_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-#             nn.BatchNorm2d(int_out_channels),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(int_out_channels, out_channels, kernel_size=1, padding=0, bias=False),
-#             nn.BatchNorm2d(out_channels),
-#             nn.ReLU(inplace=True),           
-#         )
+        self.double_conv = nn.Sequential(
+            nn.Conv2d(in_channels, int_in_channels, kernel_size=1, padding=0, bias=False),
+            nn.BatchNorm2d(int_in_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(int_in_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(int_out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(int_out_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(int_out_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(int_out_channels, out_channels, kernel_size=1, padding=0, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),           
+        )
 
-#     def forward(self, x):
-#         return self.double_conv(x)
+    def forward(self, x):
+        return self.double_conv(x)
 
 
 class Down(nn.Module):
@@ -91,7 +91,7 @@ class U_loss(nn.Module):
         self.bilinear = bilinear
         # self.bilinear = True
         in_channels = 64
-        self.inc = DoubleConv_s(n_channels, in_channels)
+        self.inc = DoubleConv(n_channels, in_channels)
         self.down1 = Down(in_channels  , in_channels*2)
         self.down2 = Down(in_channels*2, in_channels*4)
         self.down3 = Down(in_channels*4, in_channels*8)
