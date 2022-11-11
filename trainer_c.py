@@ -23,7 +23,7 @@ def loss_kd_regularization(outputs, labels):
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
     alpha = 0.4
-    T = 5
+    T = 5000
     correct_prob = 0.99    # the probability for correct class in u(k)
     loss_CE = F.cross_entropy(outputs, labels)
     K = outputs.size(1)
