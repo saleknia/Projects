@@ -21,7 +21,7 @@ def loss_label_smoothing(outputs, labels):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.6
+    alpha = 0.4
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
