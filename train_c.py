@@ -333,7 +333,7 @@ def main(args):
         transform_train = transforms.Compose([
             transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomAffine(degrees=20, translate=(0.2,0.2)),
+            # transforms.RandomAffine(degrees=20, translate=(0.2,0.2)),
             # transforms.RandomApply(
             # [
             #     transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)
