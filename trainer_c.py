@@ -17,6 +17,28 @@ from utils import importance_maps_distillation as imd
 import os
 warnings.filterwarnings("ignore")
 
+
+def loss_kd_regularization(outputs, labels):
+    """
+    loss function for mannually-designed regularization: Tf-KD_{reg}
+    """
+    alpha = 0.4
+    T = 5
+    correct_prob = 0.99    # the probability for correct class in u(k)
+    loss_CE = F.cross_entropy(outputs, labels)
+    K = outputs.size(1)
+
+    teacher_soft = torch.ones_like(outputs).cuda()
+    teacher_soft = teacher_soft*(1-correct_prob)/(K-1)  # p^d(k)
+    for i in range(outputs.shape[0]):
+        teacher_soft[i ,labels[i]] = correct_prob
+    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))*params.multiplier
+
+    KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
+
+    return KD_loss
+
+
 class FSP(nn.Module):
 	'''
 	A Gift from Knowledge Distillation: Fast Optimization, Network Minimization and Transfer Learning
@@ -91,6 +113,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
         ce_loss = CrossEntropyLoss(label_smoothing=0.0)
+    disparity_loss = loss_function
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -123,12 +146,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets.long()) * weights
             loss_ce = torch.mean(loss_ce)
         else:
-            loss_ce = ce_loss(outputs, targets.long())
+            # loss_ce = ce_loss(outputs, targets.long())
+            loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
 
         # loss_ce = ce_loss(outputs, targets.long())
 
         loss_disparity = 0.0
-        # loss_disparity = distillation(outputs, outputs_t)
+        # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
