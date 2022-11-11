@@ -32,7 +32,7 @@ def loss_kd_regularization(outputs, labels):
     teacher_soft = teacher_soft*(1-correct_prob)/(K-1)  # p^d(k)
     for i in range(outputs.shape[0]):
         teacher_soft[i ,labels[i]] = correct_prob
-    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))*params.multiplier
+    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))
 
     KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
 
