@@ -32,41 +32,26 @@ def loss_label_smoothing(outputs, labels):
 
     return loss
 
+
 def loss_kd_regularization(outputs, labels):
     """
     loss function for mannually-designed regularization: Tf-KD_{reg}
     """
     alpha = 0.4
+    T = 5
+    correct_prob = 0.99    # the probability for correct class in u(k)
     loss_CE = F.cross_entropy(outputs, labels)
     K = outputs.size(1)
 
     teacher_soft = torch.ones_like(outputs).cuda()
-    teacher_soft = teacher_soft*(1/K)  # p^d(k)
-    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft, dim=1))
+    teacher_soft = teacher_soft*(1-correct_prob)/(K-1)  # p^d(k)
+    for i in range(outputs.shape[0]):
+        teacher_soft[i ,labels[i]] = correct_prob
+    loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))
 
-    KD_loss = KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
+    KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
 
     return KD_loss
-
-# def loss_kd_regularization(outputs, labels):
-#     """
-#     loss function for mannually-designed regularization: Tf-KD_{reg}
-#     """
-#     alpha = 0.4
-#     T = 5
-#     correct_prob = 0.99    # the probability for correct class in u(k)
-#     loss_CE = F.cross_entropy(outputs, labels)
-#     K = outputs.size(1)
-
-#     teacher_soft = torch.ones_like(outputs).cuda()
-#     teacher_soft = teacher_soft*(1-correct_prob)/(K-1)  # p^d(k)
-#     for i in range(outputs.shape[0]):
-#         teacher_soft[i ,labels[i]] = correct_prob
-#     loss_soft_regu = nn.KLDivLoss()(F.log_softmax(outputs, dim=1), F.softmax(teacher_soft/T, dim=1))
-
-#     KD_loss = (1. - alpha)*loss_CE + alpha*loss_soft_regu
-
-#     return KD_loss
 
 
 class FSP(nn.Module):
@@ -189,15 +174,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = loss_ce + loss_disparity
         ###############################################
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
-        # iter_num = iter_num + 1   
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
+        iter_num = iter_num + 1   
 
-        iter_num = iter_num + 1 
-        if iter_num % (total_batchs*10)==0:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.5
+        # iter_num = iter_num + 1 
+        # if iter_num % (total_batchs*10)==0:
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = param_group['lr'] * 0.5
 
 
         optimizer.zero_grad()
