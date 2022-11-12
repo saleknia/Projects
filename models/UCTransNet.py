@@ -274,7 +274,7 @@ class UCTransNet(nn.Module):
         self.outc = nn.Conv2d(in_channels*2, n_classes, kernel_size=(1,1), stride=(1,1))
 
         self.up_int = nn.Upsample(scale_factor=2)
-        self.up_out = nn.Upsample(scale_factor=2)
+        self.up_out = nn.Upsample(scale_factor=4)
 
 
     def forward(self, x):
