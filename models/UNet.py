@@ -201,10 +201,10 @@ class UNet_s(nn.Module):
         )
 
         self.maxpool = resnet.maxpool
-        self.down1 = resnet.layer1 # 64
-        self.down2 = resnet.layer2 # 128
-        self.down3 = resnet.layer3 # 256
-        self.down4 = resnet.layer4 # 512
+        self.down1 = resnet.layer1 # 256
+        self.down2 = resnet.layer2 # 512
+        self.down3 = resnet.layer3 # 1024
+        self.down4 = resnet.layer4 # 2048
 
         self.up4 = UpBlock(in_channels*12, in_channels*2, nb_Conv=2, channel=512, up=True)
         self.up3 = UpBlock(in_channels*4 , in_channels*1, nb_Conv=2, channel=128, up=True)

@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+import timm
 import torch.nn.functional as F
 from .CTrans import ChannelTransformer
 from torchvision import models as resnet_model
@@ -137,33 +138,36 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = timm.create_model('res2net50_26w_4s', pretrained=True)
         resnet.conv1.stride = 1
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
-            resnet.relu
+            # resnet.relu
+            resnet.act1
         )
+        
         # 224, 64
 
         self.down1 = nn.Sequential(
             resnet.maxpool,
             resnet.layer1,
         )
-        # (112,112) , 64
+        # (112,112) , 256
 
         self.down2 = resnet.layer2 
-        # (56,56) , 128
+        # (56,56) , 512
 
         self.down3 = resnet.layer3 # 256
-        # (28,28) , 256
+        # (28,28) , 1024
 
         self.down4 = resnet.layer4 # 512
-        # (14,14) , 512
+        # (14,14) , 2048
 
-        self.reduce_3 = ConvBatchNorm(in_channels=128, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_5 = ConvBatchNorm(in_channels=512, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=512 , out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=1024, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=2048, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
 
         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
