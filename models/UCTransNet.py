@@ -139,8 +139,7 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        # resnet = resnet_model.resnet34(pretrained=True)
-        resnet = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
+        resnet = resnet_model.resnet50(pretrained=True)
         resnet.conv1.stride = 1
         self.inc = nn.Sequential(
             resnet.conv1,
