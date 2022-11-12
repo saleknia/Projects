@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch
 import timm
+import torchvision
 import torch.nn.functional as F
 from .CTrans import ChannelTransformer
 from torchvision import models as resnet_model
@@ -138,17 +139,15 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        resnet = resnet_model.resnet34(pretrained=True)
-        # resnet = timm.create_model('res2net50_26w_4s', pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
         resnet.conv1.stride = 1
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
             resnet.relu
-            # resnet.act1
         )
-        
-        # 224, 64
+        # (224,224) , 64
 
         self.down1 = nn.Sequential(
             resnet.maxpool,
@@ -165,9 +164,9 @@ class UCTransNet(nn.Module):
         self.down4 = resnet.layer4 # 512
         # (14,14) , 2048
 
-        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=512 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=1024, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=2048, activation='ReLU', kernel_size=1, padding=0)
 
         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
@@ -189,10 +188,6 @@ class UCTransNet(nn.Module):
 
         self.outc = nn.Conv2d(128 , n_classes, kernel_size=1, stride=1, padding=0)
 
-        self.esp3 = DilatedParllelResidualBlockB(nIn=128, nOut=128)
-        self.esp4 = DilatedParllelResidualBlockB(nIn=128, nOut=128)
-        self.esp5 = DilatedParllelResidualBlockB(nIn=128, nOut=128)
-
 
     def forward(self, x):
         x = x.float()
@@ -210,15 +205,12 @@ class UCTransNet(nn.Module):
 
         t5 = torch.cat([x5, t5], dim=1)
         t5 = self.fam5(t5) 
-        t5 = self.esp5(t5)
 
         t4 = torch.cat([x4, t4], dim=1)
         t4 = self.fam4(t4) 
-        t4 = self.esp4(t4)
 
         t3 = torch.cat([x3, t3], dim=1)
         t3 = self.fam3(t3) 
-        t3 = self.esp3(t3)
 
         t5 = self.up_5(t5)
         t4 = torch.cat([t4, t5], dim=1)
