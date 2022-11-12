@@ -275,16 +275,16 @@ class UCTransNet(nn.Module):
 
     def forward(self, x):
         x = x.float()
-        
+
         inc = self.inc(x)
         layer1 = self.layer1(inc)
         layer2 = self.layer2(layer1)
         layer3 = self.layer3(layer2)
         layer4 = self.layer4(layer3)
 
-        layer2 = self.reduce_3(layer2)
-        layer3 = self.reduce_4(layer3)
-        layer4 = self.reduce_5(layer4)
+        layer2 = self.reduce_2(layer2)
+        layer3 = self.reduce_3(layer3)
+        layer4 = self.reduce_4(layer4)
 
         t2, t3, t4, att_weights = self.mtc(layer2, layer3, layer4)
 
