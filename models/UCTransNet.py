@@ -310,7 +310,7 @@ class UCTransNet(nn.Module):
         x = torch.cat([x, layer1], dim=1)
 
         x = self.outc(x)
-        x = self.up(x)
+        x = self.up_out(x)
 
         return x
 
