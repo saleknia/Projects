@@ -5,6 +5,163 @@ import torchvision
 import torch.nn.functional as F
 from .CTrans import ChannelTransformer
 from torchvision import models as resnet_model
+import numpy as np
+from torch.nn import init
+
+class ChannelAttentionModule(nn.Module):
+    
+    def __init__(self,d_model=512,kernel_size=3,H=7,W=7):
+        super().__init__()
+        self.cnn=nn.Conv2d(d_model,d_model,kernel_size=kernel_size,padding=(kernel_size-1)//2)
+        self.pa=SimplifiedScaledDotProductAttention(H*W,h=1)
+    
+    def forward(self,x):
+        bs,c,h,w=x.shape
+        y=self.cnn(x)
+        y=y.view(bs,c,-1) #bs,c,h*w
+        y=self.pa(y,y,y) #bs,c,h*w
+        return y
+
+
+class SimplifiedScaledDotProductAttention(nn.Module):
+    '''
+    Scaled dot-product attention
+    '''
+
+    def __init__(self, d_model, h,dropout=.1):
+        '''
+        :param d_model: Output dimensionality of the model
+        :param d_k: Dimensionality of queries and keys
+        :param d_v: Dimensionality of values
+        :param h: Number of heads
+        '''
+        super(SimplifiedScaledDotProductAttention, self).__init__()
+
+        self.d_model = d_model
+        self.d_k = d_model//h
+        self.d_v = d_model//h
+        self.h = h
+
+        self.fc_o = nn.Linear(h * self.d_v, d_model)
+        self.dropout=nn.Dropout(dropout)
+
+
+
+        self.init_weights()
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, queries, keys, values, attention_mask=None, attention_weights=None):
+        '''
+        Computes
+        :param queries: Queries (b_s, nq, d_model)
+        :param keys: Keys (b_s, nk, d_model)
+        :param values: Values (b_s, nk, d_model)
+        :param attention_mask: Mask over attention values (b_s, h, nq, nk). True indicates masking.
+        :param attention_weights: Multiplicative weights for attention values (b_s, h, nq, nk).
+        :return:
+        '''
+        b_s, nq = queries.shape[:2]
+        nk = keys.shape[1]
+
+        q = queries.view(b_s, nq, self.h, self.d_k).permute(0, 2, 1, 3)  # (b_s, h, nq, d_k)
+        k = keys.view(b_s, nk, self.h, self.d_k).permute(0, 2, 3, 1)  # (b_s, h, d_k, nk)
+        v = values.view(b_s, nk, self.h, self.d_v).permute(0, 2, 1, 3)  # (b_s, h, nk, d_v)
+
+        att = torch.matmul(q, k) / np.sqrt(self.d_k)  # (b_s, h, nq, nk)
+        if attention_weights is not None:
+            att = att * attention_weights
+        if attention_mask is not None:
+            att = att.masked_fill(attention_mask, -np.inf)
+        att = torch.softmax(att, -1)
+        att=self.dropout(att)
+
+        out = torch.matmul(att, v).permute(0, 2, 1, 3).contiguous().view(b_s, nq, self.h * self.d_v)  # (b_s, nq, h*d_v)
+        out = self.fc_o(out)  # (b_s, nq, d_model)
+        return out
+
+class ScaledDotProductAttention(nn.Module):
+    '''
+    Scaled dot-product attention
+    '''
+
+    def __init__(self, d_model, d_k, d_v, h,dropout=.1):
+        '''
+        :param d_model: Output dimensionality of the model
+        :param d_k: Dimensionality of queries and keys
+        :param d_v: Dimensionality of values
+        :param h: Number of heads
+        '''
+        super(ScaledDotProductAttention, self).__init__()
+        self.fc_q = nn.Linear(d_model, h * d_k)
+        self.fc_k = nn.Linear(d_model, h * d_k)
+        self.fc_v = nn.Linear(d_model, h * d_v)
+        self.fc_o = nn.Linear(h * d_v, d_model)
+        self.dropout=nn.Dropout(dropout)
+
+        self.d_model = d_model
+        self.d_k = d_k
+        self.d_v = d_v
+        self.h = h
+
+        self.init_weights()
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, queries, keys, values, attention_mask=None, attention_weights=None):
+        '''
+        Computes
+        :param queries: Queries (b_s, nq, d_model)
+        :param keys: Keys (b_s, nk, d_model)
+        :param values: Values (b_s, nk, d_model)
+        :param attention_mask: Mask over attention values (b_s, h, nq, nk). True indicates masking.
+        :param attention_weights: Multiplicative weights for attention values (b_s, h, nq, nk).
+        :return:
+        '''
+        b_s, nq = queries.shape[:2]
+        nk = keys.shape[1]
+
+        q = self.fc_q(queries).view(b_s, nq, self.h, self.d_k).permute(0, 2, 1, 3)  # (b_s, h, nq, d_k)
+        k = self.fc_k(keys).view(b_s, nk, self.h, self.d_k).permute(0, 2, 3, 1)  # (b_s, h, d_k, nk)
+        v = self.fc_v(values).view(b_s, nk, self.h, self.d_v).permute(0, 2, 1, 3)  # (b_s, h, nk, d_v)
+
+        att = torch.matmul(q, k) / np.sqrt(self.d_k)  # (b_s, h, nq, nk)
+        if attention_weights is not None:
+            att = att * attention_weights
+        if attention_mask is not None:
+            att = att.masked_fill(attention_mask, -np.inf)
+        att = torch.softmax(att, -1)
+        att=self.dropout(att)
+
+        out = torch.matmul(att, v).permute(0, 2, 1, 3).contiguous().view(b_s, nq, self.h * self.d_v)  # (b_s, nq, h*d_v)
+        out = self.fc_o(out)  # (b_s, nq, d_model)
+        return out
 
 class ParallelPolarizedSelfAttention(nn.Module):
 
@@ -131,100 +288,6 @@ class UpBlock_attention(nn.Module):
         x = torch.cat([skip_x_att, up], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
-# class UCTransNet(nn.Module):
-#     def __init__(self, config,n_channels=3, n_classes=1,img_size=256,vis=False):
-#         super().__init__()
-#         self.vis = vis
-#         self.n_channels = n_channels
-#         self.n_classes = n_classes
-#         in_channels = config.base_channel
-        
-#         resnet = resnet_model.resnet50(pretrained=True)
-#         resnet.conv1.stride = 1
-#         self.inc = nn.Sequential(
-#             resnet.conv1,
-#             resnet.bn1,
-#             resnet.relu
-#         )
-#         # (224,224) , 64
-
-#         self.down1 = nn.Sequential(
-#             resnet.maxpool,
-#             resnet.layer1,
-#         )
-#         # (112,112) , 256
-
-#         self.down2 = resnet.layer2 
-#         # (56,56) , 512
-
-#         self.down3 = resnet.layer3 # 256
-#         # (28,28) , 1024
-
-#         self.down4 = resnet.layer4 # 512
-#         # (14,14) , 2048
-
-#         self.reduce_3 = ConvBatchNorm(in_channels=512  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-#         self.reduce_4 = ConvBatchNorm(in_channels=1024 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-#         self.reduce_5 = ConvBatchNorm(in_channels=2048 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-
-#         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-#         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-#         self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-
-#         self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-#         self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-
-#         self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
-
-#         self.up4 = UpBlock_attention(in_channels*16, in_channels*4, nb_Conv=2)
-#         self.up3 = UpBlock_attention(in_channels*8, in_channels*2, nb_Conv=2)
-#         self.up2 = UpBlock_attention(in_channels*4, in_channels, nb_Conv=2)
-#         self.up1 = UpBlock_attention(in_channels*2, in_channels, nb_Conv=2)
-#         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
-#         self.up_5 = nn.Upsample(scale_factor=2)
-#         self.up_4 = nn.Upsample(scale_factor=2)
-#         self.up_3 = nn.Upsample(scale_factor=4)
-
-#         self.outc = nn.Conv2d(128 , n_classes, kernel_size=1, stride=1, padding=0)
-
-
-#     def forward(self, x):
-#         x = x.float()
-#         x1 = self.inc(x)
-#         x2 = self.down1(x1)
-#         x3 = self.down2(x2)
-#         x4 = self.down3(x3)
-#         x5 = self.down4(x4)
-
-#         x3 = self.reduce_3(x3)
-#         x4 = self.reduce_4(x4)
-#         x5 = self.reduce_5(x5)
-
-#         t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
-
-#         t5 = torch.cat([x5, t5], dim=1)
-#         t5 = self.fam5(t5) 
-
-#         t4 = torch.cat([x4, t4], dim=1)
-#         t4 = self.fam4(t4) 
-
-#         t3 = torch.cat([x3, t3], dim=1)
-#         t3 = self.fam3(t3) 
-
-#         t5 = self.up_5(t5)
-#         t4 = torch.cat([t4, t5], dim=1)
-#         t4 = self.pam4(t4) 
-
-#         t4 = self.up_4(t4)
-#         t3 = torch.cat([t3, t4], dim=1)
-#         t3 = self.pam3(t3) 
-
-#         logits = self.up_3(self.outc(t3))
-
-#         return logits
-
-
-
 class UCTransNet(nn.Module):
     def __init__(self, config,n_channels=3, n_classes=1,img_size=256,vis=False):
         super().__init__()
@@ -232,87 +295,188 @@ class UCTransNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
         in_channels = config.base_channel
-
-        model = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
-
+        
+        resnet = resnet_model.resnet34(pretrained=True)
+        resnet.conv1.stride = 1
         self.inc = nn.Sequential(
-                                model.conv1  ,
-                                model.bn1    ,
-                                model.relu   ,
-                                model.maxpool,
-                            )
-        # torch.Size([8, 64, 56, 56])
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu
+        )
+        # (224,224) , 64
 
-        self.layer1 = model.layer1
-        # torch.Size([8, 256, 56, 56])
+        self.down1 = nn.Sequential(
+            resnet.maxpool,
+            resnet.layer1,
+        )
+        # (112,112) , 64
 
-        self.layer2 = model.layer2
-        # torch.Size([8, 512, 28, 28])
+        self.down2 = resnet.layer2 
+        # (56,56) , 128
 
-        self.layer3 = model.layer3
-        # torch.Size([8, 1024, 28, 28])
+        self.down3 = resnet.layer3 # 256
+        # (28,28) , 256
 
-        self.layer4 = model.layer4
-        # torch.Size([8, 2048, 28, 28])   
+        self.down4 = resnet.layer4 # 512
+        # (14,14) , 512
 
+        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
 
-        self.reduce_1 = ConvBatchNorm(in_channels=256  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
-        self.reduce_2 = ConvBatchNorm(in_channels=512  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_3 = ConvBatchNorm(in_channels=1024 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_4 = ConvBatchNorm(in_channels=2048 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+
+        self.ca5 = ChannelAttentionModule(d_model=256)
+        self.ca4 = ChannelAttentionModule(d_model=256)
+        self.ca3 = ChannelAttentionModule(d_model=256)
 
         self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
 
-        self.fam2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.up4 = UpBlock_attention(in_channels*16, in_channels*4, nb_Conv=2)
+        self.up3 = UpBlock_attention(in_channels*8, in_channels*2, nb_Conv=2)
+        self.up2 = UpBlock_attention(in_channels*4, in_channels, nb_Conv=2)
+        self.up1 = UpBlock_attention(in_channels*2, in_channels, nb_Conv=2)
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
+        self.up_5 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=2)
+        self.up_3 = nn.Upsample(scale_factor=4)
 
-        self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.fusion_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)      
-        
-        self.outc = nn.Conv2d(in_channels*2, n_classes, kernel_size=(1,1), stride=(1,1))
-
-        self.up_int = nn.Upsample(scale_factor=2)
-        self.up_out = nn.Upsample(scale_factor=4)
+        self.outc = nn.Conv2d(128 , n_classes, kernel_size=1, stride=1, padding=0)
 
 
     def forward(self, x):
         x = x.float()
+        x1 = self.inc(x)
+        x2 = self.down1(x1)
+        x3 = self.down2(x2)
+        x4 = self.down3(x3)
+        x5 = self.down4(x4)
 
-        inc = self.inc(x)
-        layer1 = self.layer1(inc)
-        layer2 = self.layer2(layer1)
-        layer3 = self.layer3(layer2)
-        layer4 = self.layer4(layer3)
+        x3 = self.reduce_3(x3)
+        x4 = self.reduce_4(x4)
+        x5 = self.reduce_5(x5)
 
-        layer1 = self.reduce_1(layer1)
+        t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
 
-        layer2 = self.reduce_2(layer2)
-        layer3 = self.reduce_3(layer3)
-        layer4 = self.reduce_4(layer4)
+        t5 = torch.cat([x5, t5], dim=1)
+        t5 = self.ca5(t5)
+        t5 = self.fam5(t5) 
 
-        t2, t3, t4, att_weights = self.mtc(layer2, layer3, layer4)
-
-        t4 = torch.cat([layer4, t4], dim=1)
+        t4 = torch.cat([x4, t4], dim=1)
+        t4 = self.ca4(t4)
         t4 = self.fam4(t4) 
 
-        t3 = torch.cat([layer3, t3], dim=1)
+        t3 = torch.cat([x3, t3], dim=1)
+        t3 = self.ca5(t3)
         t3 = self.fam3(t3) 
 
-        t2 = torch.cat([layer2, t2], dim=1)
-        t2 = self.fam2(t2) 
+        t5 = self.up_5(t5)
+        t4 = torch.cat([t4, t5], dim=1)
+        t4 = self.pam4(t4) 
 
-        x = torch.cat([t4, t3, t2], dim=1)
-        x = self.fusion_1(x) 
-        x = self.up_int(x)
+        t4 = self.up_4(t4)
+        t3 = torch.cat([t3, t4], dim=1)
+        t3 = self.pam3(t3) 
 
-        x = torch.cat([x, layer1], dim=1)
+        logits = self.up_3(self.outc(t3))
 
-        x = self.outc(x)
-        x = self.up_out(x)
+        return logits
 
-        return x
+
+
+# class UCTransNet(nn.Module):
+#     def __init__(self, config,n_channels=3, n_classes=1,img_size=256,vis=False):
+#         super().__init__()
+#         self.vis = vis
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
+#         in_channels = config.base_channel
+
+#         model = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
+
+#         self.inc = nn.Sequential(
+#                                 model.conv1  ,
+#                                 model.bn1    ,
+#                                 model.relu   ,
+#                                 model.maxpool,
+#                             )
+#         # torch.Size([8, 64, 56, 56])
+
+#         self.layer1 = model.layer1
+#         # torch.Size([8, 256, 56, 56])
+
+#         self.layer2 = model.layer2
+#         # torch.Size([8, 512, 28, 28])
+
+#         self.layer3 = model.layer3
+#         # torch.Size([8, 1024, 28, 28])
+
+#         self.layer4 = model.layer4
+#         # torch.Size([8, 2048, 28, 28])   
+
+
+#         self.reduce_1 = ConvBatchNorm(in_channels=256  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+
+#         self.reduce_2 = ConvBatchNorm(in_channels=512  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+#         self.reduce_3 = ConvBatchNorm(in_channels=1024 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+#         self.reduce_4 = ConvBatchNorm(in_channels=2048 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+
+#         self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
+
+#         self.fam2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+#         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+#         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+
+#         self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+#         self.fusion_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)      
+        
+#         self.outc = nn.Conv2d(in_channels*2, n_classes, kernel_size=(1,1), stride=(1,1))
+
+#         self.up_int = nn.Upsample(scale_factor=2)
+#         self.up_out = nn.Upsample(scale_factor=4)
+
+
+#     def forward(self, x):
+#         x = x.float()
+
+#         inc = self.inc(x)
+#         layer1 = self.layer1(inc)
+#         layer2 = self.layer2(layer1)
+#         layer3 = self.layer3(layer2)
+#         layer4 = self.layer4(layer3)
+
+#         layer1 = self.reduce_1(layer1)
+
+#         layer2 = self.reduce_2(layer2)
+#         layer3 = self.reduce_3(layer3)
+#         layer4 = self.reduce_4(layer4)
+
+#         t2, t3, t4, att_weights = self.mtc(layer2, layer3, layer4)
+
+#         t4 = torch.cat([layer4, t4], dim=1)
+#         t4 = self.fam4(t4) 
+
+#         t3 = torch.cat([layer3, t3], dim=1)
+#         t3 = self.fam3(t3) 
+
+#         t2 = torch.cat([layer2, t2], dim=1)
+#         t2 = self.fam2(t2) 
+
+#         x = torch.cat([t4, t3, t2], dim=1)
+#         x = self.fusion_1(x) 
+#         x = self.up_int(x)
+
+#         x = torch.cat([x, layer1], dim=1)
+
+#         x = self.outc(x)
+#         x = self.up_out(x)
+
+#         return x
 
 
 
