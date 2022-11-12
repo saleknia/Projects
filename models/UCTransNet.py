@@ -173,7 +173,6 @@ class UCTransNet(nn.Module):
         in_channels = config.base_channel
         
         resnet = resnet_model.resnet34(pretrained=True)
-        resnet.conv1.stride = 1
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
@@ -182,7 +181,6 @@ class UCTransNet(nn.Module):
         # (224,224) , 64
 
         self.down1 = nn.Sequential(
-            resnet.maxpool,
             resnet.layer1,
         )
         # (112,112) , 64
