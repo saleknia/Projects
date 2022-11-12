@@ -93,8 +93,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             # targets = targets + 1.0
             # targets[targets==2.0] = 0.0
 
-            outputs_fg, outputs_bg = model(inputs)
-            # outputs = model(inputs)
+            outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
             loss_dice = dice_loss(inputs=outputs, targets=targets)
@@ -104,9 +103,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
 
             targets = targets.long()
 
-            # predictions = torch.round(torch.squeeze(outputs, dim=1))
-            predictions = torch.round(0.5 * (1.0 - torch.sigmoid(torch.squeeze(outputs_bg, dim=1))) + (torch.sigmoid(torch.squeeze(outputs_fg, dim=1))))
-            # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
 
             # accuracy.update(Eval.Pixel_Accuracy())
