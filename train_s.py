@@ -225,20 +225,20 @@ def main(args):
             model2_dict.update(state_dict)
             model.load_state_dict(model2_dict)
 
-            initial_best_acc=loaded_data['best_acc']
-            loaded_acc=loaded_data['acc']
-            initial_best_epoch=loaded_data['best_epoch']
-            last_num_epoch=loaded_data['num_epoch']
-            current_num_epoch=last_num_epoch+current_num_epoch
+            # initial_best_acc=loaded_data['best_acc']
+            # loaded_acc=loaded_data['acc']
+            # initial_best_epoch=loaded_data['best_epoch']
+            # last_num_epoch=loaded_data['num_epoch']
+            # current_num_epoch=last_num_epoch+current_num_epoch
 
-            optimizer.load_state_dict(loaded_data['optimizer'])
+            # optimizer.load_state_dict(loaded_data['optimizer'])
 
-            table = tabulate(
-                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-                            headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
-                            tablefmt="fancy_grid"
-                            )
-            logger.info(table)
+            # table = tabulate(
+            #                 tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+            #                 headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+            #                 tablefmt="fancy_grid"
+            #                 )
+            # logger.info(table)
         else:
             logger.info(f'No Such file : {checkpoint_path}')
         logger.info('\n')
