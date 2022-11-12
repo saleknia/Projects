@@ -256,6 +256,7 @@ class UCTransNet(nn.Module):
         # torch.Size([8, 2048, 28, 28])   
 
 
+        self.reduce_1 = ConvBatchNorm(in_channels=256  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
 
         self.reduce_2 = ConvBatchNorm(in_channels=512  , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
         self.reduce_3 = ConvBatchNorm(in_channels=1024 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
@@ -267,10 +268,13 @@ class UCTransNet(nn.Module):
         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
-        self.head = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
-        self.up = nn.Upsample(scale_factor=8)
+        self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fusion_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)      
+        
+        self.outc = nn.Conv2d(in_channels*2, n_classes, kernel_size=(1,1), stride=(1,1))
 
+        self.up_int = nn.Upsample(scale_factor=2)
+        self.up_out = nn.Upsample(scale_factor=2)
 
 
     def forward(self, x):
@@ -281,6 +285,8 @@ class UCTransNet(nn.Module):
         layer2 = self.layer2(layer1)
         layer3 = self.layer3(layer2)
         layer4 = self.layer4(layer3)
+
+        layer1 = self.reduce_1(layer1)
 
         layer2 = self.reduce_2(layer2)
         layer3 = self.reduce_3(layer3)
@@ -298,7 +304,10 @@ class UCTransNet(nn.Module):
         t2 = self.fam2(t2) 
 
         x = torch.cat([t4, t3, t2], dim=1)
-        x = self.head(x) 
+        x = self.fusion_1(x) 
+        x = self.up_int(x)
+
+        x = torch.cat([x, layer1], dim=1)
 
         x = self.outc(x)
         x = self.up(x)
