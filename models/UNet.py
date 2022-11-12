@@ -1,4 +1,5 @@
 import torch
+import timm
 import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models as resnet_model
@@ -686,7 +687,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         return output
 
 import os
-os.system('pip install timm')
+# os.system('pip install timm')
 import torch
 import torch.nn as nn
 from functools import partial
