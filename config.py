@@ -283,7 +283,7 @@ def get_CTranS_config():
     # config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
     config.KV_size = 192  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 12
+    config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     # config.transformer.embeddings_dropout_rate = 0.3
     # config.transformer.attention_dropout_rate  = 0.3
