@@ -182,8 +182,8 @@ class UCTransNet(nn.Module):
         # (224,224) , 64
 
         self.down1 = nn.Sequential(
-            resnet.layer1,
             resnet.maxpool
+            resnet.layer1,
         )
         # (112,112) , 64
 
