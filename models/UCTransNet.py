@@ -200,15 +200,15 @@ class UCTransNet(nn.Module):
         self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
         self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
 
-        # self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        # self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        # self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
         self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
 
-        # self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
+        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
 
         self.up_5 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=2)
@@ -229,20 +229,20 @@ class UCTransNet(nn.Module):
         x4 = self.reduce_4(x4)
         x5 = self.reduce_5(x5)
 
-        t3 = x3
-        t4 = x4
-        t5 = x5
+        # t3 = x3
+        # t4 = x4
+        # t5 = x5
 
-        # t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
+        t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
 
-        # t5 = torch.cat([x5, t5], dim=1)
-        # t5 = self.fam5(t5) 
+        t5 = torch.cat([x5, t5], dim=1)
+        t5 = self.fam5(t5) 
 
-        # t4 = torch.cat([x4, t4], dim=1)
-        # t4 = self.fam4(t4) 
+        t4 = torch.cat([x4, t4], dim=1)
+        t4 = self.fam4(t4) 
 
-        # t3 = torch.cat([x3, t3], dim=1)
-        # t3 = self.fam3(t3) 
+        t3 = torch.cat([x3, t3], dim=1)
+        t3 = self.fam3(t3) 
 
         t5 = self.up_5(t5)
         t4 = torch.cat([t4, t5], dim=1)
