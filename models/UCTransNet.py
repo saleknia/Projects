@@ -210,11 +210,6 @@ class UCTransNet(nn.Module):
 
         # self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[in_channels, in_channels, in_channels],patchSize=config.patch_sizes)
 
-        # self.up4 = UpBlock_attention(in_channels*16, in_channels*4, nb_Conv=2)
-        # self.up3 = UpBlock_attention(in_channels*8, in_channels*2, nb_Conv=2)
-        # self.up2 = UpBlock_attention(in_channels*4, in_channels, nb_Conv=2)
-        # self.up1 = UpBlock_attention(in_channels*2, in_channels, nb_Conv=2)
-
         self.up_5 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=2)
         self.up_3 = nn.Upsample(scale_factor=4)
@@ -237,7 +232,7 @@ class UCTransNet(nn.Module):
         t3 = x3
         t4 = x4
         t5 = x5
-        
+
         # t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
 
         # t5 = torch.cat([x5, t5], dim=1)
