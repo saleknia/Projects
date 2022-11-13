@@ -229,9 +229,9 @@ class UCTransNet(nn.Module):
         x4 = self.down3(x3)
         x5 = self.down4(x4)
 
-        # x3 = self.reduce_3(x3)
-        # x4 = self.reduce_4(x4)
-        # x5 = self.reduce_5(x5)
+        x3 = self.reduce_3(x3)
+        x4 = self.reduce_4(x4)
+        x5 = self.reduce_5(x5)
 
         # t3 = x3
         # t4 = x4
