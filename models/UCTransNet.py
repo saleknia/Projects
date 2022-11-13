@@ -196,29 +196,25 @@ class UCTransNet(nn.Module):
         self.down4 = resnet.layer4 # 512
         # (14,14) , 512
 
-        # self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=64 , activation='ReLU', kernel_size=3, padding=1)
-        # self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=64 , activation='ReLU', kernel_size=3, padding=1)
-        # self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=64 , activation='ReLU', kernel_size=3, padding=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
+        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
 
-        # self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        # self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        # self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-
-        self.fam3 = ConvBatchNorm(in_channels=192, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.fam4 = ConvBatchNorm(in_channels=320, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.fam5 = ConvBatchNorm(in_channels=576, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
         self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
 
-        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 256, 512],patchSize=config.patch_sizes)
+        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 128, 128],patchSize=config.patch_sizes)
 
         self.up_5 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=2)
         self.up_3 = nn.Upsample(scale_factor=4)
 
-        self.outc = nn.Conv2d(128, n_classes, kernel_size=(1,1), stride=(1,1))
+        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
 
 
     def forward(self, x):
@@ -232,10 +228,6 @@ class UCTransNet(nn.Module):
         x3 = self.reduce_3(x3)
         x4 = self.reduce_4(x4)
         x5 = self.reduce_5(x5)
-
-        # t3 = x3
-        # t4 = x4
-        # t5 = x5
 
         t3, t4, t5, att_weights = self.mtc(x3,x4,x5)
 

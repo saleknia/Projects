@@ -21,9 +21,8 @@ class Channel_Embeddings(nn.Module):
         img_size = _pair(img_size)
         patch_size = _pair(patchsize)
         n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
-        out_channels = 64
         self.patch_embeddings = Conv2d(in_channels=in_channels,
-                                       out_channels=out_channels,
+                                       out_channels=in_channels,
                                        kernel_size=patch_size,
                                        stride=patch_size)
         self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, in_channels))
@@ -308,7 +307,7 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[128, 256, 512], patchSize=[4, 2, 1]):
+    def __init__(self, config, vis, img_size, channel_num=[128, 128, 128], patchSize=[4, 2, 1]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
@@ -320,13 +319,9 @@ class ChannelTransformer(nn.Module):
 
         self.encoder = Encoder(config, vis, channel_num)
 
-        # self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
-        # self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
-        # self.reconstruct_3 = Reconstruct(channel_num[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
-
-        self.reconstruct_1 = Reconstruct(64, 64, kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
-        self.reconstruct_2 = Reconstruct(64, 64, kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
-        self.reconstruct_3 = Reconstruct(64, 64, kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
+        self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
+        self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
+        self.reconstruct_3 = Reconstruct(channel_num[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
 
     def forward(self,en1,en2,en3):
 
