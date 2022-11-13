@@ -196,9 +196,9 @@ class UCTransNet(nn.Module):
         self.down4 = resnet.layer4 # 512
         # (14,14) , 512
 
-        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
-        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=3, padding=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
 
         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
