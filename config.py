@@ -291,7 +291,7 @@ def get_CTranS_config():
     config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0
     # config.patch_sizes = [16,8,4,2]
-    config.patch_sizes = [4,2,1]
+    config.patch_sizes = [2,2,2]
     config.base_channel = 128 # base channel of U-Net
     config.n_classes = NUM_CLASS
     return config
