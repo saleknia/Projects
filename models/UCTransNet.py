@@ -172,8 +172,7 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        # resnet = resnet_model.resnet50(pretrained=True)
-        resnet = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
+        resnet = resnet_model.resnet50(pretrained=True)
         resnet.conv1.stride = (1, 1)
 
         self.inc = nn.Sequential(
@@ -198,24 +197,22 @@ class UCTransNet(nn.Module):
         self.down4 = resnet.layer4 
         # (56,56) , 2048
 
-        self.reduce_3 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_4 = ConvBatchNorm(in_channels=1024, out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_5 = ConvBatchNorm(in_channels=2048, out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=128 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_4 = ConvBatchNorm(in_channels=256 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_5 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
 
         self.fam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
-        # self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        # self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-
-        self.pam = ConvBatchNorm(in_channels=in_channels*3, out_channels=in_channels, activation='ReLU', kernel_size=3, padding=1)
+        self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
         self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 128, 128], patchSize=config.patch_sizes)
 
-        # self.up_5 = nn.Upsample(scale_factor=2)
-        # self.up_4 = nn.Upsample(scale_factor=2)
-        self.up = nn.Upsample(scale_factor=4)
+        self.up_5 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=2)
+        self.up_3 = nn.Upsample(scale_factor=4)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
 
@@ -243,18 +240,15 @@ class UCTransNet(nn.Module):
         t3 = torch.cat([x3, t3], dim=1)
         t3 = self.fam3(t3) 
 
-        # t5 = self.up_5(t5)
-        # t4 = torch.cat([t4, t5], dim=1)
-        # t4 = self.pam4(t4) 
+        t5 = self.up_5(t5)
+        t4 = torch.cat([t4, t5], dim=1)
+        t4 = self.pam4(t4) 
 
-        # t4 = self.up_4(t4)
-        # t3 = torch.cat([t3, t4], dim=1)
-        # t3 = self.pam3(t3) 
+        t4 = self.up_4(t4)
+        t3 = torch.cat([t3, t4], dim=1)
+        t3 = self.pam3(t3) 
 
-        t = torch.cat([t3, t4, t5], dim=1)
-        t = self.pam(t) 
-
-        logits = self.up(self.outc(t))
+        logits = self.up(self.outc(t3))
 
         return logits
 
