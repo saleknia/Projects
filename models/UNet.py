@@ -70,20 +70,23 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        self.encoder.conv1.stride = (1, 1)
 
-        # torch.Size([8, 64, 224, 224])
-        # torch.Size([8, 128, 112, 112])
-        # torch.Size([8, 256, 56, 56])
-        # torch.Size([8, 512, 28, 28])
-        # torch.Size([8, 1024, 14, 14])
+        # torch.Size([8, 64, 112, 112])
+        # torch.Size([8, 128, 56, 56])
+        # torch.Size([8, 256, 28, 28])
+        # torch.Size([8, 512, 14, 14])
+        # torch.Size([8, 1024, 7, 7])
 
         self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.outc = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
         # Question here
@@ -95,7 +98,11 @@ class UNet(nn.Module):
         x = self.up2(x, x2)
         x = self.up1(x, x1)
 
-        out = self.outc(x)
+        x = self.final_conv1(x)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        out = self.final_conv3(x)
 
         return out
 
