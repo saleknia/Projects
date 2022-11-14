@@ -54,7 +54,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        return self.nConvs(x)
+        return self.conv(x)
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
