@@ -175,24 +175,7 @@ class UCTransNet(nn.Module):
         # resnet = resnet_model.resnet50(pretrained=True)
         resnet = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
         resnet.conv1.stride = (1, 1)
-        resnet.layer3[0].downsample[0].stride = (2, 2)
-        resnet.layer4[0].downsample[0].stride = (2, 2)
-        resnet.layer3[1].conv2.dilation = (1, 1)
-        resnet.layer3[1].conv2.padding = (1, 1)
-        resnet.layer3[2].conv2.dilation = (1, 1)
-        resnet.layer3[2].conv2.padding = (1, 1)
-        resnet.layer3[3].conv2.dilation = (1, 1)
-        resnet.layer3[3].conv2.padding = (1, 1)
-        resnet.layer3[4].conv2.dilation = (1, 1)
-        resnet.layer3[4].conv2.padding = (1, 1)
-        resnet.layer3[5].conv2.dilation = (1, 1)
-        resnet.layer3[5].conv2.padding = (1, 1)
-        resnet.layer4[0].conv2.dilation = (1, 1)
-        resnet.layer4[0].conv2.padding = (1, 1)
-        resnet.layer4[1].conv2.dilation = (1, 1)
-        resnet.layer4[1].conv2.padding = (1, 1)
-        resnet.layer4[2].conv2.dilation = (1, 1)
-        resnet.layer4[2].conv2.padding = (1, 1)
+
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
@@ -204,16 +187,16 @@ class UCTransNet(nn.Module):
             resnet.maxpool,
             resnet.layer1
         )
-        # (112,112) , 64
+        # (112,112) , 256
 
         self.down2 = resnet.layer2 
-        # (56,56) , 128
+        # (56,56) , 512
 
-        self.down3 = resnet.layer3 # 256
-        # (28,28) , 256
+        self.down3 = resnet.layer3 
+        # (56,56) , 1024
 
-        self.down4 = resnet.layer4 # 512
-        # (14,14) , 512
+        self.down4 = resnet.layer4 
+        # (56,56) , 2048
 
         self.reduce_3 = ConvBatchNorm(in_channels=512 , out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
         self.reduce_4 = ConvBatchNorm(in_channels=1024, out_channels=128 , activation='ReLU', kernel_size=1, padding=0)
@@ -223,14 +206,16 @@ class UCTransNet(nn.Module):
         self.fam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.fam5 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
-        self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-        self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        # self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
+        # self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
-        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 128, 128],patchSize=config.patch_sizes)
+        self.pam = ConvBatchNorm(in_channels=in_channels*3, out_channels=in_channels, activation='ReLU', kernel_size=3, padding=1)
 
-        self.up_5 = nn.Upsample(scale_factor=2)
-        self.up_4 = nn.Upsample(scale_factor=2)
-        self.up_3 = nn.Upsample(scale_factor=4)
+        self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 128, 128], patchSize=config.patch_sizes)
+
+        # self.up_5 = nn.Upsample(scale_factor=2)
+        # self.up_4 = nn.Upsample(scale_factor=2)
+        self.up = nn.Upsample(scale_factor=4)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
 
@@ -258,15 +243,18 @@ class UCTransNet(nn.Module):
         t3 = torch.cat([x3, t3], dim=1)
         t3 = self.fam3(t3) 
 
-        t5 = self.up_5(t5)
-        t4 = torch.cat([t4, t5], dim=1)
-        t4 = self.pam4(t4) 
+        # t5 = self.up_5(t5)
+        # t4 = torch.cat([t4, t5], dim=1)
+        # t4 = self.pam4(t4) 
 
-        t4 = self.up_4(t4)
-        t3 = torch.cat([t3, t4], dim=1)
-        t3 = self.pam3(t3) 
+        # t4 = self.up_4(t4)
+        # t3 = torch.cat([t3, t4], dim=1)
+        # t3 = self.pam3(t3) 
 
-        logits = self.up_3(self.outc(t3))
+        t = torch.cat([t3, t4, t5], dim=1)
+        t = self.pam(t) 
+
+        logits = self.up(self.outc(t))
 
         return logits
 
