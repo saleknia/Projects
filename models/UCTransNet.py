@@ -206,13 +206,14 @@ class UCTransNet(nn.Module):
 
         self.pam3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
         self.pam4 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
-
+        self.pam2 = ConvBatchNorm(in_channels=192, out_channels=128, activation='ReLU', kernel_size=3, padding=1)
 
         self.mtc = ChannelTransformer(config, vis, img_size,channel_num=[128, 128, 128],patchSize=config.patch_sizes)
 
         self.up_5 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=2)
         self.up_3 = nn.Upsample(scale_factor=2)
+        self.up_2 = nn.Upsample(scale_factor=2)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
 
@@ -248,7 +249,11 @@ class UCTransNet(nn.Module):
         t3 = torch.cat([t3, t4], dim=1)
         t3 = self.pam3(t3) 
 
-        logits = self.up_3(self.outc(t3))
+        t3 = self.up_3(t3)
+        t2 = torch.cat([x2, t3], dim=1)
+        t2 = self.pam2(t2)
+
+        logits = self.up_2(self.outc(t2))
 
         return logits
 
