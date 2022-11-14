@@ -172,7 +172,7 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        resnet = resnet_model.resnet50(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
         resnet.conv1.stride = (1, 1)
 
         self.inc = nn.Sequential(
@@ -248,7 +248,7 @@ class UCTransNet(nn.Module):
         t3 = torch.cat([t3, t4], dim=1)
         t3 = self.pam3(t3) 
 
-        logits = self.up(self.outc(t3))
+        logits = self.up_3(self.outc(t3))
 
         return logits
 
