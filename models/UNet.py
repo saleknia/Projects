@@ -49,14 +49,11 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-
-        # self.up = nn.Upsample(scale_factor=2)
-        self.up = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-
+        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
     def forward(self, x, skip_x):
-        out = self.up(x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.up(x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
 class UNet(nn.Module):
