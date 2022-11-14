@@ -172,8 +172,27 @@ class UCTransNet(nn.Module):
         self.n_classes = n_classes
         in_channels = config.base_channel
         
-        resnet = resnet_model.resnet50(pretrained=True)
+        # resnet = resnet_model.resnet50(pretrained=True)
+        resnet = torchvision.models.segmentation.deeplabv3_resnet50(pretrain=True).backbone
         resnet.conv1.stride = (1, 1)
+        resnet.backbone.layer3[0].downsample[0].stride = (2, 2)
+        resnet.backbone.layer4[0].downsample[0].stride = (2, 2)
+        resnet.backbone.layer3[1].conv2.dilation = (1, 1)
+        resnet.backbone.layer3[1].conv2.padding = (1, 1)
+        resnet.backbone.layer3[2].conv2.dilation = (1, 1)
+        resnet.backbone.layer3[2].conv2.padding = (1, 1)
+        resnet.backbone.layer3[3].conv2.dilation = (1, 1)
+        resnet.backbone.layer3[3].conv2.padding = (1, 1)
+        resnet.backbone.layer3[4].conv2.dilation = (1, 1)
+        resnet.backbone.layer3[4].conv2.padding = (1, 1)
+        resnet.backbone.layer3[5].conv2.dilation = (1, 1)
+        resnet.backbone.layer3[5].conv2.padding = (1, 1)
+        resnet.backbone.layer4[0].conv2.dilation = (1, 1)
+        resnet.backbone.layer4[0].conv2.padding = (1, 1)
+        resnet.backbone.layer4[1].conv2.dilation = (1, 1)
+        resnet.backbone.layer4[1].conv2.padding = (1, 1)
+        resnet.backbone.layer4[2].conv2.dilation = (1, 1)
+        resnet.backbone.layer4[2].conv2.padding = (1, 1)
         self.inc = nn.Sequential(
             resnet.conv1,
             resnet.bn1,
