@@ -212,7 +212,7 @@ class UCTransNet(nn.Module):
 
         self.up_5 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=2)
-        self.up_3 = nn.Upsample(scale_factor=4)
+        self.up_3 = nn.Upsample(scale_factor=2)
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1), stride=(1,1))
 
