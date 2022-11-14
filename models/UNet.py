@@ -53,7 +53,7 @@ class UpBlock(nn.Module):
                                 ConvBatchNorm(in_channels, in_channels//2, activation='ReLU', kernel_size=1, padding=0),
                                 nn.Upsample(scale_factor=2)   
                                 )
-        nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        # nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
     def forward(self, x, skip_x):
         x = self.up(x)
@@ -73,7 +73,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         # self.encoder.conv1.stride = (1, 1)
 
         # torch.Size([8, 64, 112, 112])
