@@ -73,7 +73,8 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder.conv1.stride = (1, 1)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
