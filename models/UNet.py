@@ -148,30 +148,53 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
-        self.encoder.conv1.stride = (1, 1)
-
+        self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
+        self.path5 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            _make_nConv(1024, 512, nb_Conv=1, activation='ReLU')
+        )
+        self.path4 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            _make_nConv(512, 256, nb_Conv=1, activation='ReLU')
+        )       
+        self.path3 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            _make_nConv(256, 128, nb_Conv=1, activation='ReLU')
+        )
+        self.path2 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            _make_nConv(128, 64, nb_Conv=1, activation='ReLU')
+        ) 
+        self.path1 = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            _make_nConv(64, 32, nb_Conv=1, activation='ReLU')
+        ) 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(1024, 512, nb_Conv=2)
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
+        self.up4 = UpBlock(512, 256, nb_Conv=2)
+        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(64 , 32 , nb_Conv=2)
+        self.up1 = UpBlock(32 , 16 , nb_Conv=2)
 
-        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
+
+        self.final_conv1 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
         # Question here
         x = x.float()
         x1, x2, x3, x4, x5 = self.encoder(x)
+
+        x1 = self.path1(x1)
+        x2 = self.path2(x2)
+        x3 = self.path3(x3)
+        x4 = self.path4(x4)
+        x5 = self.path5(x5)
 
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
