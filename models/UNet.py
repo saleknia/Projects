@@ -201,11 +201,11 @@ class UNet(nn.Module):
         x = self.up2(x, x2)
         x = self.up1(x, x1)
 
-        # x = self.final_conv1(x)
-        # x = self.final_relu1(x)
+        x = self.final_conv1(x)
+        x = self.final_relu1(x)
         # x = self.final_conv2(x)
         # x = self.final_relu2(x)
-        out = self.final_conv3(x)
+        out = self.final_conv2(x)
 
         return out
 
