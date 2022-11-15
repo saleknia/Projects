@@ -177,13 +177,13 @@ class UNet(nn.Module):
 
         self.up4 = UpBlock(512, 256, nb_Conv=2)
         self.up3 = UpBlock(256, 128, nb_Conv=2)
-        self.up2 = UpBlock(64 , 32 , nb_Conv=2)
-        self.up1 = UpBlock(32 , 16 , nb_Conv=2)
+        self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
 
-        self.final_conv1 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv1 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
+        self.final_conv2 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
         # Question here
