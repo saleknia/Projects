@@ -95,11 +95,11 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.att = ParallelPolarizedSelfAttention(channel=in_channels // 2)
+        # self.att = ParallelPolarizedSelfAttention(channel=in_channels // 2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = self.att(x)
+        # x = self.att(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.conv(x)
 
@@ -117,7 +117,7 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        # self.encoder.conv1.stride = (1, 1)
+        self.encoder.conv1.stride = (1, 1)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -130,11 +130,14 @@ class UNet(nn.Module):
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
+
+        self.final_conv3 = nn.Conv2d(64, n_classes, kernel_size=1, padding=0)
+
 
     def forward(self, x):
         # Question here
@@ -146,10 +149,10 @@ class UNet(nn.Module):
         x = self.up2(x, x2)
         x = self.up1(x, x1)
 
-        x = self.final_conv1(x)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
+        # x = self.final_conv1(x)
+        # x = self.final_relu1(x)
+        # x = self.final_conv2(x)
+        # x = self.final_relu2(x)
         out = self.final_conv3(x)
 
         return out
