@@ -3,7 +3,55 @@ import torch
 import timm
 import numpy as np
 from torch.nn import init
+from collections import OrderedDict
 
+
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512,kernels=[1,3,5],reduction=16,group=1,L=32):
+        super().__init__()
+        self.d=max(L,channel//reduction)
+        self.convs=nn.ModuleList([])
+        for k in kernels:
+            self.convs.append(
+                nn.Sequential(OrderedDict([
+                    ('conv',nn.Conv2d(channel,channel,kernel_size=k,padding=k//2,groups=group)),
+                    ('bn',nn.BatchNorm2d(channel)),
+                    ('relu',nn.ReLU())
+                ]))
+            )
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(len(kernels)):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+    def forward(self, x):
+        bs, c, _, _ = x.size()
+        conv_outs=[]
+        ### split
+        for conv in self.convs:
+            conv_outs.append(conv(x))
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
+        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weughts*feats).sum(0)
+        return V
 
 
 class ParallelPolarizedSelfAttention(nn.Module):
@@ -97,43 +145,15 @@ class UpBlock(nn.Module):
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         # self.att = ParallelPolarizedSelfAttention(channel=in_channels // 2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        # self.cam = CAM_Module()
+        self.SK = SKAttention(channel=in_channels)
     def forward(self, x, skip_x):
         x = self.up(x)
         # x = self.att(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.cam(x)
-        return self.conv(x)
+        x = self.conv(x)
+        x = self.SK(x)
+        return x
 
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-        # self.chanel_in = in_dim
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.softmax  = nn.Softmax(dim=-1)
-
-    def forward(self,x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
-
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
-
-        out = self.gamma*out + x
-        return out
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -149,52 +169,29 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        self.path5 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            _make_nConv(1024, 512, nb_Conv=1, activation='ReLU')
-        )
-        self.path4 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            _make_nConv(512, 256, nb_Conv=1, activation='ReLU')
-        )       
-        self.path3 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            _make_nConv(256, 128, nb_Conv=1, activation='ReLU')
-        )
-        self.path2 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            _make_nConv(128, 64, nb_Conv=1, activation='ReLU')
-        ) 
-        self.path1 = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            _make_nConv(64, 32, nb_Conv=1, activation='ReLU')
-        ) 
+        # self.encoder.conv1.stride = (1, 1)
+
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(512, 256, nb_Conv=2)
-        self.up3 = UpBlock(256, 128, nb_Conv=2)
-        self.up2 = UpBlock(128, 64 , nb_Conv=2)
-        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
+        self.up4 = UpBlock(1024, 512, nb_Conv=2)
+        self.up3 = UpBlock(512 , 256, nb_Conv=2)
+        self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-
-        self.final_conv1 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
         # Question here
         x = x.float()
         x1, x2, x3, x4, x5 = self.encoder(x)
-
-        x1 = self.path1(x1)
-        x2 = self.path2(x2)
-        x3 = self.path3(x3)
-        x4 = self.path4(x4)
-        x5 = self.path5(x5)
 
         x = self.up4(x5, x4)
         x = self.up3(x, x3)
@@ -203,9 +200,9 @@ class UNet(nn.Module):
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
-        # x = self.final_conv2(x)
-        # x = self.final_relu2(x)
-        out = self.final_conv2(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        out = self.final_conv3(x)
 
         return out
 
