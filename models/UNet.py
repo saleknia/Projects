@@ -174,9 +174,6 @@ class UNet(nn.Module):
 
         self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
         # self.encoder.conv1.stride = (1, 1)
-        self.latent = nn.ConvTranspose2d(1024, 1024 // 2, kernel_size=2, stride=2)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
@@ -198,7 +195,7 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x1, x2, x3, x4, x5 = self.encoder(x)
+        x1, x2, x3, x4, _ = self.encoder(x)
 
         emb = self.patch_embed(x)
         for i in range(12):
@@ -206,13 +203,8 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
-
-        feature_cnn = self.latent(x5)
-        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        feature_out = self.conv2d(feature_att)
-        
-        x4 = feature_out + x4
+      
+        x4 = feature_tf + x4
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
