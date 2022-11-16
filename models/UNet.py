@@ -173,8 +173,6 @@ class UNet(nn.Module):
         )
 
         self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=1024)
-        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
         # self.encoder.conv1.stride = (1, 1)
 
         # torch.Size([8, 64, 112, 112])
@@ -206,9 +204,7 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((x4, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x4 = self.conv2d(feature_att)
+        x4 = x4 + feature_tf
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
