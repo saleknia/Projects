@@ -173,6 +173,7 @@ class UNet(nn.Module):
         )
 
         self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        self.latent = nn.ConvTranspose2d(1024, 512, kernel_size=2, stride=2)
         # self.encoder.conv1.stride = (1, 1)
 
         # torch.Size([8, 64, 112, 112])
@@ -195,7 +196,7 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x1, x2, x3, x4, _ = self.encoder(x)
+        x1, x2, x3, x4, x5 = self.encoder(x)
 
         emb = self.patch_embed(x)
         for i in range(12):
@@ -204,7 +205,7 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        x4 = x4 + feature_tf
+        x4 = x4 + feature_tf + self.latent(x5)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
