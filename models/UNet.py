@@ -215,9 +215,9 @@ class UNet(nn.Module):
       
         # x4 = feature_tf + x4
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2)
-        x = self.up1(x , x1)
+        x = self.up3(t4, t3)
+        x = self.up2(x , t2)
+        x = self.up1(x , t1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
