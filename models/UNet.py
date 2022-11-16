@@ -172,7 +172,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=1024, kernel_size=1, padding=0)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -215,7 +215,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        
+
         return out
 
 
