@@ -179,13 +179,8 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.pre_up4 = UpBlock(1024, 512, nb_Conv=2)
-        self.pre_up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.pre_up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=2)
-
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up3 = UpBlock(1024, 512, nb_Conv=2)
+        self.up2 = UpBlock(512 , 256, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
@@ -193,17 +188,14 @@ class UNet(nn.Module):
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
+        self.final_up = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x1, x2, x3, x4, x5 = self.encoder(x)
-
-        t4 = self.pre_up4(x5, x4) + x4
-        t3 = self.pre_up3(t4, x3) + x3
-        t2 = self.pre_up2(t3, x2) + x2
-        t1 = self.pre_up1(t2, x1) + x1
+        # x1, x2, x3, x4, x5 = self.encoder(x)
+        x0, x1, x2, x3, x4 = self.encoder(x)
 
         # emb = self.patch_embed(x)
         # for i in range(12):
@@ -214,15 +206,16 @@ class UNet(nn.Module):
       
         # x4 = feature_tf + x4
 
-        x = self.up3(t4, t3)
-        x = self.up2(x , t2)
-        x = self.up1(x , t1)
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2)
+        x = self.up1(x , x1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
+        out = self.final_up(out)
 
         return out
 
