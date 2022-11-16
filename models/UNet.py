@@ -200,10 +200,10 @@ class UNet(nn.Module):
         b, c, h, w = x.shape
         x1, x2, x3, x4, x5 = self.encoder(x)
 
-        t4 = self.pre_up4(x5, x4)
-        t3 = self.pre_up3(t4, x3)
-        t2 = self.pre_up2(t3, x2)
-        t1 = self.pre_up1(t2, x1)
+        t4 = self.pre_up4(x5, x4) + x4
+        t3 = self.pre_up3(t4, x3) + x3
+        t2 = self.pre_up2(t3, x2) + x2
+        t1 = self.pre_up1(t2, x1) + x1
 
         # emb = self.patch_embed(x)
         # for i in range(12):
