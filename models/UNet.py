@@ -166,13 +166,13 @@ class UNet(nn.Module):
         self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.encoder.conv1.stride = (1, 1)
 
-        # transformer = deit_small_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
 
-        # self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -197,14 +197,14 @@ class UNet(nn.Module):
         # x1, x2, x3, x4, x5 = self.encoder(x)
         x0, x1, x2, x3, x4 = self.encoder(x)
 
-        # emb = self.patch_embed(x)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 384, 14, 14)
-        # feature_tf = self.conv_seq_img(feature_tf)
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
       
-        # x4 = feature_tf + x4
+        x4 = feature_tf + x4
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
@@ -215,6 +215,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
+        
         return out
 
 
