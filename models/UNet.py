@@ -151,7 +151,6 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
-
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -166,13 +165,14 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
+        # transformer = deit_small_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        # self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+
         # self.encoder.conv1.stride = (1, 1)
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -180,10 +180,14 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
+        self.pre_up4 = UpBlock(1024, 512, nb_Conv=1)
+        self.pre_up3 = UpBlock(512 , 256, nb_Conv=1)
+        self.pre_up2 = UpBlock(256 , 128, nb_Conv=1)
+        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=1)
 
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
+        self.up3 = UpBlock(512 , 256, nb_Conv=1)
+        self.up2 = UpBlock(256 , 128, nb_Conv=1)
+        self.up1 = UpBlock(128 , 64 , nb_Conv=1)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -195,16 +199,21 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x1, x2, x3, x4, _ = self.encoder(x)
+        x1, x2, x3, x4, x5 = self.encoder(x)
 
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
+        t4 = self.pre_up4(x5, x4)
+        t3 = self.pre_up3(x4, x3)
+        t2 = self.pre_up2(x3, x2)
+        t1 = self.pre_up1(x2, x1)
+
+        # emb = self.patch_embed(x)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 384, 14, 14)
+        # feature_tf = self.conv_seq_img(feature_tf)
       
-        x4 = feature_tf + x4
+        # x4 = feature_tf + x4
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
