@@ -207,7 +207,7 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cnn = self.latent(x4)
+        feature_cnn = self.latent(x5)
         feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
         feature_att = self.se(feature_cat)
         feature_out = self.conv2d(feature_att)
