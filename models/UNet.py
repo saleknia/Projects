@@ -172,7 +172,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
         self.se = SEBlock(channel=1024)
         self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
         # self.encoder.conv1.stride = (1, 1)
@@ -209,7 +209,7 @@ class UNet(nn.Module):
         feature_cat = torch.cat((x4, feature_tf), dim=1)
         feature_att = self.se(feature_cat)
         x4 = self.conv2d(feature_att)
-        
+
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
         x = self.up1(x , x1)
