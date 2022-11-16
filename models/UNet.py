@@ -183,9 +183,8 @@ class UNet(nn.Module):
         self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(128, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -210,7 +209,6 @@ class UNet(nn.Module):
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
         x = self.up2(x , x1)
-        x = self.up1(x , x0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
