@@ -179,14 +179,14 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.pre_up4 = UpBlock(1024, 512, nb_Conv=1)
-        self.pre_up3 = UpBlock(512 , 256, nb_Conv=1)
-        self.pre_up2 = UpBlock(256 , 128, nb_Conv=1)
-        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=1)
+        self.pre_up4 = UpBlock(1024, 512, nb_Conv=2)
+        self.pre_up3 = UpBlock(512 , 256, nb_Conv=2)
+        self.pre_up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.up3 = UpBlock(512 , 256, nb_Conv=1)
-        self.up2 = UpBlock(256 , 128, nb_Conv=1)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=1)
+        self.up3 = UpBlock(512 , 256, nb_Conv=2)
+        self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -201,9 +201,9 @@ class UNet(nn.Module):
         x1, x2, x3, x4, x5 = self.encoder(x)
 
         t4 = self.pre_up4(x5, x4)
-        t3 = self.pre_up3(x4, x3)
-        t2 = self.pre_up2(x3, x2)
-        t1 = self.pre_up1(x2, x1)
+        t3 = self.pre_up3(t4, x3)
+        t2 = self.pre_up2(t3, x2)
+        t1 = self.pre_up1(t2, x1)
 
         # emb = self.patch_embed(x)
         # for i in range(12):
