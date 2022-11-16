@@ -180,10 +180,10 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.pre_up4 = UpBlock(1024, 512, nb_Conv=1)
-        self.pre_up3 = UpBlock(512 , 256, nb_Conv=1)
-        self.pre_up2 = UpBlock(256 , 128, nb_Conv=1)
-        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=1)
+        self.pre_up4 = UpBlock(1024, 512, nb_Conv=2)
+        self.pre_up3 = UpBlock(512 , 256, nb_Conv=2)
+        self.pre_up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.pre_up1 = UpBlock(128 , 64 , nb_Conv=2)
 
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
