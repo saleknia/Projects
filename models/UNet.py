@@ -144,8 +144,10 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        # self.att = ParallelPolarizedSelfAttention(channel=in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x)
+        # x = self.att(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -196,7 +198,7 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        # self.encoder.conv1.stride = (1, 1)
+        self.encoder.conv1.stride = (1, 1)
 
         # transformer = deit_small_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -212,21 +214,21 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        filters = [128, 256, 512, 1024]
-        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
+        # filters = [128, 256, 512, 1024]
+        # self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
+        # self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
+        # self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        # self.up4 = UpBlock(1024, 512, nb_Conv=2)
-        # self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        # self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up4 = UpBlock(1024, 512, nb_Conv=2)
+        self.up3 = UpBlock(512 , 256, nb_Conv=2)
+        self.up2 = UpBlock(256 , 128, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(128, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
-        self.final_up = nn.Upsample(scale_factor=2)
+        # self.final_up = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         # Question here
@@ -244,20 +246,20 @@ class UNet(nn.Module):
       
         # x4 = feature_tf + x4
 
-        # x = self.up4(x4, x3)
-        # x = self.up3(x , x2)
-        # x = self.up2(x , x1)
+        x = self.up4(x4, x3)
+        x = self.up3(x , x2)
+        x = self.up2(x , x1)
 
-        x = self.decoder4(x4) + x3
-        x = self.decoder3(x)  + x2
-        x = self.decoder2(x)  + x1
+        # x = self.decoder4(x4) + x3
+        # x = self.decoder3(x)  + x2
+        # x = self.decoder2(x)  + x1
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        out = self.final_up(out)
+        # out = self.final_up(out)
 
         return out
 
