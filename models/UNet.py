@@ -150,6 +150,38 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -163,7 +195,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
         # self.encoder.conv1.stride = (1, 1)
 
         # transformer = deit_small_distilled_patch16_224(pretrained=True)
@@ -180,9 +212,14 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(1024, 512, nb_Conv=2)
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        filters = [128, 256, 512, 1024]
+        self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
+
+        # self.up4 = UpBlock(1024, 512, nb_Conv=2)
+        # self.up3 = UpBlock(512 , 256, nb_Conv=2)
+        # self.up2 = UpBlock(256 , 128, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(128, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -207,9 +244,13 @@ class UNet(nn.Module):
       
         # x4 = feature_tf + x4
 
-        x = self.up4(x4, x3)
-        x = self.up3(x , x2)
-        x = self.up2(x , x1)
+        # x = self.up4(x4, x3)
+        # x = self.up3(x , x2)
+        # x = self.up2(x , x1)
+
+        x = self.decoder4(x4) + x3
+        x = self.decoder3(x)  + x2
+        x = self.decoder2(x)  + x1
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
