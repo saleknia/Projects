@@ -213,9 +213,9 @@ class UNet(nn.Module):
         # torch.Size([8, 1024, 7, 7])
 
         filters = [128, 256, 512, 1024]
-        self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
+        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
 
         # self.up4 = UpBlock(1024, 512, nb_Conv=2)
         # self.up3 = UpBlock(512 , 256, nb_Conv=2)
