@@ -252,7 +252,7 @@ class UNet(nn.Module):
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
         x = self.up2(x , x1)
-        x = self.up2(x , x0)
+        x = self.up1(x , x0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
