@@ -198,7 +198,7 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        self.encoder.conv1.stride = (1, 1)
+        # self.encoder.conv1.stride = (1, 1)
 
         # transformer = deit_small_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -223,12 +223,12 @@ class UNet(nn.Module):
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(128, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(128, 64, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(64, 64, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
-        # self.final_up = nn.Upsample(scale_factor=2)
+        self.final_conv3 = nn.ConvTranspose2d(64, n_classes, 4, 2, 1)
+        # self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
         # Question here
@@ -259,7 +259,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        # out = self.final_up(out)
+        out = self.final_up(out)
 
         return out
 
