@@ -226,9 +226,6 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.FAMBlock = FAMBlock(channels=64)
-        self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
-
         self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
@@ -245,9 +242,6 @@ class UNet(nn.Module):
         x = x.float()
         b, c, h, w = x.shape
         x0, x1, x2, x3, x4 = self.encoder(x)
-
-        for i in range(6):
-            x0 = self.FAM[i](x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
