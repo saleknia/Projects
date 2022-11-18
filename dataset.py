@@ -60,10 +60,11 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_val.npy')
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
-        # self.data   = dataset_normalized(self.data)
-        self.data = self.data / 255.0
+        self.data   = dataset_normalized(self.data)
+        # self.data = self.data / 255.0
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
+        self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==1.0))
          
     def __getitem__(self, indx):
         img = self.data[indx]

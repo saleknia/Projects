@@ -398,8 +398,8 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-
-        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+        pos_weight = train_dataset.pos_weight.to(DEVICE)
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
     elif TASK_NAME=='TCIA':
 
@@ -431,6 +431,7 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
+        
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
