@@ -227,7 +227,7 @@ class UNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(64, 64, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(64, n_classes, 4, 2, 1)
+        self.final_conv3 = nn.ConvTranspose2d(64, n_classes, 2, 2, bias=False)
         # self.final_conv3 = nn.Conv2d(32, n_classes, kernel_size=1, padding=0)
 
     def forward(self, x):
