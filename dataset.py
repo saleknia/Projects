@@ -97,8 +97,6 @@ class ISIC2017(Dataset):
             img, seg = random_rot_flip(img, seg)
         if random.random() > 0.5:
             img, seg = random_rotate(img, seg)
-        # if random.random() > 0.5:
-        #     img, seg = random_gray(img, seg)
 
         return img, seg
 

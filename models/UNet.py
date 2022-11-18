@@ -185,6 +185,26 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.norm3(x)
         x = self.relu3(x)
         return x
+
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -199,15 +219,6 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
-        # self.encoder.conv1.stride = (1, 1)
-
-        # transformer = deit_small_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
-
-        # self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=1024, kernel_size=3, padding=1)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -215,52 +226,39 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        # filters = [128, 256, 512, 1024]
-        # self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        # self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        # self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
+        self.FAMBlock = FAMBlock(channels=64)
+        self.FAM = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(128, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
-        self.final_up    = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        # x1, x2, x3, x4, x5 = self.encoder(x)
         x0, x1, x2, x3, x4 = self.encoder(x)
 
-        # emb = self.patch_embed(x)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 384, 14, 14)
-        # feature_tf = self.conv_seq_img(feature_tf)
-      
-        # x4 = feature_tf + x4
+        for i in range(6):
+            x0 = self.FAM[i](x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
         x = self.up2(x , x1)
-
-        # x = self.decoder4(x4) + x3
-        # x = self.decoder3(x)  + x2
-        # x = self.decoder2(x)  + x1
+        x = self.up2(x , x0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        out = self.final_up(out)
 
         return out
 
