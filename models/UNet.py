@@ -227,7 +227,7 @@ class UNet(nn.Module):
         # torch.Size([8, 1024, 7, 7])
 
         self.FAMBlock = FAMBlock(channels=64)
-        self.FAM = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
 
         self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
