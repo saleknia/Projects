@@ -259,7 +259,6 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        out = self.final_up(out)
 
         return out
 
