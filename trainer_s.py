@@ -136,7 +136,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     dice_loss = DiceLoss()
     # ce_loss = CrossEntropyLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss()
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=torch.tensor([4], device=device))
     # ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
     # kd_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
 
