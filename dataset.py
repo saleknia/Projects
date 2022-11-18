@@ -51,6 +51,8 @@ class ISIC2017(Dataset):
             self.train = True
             self.data   = np.load(path_Data+'data_train.npy')
             self.mask   = np.load(path_Data+'mask_train.npy')
+            self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==1.0))
+            print(f'Positive Weight: {self.pos_weight}')
         elif split=='test':
             self.train = False
             self.data   = np.load(path_Data+'data_test.npy')
@@ -64,7 +66,6 @@ class ISIC2017(Dataset):
         # self.data = self.data / 255.0
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
-        self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==1.0))
          
     def __getitem__(self, indx):
         img = self.data[indx]
