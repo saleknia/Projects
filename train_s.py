@@ -504,7 +504,7 @@ def main(args):
                             end_epoch=1,
                             epoch_num=1,
                             model=copy.deepcopy(model),
-                            dataloader=data_loader['test'],
+                            dataloader=data_loader,
                             device=DEVICE,
                             ckpt=None,
                             num_class=NUM_CLASS,

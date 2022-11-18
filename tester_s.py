@@ -74,14 +74,13 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     Eval = Evaluator()
     mIOU = 0.0
     Dice = 0.0
-    # accuracy = utils.AverageMeter()
+
+    total_batchs = len(dataloader['test'])
+    loader = dataloader['test']
+    pos_weight = dataloader['pos_weight']
 
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss()
-    # ce_loss = torch.nn.BCELoss(weight=None, size_average=None, reduce=None, reduction='mean')
-
-    total_batchs = len(dataloader)
-    loader = dataloader
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
