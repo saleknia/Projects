@@ -51,7 +51,7 @@ class ISIC2017(Dataset):
             self.train = True
             self.data   = np.load(path_Data+'data_train.npy')
             self.mask   = np.load(path_Data+'mask_train.npy')
-            self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==1.0))
+            self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==255.0))
             print(50 * '*')
             print(f'Positive Weight: {self.pos_weight}')
             print(50 * '*')
