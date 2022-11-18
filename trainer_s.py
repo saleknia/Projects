@@ -162,7 +162,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
         # loss_ce = ce_loss(outputs, soft_label) 
         loss_dice = dice_loss(inputs=outputs, targets=targets)
-        loss = 0.6 * loss_ce + 0.4 * loss_dice
+        loss = loss_ce + loss_dice
         # loss = loss_ce
 
         # iter_num = iter_num + 1 
@@ -198,7 +198,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {0.4*loss_dice_total.avg:.4f} , CE_loss = {0.6*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
+            suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss = {loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
             bar_length=45
         )  
   

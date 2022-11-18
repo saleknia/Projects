@@ -96,7 +96,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
             loss_dice = dice_loss(inputs=outputs, targets=targets)
-            loss = 0.6 * loss_ce + 0.4 * loss_dice           
+            loss = loss_ce + loss_dice           
 
             # loss_ce = ce_loss(outputs, targets[:].long())
             # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
