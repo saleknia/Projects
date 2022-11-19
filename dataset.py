@@ -52,7 +52,6 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_train.npy')
             self.mask   = np.load(path_Data+'mask_train.npy')
             self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==255.0))
-
         elif split=='test':
             self.train = False
             self.data   = np.load(path_Data+'data_test.npy')
