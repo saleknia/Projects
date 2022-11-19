@@ -399,6 +399,9 @@ def main(args):
                                 drop_last=True,
                                 )
         pos_weight = train_dataset.pos_weight.to(DEVICE)
+        print(50 * '*')
+        print(f'Positive Weight: {pos_weight}')
+        print(50 * '*')
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
     elif TASK_NAME=='TCIA':

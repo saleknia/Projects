@@ -52,9 +52,7 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_train.npy')
             self.mask   = np.load(path_Data+'mask_train.npy')
             self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==255.0))
-            print(50 * '*')
-            print(f'Positive Weight: {self.pos_weight}')
-            print(50 * '*')
+
         elif split=='test':
             self.train = False
             self.data   = np.load(path_Data+'data_test.npy')
@@ -65,7 +63,6 @@ class ISIC2017(Dataset):
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
         self.data   = dataset_normalized(self.data)
-        # self.data = self.data / 255.0
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
          
@@ -81,7 +78,6 @@ class ISIC2017(Dataset):
         seg = torch.tensor(seg.copy())
         img = torch.tensor(img.copy())
         img = img.permute(2, 0, 1)
-        # img = F.normalize(img, mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
         seg = seg.permute(2, 0, 1)
         
         return img, seg[0]
