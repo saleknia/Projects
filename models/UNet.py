@@ -220,6 +220,9 @@ class UNet(nn.Module):
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
 
+        self.FAMBlock = FAMBlock(channels=64)
+        self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
+
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
@@ -242,6 +245,9 @@ class UNet(nn.Module):
         x = x.float()
         b, c, h, w = x.shape
         x0, x1, x2, x3, x4 = self.encoder(x)
+
+        for i in range(6):
+            x0 = self.FAM[i](x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
