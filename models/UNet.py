@@ -145,12 +145,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.att = ParallelPolarizedSelfAttention(channel=out_channels)
+        # self.att = ParallelPolarizedSelfAttention(channel=out_channels)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.att(x)
+        # x = self.att(x)
         return x
 
 class DecoderBottleneckLayer(nn.Module):
@@ -229,10 +229,19 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(1024, 512, nb_Conv=2)
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
+        self.up4_1 = UpBlock(1024, 512, nb_Conv=2)
+        self.up3_1 = UpBlock(512 , 256, nb_Conv=2)
+        self.up2_1 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1_1 = UpBlock(128 , 64 , nb_Conv=2)
+
+        self.up3_2 = UpBlock(512 , 256, nb_Conv=2)
+        self.up2_2 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1_2 = UpBlock(128 , 64 , nb_Conv=2)
+
+        self.up2_3 = UpBlock(256 , 128, nb_Conv=2)
+        self.up1_3 = UpBlock(128 , 64 , nb_Conv=2)
+
+        self.up1_4 = UpBlock(128 , 64 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -249,10 +258,19 @@ class UNet(nn.Module):
         for i in range(6):
             x0 = self.FAM[i](x0)
 
-        x = self.up4(x4, x3)
-        x = self.up3(x , x2)
-        x = self.up2(x , x1)
-        x = self.up1(x , x0)
+        t3 = self.up4_1(x4, x3)
+        t2 = self.up3_1(x3, x2)
+        t1 = self.up2_1(x2, x1)
+        t0 = self.up1_1(x1, x0)
+
+        k2 = self.up3_2(t3, t2)
+        k1 = self.up2_2(t2, t1)
+        k0 = self.up1_2(t1, t0)
+
+        h1 = self.up2_3(k2, k1)
+        h0 = self.up1_3(k1, k0)
+
+        x = self.up1_4(h1, h0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
