@@ -9,7 +9,7 @@ import ml_collections
 
 class SKAttention(nn.Module):
 
-    def __init__(self, channel=512,kernels=[1,3,5],reduction=16,group=1,L=32):
+    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=16,group=1,L=32):
         super().__init__()
         self.d=max(L,channel//reduction)
         self.convs=nn.ModuleList([])
@@ -222,6 +222,7 @@ class UNet(nn.Module):
 
         self.FAMBlock = FAMBlock(channels=64)
         self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
+        self.SKAttention = SKAttention(channel=64)
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
@@ -248,6 +249,7 @@ class UNet(nn.Module):
 
         for i in range(6):
             x0 = self.FAM[i](x0)
+        x0 = self.SKAttention(x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)

@@ -87,7 +87,7 @@ class ISIC2017(Dataset):
         seg = seg.permute(2, 0, 1)
         if self.train:
             img = self.transform_train(img)
-        img = F.normalize(img, mean=[0, 0, 0], std=[1.0, 1.0, 1.0])
+        img = F.normalize(img, mean=[0.0, 0.0, 0.0], std=[1.0, 1.0, 1.0])
         return img, seg[0]
                
     # def apply_augmentation(self, img, seg):
