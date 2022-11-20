@@ -9,7 +9,7 @@ import ml_collections
 
 class SKAttention(nn.Module):
 
-    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=16,group=1,L=32):
+    def __init__(self, channel=512,kernels=[3,5],reduction=16,group=1,L=32):
         super().__init__()
         self.d=max(L,channel//reduction)
         self.convs=nn.ModuleList([])
@@ -235,9 +235,9 @@ class UNet(nn.Module):
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.gm_1 = DilatedParllelResidualBlockB(nIn=128, nOut=128)
-        self.gm_2 = DilatedParllelResidualBlockB(nIn=256, nOut=256)
-        self.gm_3 = DilatedParllelResidualBlockB(nIn=512, nOut=512)
+        self.gm_1 = SKAttention(channel=128)
+        self.gm_2 = SKAttention(channel=256)
+        self.gm_3 = SKAttention(channel=512)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
