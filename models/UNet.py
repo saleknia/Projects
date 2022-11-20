@@ -277,9 +277,10 @@ class UNet(nn.Module):
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.0)
-        self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.0)
-        self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.0)
+        self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
+        self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
+        self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
+        self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=128, scale_factor=16.0)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -293,12 +294,13 @@ class UNet(nn.Module):
         b, c, h, w = x.shape
         x0, x1, x2, x3, x4 = self.encoder(x)
 
-        for i in range(6):
-            x0 = self.FAM[i](x0)
+        # for i in range(6):
+        #     x0 = self.FAM[i](x0)
 
         x3 = self.attention_3(gate=x4, skip_connection=x3)
         x2 = self.attention_2(gate=x4, skip_connection=x2)
         x1 = self.attention_1(gate=x4, skip_connection=x1)
+        x0 = self.attention_0(gate=x4, skip_connection=x0)
 
         # x = self.up4(x4, x3)
         x = self.up3(x3, x2)
