@@ -250,7 +250,6 @@ class UNet(nn.Module):
 
         for i in range(6):
             x0 = self.FAM[i](x0)
-        x0 = self.SKAttention(x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
