@@ -71,7 +71,16 @@ class ISIC2017(Dataset):
         # (256, 256, 3)
         if self.train:
             img, seg = self.apply_augmentation(img, seg)
-     
+        
+        img, seg = self.resize(img, seg)
+        
+        seg = torch.tensor(seg.copy())
+        img = torch.tensor(img.copy())
+        img = img.permute(2, 0, 1)
+        seg = seg.permute(2, 0, 1)
+        if self.train:
+            transform = T.ColorJitter(brightness=0.03, contrast=0.03, saturation=0.03)
+            img = transform(img)
         return img, seg[0]
                
     # def apply_augmentation(self, img, seg):
@@ -81,17 +90,11 @@ class ISIC2017(Dataset):
     #     return img, seg
 
     def apply_augmentation(self, img, seg):
-        img, seg = self.resize(img, seg)
-        transform = T.ColorJitter(brightness=0.03, contrast=0.03, saturation=0.03)
         if random.random() > 0.5:
             img, seg = random_rot_flip(img, seg)
         if random.random() > 0.5:
             img, seg = random_rotate(img, seg)
-        seg = torch.tensor(seg.copy())
-        img = torch.tensor(img.copy())
-        img = img.permute(2, 0, 1)
-        img = transform(img)
-        seg = seg.permute(2, 0, 1)
+
         return img, seg
 
     def resize(self, img, seg):
