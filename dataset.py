@@ -66,8 +66,6 @@ class ISIC2017(Dataset):
         self.mask = self.mask /255.0
         self.transform = T.Compose([
                                     T.RandomApply([T.ColorJitter(brightness=0.03)], p=0.5),
-                                    T.RandomApply([T.ColorJitter(contrast  =0.03)], p=0.5),
-                                    T.RandomApply([T.ColorJitter(saturation=0.03)], p=0.5),
                                     ])
 
     def __getitem__(self, indx):
