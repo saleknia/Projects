@@ -64,7 +64,12 @@ class ISIC2017(Dataset):
         self.data   = dataset_normalized(self.data)
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
-        self.transform = T.RandomApply([T.ColorJitter(brightness=0.03, contrast=0.03, saturation=0.03)], p=0.5)
+        self.transform = T.Compose([
+                                    T.RandomApply([T.ColorJitter(brightness=0.03)], p=0.5),
+                                    T.RandomApply([T.ColorJitter(contrast  =0.03)], p=0.5),
+                                    T.RandomApply([T.ColorJitter(saturation=0.03)], p=0.5),
+                                    ])
+
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
