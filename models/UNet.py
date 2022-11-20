@@ -220,9 +220,10 @@ class UNet(nn.Module):
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
 
-        self.FAMBlock = FAMBlock(channels=64)
+        # self.FAMBlock = FAMBlock(channels=64)
+        self.FAMBlock = SKAttention(channel=64)
         self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
-        self.SKAttention = SKAttention(channel=64)
+        
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
