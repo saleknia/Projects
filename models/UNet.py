@@ -297,8 +297,8 @@ class UNet(nn.Module):
             x0 = self.FAM[i](x0)
 
         x3 = self.attention_3(gate=x4, skip_connection=x3)
-        x2 = self.attention_3(gate=x4, skip_connection=x2)
-        x1 = self.attention_3(gate=x4, skip_connection=x1)
+        x2 = self.attention_2(gate=x4, skip_connection=x2)
+        x1 = self.attention_1(gate=x4, skip_connection=x1)
 
         # x = self.up4(x4, x3)
         x = self.up3(x , x2)
