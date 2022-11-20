@@ -64,7 +64,7 @@ class ISIC2017(Dataset):
         self.data   = dataset_normalized(self.data)
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
-         
+        self.transform = T.RandomApply([T.ColorJitter(brightness=0.03, contrast=0.03, saturation=0.03)], p=0.5)
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
@@ -79,8 +79,7 @@ class ISIC2017(Dataset):
         img = img.permute(2, 0, 1)
         seg = seg.permute(2, 0, 1)
         if self.train:
-            transform = T.ColorJitter(brightness=0.03, contrast=0.03, saturation=0.03)
-            img = transform(img)
+            img = self.transform(img)
         return img, seg[0]
                
     # def apply_augmentation(self, img, seg):
