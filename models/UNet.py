@@ -138,6 +138,49 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients, scale_factor):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+        self.up = nn.Upsample(scale_factor=scale_factor)
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        gate = self.up(gate)
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -223,21 +266,20 @@ class UNet(nn.Module):
         self.FAMBlock = FAMBlock(channels=64)
         self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
         
-
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(1024, 512, nb_Conv=2)
+        # self.up4 = UpBlock(1024, 512, nb_Conv=2)
         self.up3 = UpBlock(512 , 256, nb_Conv=2)
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.gm_1 = SKAttention(channel=128)
-        self.gm_2 = SKAttention(channel=256)
-        self.gm_3 = SKAttention(channel=512)
+        self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.0)
+        self.attention_2 = AttentionBlock(F_g=512 , F_l=256, n_coefficients=256, scale_factor=2.0)
+        self.attention_1 = AttentionBlock(F_g=256 , F_l=128, n_coefficients=128, scale_factor=8.0)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -254,11 +296,11 @@ class UNet(nn.Module):
         for i in range(6):
             x0 = self.FAM[i](x0)
 
-        x1 = self.gm_1(x1)
-        x2 = self.gm_2(x2)
-        x3 = self.gm_3(x3)
+        x3 = self.attention_3(gate=x4, skip_connection=x3)
+        x2 = self.attention_3(gate=x4, skip_connection=x2)
+        x1 = self.attention_3(gate=x4, skip_connection=x1)
 
-        x = self.up4(x4, x3)
+        # x = self.up4(x4, x3)
         x = self.up3(x , x2)
         x = self.up2(x , x1)
         x = self.up1(x , x0)
