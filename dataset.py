@@ -61,12 +61,16 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_val.npy')
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
-        self.data   = dataset_normalized(self.data)
+        # self.data   = dataset_normalized(self.data)
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
-        self.transform = T.Compose([
-                                    T.RandomApply([T.ColorJitter(brightness=0.03)], p=0.2),
-                                    ])
+        self.data = self.data /255.0
+        self.transform_train = T.Compose([
+            T.RandomApply([T.ColorJitter(brightness=0.03)], p=0.5),
+            T.RandomApply([T.ColorJitter(contrast  =0.03)], p=0.5),
+            T.RandomApply([T.ColorJitter(saturation=0.03)], p=0.5),
+            T.RandomApply([T.ColorJitter(hue       =0.03)], p=0.5),
+        ])
 
     def __getitem__(self, indx):
         img = self.data[indx]
@@ -82,7 +86,8 @@ class ISIC2017(Dataset):
         img = img.permute(2, 0, 1)
         seg = seg.permute(2, 0, 1)
         if self.train:
-            img = self.transform(img)
+            img = self.transform_train(img)
+        img = F.normalize(img, mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
         return img, seg[0]
                
     # def apply_augmentation(self, img, seg):
