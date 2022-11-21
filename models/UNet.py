@@ -308,7 +308,7 @@ class UNet(nn.Module):
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
-        self.FAM4 = nn.ModuleList([self.FAMBlock3 for i in range(1)])
+        self.FAM4 = nn.ModuleList([self.FAMBlock4 for i in range(1)])
 
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
