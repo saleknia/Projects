@@ -299,7 +299,17 @@ class UNet(nn.Module):
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
-        
+
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAMBlock4 = FAMBlock(channels=512)
+
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAM4 = nn.ModuleList([self.FAMBlock3 for i in range(1)])
+
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
@@ -311,7 +321,6 @@ class UNet(nn.Module):
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
-        self.GCM = GCM()
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
         # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
@@ -338,7 +347,15 @@ class UNet(nn.Module):
         # x2 = self.attention_2(gate=x4, skip_connection=x2)
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
-        x4 = self.GCM(x4)
+
+        for i in range(1):
+            x3 = self.FAM4[i](x3)
+        for i in range(2):
+            x2 = self.FAM3[i](x2)
+        for i in range(4):
+            x1 = self.FAM2[i](x1)
+        for i in range(6):
+            x0 = self.FAM1[i](x0)
 
         x = self.up4(x4, x3)
         x = self.up3(x3, x2)
