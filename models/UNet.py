@@ -188,12 +188,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.att = ParallelPolarizedSelfAttention(channel=out_channels)
+        # self.att = ParallelPolarizedSelfAttention(channel=out_channels)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.att(x)
+        # x = self.att(x)
         return x
 
 class DecoderBottleneckLayer(nn.Module):
@@ -261,7 +261,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w0', pretrained=True, features_only=True)
 
         self.FAMBlock = FAMBlock(channels=64)
         self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
