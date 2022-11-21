@@ -294,8 +294,8 @@ class UNet(nn.Module):
         b, c, h, w = x.shape
         x0, x1, x2, x3, x4 = self.encoder(x)
 
-        # for i in range(6):
-        #     x0 = self.FAM[i](x0)
+        for i in range(6):
+            x0 = self.FAM[i](x0)
 
         x3 = self.attention_3(gate=x4, skip_connection=x3)
         x2 = self.attention_2(gate=x4, skip_connection=x2)
