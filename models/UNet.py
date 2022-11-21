@@ -272,12 +272,12 @@ class GCM(nn.Module):
     def __init__(self):
         super(GCM, self).__init__()
         self.conv_1 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=1, padding=0, dilation=1)
-        self.conv_3 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=3)
-        self.conv_5 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=5)
-        self.conv_7 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=7)
+        self.conv_3 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=3, dilation=3)
+        self.conv_5 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=5, dilation=5)
+        self.conv_7 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=7, dilation=7)
 
     def forward(self, x):
-        y = torch.cat([self.conv_1(x), self.conv_2(x), self.conv_3(x), self.conv_4(x)], dim=1)
+        y = torch.cat([self.conv_1(x), self.conv_3(x), self.conv_5(x), self.conv_7(x)], dim=1)
         return y
 
 
