@@ -283,6 +283,7 @@ class UNet(nn.Module):
 
         in_channels = 64
         self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder.conv1.stride = (1, 1)
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
