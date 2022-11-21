@@ -304,7 +304,8 @@ class UNet(nn.Module):
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
         # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_conv1 = nn.Conv2d(64, 32, 3, padding=1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
