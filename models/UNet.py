@@ -261,7 +261,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w40', pretrained=True, features_only=True)
 
         self.FAMBlock = FAMBlock(channels=64)
         self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
