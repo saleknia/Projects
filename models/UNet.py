@@ -114,10 +114,9 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -269,6 +268,19 @@ class SEBlock(nn.Module):
         y = torch.mul(x, y)
         return y
 
+class GCM(nn.Module):
+    def __init__(self):
+        super(GCM, self).__init__()
+        self.conv_1 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=1, padding=0, dilation=1)
+        self.conv_3 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=3)
+        self.conv_5 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=5)
+        self.conv_7 = ConvBatchNorm(in_channels=1024, out_channels=256, kernel_size=3, padding=1, dilation=7)
+
+    def forward(self, x):
+        y = torch.cat([self.conv_1(x), self.conv_2(x), self.conv_3(x), self.conv_4(x)], dim=1)
+        return y
+
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -299,6 +311,8 @@ class UNet(nn.Module):
         self.up2 = UpBlock(256 , 128, nb_Conv=2)
         self.up1 = UpBlock(128 , 64 , nb_Conv=2)
 
+        self.GCM = GCM()
+
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
         # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
@@ -324,6 +338,7 @@ class UNet(nn.Module):
         # x2 = self.attention_2(gate=x4, skip_connection=x2)
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
+        x4 = self.GCM(x4)
 
         x = self.up4(x4, x3)
         x = self.up3(x3, x2)
