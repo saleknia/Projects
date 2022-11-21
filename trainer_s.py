@@ -162,7 +162,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
         # loss_ce = ce_loss(outputs, soft_label) 
         loss_dice = dice_loss(inputs=outputs, targets=targets)
-        loss = loss_ce + loss_dice
+        loss = 0.4 * loss_ce + 0.6 * loss_dice
         # loss = loss_ce
 
         # iter_num = iter_num + 1 
