@@ -133,7 +133,7 @@ class DownBlock(nn.Module):
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x):
-        return self.nConvs(out)
+        return self.nConvs(x)
 
 class AttentionBlock(nn.Module):
     """Attention block with learnable parameters"""
