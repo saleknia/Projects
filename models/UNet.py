@@ -330,7 +330,18 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x0, x1, x2, x3, x4 = self.encoder(x)
+        t0, t1, t2, t3, t4 = self.encoder(x)
+
+        x1 = self.down1(t1)
+        x1 = torch.cat([x1, t2], dim=1)
+
+        x2 = self.down2(x1)
+        x2 = torch.cat([x2, t3], dim=1)
+
+        x3 = self.down3(x2)
+        x3 = torch.cat([x3, t4], dim=1)
+
+        x4 = self.down4(x3)
 
         # for i in range(6):
         #     x0 = self.FAM[i](x0)
