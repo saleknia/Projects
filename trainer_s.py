@@ -78,6 +78,7 @@ class CriterionPixelWise(nn.Module):
         loss = (torch.sum( - softmax_pred_T * logsoftmax(preds_S.permute(0,2,3,1).contiguous().view(-1,C))))/W/H
         return loss
 
+
 class Evaluator(object):
     ''' For using this evaluator target and prediction
         dims should be [B,H,W] '''
@@ -90,14 +91,12 @@ class Evaluator(object):
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        # IoU = (self.tp) / (self.tp + self.fp + self.fn)
-        IoU = self.TP / (self.FPN - self.TP)
+        IoU = (self.tp) / (self.tp + self.fp + self.fn)
         IoU = torch.tensor(IoU)
         return IoU
 
     def Dice(self,per_class=False,show=False):
-        # Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
-        Dice = (2 * self.TP) / self.FPN
+        Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
         Dice = torch.tensor(Dice)
         return Dice
 
@@ -105,58 +104,16 @@ class Evaluator(object):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
         tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
-        TP = np.sum(pre_image*gt_image)
-        FPN = np.sum(pre_image) + np.sum(gt_image)
         self.tn = self.tn + tn
         self.fp = self.fp + fp
         self.fn = self.fn + fn
         self.tp = self.tp + tp  
-        self.TP = self.TP + TP
-        self.FPN = self.FPN + FPN
 
     def reset(self):
         self.tn = 0
         self.fp = 0
         self.fn = 0
         self.tp = 0
-        self.TP = 0
-        self.FPN = 0
-
-# class Evaluator(object):
-#     ''' For using this evaluator target and prediction
-#         dims should be [B,H,W] '''
-#     def __init__(self):
-#         self.reset()
-        
-#     def Pixel_Accuracy(self):
-#         Acc = (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
-#         Acc = torch.tensor(Acc)
-#         return Acc
-
-#     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-#         IoU = (self.tp) / (self.tp + self.fp + self.fn)
-#         IoU = torch.tensor(IoU)
-#         return IoU
-
-#     def Dice(self,per_class=False,show=False):
-#         Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
-#         Dice = torch.tensor(Dice)
-#         return Dice
-
-#     def add_batch(self, gt_image, pre_image):
-#         gt_image=gt_image.int().detach().cpu().numpy()
-#         pre_image=pre_image.int().detach().cpu().numpy()
-#         tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
-#         self.tn = self.tn + tn
-#         self.fp = self.fp + fp
-#         self.fn = self.fn + fn
-#         self.tp = self.tp + tp  
-
-#     def reset(self):
-#         self.tn = 0
-#         self.fp = 0
-#         self.fn = 0
-#         self.tp = 0
 
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
