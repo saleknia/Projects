@@ -292,7 +292,7 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 16
-        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         # self.maxpool = nn.MaxPool2d(2)
