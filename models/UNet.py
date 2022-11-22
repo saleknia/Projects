@@ -294,11 +294,10 @@ class UNet(nn.Module):
         in_channels = 16
         self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
-        # self.encoder.conv1.stride = (1, 1)
-
-        self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
-        self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
-        self.reduction = ConvBatchNorm(in_channels=64, out_channels=16, kernel_size=3, padding=1, dilation=1)
+        self.encoder.conv1.stride = (1, 1)
+        # self.maxpool = nn.MaxPool2d(2)
+        # self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
+        # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
 
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
@@ -309,28 +308,47 @@ class UNet(nn.Module):
         self.up4 = UpBlock(256 , 128, nb_Conv=2)
         self.up3 = UpBlock(128 , 64 , nb_Conv=2)
         self.up2 = UpBlock(64  , 32 , nb_Conv=2)
-        self.up1 = UpBlock(32  , 16 , nb_Conv=2)
+        # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
         # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
         # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
 
-        self.final_conv1 = nn.ConvTranspose2d(16, 8, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(8, 8, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(8, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x0, x1, x2, x3, x4 = self.encoder(x)
+        
+        x = self.encoder.conv1(x)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        x = self.encoder.conv2(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
+
+        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        yl = self.encoder.stage2(xl)
+
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        yl = self.encoder.stage3(xl)
+
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder.stage4(xl)
+
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        # x0, x1, x2, x3, x4 = self.encoder(x)
                      
-        for i in range(6):
-            x0 = self.FAM[i](x0)
-        x0 = self.reduction(x0)
+        # for i in range(6):
+        #     x0 = self.FAM[i](x0)
+        # x0 = self.reduction(x0)
 
         # x3 = self.attention_3(gate=x4, skip_connection=x3)
         # x2 = self.attention_2(gate=x4, skip_connection=x2)
@@ -340,7 +358,7 @@ class UNet(nn.Module):
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
         x = self.up2(x , x1)
-        x = self.up1(x , x0)
+        # x = self.up1(x , x0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
