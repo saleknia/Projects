@@ -345,7 +345,7 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x = self.conv1(torch.randn(8, 3, 224, 224))
+        x = self.conv1(x)
         x = self.bn1(x)
         x = self.act1(x)
 
