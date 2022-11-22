@@ -294,8 +294,9 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.encoder.conv1.stride = (1, 1)
+        self.encoder.incre_modules = None
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
@@ -305,22 +306,20 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up4 = UpBlock(1024, 512, nb_Conv=2)
-        self.up3 = UpBlock(512 , 256, nb_Conv=2)
-        self.up2 = UpBlock(256 , 128, nb_Conv=2)
-        self.up1 = UpBlock(128 , 64 , nb_Conv=2)
+        self.up3 = UpBlock(128 , 64, nb_Conv=2)
+        self.up2 = UpBlock(64  , 32, nb_Conv=2)
+        self.up1 = UpBlock(32  , 16, nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
         # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
         # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
 
-        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_conv1 = nn.Conv2d(64, 32, 3, padding=1)
+        self.final_conv1 = nn.ConvTranspose2d(16, 8, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(8, 8, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(8, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -336,10 +335,10 @@ class UNet(nn.Module):
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
 
-        x = self.up4(x4, x3)
-        x = self.up3(x , x2)
-        x = self.up2(x , x1)
-        x = self.up1(x , x0)
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2)
+        x = self.up1(x , x1)
+        # x = self.up1(x , x0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
