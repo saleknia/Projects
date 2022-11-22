@@ -305,9 +305,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up4 = UpBlock(256 , 128, nb_Conv=2)
-        self.up3 = UpBlock(128 , 64 , nb_Conv=2)
-        self.up2 = UpBlock(64  , 32 , nb_Conv=2)
+        self.up4 = UpBlock(144 , 72, nb_Conv=2)
+        self.up3 = UpBlock(72  , 36, nb_Conv=2)
+        self.up2 = UpBlock(18  , 18, nb_Conv=2)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
@@ -315,11 +315,11 @@ class UNet(nn.Module):
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
         # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
 
-        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 9, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(9, 9, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(9, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
