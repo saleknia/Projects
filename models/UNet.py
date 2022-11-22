@@ -294,9 +294,29 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
-        self.encoder.conv1.stride = (1, 1)
-        self.encoder.incre_modules = None
+        encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        encoder.incre_modules = None
+
+        self.conv1 = encoder.conv1
+        self.bn1 = encoder.bn1
+        self.act1 = encoder.act1
+
+        self.conv2 = encoder.conv2
+        self.bn2 = encoder.bn2
+        self.act2 = encoder.act2
+
+        self.layer1 = encoder.layer1
+
+        self.transition1 = encoder.transition1
+        self.stage2 = encoder.stage2
+
+        self.transition2 = encoder.transition2
+        self.stage3 = encoder.stage3
+
+        self.transition3 = encoder.transition3
+        self.stage4 = encoder.stage4
+
+        self.up = nn.Upsample(scale_factor=2)
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
@@ -306,26 +326,49 @@ class UNet(nn.Module):
         # torch.Size([8, 512, 14, 14])
         # torch.Size([8, 1024, 7, 7])
 
-        self.up3 = UpBlock(128 , 64, nb_Conv=2)
-        self.up2 = UpBlock(64  , 32, nb_Conv=2)
-        self.up1 = UpBlock(32  , 16, nb_Conv=2)
+        self.up3 = UpBlock(256 , 128, nb_Conv=2)
+        self.up2 = UpBlock(128 , 64 , nb_Conv=2)
+        self.up1 = UpBlock(64  , 32 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
         # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
         # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
         # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
 
-        self.final_conv1 = nn.ConvTranspose2d(16, 8, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(8, 8, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(8, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x0, x1, x2, x3, x4 = self.encoder(x)
+        x = self.conv1(torch.randn(8, 3, 224, 224))
+        x = self.bn1(x)
+        x = self.act1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = self.act2(x)
+
+        x = self.layer1(x)
+
+        xl = [t(x) for i, t in enumerate(self.transition1)]
+        yl = self.stage2(xl)
+
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition2)]
+        yl = self.stage3(xl)
+
+        xl[0], xl[1], xl[2] = self.Up(xl[0]), self.Up(xl[1]), self.Up(xl[2])
+
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition3)]
+        yl = self.stage4(xl)
+
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+
+        # x0, x1, x2, x3, x4 = self.encoder(x)
 
         # for i in range(6):
         #     x0 = self.FAM[i](x0)
