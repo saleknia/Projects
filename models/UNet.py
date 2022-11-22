@@ -293,30 +293,15 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        in_channels = 64
-        encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
-        encoder.incre_modules = None
+        in_channels = 16
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder.incre_modules = None
+        self.conv1.stride = (1, 1)
 
-        self.conv1 = encoder.conv1
-        self.bn1 = encoder.bn1
-        self.act1 = encoder.act1
-
-        self.conv2 = encoder.conv2
-        self.bn2 = encoder.bn2
-        self.act2 = encoder.act2
-
-        self.layer1 = encoder.layer1
-
-        self.transition1 = encoder.transition1
-        self.stage2 = encoder.stage2
-
-        self.transition2 = encoder.transition2
-        self.stage3 = encoder.stage3
-
-        self.transition3 = encoder.transition3
-        self.stage4 = encoder.stage4
-
-        self.up = nn.Upsample(scale_factor=2)
+        self.down1 = DownBlock(16 , 32  , nb_Conv=2)
+        self.down2 = DownBlock(64 , 64  , nb_Conv=2)
+        self.down3 = DownBlock(128, 128 , nb_Conv=2)
+        self.down4 = DownBlock(256, 256 , nb_Conv=2)
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
@@ -345,30 +330,7 @@ class UNet(nn.Module):
         # Question here
         x = x.float()
         b, c, h, w = x.shape
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.act1(x)
-
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.act2(x)
-
-        x = self.layer1(x)
-
-        xl = [t(x) for i, t in enumerate(self.transition1)]
-        yl = self.stage2(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition2)]
-        yl = self.stage3(xl)
-
-        yl[0], yl[1], yl[2] = self.up(yl[0]), self.up(yl[1]), self.up(yl[2])
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition3)]
-        yl = self.stage4(xl)
-
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
-
-        # x0, x1, x2, x3, x4 = self.encoder(x)
+        x0, x1, x2, x3, x4 = self.encoder(x)
 
         # for i in range(6):
         #     x0 = self.FAM[i](x0)
