@@ -307,7 +307,7 @@ class UNet(nn.Module):
 
         self.up4 = UpBlock(144 , 72, nb_Conv=2)
         self.up3 = UpBlock(72  , 36, nb_Conv=2)
-        self.up2 = UpBlock(18  , 18, nb_Conv=2)
+        self.up2 = UpBlock(36  , 18, nb_Conv=2)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
