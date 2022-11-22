@@ -294,12 +294,11 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 64
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=False, features_only=True)
         self.encoder.conv1.stride = (1, 1)
 
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
-        self.GCM = GCM()
         # torch.Size([8, 64, 112, 112])
         # torch.Size([8, 128, 56, 56])
         # torch.Size([8, 256, 28, 28])
@@ -336,7 +335,6 @@ class UNet(nn.Module):
         # x2 = self.attention_2(gate=x4, skip_connection=x2)
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
-        x4 = self.GCM(x4)
 
         x = self.up4(x4, x3)
         x = self.up3(x , x2)
