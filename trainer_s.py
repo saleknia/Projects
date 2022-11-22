@@ -89,8 +89,9 @@ class Evaluator(object):
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU = (self.tp) / (self.tp + self.fp + self.fn)
-        IoU = torch.tensor(IoU)
+        IoU_1 = (self.tp) / (self.tp + self.fp + self.fn)
+        IoU_0 = (self.tpp) / (self.tpp + self.fpp + self.fnp)
+        IoU = (torch.tensor(IoU_1) + torch.tensor(IoU_0)) / 2.0
         return IoU
 
     def Dice(self,per_class=False,show=False):
@@ -101,17 +102,35 @@ class Evaluator(object):
     def add_batch(self, gt_image, pre_image):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
+
+        gt_image_prime = gt_image + 1.0
+        gt_image_prime[gt_image_prime==2.0] = 0.0
+
+        pre_image_prime = pre_image + 1.0
+        pre_image_prime[pre_image_prime==2.0] = 0.0
+
         tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
+        tnp, fpp, fnp, tpp = confusion_matrix(gt_image_prime.reshape(-1), pre_image_prime.reshape(-1)).ravel()
         self.tn = self.tn + tn
         self.fp = self.fp + fp
         self.fn = self.fn + fn
         self.tp = self.tp + tp  
+
+        self.tnp = self.tnp + tnp
+        self.fpp = self.fpp + fpp
+        self.fnp = self.fnp + fnp
+        self.tpp = self.tpp + tpp  
 
     def reset(self):
         self.tn = 0
         self.fp = 0
         self.fn = 0
         self.tp = 0
+
+        self.tnp = 0
+        self.fpp = 0
+        self.fnp = 0
+        self.tpp = 0
 
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
