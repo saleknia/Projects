@@ -296,7 +296,7 @@ class UNet(nn.Module):
         in_channels = 16
         self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
-        self.conv1.stride = (1, 1)
+        self.encoder.conv1.stride = (1, 1)
 
         self.down1 = DownBlock(16 , 32  , nb_Conv=2)
         self.down2 = DownBlock(64 , 64  , nb_Conv=2)
