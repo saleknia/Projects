@@ -1,5 +1,6 @@
 import utils
 import torch
+import numpy as np
 import torch.nn as nn
 from utils import print_progress
 from torch.nn.modules.loss import CrossEntropyLoss
@@ -43,48 +44,73 @@ class Evaluator(object):
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU_1 = (self.tp) / (self.tp + self.fp + self.fn)
-        IoU_0 = (self.tpp) / (self.tpp + self.fpp + self.fnp)
-        IoU = (torch.tensor(IoU_1) + torch.tensor(IoU_0)) / 2.0
+        # IoU = (self.tp) / (self.tp + self.fp + self.fn)
+        IoU = self.TP / (self.FPN - self.TP)
+        IoU = torch.tensor(IoU)
         return IoU
 
     def Dice(self,per_class=False,show=False):
-        Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
+        # Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
+        Dice = (2 * self.TP) / self.FPN
         Dice = torch.tensor(Dice)
         return Dice
 
     def add_batch(self, gt_image, pre_image):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
-
-        gt_image_prime = gt_image + 1.0
-        gt_image_prime[gt_image_prime==2.0] = 0.0
-
-        pre_image_prime = pre_image + 1.0
-        pre_image_prime[pre_image_prime==2.0] = 0.0
-
         tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
-        tnp, fpp, fnp, tpp = confusion_matrix(gt_image_prime.reshape(-1), pre_image_prime.reshape(-1)).ravel()
+        TP = np.sum(pre_image*gt_image)
+        FPN = np.sum(pre_image) + np.sum(gt_image)
         self.tn = self.tn + tn
         self.fp = self.fp + fp
         self.fn = self.fn + fn
         self.tp = self.tp + tp  
-
-        self.tnp = self.tnp + tnp
-        self.fpp = self.fpp + fpp
-        self.fnp = self.fnp + fnp
-        self.tpp = self.tpp + tpp  
+        self.TP = self.TP + TP
+        self.FPN = self.FPN + FPN
 
     def reset(self):
         self.tn = 0
         self.fp = 0
         self.fn = 0
         self.tp = 0
+        self.TP = 0
+        self.FPN = 0
 
-        self.tnp = 0
-        self.fpp = 0
-        self.fnp = 0
-        self.tpp = 0
+# class Evaluator(object):
+#     ''' For using this evaluator target and prediction
+#         dims should be [B,H,W] '''
+#     def __init__(self):
+#         self.reset()
+        
+#     def Pixel_Accuracy(self):
+#         Acc = (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
+#         Acc = torch.tensor(Acc)
+#         return Acc
+
+#     def Mean_Intersection_over_Union(self,per_class=False,show=False):
+#         IoU = (self.tp) / (self.tp + self.fp + self.fn)
+#         IoU = torch.tensor(IoU)
+#         return IoU
+
+#     def Dice(self,per_class=False,show=False):
+#         Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
+#         Dice = torch.tensor(Dice)
+#         return Dice
+
+#     def add_batch(self, gt_image, pre_image):
+#         gt_image=gt_image.int().detach().cpu().numpy()
+#         pre_image=pre_image.int().detach().cpu().numpy()
+#         tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
+#         self.tn = self.tn + tn
+#         self.fp = self.fp + fp
+#         self.fn = self.fn + fn
+#         self.tp = self.tp + tp  
+
+#     def reset(self):
+#         self.tn = 0
+#         self.fp = 0
+#         self.fn = 0
+#         self.tp = 0
 
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
