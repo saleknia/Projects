@@ -130,11 +130,9 @@ class DownBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x):
-        out = self.maxpool(x)
         return self.nConvs(out)
 
 class AttentionBlock(nn.Module):
@@ -303,6 +301,8 @@ class UNet(nn.Module):
         self.down3 = DownBlock(128, 128 , nb_Conv=2)
         self.down4 = DownBlock(256, 256 , nb_Conv=2)
 
+        self.maxpool = nn.MaxPool2d(2)
+
         # self.FAMBlock = FAMBlock(channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
         # torch.Size([8, 64, 112, 112])
@@ -331,16 +331,16 @@ class UNet(nn.Module):
         x = x.float()
         b, c, h, w = x.shape
         t0, t1, t2, t3, t4 = self.encoder(x)
+                     
+        x1 = self.down1(t1)                
 
-        x1 = self.down1(t1)
+        x2 = torch.cat([self.maxpool(x1), t2], dim=1)    
+        x2 = self.down2(x2) 
 
-        x2 = torch.cat([x1, t2], dim=1)
-        x2 = self.down2(x2)
-
-        x3 = torch.cat([x2, t3], dim=1)
+        x3 = torch.cat([self.maxpool(x2), t3], dim=1)  
         x3 = self.down3(x3)
 
-        x4 = torch.cat([x3, t4], dim=1)
+        x4 = torch.cat([self.maxpool(x3), t4], dim=1)  
         x4 = self.down4(x4)
 
         # for i in range(6):
