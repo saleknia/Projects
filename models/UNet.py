@@ -361,7 +361,7 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition2)]
         yl = self.stage3(xl)
 
-        xl[0], xl[1], xl[2] = self.up(xl[0]), self.up(xl[1]), self.up(xl[2])
+        yl[0], yl[1], yl[2] = self.up(yl[0]), self.up(yl[1]), self.up(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.transition3)]
         yl = self.stage4(xl)
