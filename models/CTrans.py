@@ -321,17 +321,17 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[64, 128, 256, 512], patchSize=[32, 16, 8, 4]):
+    def __init__(self, config, vis, img_size, channel_num=[18, 36, 72, 144], patchSize=[8, 4, 2, 1]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
         self.patchSize_4 = patchSize[3]
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size,    in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//2, in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//4, in_channels=channel_num[2])
-        self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//8, in_channels=channel_num[3])
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//2 , in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//4 , in_channels=channel_num[1])
+        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//8 , in_channels=channel_num[2])
+        self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//16, in_channels=channel_num[3])
         self.encoder = Encoder(config, vis, channel_num)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
@@ -352,9 +352,9 @@ class ChannelTransformer(nn.Module):
         x3 = self.reconstruct_3(encoded3) if en3 is not None else None
         x4 = self.reconstruct_4(encoded4) if en4 is not None else None
 
-        x1 = x1 + en1  if en1 is not None else None
-        x2 = x2 + en2  if en2 is not None else None
-        x3 = x3 + en3  if en3 is not None else None
-        x4 = x4 + en4  if en4 is not None else None
+        # x1 = x1 + en1  if en1 is not None else None
+        # x2 = x2 + en2  if en2 is not None else None
+        # x3 = x3 + en3  if en3 is not None else None
+        # x4 = x4 + en4  if en4 is not None else None
 
         return x1, x2, x3, x4, attn_weights
