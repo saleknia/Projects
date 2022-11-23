@@ -303,17 +303,13 @@ class UNet(nn.Module):
         self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
 
-        self.conv_seq_img_1 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.conv_seq_img_2 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.conv_seq_img_3 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_1 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img_3 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
 
-        self.combine_1_cnn = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_2_cnn = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_3_cnn = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
-        self.combine_1_tf = ConvBatchNorm(in_channels=288, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_2_tf = ConvBatchNorm(in_channels=288, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_3_tf = ConvBatchNorm(in_channels=288, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        self.combine_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        self.combine_3 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
 
         self.se_1 = SEBlock(channel=288)
         self.se_2 = SEBlock(channel=288)
@@ -375,8 +371,7 @@ class UNet(nn.Module):
         feature_tf = self.conv_seq_img_1(feature_tf)
 
         temp = self.se_1(torch.cat([xl[3], feature_tf], dim=1))
-        xl[3] = self.combine_1_cnn(temp)
-        emb =  self.combine_1_tf(temp).view(b, 192, 196).permute(0, 2, 1)
+        xl[3] = self.combine_1(temp)
 
         xl = self.encoder.stage4[0](xl)
 
@@ -388,8 +383,7 @@ class UNet(nn.Module):
         feature_tf = self.conv_seq_img_2(feature_tf)
 
         temp = self.se_2(torch.cat([xl[3], feature_tf], dim=1))
-        xl[3] = self.combine_2_cnn(temp)
-        emb =  self.combine_2_tf(temp).view(b, 192, 196).permute(0, 2, 1)
+        xl[3] = self.combine_2(temp)
 
         xl = self.encoder.stage4[1](xl)
 
@@ -401,7 +395,7 @@ class UNet(nn.Module):
         feature_tf = self.conv_seq_img_3(feature_tf)
 
         temp = self.se_3(torch.cat([xl[3], feature_tf], dim=1))
-        xl[3] = self.combine_3_cnn(temp)
+        xl[3] = self.combine_3(temp)
 
         xl = self.encoder.stage4[2](xl)
 
