@@ -315,10 +315,10 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
-        self.combine_1 = nn.Conv2d(in_channels=36 , out_channels=18 , kernel_size=3, padding=0)
-        self.combine_2 = nn.Conv2d(in_channels=72 , out_channels=36 , kernel_size=3, padding=0)
-        self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=0)
-        self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=0)
+        self.combine_1 = nn.Conv2d(in_channels=36 , out_channels=18 , kernel_size=3, padding=1)
+        self.combine_2 = nn.Conv2d(in_channels=72 , out_channels=36 , kernel_size=3, padding=1)
+        self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
+        self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=1)
 
         config = get_CTranS_config()
         self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
