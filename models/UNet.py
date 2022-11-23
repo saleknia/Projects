@@ -295,6 +295,22 @@ class UNet(nn.Module):
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
+
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+
+        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0 , 8 )])
+        self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(8 , 10)])
+        self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(10, 12)])
+
+        self.conv_seq_img_1 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_2 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_3 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
+        self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+
         # self.maxpool = nn.MaxPool2d(2)
         # self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
         # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
@@ -323,10 +339,10 @@ class UNet(nn.Module):
 
     def forward(self, x):
         # Question here
-        x = x.float()
+        x0 = x.float()
         b, c, h, w = x.shape
         
-        x = self.encoder.conv1(x)
+        x = self.encoder.conv1(x0)
         x = self.encoder.bn1(x)
         x = self.encoder.act1(x)
         x = self.encoder.conv2(x)
@@ -341,9 +357,43 @@ class UNet(nn.Module):
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl)
 
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        emb = self.patch_embed(x0)
+        for i in range(8):
+            emb = self.transformers_stage_1[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = self.conv_seq_img_1(feature_tf)
+
+        xl[3] = self.combine_1(torch.cat([xl[3], feature_tf], dim=1))
+
+        xl = self.encoder.stage4[0](xl)
+
+        for i in range(2):
+            emb = self.transformers_stage_2[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = self.conv_seq_img_2(feature_tf)
+
+        xl[3] = self.combine_2(torch.cat([xl[3], feature_tf], dim=1))
+
+        xl = self.encoder.stage4[1](xl)
+
+        for i in range(2):
+            emb = self.transformers_stage_3[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = self.conv_seq_img_3(feature_tf)
+
+        xl[3] = self.combine_3(torch.cat([xl[3], feature_tf], dim=1))
+
+        xl = self.encoder.stage4[2](xl)
+
+        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        
         # x0, x1, x2, x3, x4 = self.encoder(x)
                      
         # for i in range(6):
