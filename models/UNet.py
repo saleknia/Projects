@@ -307,13 +307,13 @@ class UNet(nn.Module):
         self.conv_seq_img_2 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.conv_seq_img_3 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.se_1 = SEBlock(channel=288)
-        self.se_2 = SEBlock(channel=288)
-        self.se_3 = SEBlock(channel=288)
+        # self.se_1 = SEBlock(channel=288)
+        # self.se_2 = SEBlock(channel=288)
+        # self.se_3 = SEBlock(channel=288)
 
         # self.maxpool = nn.MaxPool2d(2)
         # self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
@@ -370,7 +370,9 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_1(feature_tf)
 
-        xl[3] = self.combine_1(self.se_1(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        # xl[3] = self.combine_1(self.se_1(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        xl[3] = feature_tf + xl[3]
+
 
         xl = self.encoder.stage4[0](xl)
 
@@ -381,7 +383,8 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_2(feature_tf)
 
-        xl[3] = self.combine_2(self.se_2(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        # xl[3] = self.combine_2(self.se_2(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        xl[3] = feature_tf + xl[3]
 
         xl = self.encoder.stage4[1](xl)
 
@@ -392,7 +395,8 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_3(feature_tf)
 
-        xl[3] = self.combine_3(self.se_3(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        # xl[3] = self.combine_3(self.se_3(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
+        xl[3] = feature_tf + xl[3]
 
         xl = self.encoder.stage4[2](xl)
 
