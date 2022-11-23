@@ -360,7 +360,7 @@ class UNet(nn.Module):
         self.up1_2 = UpBlock(36 , 18, nb_Conv=2)
 
         self.up1_3 = UpBlock(36 , 18, nb_Conv=2)
-
+        self.att = ParallelPolarizedSelfAttention(channel=18)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
@@ -458,6 +458,7 @@ class UNet(nn.Module):
         k1 = self.up1_2(k2, t1) + t1
 
         x = self.up1_3(k2, k1) + k1
+        x = self.att(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
