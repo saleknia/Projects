@@ -320,8 +320,8 @@ class UNet(nn.Module):
         self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
         self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=1)
 
-        config = get_CTranS_config()
-        self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
+        # config = get_CTranS_config()
+        # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -352,9 +352,15 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up4 = UpBlock(144 , 72, nb_Conv=2)
-        self.up3 = UpBlock(72  , 36, nb_Conv=2)
-        self.up2 = UpBlock(36  , 18, nb_Conv=2)
+        self.up3_1 = UpBlock(144, 72, nb_Conv=2)
+        self.up2_1 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1_1 = UpBlock(36 , 18, nb_Conv=2)
+
+        self.up2_2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1_2 = UpBlock(36 , 18, nb_Conv=2)
+
+        self.up1_3 = UpBlock(36 , 18, nb_Conv=2)
+
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
         # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
@@ -430,12 +436,10 @@ class UNet(nn.Module):
         
         x0, x1, x2, x3, x4 = self.encoder(x)
 
-        t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
-
-        x1 = self.combine_1(torch.cat([x1, t1], dim=1))
-        x2 = self.combine_2(torch.cat([x2, t2], dim=1))
-        x3 = self.combine_3(torch.cat([x3, t3], dim=1))
-        x4 = self.combine_4(torch.cat([x4, t4], dim=1))
+        # x1 = self.combine_1(torch.cat([x1, t1], dim=1))
+        # x2 = self.combine_2(torch.cat([x2, t2], dim=1))
+        # x3 = self.combine_3(torch.cat([x3, t3], dim=1))
+        # x4 = self.combine_4(torch.cat([x4, t4], dim=1))
 
         # for i in range(6):
         #     x0 = self.FAM[i](x0)
@@ -446,10 +450,14 @@ class UNet(nn.Module):
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
 
-        x = self.up4(x4, x3)
-        x = self.up3(x , x2)
-        x = self.up2(x , x1)
-        # x = self.up1(x , x0)
+        t3 = self.up3_1(x4, x3)
+        t2 = self.up2_1(t3, x2)
+        t1 = self.up1_1(t2, x1)
+
+        k2 = self.up2_2(t3, t2)
+        k1 = self.up1_2(k2, t1)
+
+        x = self.up1_3(k2, k1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
