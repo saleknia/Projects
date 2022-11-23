@@ -454,10 +454,10 @@ class UNet(nn.Module):
         t2 = self.up2_1(t3, x2)
         t1 = self.up1_1(t2, x1)
 
-        k2 = self.up2_2(t3, t2)
-        k1 = self.up1_2(k2, t1)
+        k2 = self.up2_2(t3, t2) + t2
+        k1 = self.up1_2(k2, t1) + t1
 
-        x = self.up1_3(k2, k1)
+        x = self.up1_3(k2, k1) + k1
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
