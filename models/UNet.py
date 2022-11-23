@@ -296,16 +296,16 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
 
         self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0 , 8 )])
         self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(8 , 10)])
         self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(10, 12)])
 
-        self.conv_seq_img_1 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.conv_seq_img_2 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.conv_seq_img_3 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_1 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_2 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.conv_seq_img_3 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
@@ -367,7 +367,7 @@ class UNet(nn.Module):
             emb = self.transformers_stage_1[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_1(feature_tf)
 
         xl[3] = self.combine_1(self.se_1(torch.cat([xl[3], feature_tf], dim=1)))
@@ -378,7 +378,7 @@ class UNet(nn.Module):
             emb = self.transformers_stage_2[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_2(feature_tf)
 
         xl[3] = self.combine_2(self.se_2(torch.cat([xl[3], feature_tf], dim=1)))
@@ -389,7 +389,7 @@ class UNet(nn.Module):
             emb = self.transformers_stage_3[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img_3(feature_tf)
 
         xl[3] = self.combine_3(self.se_3(torch.cat([xl[3], feature_tf], dim=1)))
