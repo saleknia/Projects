@@ -320,7 +320,8 @@ class UNet(nn.Module):
         self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=0)
         self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=0)
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
+        config = get_CTranS_config()
+        self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
