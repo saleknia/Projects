@@ -295,7 +295,7 @@ def get_CTranS_config():
     # config.patch_sizes = [16,8,4,2]
     config.patch_sizes = [8,4,2,1]
     config.base_channel = 18 # base channel of U-Net
-    config.n_classes = NUM_CLASS
+    config.n_classes = 1
     return config
 
 class UNet(nn.Module):
