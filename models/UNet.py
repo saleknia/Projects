@@ -303,17 +303,17 @@ class UNet(nn.Module):
         self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
 
-        self.conv_seq_img_1 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.conv_seq_img_2 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.conv_seq_img_1 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.conv_seq_img_2 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.conv_seq_img_3 = ConvBatchNorm(in_channels=192, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         # self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # self.se_1 = SEBlock(channel=288)
         # self.se_2 = SEBlock(channel=288)
-        # self.se_3 = SEBlock(channel=288)
+        self.se_3 = SEBlock(channel=288)
 
         # self.maxpool = nn.MaxPool2d(2)
         # self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
@@ -366,12 +366,12 @@ class UNet(nn.Module):
         for i in range(len(self.transformers_stage_1)):
             emb = self.transformers_stage_1[i](emb)
 
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img_1(feature_tf)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # feature_tf = self.conv_seq_img_1(feature_tf)
 
         # xl[3] = self.combine_1(self.se_1(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
-        xl[3] = feature_tf + xl[3]
+        # xl[3] = feature_tf + xl[3]
 
 
         xl = self.encoder.stage4[0](xl)
@@ -379,12 +379,12 @@ class UNet(nn.Module):
         for i in range(len(self.transformers_stage_2)):
             emb = self.transformers_stage_2[i](emb)
 
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img_2(feature_tf)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # feature_tf = self.conv_seq_img_2(feature_tf)
 
         # xl[3] = self.combine_2(self.se_2(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
-        xl[3] = feature_tf + xl[3]
+        # xl[3] = feature_tf + xl[3]
 
         xl = self.encoder.stage4[1](xl)
 
@@ -396,12 +396,16 @@ class UNet(nn.Module):
         feature_tf = self.conv_seq_img_3(feature_tf)
 
         # xl[3] = self.combine_3(self.se_3(torch.cat([xl[3], feature_tf], dim=1))) + xl[3]
-        xl[3] = feature_tf + xl[3]
+        # xl[3] = feature_tf + xl[3]
 
         xl = self.encoder.stage4[2](xl)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
-        
+
+        feature_cat = torch.cat((x4, feature_tf), dim=1)
+        feature_att = self.se_3(feature_cat)
+        x4 = self.combine_3(feature_att)
+
         # x0, x1, x2, x3, x4 = self.encoder(x)
                      
         # for i in range(6):
