@@ -307,9 +307,9 @@ class UNet(nn.Module):
         self.conv_seq_img_2 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.conv_seq_img_3 = ConvBatchNorm(in_channels=384, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=1, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=1, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=1, dilation=1)
+        self.combine_1 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=288, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.se_1 = SEBlock(channel=288)
         self.se_2 = SEBlock(channel=288)
