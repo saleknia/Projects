@@ -372,7 +372,7 @@ class UNet(nn.Module):
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
+        # feature_tf = self.conv_seq_img(feature_tf)
 
         out = self.combine_1(feature_tf)
         out = self.up(out)
