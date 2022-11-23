@@ -433,9 +433,9 @@ class UNet(nn.Module):
         t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
 
         x1 = self.combine_1(torch.cat([x1, t1], dim=1))
-        x2 = self.combine_1(torch.cat([x2, t2], dim=1))
-        x3 = self.combine_1(torch.cat([x3, t3], dim=1))
-        x4 = self.combine_1(torch.cat([x4, t4], dim=1))
+        x2 = self.combine_2(torch.cat([x2, t2], dim=1))
+        x3 = self.combine_3(torch.cat([x3, t3], dim=1))
+        x4 = self.combine_4(torch.cat([x4, t4], dim=1))
 
         # for i in range(6):
         #     x0 = self.FAM[i](x0)
