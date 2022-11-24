@@ -228,7 +228,7 @@ class AttentionBlock(nn.Module):
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
-
+        self.att = ParallelPolarizedSelfAttention(channel=F_l)
         self.relu = nn.ReLU(inplace=True)
         self.up = nn.Upsample(scale_factor=scale_factor)
     def forward(self, gate, skip_connection):
@@ -241,8 +241,9 @@ class AttentionBlock(nn.Module):
         g1 = self.W_gate(gate)
         x1 = self.W_x(skip_connection)
         psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
+        psi = 1.0 - self.psi(psi)
         out = skip_connection * psi
+        out = self.att(out)
         return out
 
 class UpBlock(nn.Module):
@@ -435,10 +436,9 @@ class UNet(nn.Module):
         # self.att = ParallelPolarizedSelfAttention(channel=18)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
-        self.attention_4 = AttentionBlock(F_g=144, F_l=144, n_coefficients=72, scale_factor=1.0)
-        self.attention_3 = AttentionBlock(F_g=72 , F_l=72 , n_coefficients=36, scale_factor=2.0)
-        self.attention_2 = AttentionBlock(F_g=36 , F_l=36 , n_coefficients=18, scale_factor=4.0)
-        self.attention_1 = AttentionBlock(F_g=18 , F_l=18 , n_coefficients=9 , scale_factor=8.0)
+        self.attention_3 = AttentionBlock(F_g=144 , F_l=72 , n_coefficients=72, scale_factor=2.0)
+        self.attention_2 = AttentionBlock(F_g=144 , F_l=36 , n_coefficients=36, scale_factor=4.0)
+        self.attention_1 = AttentionBlock(F_g=144 , F_l=18 , n_coefficients=18, scale_factor=8.0)
 
         self.final_conv1 = nn.ConvTranspose2d(18, 9, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -462,7 +462,6 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
@@ -471,11 +470,11 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 384, 14, 14)
 
         # x1 = x1 + self.DC_1(x1, x4)
         # x2 = x2 + self.DC_2(x2, x4)
@@ -492,16 +491,15 @@ class UNet(nn.Module):
         #     x0 = self.FAM[i](x0)
         # x0 = self.reduction(x0)
 
-        x4 = self.attention_4(gate=self.conv_seq_img_4(feature_tf), skip_connection=x4)
-        x3 = self.attention_3(gate=self.conv_seq_img_3(feature_tf), skip_connection=x3)
-        x2 = self.attention_2(gate=self.conv_seq_img_2(feature_tf), skip_connection=x2)
-        x1 = self.attention_1(gate=self.conv_seq_img_1(feature_tf), skip_connection=x1)
+        # x4 = self.attention_4(gate=self.conv_seq_img_4(feature_tf), skip_connection=x4)
+        x3 = self.attention_3(gate=x4, skip_connection=x3)
+        x2 = self.attention_2(gate=x4, skip_connection=x2)
+        x1 = self.attention_1(gate=x4, skip_connection=x1)
 
-        t3 = self.up3_1(x4, x3)
-        t2 = self.up2_1(t3, x2) 
-        t1 = self.up1_1(t2, x1) 
+        x = self.up3_1(x4, x3)
+        x = self.up2_1(x , x2) 
+        x = self.up1_1(x , x1) 
 
-        x = t1
 
         # k2 = self.up2_2(t3, t2) + t2
         # k1 = self.up1_2(k2, t1) + t1
