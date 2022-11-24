@@ -401,7 +401,7 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x4 = self.ASPP(x4)
+        x4 = self.aspp(x4)
       
         # x0, x1, x2, x3, x4 = self.encoder(x)
 
