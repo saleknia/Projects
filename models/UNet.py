@@ -315,6 +315,10 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
+        self.SK_1 = SKAttention(channel=18)
+        self.SK_2 = SKAttention(channel=36)
+        self.SK_3 = SKAttention(channel=72)
+
         # self.combine_1 = nn.Conv2d(in_channels=36 , out_channels=18 , kernel_size=3, padding=1)
         # self.combine_2 = nn.Conv2d(in_channels=72 , out_channels=36 , kernel_size=3, padding=1)
         # self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
@@ -351,10 +355,6 @@ class UNet(nn.Module):
         # torch.Size([8, 64 , 28 , 28])
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
-
-        self.vit_1 = MobileViTAttention(in_channel=144,dim=512,kernel_size=3,patch_size=2)
-        self.vit_2 = MobileViTAttention(in_channel=144,dim=512,kernel_size=3,patch_size=2)
-        self.vit_3 = MobileViTAttention(in_channel=144,dim=512,kernel_size=3,patch_size=2)
 
         self.up3_1 = UpBlock(144, 72, nb_Conv=2)
         self.up2_1 = UpBlock(72 , 36, nb_Conv=2)
@@ -399,13 +399,14 @@ class UNet(nn.Module):
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4[0](xl)
-        xl[3] = self.vit_1(xl[3])
-        xl = self.encoder.stage4[1](xl)
-        xl[3] = self.vit_2(xl[3])
-        xl = self.encoder.stage4[2](xl)
+        xl = self.encoder.stage4(xl)
+
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
-        
+
+        x1 = x1 + self.SK_1(x1)
+        x2 = x2 + self.SK_2(x2)
+        x3 = x3 + self.SK_3(x3)
+      
         # x0, x1, x2, x3, x4 = self.encoder(x)
 
         # x1 = self.combine_1(torch.cat([x1, t1], dim=1))
@@ -421,8 +422,6 @@ class UNet(nn.Module):
         # x2 = self.attention_2(gate=x4, skip_connection=x2)
         # x1 = self.attention_1(gate=x4, skip_connection=x1)
         # x0 = self.attention_0(gate=x4, skip_connection=x0)
-
-        x4 = self.vit_3(x4)
 
         t3 = self.up3_1(x4, x3)
         t2 = self.up2_1(t3, x2) 
