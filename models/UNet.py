@@ -213,6 +213,21 @@ class AttentionBlock(nn.Module):
         """
         super(AttentionBlock, self).__init__()
 
+        self.out_r = nn.Sequential(
+            nn.Conv2d(F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_g),
+            nn.ReLU()
+        )
+        self.out_s = nn.Sequential(
+            nn.Conv2d(F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_g),
+            nn.ReLU()
+        )
+        self.combine = nn.Sequential(
+            nn.Conv2d(2*F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_g),
+            nn.ReLU()
+        )
         self.W_gate = nn.Sequential(
             nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(n_coefficients)
@@ -240,8 +255,13 @@ class AttentionBlock(nn.Module):
         g1 = self.W_gate(gate)
         x1 = self.W_x(skip_connection)
         psi = self.relu(g1 + x1)
-        psi = 1.0 - self.psi(psi)
-        out = skip_connection * psi
+        psi = self.psi(psi)
+        out_r = skip_connection * (1.0 - psi)
+        out_s = skip_connection * psi
+
+        out_r = self.out_r(out_r)
+        out_s = self.out_s(out_s)
+        out = self.combine(torch.cat([out_r, out_s], dim=1))
         return out
 
 class UpBlock(nn.Module):
