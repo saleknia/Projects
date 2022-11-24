@@ -394,18 +394,18 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
+        # transformer = deit_small_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
 
-        self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        # self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
 
-        self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=18 , kernel_size=1, padding=0)
-        self.conv_seq_img_2 = nn.Conv2d(in_channels=384, out_channels=36 , kernel_size=1, padding=0)
-        self.conv_seq_img_3 = nn.Conv2d(in_channels=384, out_channels=72 , kernel_size=1, padding=0)
-        self.conv_seq_img_4 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
+        # self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=18 , kernel_size=1, padding=0)
+        # self.conv_seq_img_2 = nn.Conv2d(in_channels=384, out_channels=36 , kernel_size=1, padding=0)
+        # self.conv_seq_img_3 = nn.Conv2d(in_channels=384, out_channels=72 , kernel_size=1, padding=0)
+        # self.conv_seq_img_4 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
 
         # self.combine_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
         # self.combine_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
