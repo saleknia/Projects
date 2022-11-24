@@ -214,18 +214,18 @@ class AttentionBlock(nn.Module):
         super(AttentionBlock, self).__init__()
 
         self.out_r = nn.Sequential(
-            nn.Conv2d(F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(F_g),
+            nn.Conv2d(F_l, F_l, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_l),
             nn.ReLU()
         )
         self.out_s = nn.Sequential(
-            nn.Conv2d(F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(F_g),
+            nn.Conv2d(F_l, F_l, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_l),
             nn.ReLU()
         )
         self.combine = nn.Sequential(
-            nn.Conv2d(2*F_g, F_g, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(F_g),
+            nn.Conv2d(2*F_l, F_l, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(F_l),
             nn.ReLU()
         )
         self.W_gate = nn.Sequential(
