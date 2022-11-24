@@ -394,16 +394,16 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-        xl[3] = self.vit_1(xl[3])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        xl[3] = self.vit_2(xl[3])
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4(xl)
-
+        xl = self.encoder.stage4[0](xl)
+        xl[3] = self.vit_1(xl[3])
+        xl = self.encoder.stage4[1](xl)
+        xl[3] = self.vit_2(xl[3])
+        xl = self.encoder.stage4[2](xl)
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
         
         # x0, x1, x2, x3, x4 = self.encoder(x)
