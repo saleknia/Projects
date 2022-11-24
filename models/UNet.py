@@ -228,7 +228,6 @@ class AttentionBlock(nn.Module):
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
-        self.att = ParallelPolarizedSelfAttention(channel=F_l)
         self.relu = nn.ReLU(inplace=True)
         self.up = nn.Upsample(scale_factor=scale_factor)
     def forward(self, gate, skip_connection):
@@ -243,7 +242,6 @@ class AttentionBlock(nn.Module):
         psi = self.relu(g1 + x1)
         psi = 1.0 - self.psi(psi)
         out = skip_connection * psi
-        out = self.att(out)
         return out
 
 class UpBlock(nn.Module):
