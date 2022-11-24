@@ -381,9 +381,9 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
-        self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
-        self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
-        self.DC_3 = DeformableConv2d(in_channels=72, out_channels=72, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=2.0)
+        # self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
+        # self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
+        # self.DC_3 = DeformableConv2d(in_channels=72, out_channels=72, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=2.0)
 
         # self.combine_1 = nn.Conv2d(in_channels=36 , out_channels=18 , kernel_size=3, padding=1)
         # self.combine_2 = nn.Conv2d(in_channels=72 , out_channels=36 , kernel_size=3, padding=1)
@@ -393,16 +393,18 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
 
-        # self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0 , 6 )])
+        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
 
-        # self.conv_seq_img_1 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.conv_seq_img_3 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=18 , kernel_size=1, padding=0)
+        self.conv_seq_img_2 = nn.Conv2d(in_channels=384, out_channels=36 , kernel_size=1, padding=0)
+        self.conv_seq_img_3 = nn.Conv2d(in_channels=384, out_channels=72 , kernel_size=1, padding=0)
+        self.conv_seq_img_4 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
 
         # self.combine_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
         # self.combine_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
@@ -433,10 +435,10 @@ class UNet(nn.Module):
         # self.att = ParallelPolarizedSelfAttention(channel=18)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
-        # self.attention_3 = AttentionBlock(F_g=1024, F_l=512, n_coefficients=512, scale_factor=2.00)
-        # self.attention_2 = AttentionBlock(F_g=1024, F_l=256, n_coefficients=256, scale_factor=4.00)
-        # self.attention_1 = AttentionBlock(F_g=1024, F_l=128, n_coefficients=128, scale_factor=8.00)
-        # self.attention_0 = AttentionBlock(F_g=1024, F_l=64 , n_coefficients=64 , scale_factor=16.0)
+        self.attention_4 = AttentionBlock(F_g=144, F_l=144, n_coefficients=72, scale_factor=1.0)
+        self.attention_3 = AttentionBlock(F_g=72 , F_l=72 , n_coefficients=36, scale_factor=2.0)
+        self.attention_2 = AttentionBlock(F_g=36 , F_l=36 , n_coefficients=18, scale_factor=4.0)
+        self.attention_1 = AttentionBlock(F_g=18 , F_l=18 , n_coefficients=9 , scale_factor=8.0)
 
         self.final_conv1 = nn.ConvTranspose2d(18, 9, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -469,9 +471,15 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x1 = x1 + self.DC_1(x1, x4)
-        x2 = x2 + self.DC_2(x2, x4)
-        x3 = x3 + self.DC_3(x3, x4)
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+
+        # x1 = x1 + self.DC_1(x1, x4)
+        # x2 = x2 + self.DC_2(x2, x4)
+        # x3 = x3 + self.DC_3(x3, x4)
 
         # x0, x1, x2, x3, x4 = self.encoder(x)
 
@@ -484,10 +492,10 @@ class UNet(nn.Module):
         #     x0 = self.FAM[i](x0)
         # x0 = self.reduction(x0)
 
-        # x3 = self.attention_3(gate=x4, skip_connection=x3)
-        # x2 = self.attention_2(gate=x4, skip_connection=x2)
-        # x1 = self.attention_1(gate=x4, skip_connection=x1)
-        # x0 = self.attention_0(gate=x4, skip_connection=x0)
+        x4 = self.attention_4(gate=self.conv_seq_img_4(feature_tf), skip_connection=x4)
+        x3 = self.attention_3(gate=self.conv_seq_img_3(feature_tf), skip_connection=x3)
+        x2 = self.attention_2(gate=self.conv_seq_img_2(feature_tf), skip_connection=x2)
+        x1 = self.attention_1(gate=self.conv_seq_img_1(feature_tf), skip_connection=x1)
 
         t3 = self.up3_1(x4, x3)
         t2 = self.up2_1(t3, x2) 
