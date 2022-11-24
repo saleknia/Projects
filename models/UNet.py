@@ -310,9 +310,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.att = SEBlock(channel=in_channels//2)
+        # self.att = SEBlock(channel=in_channels//2)
     def forward(self, x, skip_x):
-        skip_x = self.att(skip_x)
+        # skip_x = self.att(skip_x)
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
