@@ -396,7 +396,7 @@ class UNet(nn.Module):
         transformer = deit_small_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
 
-        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
