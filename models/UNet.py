@@ -440,6 +440,18 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         
+        self.decoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.decoder.incre_modules = None
+        self.decoder.conv = None
+        self.decoder.bn1 = None
+        self.decoder.act1 = None
+        self.decoder.conv2 = None
+        self.decoder.bn2 = None
+        self.decoder.act2 = None
+        self.decoder.layer1 = None
+        self.decoder.transition1 = None
+        self.decoder.transition2 = None
+        self.decoder.transition3 = None
 
         # self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
         # self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
@@ -450,8 +462,8 @@ class UNet(nn.Module):
         # self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
         # self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=1)
 
-        config = get_CTranS_config()
-        self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
+        # config = get_CTranS_config()
+        # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -498,9 +510,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up3_1 = UpBlock(144, 72, nb_Conv=2)
-        self.up2_1 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1_1 = UpBlock(36 , 18, nb_Conv=2)
+        # self.up3_1 = UpBlock(144, 72, nb_Conv=2)
+        # self.up2_1 = UpBlock(72 , 36, nb_Conv=2)
+        # self.up1_1 = UpBlock(36 , 18, nb_Conv=2)
 
         # self.up2_2 = UpBlock(72 , 36, nb_Conv=2)
         # self.up1_2 = UpBlock(36 , 18, nb_Conv=2)
@@ -576,8 +588,14 @@ class UNet(nn.Module):
         # feature_att = self.se_3(feature_cat)
         # xl[3] = self.conv2d_3(feature_att)
 
-        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
-        x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
+        # x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+
+        xl = self.decoder.stage4(xl)
+        xl = self.encoder.stage3(xl[0:3])
+        xl = self.encoder.stage2(xl[0:2])
+        
+        x = xl[0]
+        # x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
 
         # emb = self.patch_embed(x0)
         # for i in range(12):
@@ -592,9 +610,9 @@ class UNet(nn.Module):
 
         # x0, x1, x2, x3, x4 = self.encoder(x)
 
-        x = self.up3_1(x4, x3)
-        x = self.up2_1(x , x2) 
-        x = self.up1_1(x , x1) 
+        # x = self.up3_1(x4, x3)
+        # x = self.up2_1(x , x2) 
+        # x = self.up1_1(x , x1) 
 
 
         # k2 = self.up2_2(t3, t2) + t2
