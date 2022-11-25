@@ -453,14 +453,24 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
 
-        # self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,6)])
+        self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6,9)])
+        self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9,12)])
 
-        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.se = SEBlock(channel=288)
-        # self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img_1 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.se_1 = SEBlock(channel=288)
+        self.conv2d_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+
+        self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.se_2 = SEBlock(channel=288)
+        self.conv2d_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+
+        self.conv_seq_img_3 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.se_3 = SEBlock(channel=288)
+        self.conv2d_3 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
@@ -529,7 +539,42 @@ class UNet(nn.Module):
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4(xl)
+        xl = self.encoder.stage4[0](xl)
+
+        emb = self.patch_embed(x0)
+        for i in range(len(self.transformers_stage_1)):
+            emb = self.transformers[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img_1(feature_tf)
+        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
+        feature_att = self.se_1(feature_cat)
+        xl[3] = self.conv2d_1(feature_att)
+
+        xl = self.encoder.stage4[1](xl)
+
+        for i in range(len(self.transformers_stage_2)):
+            emb = self.transformers[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img_2(feature_tf)
+        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
+        feature_att = self.se_2(feature_cat)
+        xl[3] = self.conv2d_2(feature_att)
+
+        xl = self.encoder.stage4[2](xl)
+
+        for i in range(len(self.transformers_stage_3)):
+            emb = self.transformers[i](emb)
+
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img_3(feature_tf)
+        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
+        feature_att = self.se_3(feature_cat)
+        xl[3] = self.conv2d_3(feature_att)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
@@ -544,25 +589,7 @@ class UNet(nn.Module):
         # feature_att = self.se(feature_cat)
         # x4 = self.conv2d(feature_att)
 
-        # x1 = x1 + self.DC_1(x1, x4)
-        # x2 = x2 + self.DC_2(x2, x4)
-        # x3 = x3 + self.DC_3(x3, x4)
-
         # x0, x1, x2, x3, x4 = self.encoder(x)
-
-        # x1 = self.combine_1(torch.cat([x1, t1], dim=1))
-        # x2 = self.combine_2(torch.cat([x2, t2], dim=1))
-        # x3 = self.combine_3(torch.cat([x3, t3], dim=1))
-        # x4 = self.combine_4(torch.cat([x4, t4], dim=1))
-
-        # for i in range(6):
-        #     x0 = self.FAM[i](x0)
-        # x0 = self.reduction(x0)
-
-        # x4 = self.attention_4(gate=self.conv_seq_img_4(feature_tf), skip_connection=x4)
-        # x3 = self.attention_3(gate=x4, skip_connection=x3)
-        # x2 = self.attention_2(gate=x4, skip_connection=x2)
-        # x1 = self.attention_1(gate=x4, skip_connection=x1)
 
         x = self.up3_1(x4, x3)
         x = self.up2_1(x , x2) 
