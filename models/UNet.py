@@ -543,7 +543,7 @@ class UNet(nn.Module):
 
         emb = self.patch_embed(x0)
         for i in range(len(self.transformers_stage_1)):
-            emb = self.transformers[i](emb)
+            emb = self.transformers_stage_1[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
@@ -555,7 +555,7 @@ class UNet(nn.Module):
         xl = self.encoder.stage4[1](xl)
 
         for i in range(len(self.transformers_stage_2)):
-            emb = self.transformers[i](emb)
+            emb = self.transformers_stage_2[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
@@ -567,7 +567,7 @@ class UNet(nn.Module):
         xl = self.encoder.stage4[2](xl)
 
         for i in range(len(self.transformers_stage_3)):
-            emb = self.transformers[i](emb)
+            emb = self.transformers_stage_3[i](emb)
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
