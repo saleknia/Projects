@@ -591,8 +591,8 @@ class UNet(nn.Module):
         # x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
         xl = self.decoder.stage4(xl)
-        xl = self.encoder.stage3(xl[0:3])
-        xl = self.encoder.stage2(xl[0:2])
+        xl = self.decoder.stage3(xl[0:3])
+        xl = self.decoder.stage2(xl[0:2])
         
         x = xl[0]
         # x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
