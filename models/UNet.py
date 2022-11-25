@@ -456,9 +456,9 @@ class UNet(nn.Module):
         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
 
-        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,6)])
-        self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6,9)])
-        self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9,12)])
+        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,4 )])
+        self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
+        self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(8,12)])
 
         self.conv_seq_img_1 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
         self.se_1 = SEBlock(channel=288)
