@@ -310,9 +310,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        # self.att = SEBlock(channel=in_channels//2)
+        self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
     def forward(self, x, skip_x):
-        # skip_x = self.att(skip_x)
+        skip_x = self.att(skip_x)
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
@@ -453,14 +453,14 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
+        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
 
-        self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        # self.transformers = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
 
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=288)
-        self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        # self.se = SEBlock(channel=288)
+        # self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
         # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
@@ -533,16 +533,16 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((x4, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x4 = self.conv2d(feature_att)
+        # feature_cat = torch.cat((x4, feature_tf), dim=1)
+        # feature_att = self.se(feature_cat)
+        # x4 = self.conv2d(feature_att)
 
         # x1 = x1 + self.DC_1(x1, x4)
         # x2 = x2 + self.DC_2(x2, x4)
