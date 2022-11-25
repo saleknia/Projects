@@ -450,8 +450,8 @@ class UNet(nn.Module):
         # self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
         # self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=1)
 
-        # config = get_CTranS_config()
-        # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
+        config = get_CTranS_config()
+        self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -534,38 +534,13 @@ class UNet(nn.Module):
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
-        yl[0], yl[1] = yl[0]+xl[0], yl[1]+xl[1]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        yl = self.encoder.stage3[0](xl)
-        yl[0], yl[1], yl[2] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2]
-
-        xl = yl
-        yl = self.encoder.stage3[1](xl)
-        yl[0], yl[1], yl[2] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2]
-
-        xl = yl      
-        yl = self.encoder.stage3[2](xl)
-        yl[0], yl[1], yl[2] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2]
-
-        xl = yl       
-        yl = self.encoder.stage3[3](xl)
-        yl[0], yl[1], yl[2] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2]
+        yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4[0](xl)
-        yl[0], yl[1], yl[2], yl[3] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2], yl[3]+xl[3]
+        xl = self.encoder.stage4(xl)
 
-        xl = yl
-        yl = self.encoder.stage4[1](xl)
-        yl[0], yl[1], yl[2], yl[3] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2], yl[3]+xl[3]
-
-        xl = yl       
-        yl = self.encoder.stage4[2](xl)
-        yl[0], yl[1], yl[2], yl[3] = yl[0]+xl[0], yl[1]+xl[1], yl[2]+xl[2], yl[3]+xl[3]
-
-        xl = yl   
-              
         # emb = self.patch_embed(x0)
         # for i in range(len(self.transformers_stage_1)):
         #     emb = self.transformers_stage_1[i](emb)
@@ -577,7 +552,7 @@ class UNet(nn.Module):
         # feature_att = self.se_1(feature_cat)
         # xl[3] = self.conv2d_1(feature_att)
 
-
+        # xl = self.encoder.stage4[1](xl)
 
         # for i in range(len(self.transformers_stage_2)):
         #     emb = self.transformers_stage_2[i](emb)
@@ -589,7 +564,7 @@ class UNet(nn.Module):
         # feature_att = self.se_2(feature_cat)
         # xl[3] = self.conv2d_2(feature_att)
 
-
+        # xl = self.encoder.stage4[2](xl)
 
         # for i in range(len(self.transformers_stage_3)):
         #     emb = self.transformers_stage_3[i](emb)
@@ -602,6 +577,7 @@ class UNet(nn.Module):
         # xl[3] = self.conv2d_3(feature_att)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
 
         # emb = self.patch_embed(x0)
         # for i in range(12):
