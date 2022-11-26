@@ -543,7 +543,7 @@ class UNet(nn.Module):
         feature_cat = torch.cat((xl[3], feature_tf), dim=1)
         feature_att = self.se_1(feature_cat)
         xl[3] = self.conv2d_1(feature_att)
-        
+
         xl = self.encoder.stage4(xl)
 
         # emb = self.patch_embed(x0)
@@ -595,24 +595,24 @@ class UNet(nn.Module):
         # x4 = self.conv2d(feature_att)
 
         # x0, x1, x2, x3, x4 = self.encoder(x)
-        # x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x3 = self.up3_1(x4, x3)
-        x2 = self.up2_1(x3, x2) 
-        x1 = self.up1_1(x2, x1) 
+        x3 = self.up3(x4, x3)
+        x  = self.up2(x , x2) 
+        x  = self.up1(x , x1) 
 
-        xl = [x1, x2, x3]
-        xl = self.decoder.stage3(xl)
+        # xl = [x1, x2, x3]
+        # xl = self.decoder.stage3(xl)
 
-        x1, x2, x3 = xl[0], xl[1], xl[2]
+        # x1, x2, x3 = xl[0], xl[1], xl[2]
 
-        x2 = self.up2_2(x3, x2) 
-        x1 = self.up1_2(x2, x1) 
-        xl = [x1, x2]
-        xl = self.decoder.stage2(xl)
+        # x2 = self.up2_2(x3, x2) 
+        # x1 = self.up1_2(x2, x1) 
+        # xl = [x1, x2]
+        # xl = self.decoder.stage2(xl)
 
-        x1, x2 = xl[0], xl[1]
-        x = self.up1_3(x2, x1)
+        # x1, x2 = xl[0], xl[1]
+        # x = self.up1_3(x2, x1)
 
 
         # k2 = self.up2_2(t3, t2) + t2
