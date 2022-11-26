@@ -435,10 +435,25 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        in_channels = 16
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder.incre_modules = None
-        self.encoder.conv1.stride = (1, 1)
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=18 , kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=36 , kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=72 , kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=144, kernel_size=1, padding=0, dilation=1)
+
+        # in_channels = 16
+        # self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        # self.encoder.incre_modules = None
+        # self.encoder.conv1.stride = (1, 1)
         
         self.decoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.decoder.incre_modules = None
@@ -537,23 +552,39 @@ class UNet(nn.Module):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
-        
-        x = self.encoder.conv1(x0)
-        x = self.encoder.bn1(x)
-        x = self.encoder.act1(x)
-        x = self.encoder.conv2(x)
-        x = self.encoder.bn2(x)
-        x = self.encoder.act2(x)
-        x = self.encoder.layer1(x)
 
-        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
-        yl = self.encoder.stage2(xl)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        yl = self.encoder.stage3(xl)
+        e1 = self.encoder1(e0) # [8, 64 , 112, 112]
+        e2 = self.encoder2(e1) # [8, 128, 56 , 56 ]
+        e3 = self.encoder3(e2) # [8, 256, 28 , 28 ]
+        e4 = self.encoder4(e3) # [8, 512, 14 , 14 ]
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4(xl)
+        e1 = self.reduce_1(e1)
+        e2 = self.reduce_2(e2)
+        e3 = self.reduce_3(e3)
+        e4 = self.reduce_4(e4)
+
+        x1, x2, x3, x4 = e1, e2, e3, e4
+
+        # x = self.encoder.conv1(x0)
+        # x = self.encoder.bn1(x)
+        # x = self.encoder.act1(x)
+        # x = self.encoder.conv2(x)
+        # x = self.encoder.bn2(x)
+        # x = self.encoder.act2(x)
+        # x = self.encoder.layer1(x)
+
+        # xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        # yl = self.encoder.stage2(xl)
+
+        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        # yl = self.encoder.stage3(xl)
+
+        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        # xl = self.encoder.stage4(xl)
 
         # emb = self.patch_embed(x0)
         # for i in range(len(self.transformers_stage_1)):
@@ -604,7 +635,7 @@ class UNet(nn.Module):
         # x4 = self.conv2d(feature_att)
 
         # x0, x1, x2, x3, x4 = self.encoder(x)
-        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        # x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
         x3 = self.up3_1(x4, x3)
         x2 = self.up2_1(x3, x2) 
