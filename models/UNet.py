@@ -712,8 +712,8 @@ class UNet(nn.Module):
         # x = self.up1(x , x1) 
 
         x = self.decoder4(x4) + x3
-        x = self.decoder3(x) + x2
-        x = self.decoder2(x) + x1
+        x = self.decoder3(x)  + x2
+        x = self.decoder2(x)  + x1
 
         # xl = [x1, x2, x3]
         # xl = self.decoder.stage3(xl)
