@@ -453,11 +453,11 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
 
         self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
 
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
