@@ -56,7 +56,14 @@ class Conv(nn.Module):
             self.relu = nn.ReLU(inplace=True)
         if bn:
             self.bn = nn.BatchNorm2d(out_dim)
-
+    def forward(self, x):
+        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
+        x = self.conv(x)
+        if self.bn is not None:
+            x = self.bn(x)
+        if self.relu is not None:
+            x = self.relu(x)
+        return x
 class ChannelPool(nn.Module):
     def forward(self, x):
         return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
