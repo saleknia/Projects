@@ -458,11 +458,6 @@ class UNet(nn.Module):
 
         self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=288)
-        self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-
-        self.conv_pred = nn.Conv2d(in_channels=192, out_channels=1, kernel_size=1, padding=0)
-        self.up_pred = nn.Upsample(scale_factor=16)
 
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
@@ -543,13 +538,8 @@ class UNet(nn.Module):
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        pred_tf = self.conv_pred(feature_tf)
-        pred_tf = self.up_pred(pred_tf)
-        
         feature_tf = self.conv_seq_img(feature_tf)
-        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        xl[3] = self.conv2d(feature_att)
+        xl[3] = feature_tf
  
         xl = self.encoder.stage4(xl)
 
