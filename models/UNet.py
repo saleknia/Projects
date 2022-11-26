@@ -624,10 +624,7 @@ class UNet(nn.Module):
         x = self.final_relu2(x)
         out = self.final_conv3(x)
 
-        if self.training:
-            return out, pred_tf
-        else:
-            return out
+        return out
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
