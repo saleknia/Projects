@@ -518,7 +518,7 @@ class UNet(nn.Module):
 
         emb = self.patch_embed(x0)
         for i in range(len(self.transformers_stage)):
-            emb = self.transformers_stage_1[i](emb)
+            emb = self.transformers_stage[i](emb)
 
         x = self.encoder.conv1(x0)
         x = self.encoder.bn1(x)
