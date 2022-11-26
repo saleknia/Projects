@@ -435,39 +435,11 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
-
-        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=18 , kernel_size=1, padding=0, dilation=1)
-        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=36 , kernel_size=1, padding=0, dilation=1)
-        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=72 , kernel_size=1, padding=0, dilation=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=144, kernel_size=1, padding=0, dilation=1)
-
-        # in_channels = 16
-        # self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        # self.encoder.incre_modules = None
-        # self.encoder.conv1.stride = (1, 1)
+        in_channels = 16
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder.incre_modules = None
+        self.encoder.conv1.stride = (1, 1)
         
-        self.decoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.decoder.incre_modules = None
-        self.decoder.conv = None
-        self.decoder.bn1 = None
-        self.decoder.act1 = None
-        self.decoder.conv2 = None
-        self.decoder.bn2 = None
-        self.decoder.act2 = None
-        self.decoder.layer1 = None
-        self.decoder.transition1 = None
-        self.decoder.transition2 = None
-        self.decoder.transition3 = None
-        self.decoder.stage4 = None
 
         # self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
         # self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
@@ -481,27 +453,24 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
 
-        # self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,4 )])
+        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        self.se_1 = SEBlock(channel=288)
+        self.conv2d_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
+
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
-        # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(8,12)])
-
-        # self.conv_seq_img_1 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.se_1 = SEBlock(channel=288)
-        # self.conv2d_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-
         # self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
         # self.se_2 = SEBlock(channel=288)
         # self.conv2d_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
 
+        # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(8,12)])
         # self.conv_seq_img_3 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
         # self.se_3 = SEBlock(channel=288)
         # self.conv2d_3 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
 
-        # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(6 , 9 )])
-        # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(9 , 12)])
 
         # self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=18 , kernel_size=1, padding=0)
         # self.conv_seq_img_2 = nn.Conv2d(in_channels=384, out_channels=36 , kernel_size=1, padding=0)
@@ -526,14 +495,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up3_1 = UpBlock(144, 72, nb_Conv=2)
-        self.up2_1 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1_1 = UpBlock(36 , 18, nb_Conv=2)
-
-        self.up2_2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1_2 = UpBlock(36 , 18, nb_Conv=2)
-
-        self.up1_3 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
         # self.att = ParallelPolarizedSelfAttention(channel=18)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
@@ -553,38 +517,34 @@ class UNet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
+        emb = self.patch_embed(x0)
+        for i in range(len(self.transformers_stage_1)):
+            emb = self.transformers_stage_1[i](emb)
 
-        e1 = self.encoder1(e0) # [8, 64 , 112, 112]
-        e2 = self.encoder2(e1) # [8, 128, 56 , 56 ]
-        e3 = self.encoder3(e2) # [8, 256, 28 , 28 ]
-        e4 = self.encoder4(e3) # [8, 512, 14 , 14 ]
+        x = self.encoder.conv1(x0)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        x = self.encoder.conv2(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
 
-        e1 = self.reduce_1(e1)
-        e2 = self.reduce_2(e2)
-        e3 = self.reduce_3(e3)
-        e4 = self.reduce_4(e4)
+        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        yl = self.encoder.stage2(xl)
 
-        x1, x2, x3, x4 = e1, e2, e3, e4
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        yl = self.encoder.stage3(xl)
 
-        # x = self.encoder.conv1(x0)
-        # x = self.encoder.bn1(x)
-        # x = self.encoder.act1(x)
-        # x = self.encoder.conv2(x)
-        # x = self.encoder.bn2(x)
-        # x = self.encoder.act2(x)
-        # x = self.encoder.layer1(x)
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
 
-        # xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
-        # yl = self.encoder.stage2(xl)
-
-        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        # yl = self.encoder.stage3(xl)
-
-        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        # xl = self.encoder.stage4(xl)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = self.conv_seq_img_1(feature_tf)
+        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
+        feature_att = self.se_1(feature_cat)
+        xl[3] = self.conv2d_1(feature_att)
+        
+        xl = self.encoder.stage4(xl)
 
         # emb = self.patch_embed(x0)
         # for i in range(len(self.transformers_stage_1)):
