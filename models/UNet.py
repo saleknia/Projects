@@ -563,10 +563,10 @@ class UNet(nn.Module):
         # config = get_CTranS_config()
         # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
+        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
 
-        self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        # self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
         # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
 
 
@@ -631,9 +631,9 @@ class UNet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
-        emb = self.patch_embed(x0)
-        for i in range(len(self.transformers_stage)):
-            emb = self.transformers_stage[i](emb)
+        # emb = self.patch_embed(x0)
+        # for i in range(len(self.transformers_stage)):
+        #     emb = self.transformers_stage[i](emb)
 
         x = self.encoder.conv1(x0)
         x = self.encoder.bn1(x)
@@ -652,9 +652,9 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         xl = self.encoder.stage4(xl)
 
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        xl[3] = self.BiFusion_block(g=xl[3], x=feature_tf)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # xl[3] = self.BiFusion_block(g=xl[3], x=feature_tf)
 
         # emb = self.patch_embed(x0)
         # for i in range(len(self.transformers_stage_1)):
