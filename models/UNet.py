@@ -590,9 +590,6 @@ class UNet(nn.Module):
         # feature_att = self.se_3(feature_cat)
         # xl[3] = self.conv2d_3(feature_att)
 
-
-
-
         # x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
 
         # emb = self.patch_embed(x0)
