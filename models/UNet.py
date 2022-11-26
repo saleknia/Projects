@@ -458,6 +458,8 @@ class UNet(nn.Module):
 
         self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        self.conv_pred = nn.Conv2d(in_channels=192, out_channels=1, kernel_size=1, padding=0)
+        self.up_pred = nn.Upsample(scale_factor=16)
 
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
@@ -539,8 +541,11 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
+        
         xl[3] = feature_tf
-
+        pred_tf = self.conv_pred(feature_tf)
+        pred_tf = self.up_pred(feature_tf)
+        
         xl = self.encoder.stage4(xl)
 
         # emb = self.patch_embed(x0)
@@ -624,7 +629,10 @@ class UNet(nn.Module):
         x = self.final_relu2(x)
         out = self.final_conv3(x)
 
-        return out
+        if self.training:
+            return out, pred_tf
+        else:
+            return out
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
