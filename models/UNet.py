@@ -11,6 +11,109 @@ import torch
 import torchvision.ops
 from torch import nn
 
+class Residual(nn.Module):
+    def __init__(self, inp_dim, out_dim):
+        super(Residual, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(inp_dim)
+        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
+        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
+        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
+        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
+        if inp_dim == out_dim:
+            self.need_skip = False
+        else:
+            self.need_skip = True
+        
+    def forward(self, x):
+        if self.need_skip:
+            residual = self.skip_layer(x)
+        else:
+            residual = x
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out += residual
+        return out 
+
+
+class Conv(nn.Module):
+    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
+        super(Conv, self).__init__()
+        self.inp_dim = inp_dim
+        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
+        self.relu = None
+        self.bn = None
+        if relu:
+            self.relu = nn.ReLU(inplace=True)
+        if bn:
+            self.bn = nn.BatchNorm2d(out_dim)
+
+class ChannelPool(nn.Module):
+    def forward(self, x):
+        return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
+
+class BiFusion_block(nn.Module):
+    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0):
+        super(BiFusion_block, self).__init__()
+
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+
+        # bi-linear modelling for both
+        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+
+        self.relu = nn.ReLU(inplace=True)
+
+        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
+
+        self.dropout = nn.Dropout2d(drop_rate)
+        self.drop_rate = drop_rate
+
+        
+    def forward(self, g, x):
+        # bilinear pooling
+        W_g = self.W_g(g)
+        W_x = self.W_x(x)
+        bp = self.W(W_g*W_x)
+
+        # spatial attention for cnn branch
+        g_in = g
+        g = self.compress(g)
+        g = self.spatial(g)
+        g = self.sigmoid(g) * g_in
+
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+        fuse = self.residual(torch.cat([g, x, bp], 1))
+
+        if self.drop_rate > 0:
+            return self.dropout(fuse)
+        else:
+            return fuse
+
 class DeformableConv2d(nn.Module):
     def __init__(self,
                  in_channels,
@@ -439,7 +542,7 @@ class UNet(nn.Module):
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
-        
+        self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=192, r_2=4, ch_int=144, ch_out=144)
 
         # self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
         # self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
@@ -457,7 +560,7 @@ class UNet(nn.Module):
         self.patch_embed = transformer.patch_embed
 
         self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
+        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
 
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
@@ -538,8 +641,7 @@ class UNet(nn.Module):
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-        xl[3] = feature_tf
+        xl[3] = self.BiFusion_block(g=xl[3], x=feature_tf)
  
         xl = self.encoder.stage4(xl)
 
