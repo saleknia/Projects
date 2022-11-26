@@ -9,7 +9,7 @@ from torchvision import models as resnet_model
 from .CTrans import ChannelTransformer
 import torch
 import torchvision.ops
-from torch import nn
+from torch import e, nn
 
 class DeformableConv2d(nn.Module):
     def __init__(self,
@@ -456,10 +456,12 @@ class UNet(nn.Module):
         transformer = deit_small_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
 
-        self.transformers_stage_1 = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
-        self.se_1 = SEBlock(channel=288)
-        self.conv2d_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-        self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
+        self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
+        self.se = SEBlock(channel=288)
+        self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
+        self.conv_seq_pre = nn.Conv2d(in_channels=384, out_channels=1  , kernel_size=1, padding=0)
+        self.up_pre = nn.Upsample(scale_factor=16)
 
         # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
         # self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
@@ -518,7 +520,7 @@ class UNet(nn.Module):
         b, c, h, w = x.shape
 
         emb = self.patch_embed(x0)
-        for i in range(len(self.transformers_stage_1)):
+        for i in range(len(self.transformers_stage)):
             emb = self.transformers_stage_1[i](emb)
 
         x = self.encoder.conv1(x0)
@@ -539,10 +541,14 @@ class UNet(nn.Module):
 
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.conv_seq_img_1(feature_tf)
+        pred_tf = self.conv_seq_pre(feature_tf)
+        pred_tf = self.up_pre(pred_tf)
+        feature_tf = self.conv_seq_img(feature_tf)
         feature_cat = torch.cat((xl[3], feature_tf), dim=1)
-        feature_att = self.se_1(feature_cat)
-        xl[3] = self.conv2d_1(feature_att)
+        feature_att = self.se(feature_cat)
+        xl[3] = self.conv2d(feature_att)
+
+
 
         xl = self.encoder.stage4(xl)
 
@@ -627,7 +633,10 @@ class UNet(nn.Module):
         x = self.final_relu2(x)
         out = self.final_conv3(x)
 
-        return out
+        if self.training:
+            return out, pred_tf
+        else:
+            return out
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
