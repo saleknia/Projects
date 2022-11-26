@@ -604,10 +604,15 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        # self.up3 = UpBlock(144, 72, nb_Conv=2)
+        # self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        # self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
+        filters = [18, 36, 72, 144]
+        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
+        
         # self.att = ParallelPolarizedSelfAttention(channel=18)
         # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
 
@@ -650,7 +655,7 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
         xl[3] = self.BiFusion_block(g=xl[3], x=feature_tf)
-        
+
         # emb = self.patch_embed(x0)
         # for i in range(len(self.transformers_stage_1)):
         #     emb = self.transformers_stage_1[i](emb)
@@ -702,9 +707,13 @@ class UNet(nn.Module):
         # x0, x1, x2, x3, x4 = self.encoder(x)
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+        # x = self.up3(x4, x3)
+        # x = self.up2(x , x2) 
+        # x = self.up1(x , x1) 
+
+        x = self.decoder4(x4) + x3
+        x = self.decoder3(x) + x2
+        x = self.decoder2(x) + x1
 
         # xl = [x1, x2, x3]
         # xl = self.decoder.stage3(xl)
