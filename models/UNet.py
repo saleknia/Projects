@@ -597,9 +597,9 @@ class UNet(nn.Module):
         # x0, x1, x2, x3, x4 = self.encoder(x)
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x3 = self.up3(x4, x3)
-        x  = self.up2(x , x2) 
-        x  = self.up1(x , x1) 
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
         # xl = [x1, x2, x3]
         # xl = self.decoder.stage3(xl)
