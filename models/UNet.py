@@ -593,17 +593,17 @@ class UNet(nn.Module):
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4(xl)
 
         emb = self.patch_embed(x0)
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
+        xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
+
+        xl = self.encoder.stage4(xl)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
-
-        x4 = self.BiFusion_block(g=x4,x=feature_tf)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
