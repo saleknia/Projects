@@ -546,32 +546,33 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         in_channels = 16
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
+        # transformer = deit_small_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
 
-        self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=384, r_2=4, ch_int=144, ch_out=144, drop_rate=0.0)
+        # self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=384, r_2=4, ch_int=144, ch_out=144, drop_rate=0.0)
+
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 9, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(9, 9, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(9, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -594,12 +595,12 @@ class UNet(nn.Module):
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 384, 14, 14)
+        # xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
 
         xl = self.encoder.stage4(xl)
 
