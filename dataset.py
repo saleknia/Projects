@@ -79,8 +79,6 @@ class ISIC2017(Dataset):
         img = torch.tensor(img.copy())
         img = img.permute(2, 0, 1)
         seg = seg.permute(2, 0, 1)
-        if self.train:
-            img = self.transform_train(img)
         img = F.normalize(img, mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
         return img, seg[0]
                
