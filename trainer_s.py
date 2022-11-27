@@ -35,6 +35,17 @@ class DiceLoss(nn.Module):
         
         return 1 - dice
 
+def structure_loss(pred, mask):
+    weit = 1 + 5*torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
+    wbce = F.binary_cross_entropy_with_logits(pred, mask, reduction='none')
+    wbce = (weit*wbce).sum(dim=(2, 3)) / weit.sum(dim=(2, 3))
+
+    pred = torch.sigmoid(pred)
+    inter = ((pred * mask)*weit).sum(dim=(2, 3))
+    union = ((pred + mask)*weit).sum(dim=(2, 3))
+    wiou = 1 - (inter + 1)/(union - inter+1)
+    return (wbce + wiou).mean()
+
 def at(x, exp):
     """
     attention value of a feature map
@@ -161,11 +172,10 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_kd = 0.0
         loss_att = 0.0
 
-        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        # loss_ce = ce_loss(outputs, soft_label) 
-        loss_dice = dice_loss(inputs=outputs, targets=targets)
-        loss = loss_ce + loss_dice
-        # loss = loss_ce
+        # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        # loss_dice = dice_loss(inputs=outputs, targets=targets)
+        # loss = loss_ce + loss_dice
+        loss = structure_loss(pred=outputs, mask=targets)
 
         # iter_num = iter_num + 1 
         # if iter_num % (total_batchs*10)==0:
