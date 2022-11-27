@@ -39,15 +39,15 @@ class Evaluator(object):
         self.reset()
         
     def Pixel_Accuracy(self):
-        Acc = torch.tensor(self.acc.mean())
+        Acc = torch.tensor(np.mean(self.acc))
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU = torch.tensor(self.iou.mean())
+        IoU = torch.tensor(np.mean(self.iou))
         return IoU
 
     def Dice(self,per_class=False,show=False):
-        Dice = torch.tensor(self.dice.mean())
+        Dice = torch.tensor(np.mean(self.dice))
         return Dice
 
     def add_batch(self, gt_image, pre_image):
