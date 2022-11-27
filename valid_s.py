@@ -125,7 +125,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     mIOU = 100*Eval.Mean_Intersection_over_Union()
 
     Dice = Eval.Dice() * 100.0
-    Dice_per_class = Dice * 100.0
+    Dice_per_class = Eval.Dice() * 100.0
     # Dice,Dice_per_class = Eval.Dice(per_class=True)
     # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
    

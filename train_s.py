@@ -197,9 +197,9 @@ def main(args):
     logger.info(model_table)
 
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
 
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
  
     if COSINE_LR is True:
         lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
@@ -496,7 +496,7 @@ def main(args):
 
                     logger.info(50*'*')
                     logger.info(f'Best Accuracy over training: {acc:.2f}')
-                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class:.2f}')
                     logger.info(f'Epoch Number: {best_epoch}')
 
                     if args.inference=='True':
