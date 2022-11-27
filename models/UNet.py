@@ -549,54 +549,6 @@ class UNet(nn.Module):
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
-        self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=192, r_2=4, ch_int=144, ch_out=144)
-
-        # self.DC_1 = DeformableConv2d(in_channels=18, out_channels=18, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=8.0)
-        # self.DC_2 = DeformableConv2d(in_channels=36, out_channels=36, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=4.0)
-        # self.DC_3 = DeformableConv2d(in_channels=72, out_channels=72, offset_channels=144, kernel_size=3, stride=1, padding=1, bias=False, up_scale=2.0)
-
-        # self.combine_1 = nn.Conv2d(in_channels=36 , out_channels=18 , kernel_size=3, padding=1)
-        # self.combine_2 = nn.Conv2d(in_channels=72 , out_channels=36 , kernel_size=3, padding=1)
-        # self.combine_3 = nn.Conv2d(in_channels=144, out_channels=72 , kernel_size=3, padding=1)
-        # self.combine_4 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=3, padding=1)
-
-        # config = get_CTranS_config()
-        # self.mtc = ChannelTransformer(config=config, vis=False, img_size=224, channel_num=[18, 36, 72, 144], patchSize=config.patch_sizes)
-
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-
-        # self.transformers_stage = nn.ModuleList([transformer.blocks[i] for i in range(0,12)])
-        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-
-
-        # self.transformers_stage_2 = nn.ModuleList([transformer.blocks[i] for i in range(4,8 )])
-        # self.conv_seq_img_2 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.se_2 = SEBlock(channel=288)
-        # self.conv2d_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-
-        # self.transformers_stage_3 = nn.ModuleList([transformer.blocks[i] for i in range(8,12)])
-        # self.conv_seq_img_3 = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.se_3 = SEBlock(channel=288)
-        # self.conv2d_3 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-
-
-        # self.conv_seq_img_1 = nn.Conv2d(in_channels=384, out_channels=18 , kernel_size=1, padding=0)
-        # self.conv_seq_img_2 = nn.Conv2d(in_channels=384, out_channels=36 , kernel_size=1, padding=0)
-        # self.conv_seq_img_3 = nn.Conv2d(in_channels=384, out_channels=72 , kernel_size=1, padding=0)
-        # self.conv_seq_img_4 = nn.Conv2d(in_channels=384, out_channels=144, kernel_size=1, padding=0)
-
-        # self.combine_1 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-        # self.combine_2 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-        # self.combine_3 = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
-
-        # self.se_1 = SEBlock(channel=288)
-        # self.se_2 = SEBlock(channel=288)
-        # self.se_3 = SEBlock(channel=288)
-
-        # self.maxpool = nn.MaxPool2d(2)
-        # self.FAMBlock = FAMBlock(in_channels=64, out_channels=64)
-        # self.FAM = nn.ModuleList([self.FAMBlock for i in range(6)])
 
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
@@ -604,21 +556,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        # self.up3 = UpBlock(144, 72, nb_Conv=2)
-        # self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        # self.up1 = UpBlock(36 , 18, nb_Conv=2)
-
-        filters = [18, 36, 72, 144]
-        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
-        
-        # self.att = ParallelPolarizedSelfAttention(channel=18)
-        # self.up1 = UpBlock(32  , 16 , nb_Conv=2)
-
-        # self.attention_3 = AttentionBlock(F_g=144 , F_l=72 , n_coefficients=72, scale_factor=2.0)
-        # self.attention_2 = AttentionBlock(F_g=144 , F_l=36 , n_coefficients=36, scale_factor=4.0)
-        # self.attention_1 = AttentionBlock(F_g=144 , F_l=18 , n_coefficients=18, scale_factor=8.0)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(18, 9, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -630,10 +570,6 @@ class UNet(nn.Module):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
-
-        # emb = self.patch_embed(x0)
-        # for i in range(len(self.transformers_stage)):
-        #     emb = self.transformers_stage[i](emb)
 
         x = self.encoder.conv1(x0)
         x = self.encoder.bn1(x)
@@ -652,88 +588,11 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         xl = self.encoder.stage4(xl)
 
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # xl[3] = self.BiFusion_block(g=xl[3], x=feature_tf)
-
-        # emb = self.patch_embed(x0)
-        # for i in range(len(self.transformers_stage_1)):
-        #     emb = self.transformers_stage_1[i](emb)
-
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.conv_seq_img_1(feature_tf)
-        # feature_cat = torch.cat((xl[3], feature_tf), dim=1)
-        # feature_att = self.se_1(feature_cat)
-        # xl[3] = self.conv2d_1(feature_att)
-
-        # xl = self.encoder.stage4[1](xl)
-
-        # for i in range(len(self.transformers_stage_2)):
-        #     emb = self.transformers_stage_2[i](emb)
-
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.conv_seq_img_2(feature_tf)
-        # feature_cat = torch.cat((xl[3], feature_tf), dim=1)
-        # feature_att = self.se_2(feature_cat)
-        # xl[3] = self.conv2d_2(feature_att)
-
-        # xl = self.encoder.stage4[2](xl)
-
-        # for i in range(len(self.transformers_stage_3)):
-        #     emb = self.transformers_stage_3[i](emb)
-
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.conv_seq_img_3(feature_tf)
-        # feature_cat = torch.cat((xl[3], feature_tf), dim=1)
-        # feature_att = self.se_3(feature_cat)
-        # xl[3] = self.conv2d_3(feature_att)
-
-        # x1, x2, x3, x4, att_weights = self.mtc(x1, x2, x3, x4)
-
-        # emb = self.patch_embed(x0)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.conv_seq_img(feature_tf)
-
-        # feature_cat = torch.cat((x4, feature_tf), dim=1)
-        # feature_att = self.se(feature_cat)
-        # x4 = self.conv2d(feature_att)
-
-        # x0, x1, x2, x3, x4 = self.encoder(x)
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        # x = self.up3(x4, x3)
-        # x = self.up2(x , x2) 
-        # x = self.up1(x , x1) 
-
-        x = self.decoder4(x4) + x3
-        x = self.decoder3(x)  + x2
-        x = self.decoder2(x)  + x1
-
-        # xl = [x1, x2, x3]
-        # xl = self.decoder.stage3(xl)
-
-        # x1, x2, x3 = xl[0], xl[1], xl[2]
-
-        # x2 = self.up2_2(x3, x2) 
-        # x1 = self.up1_2(x2, x1) 
-        # xl = [x1, x2]
-        # xl = self.decoder.stage2(xl)
-
-        # x1, x2 = xl[0], xl[1]
-        # x = self.up1_3(x2, x1)
-
-
-        # k2 = self.up2_2(t3, t2) + t2
-        # k1 = self.up1_2(k2, t1) + t1
-
-        # x = self.up1_3(k2, k1) + k1
-        # x = self.att(x)
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
