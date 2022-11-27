@@ -550,6 +550,13 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
 
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+
+        self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=384, r_2=4, ch_int=144, ch_out=144, drop_rate=0.0)
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
@@ -588,7 +595,15 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         xl = self.encoder.stage4(xl)
 
+        emb = self.patch_embed(x0)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+
+        x4 = self.BiFusion_block(g=x4,x=feature_tf)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
