@@ -76,8 +76,8 @@ class TransFuse_S(nn.Module):
         super(TransFuse_S, self).__init__()
 
         self.resnet = resnet34()
-        if pretrained:
-            self.resnet.load_state_dict(torch.load('pretrained/resnet34-333f7ec4.pth'))
+        # if pretrained:
+        #     self.resnet.load_state_dict(torch.load('pretrained/resnet34-333f7ec4.pth'))
         self.resnet.fc = nn.Identity()
         self.resnet.layer4 = nn.Identity()
 
