@@ -53,13 +53,15 @@ class Evaluator(object):
     def add_batch(self, gt_image, pre_image):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
-        tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
-        Acc = (tp + tn) / (tp + tn + fp + fn)
-        IoU = (tp) / (tp + fp + fn)
-        Dice =  (2 * tp) / ((2 * tp) + fp + fn)
-        self.acc.append(Acc)
-        self.iou.append(IoU)
-        self.dice.append(Dice)
+        for i in range(gt_image.shape[0]):
+            tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
+            Acc = (tp + tn) / (tp + tn + fp + fn)
+            IoU = (tp) / (tp + fp + fn)
+            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+            self.acc.append(Acc)
+            self.iou.append(IoU)
+            self.dice.append(Dice)
+
     def reset(self):
         self.acc = []
         self.iou = []

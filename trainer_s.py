@@ -97,34 +97,33 @@ class Evaluator(object):
         self.reset()
         
     def Pixel_Accuracy(self):
-        Acc = (self.tp + self.tn) / (self.tp + self.tn + self.fp + self.fn)
-        Acc = torch.tensor(Acc)
+        Acc = torch.tensor(np.mean(self.acc))
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU = (self.tp) / (self.tp + self.fp + self.fn)
-        IoU = torch.tensor(IoU)
+        IoU = torch.tensor(np.mean(self.iou))
         return IoU
 
     def Dice(self,per_class=False,show=False):
-        Dice =  (2 * self.tp) / ((2 * self.tp) + self.fp + self.fn)
-        Dice = torch.tensor(Dice)
+        Dice = torch.tensor(np.mean(self.dice))
         return Dice
 
     def add_batch(self, gt_image, pre_image):
         gt_image=gt_image.int().detach().cpu().numpy()
         pre_image=pre_image.int().detach().cpu().numpy()
-        tn, fp, fn, tp = confusion_matrix(gt_image.reshape(-1), pre_image.reshape(-1)).ravel()
-        self.tn = self.tn + tn
-        self.fp = self.fp + fp
-        self.fn = self.fn + fn
-        self.tp = self.tp + tp  
+        for i in range(gt_image.shape[0]):
+            tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
+            Acc = (tp + tn) / (tp + tn + fp + fn)
+            IoU = (tp) / (tp + fp + fn)
+            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+            self.acc.append(Acc)
+            self.iou.append(IoU)
+            self.dice.append(Dice)
 
     def reset(self):
-        self.tn = 0
-        self.fp = 0
-        self.fn = 0
-        self.tp = 0
+        self.acc = []
+        self.iou = []
+        self.dice = []
 
 def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -136,10 +135,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
-    loss_kd_total = utils.AverageMeter()
-    loss_att_total = utils.AverageMeter()
 
-    # Eval = Evaluator()
+    Eval = Evaluator()
 
     mIOU = 0.0
     Dice = 0.0
@@ -159,18 +156,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
 
-        # targets = targets + 1.0
-        # targets[targets==2.0] = 0.0
         
         inputs = inputs.float()
         outputs = model(inputs)
-        # outputs, up4 = model(inputs)
-        # outputs, up4, up3, up2, up1, e5, e4, e3, e2, e1 = model(inputs)
-
-
-        # soft_label = 0.5 * (outputs.detach().clone() + targets.long().unsqueeze(dim=1))
-        loss_kd = 0.0
-        loss_att = 0.0
 
         # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
         # loss_dice = dice_loss(inputs=outputs, targets=targets)
@@ -193,44 +181,38 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         
         optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 2.0)
         optimizer.step()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
-        loss_kd_total.update(loss_kd)
-        loss_att_total.update(loss_att)
 
         targets = targets.long()
 
         # predictions = torch.round(torch.squeeze(outputs, dim=1))
-        # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
-        # Eval.add_batch(gt_image=targets,pre_image=predictions)
+        predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+        Eval.add_batch(gt_image=targets,pre_image=predictions)
         # accuracy.update(Eval.Pixel_Accuracy())
 
         print_progress(
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss = {loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
-            suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss = {loss_ce_total.avg:.4f}',          
+            suffix=f'loss = {loss_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
             bar_length=45
         )  
   
-    # acc = 100*accuracy.avg
-    # acc =  Eval.Pixel_Accuracy() * 100.0
-    # mIOU = Eval.Mean_Intersection_over_Union() * 100.0
+    acc =  Eval.Pixel_Accuracy() * 100.0
+    mIOU = Eval.Mean_Intersection_over_Union() * 100.0
 
-    # Dice = Eval.Dice() * 100.0
-    # Dice_per_class = Dice * 100.0
-    # Dice,Dice_per_class = Eval.Dice(per_class=True)
-    # Dice,Dice_per_class = 100*Dice,100*Dice_per_class
+    Dice = Eval.Dice() * 100.0
+    Dice_per_class = Dice * 100.0
 
     if lr_scheduler is not None:
         lr_scheduler.step()        
         
-    # logger.info(f'Epoch: {epoch_num} ---> Train , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
-    logger.info(f'Epoch: {epoch_num} ---> Train , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
+    logger.info(f'Epoch: {epoch_num} ---> Train , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
 
     valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer)
 
