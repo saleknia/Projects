@@ -183,7 +183,7 @@ class Attention_org(nn.Module):
         O1 = self.proj_dropout(O1) if emb1 is not None else None
         O2 = self.proj_dropout(O2) if emb2 is not None else None
         O3 = self.proj_dropout(O3) if emb3 is not None else None
-        
+
         return O1,O2,O3, weights
 
 
@@ -313,7 +313,7 @@ class ChannelTransformer(nn.Module):
         emb2 = self.embeddings_2(en2)
         emb3 = self.embeddings_3(en3)
 
-        encoded1, encoded2, encoded3, encoded4, attn_weights = self.encoder(emb1,emb2,emb3)  # (B, n_patch, hidden)
+        encoded1, encoded2, encoded3, attn_weights = self.encoder(emb1,emb2,emb3)  # (B, n_patch, hidden)
         x1 = self.reconstruct_1(encoded1) if en1 is not None else None
         x2 = self.reconstruct_2(encoded2) if en2 is not None else None
         x3 = self.reconstruct_3(encoded3) if en3 is not None else None
