@@ -545,18 +545,18 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        in_channels = 16
         self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
+        self.encoder.stage4 = None
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
+        # transformer = deit_small_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
 
-        self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
+        # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
@@ -564,7 +564,7 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        # self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
         self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
@@ -593,20 +593,22 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl = self.encoder.stage4(xl)
+        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        # xl = self.encoder.stage4(xl)
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 384, 14, 14)
+        # xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
 
-        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        # x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2) 
+        x1, x2, x3 = xl[0], xl[1], xl[2]
+
+        # x = self.up3(x4, x3)
+        x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
