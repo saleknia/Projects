@@ -165,6 +165,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # loss = loss_ce + loss_dice
         if type(outputs)==tuple:
             lateral_map_4, lateral_map_3, lateral_map_2 = outputs
+            outputs = lateral_map_2
             loss4 = structure_loss(lateral_map_4, targets.unsqueeze(dim=1))
             loss3 = structure_loss(lateral_map_3, targets.unsqueeze(dim=1))
             loss2 = structure_loss(lateral_map_2, targets.unsqueeze(dim=1))
