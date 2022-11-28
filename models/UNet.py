@@ -547,7 +547,7 @@ class UNet(nn.Module):
 
         self.encoder = timm.create_model('hrnet_w64', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
-        self.encoder.conv1.stride = (1, 1)
+        # self.encoder.conv1.stride = (1, 1)
         self.encoder.stage4 = None
 
         # transformer = deit_small_distilled_patch16_224(pretrained=True)
@@ -573,6 +573,7 @@ class UNet(nn.Module):
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         # Question here
@@ -616,6 +617,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
+        out = self.final_up(out)
 
         return out
 
