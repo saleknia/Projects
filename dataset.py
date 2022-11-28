@@ -87,6 +87,9 @@ class ISIC2017(Dataset):
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
+
+        img = np.float32(img)
+        seg = np.float32(seg)
         # (256, 256, 3)
         img, seg = self.resize(img, seg)
 
@@ -98,8 +101,6 @@ class ISIC2017(Dataset):
             img = self.img_transform(img)
             seg = self.gt_transform(seg)
 
-        img = img.permute(2, 0, 1)
-        seg = seg.permute(2, 0, 1)
         return img, seg[0]
                
 
