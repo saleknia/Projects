@@ -518,7 +518,7 @@ def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
     # config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.KV_size = 270  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
@@ -528,8 +528,8 @@ def get_CTranS_config():
     config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0
     # config.patch_sizes = [16,8,4,2]
-    config.patch_sizes = [8,4,2,1]
-    config.base_channel = 18 # base channel of U-Net
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 64 # base channel of U-Net
     config.n_classes = 1
     return config
 
@@ -549,6 +549,8 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         # self.encoder.conv1.stride = (1, 1)
         self.encoder.stage4 = None
+
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=get_CTranS_config().patch_sizes)
 
         # transformer = deit_small_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -608,7 +610,10 @@ class UNet(nn.Module):
 
         x1, x2, x3 = xl[0], xl[1], xl[2]
 
+        x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
+
         # x = self.up3(x4, x3)
+        
         x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
 
