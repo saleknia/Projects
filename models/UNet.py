@@ -591,7 +591,7 @@ class UNet(nn.Module):
         yl = self.encoder.stage2(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        yl = self.encoder.stage3(xl)
+        xl = self.encoder.stage3(xl)
 
         # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         # xl = self.encoder.stage4(xl)
