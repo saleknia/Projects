@@ -14,6 +14,7 @@ import utils
 from utils import color
 from utils import print_progress
 from torchvision import transforms as T
+import torchvision.transforms as transforms
 from torchvision.transforms import functional as F
 from scipy import ndimage
 from typing import Callable
@@ -22,6 +23,7 @@ import h5py
 import os.path as osp
 import numpy as np
 import random
+import albumentations as A
 import cv2
 from torch.utils import data
 import pickle
@@ -61,32 +63,45 @@ class ISIC2017(Dataset):
             self.data   = np.load(path_Data+'data_val.npy')
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
-        # self.data   = dataset_normalized(self.data)
         self.mask = np.expand_dims(self.mask, axis=3)
         self.mask = self.mask /255.0
         self.data = self.data /255.0
+
+        self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406],
+                                 [0.229, 0.224, 0.225])
+        ])
+        self.gt_transform = transforms.Compose([
+            transforms.ToTensor()])
+        
+        self.transform = A.Compose(
+            [
+                A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=25, p=0.5, border_mode=0),
+                A.ColorJitter(),
+                A.HorizontalFlip(),
+                A.VerticalFlip()
+            ]
+        )
 
     def __getitem__(self, indx):
         img = self.data[indx]
         seg = self.mask[indx]
         # (256, 256, 3)
-        if self.train:
-            img, seg = self.apply_augmentation(img, seg)
-        
         img, seg = self.resize(img, seg)
-        
-        seg = torch.tensor(seg.copy())
-        img = torch.tensor(img.copy())
+
+        if self.train:
+            transformed = self.transform(image=img, mask=seg)
+            img = self.img_transform(transformed['image'])
+            seg = self.gt_transform(transformed['mask'])
+        else:
+            img = self.img_transform(img)
+            seg = self.gt_transform(seg)
+
         img = img.permute(2, 0, 1)
         seg = seg.permute(2, 0, 1)
-        img = F.normalize(img, mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010])
         return img, seg[0]
                
-    # def apply_augmentation(self, img, seg):
-    #     if random.random() < 0.5:
-    #         img  = np.flip(img,  axis=1)
-    #         seg  = np.flip(seg,  axis=1)
-    #     return img, seg
 
     def apply_augmentation(self, img, seg):
         if random.random() > 0.5:
