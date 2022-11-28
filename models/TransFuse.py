@@ -123,7 +123,7 @@ class TransFuse_S(nn.Module):
         emb = self.patch_embed(imgs)
         for i in range(12):
             emb = self.transformers[i](emb)
-        x_b = torch.transpose(x_b, 1, 2)
+        x_b = torch.transpose(emb, 1, 2)
         x_b = x_b.view(x_b.shape[0], -1, 14, 14)
         x_b = self.drop(x_b)
 
