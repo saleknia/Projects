@@ -46,6 +46,7 @@ from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
 from models.Fast_SCNN import Fast_SCNN
 from models.Fast_SCNN_loss import Fast_SCNN_loss
+from models.TransFuse import TransFuse_S
 # from models.original_UNet import original_UNet
 import utils
 from utils import color
@@ -182,6 +183,9 @@ def main(args):
 
     elif MODEL_NAME == 'Mobile_NetV2_loss':
         model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'TransFuse_S':
+        model = TransFuse_S(pretrained=True).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
