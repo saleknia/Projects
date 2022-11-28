@@ -160,12 +160,13 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs = inputs.float()
         outputs = model(inputs)
 
-        # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        # loss_dice = dice_loss(inputs=outputs, targets=targets)
-        # loss = loss_ce + loss_dice
-        loss = structure_loss(pred=outputs, mask=targets.unsqueeze(dim=1))
-        loss_ce = 0.0
-        loss_dice = 0.0
+        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        loss_dice = dice_loss(inputs=outputs, targets=targets)
+        loss = loss_ce + loss_dice
+
+        # loss = structure_loss(pred=outputs, mask=targets.unsqueeze(dim=1))
+        # loss_ce = 0.0
+        # loss_dice = 0.0
 
         # iter_num = iter_num + 1 
         # if iter_num % (total_batchs*10)==0:
