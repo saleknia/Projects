@@ -556,7 +556,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.BiFusion_block = BiFusion_block(ch_1=144, ch_2=384, r_2=4, ch_int=144, ch_out=144, drop_rate=0.0)
+        self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
         # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
@@ -602,7 +602,7 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
         xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
-        
+
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
 
         x = self.up3(x4, x3)
