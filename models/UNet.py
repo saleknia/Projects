@@ -184,9 +184,9 @@ class DeformableConv2d(nn.Module):
                                           stride=self.stride,
                                           )
         return x
-class SKAttention(nn.Module):
 
-    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=16,group=1,L=32):
+class SKAttention(nn.Module):
+    def __init__(self, channel=512,kernels=[3,5],reduction=16,group=1,L=32):
         super().__init__()
         self.d=max(L,channel//reduction)
         self.convs=nn.ModuleList([])
@@ -569,6 +569,12 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
+        # self.transformer = MobileViTAttention()
+
+        self.sk_1 = SKAttention(channel=18)
+        self.sk_2 = SKAttention(channel=36)
+        self.sk_3 = SKAttention(channel=72)
+
         self.up3 = UpBlock(144, 72, nb_Conv=2)
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
         self.up1 = UpBlock(36 , 18, nb_Conv=2)
@@ -609,6 +615,10 @@ class UNet(nn.Module):
         # xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+
+        x1 = self.sk_1(x1)
+        x2 = self.sk_2(x2)
+        x3 = self.sk_3(x3)
 
         # x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
 
@@ -847,7 +857,7 @@ class Transformer(nn.Module):
         return out
 
 class MobileViTAttention(nn.Module):
-    def __init__(self,in_channel=3,dim=512,kernel_size=3,patch_size=7):
+    def __init__(self,in_channel=144,dim=512,kernel_size=1,patch_size=1):
         super().__init__()
         self.ph,self.pw=patch_size,patch_size
         self.conv1=nn.Conv2d(in_channel,in_channel,kernel_size=kernel_size,padding=kernel_size//2)
