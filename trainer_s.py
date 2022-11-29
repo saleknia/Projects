@@ -160,22 +160,23 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs = inputs.float()
         outputs = model(inputs)
 
-        # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        # loss_dice = dice_loss(inputs=outputs, targets=targets)
-        # loss = loss_ce + loss_dice
-        if type(outputs)==tuple:
-            lateral_map_4, lateral_map_3, lateral_map_2 = outputs
-            outputs = lateral_map_2
-            loss4 = structure_loss(lateral_map_4, targets.unsqueeze(dim=1))
-            loss3 = structure_loss(lateral_map_3, targets.unsqueeze(dim=1))
-            loss2 = structure_loss(lateral_map_2, targets.unsqueeze(dim=1))
-            loss = 0.5 * loss2 + 0.3 * loss3 + 0.2 * loss4
-            loss_ce = 0.0
-            loss_dice = 0.0           
-        else:
-            loss = structure_loss(pred=outputs, mask=targets.unsqueeze(dim=1))
-            loss_ce = 0.0
-            loss_dice = 0.0
+        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+        loss_dice = dice_loss(inputs=outputs, targets=targets)
+        loss = loss_ce + loss_dice
+        
+        # if type(outputs)==tuple:
+        #     lateral_map_4, lateral_map_3, lateral_map_2 = outputs
+        #     outputs = lateral_map_2
+        #     loss4 = structure_loss(lateral_map_4, targets.unsqueeze(dim=1))
+        #     loss3 = structure_loss(lateral_map_3, targets.unsqueeze(dim=1))
+        #     loss2 = structure_loss(lateral_map_2, targets.unsqueeze(dim=1))
+        #     loss = 0.5 * loss2 + 0.3 * loss3 + 0.2 * loss4
+        #     loss_ce = 0.0
+        #     loss_dice = 0.0           
+        # else:
+        #     loss = structure_loss(pred=outputs, mask=targets.unsqueeze(dim=1))
+        #     loss_ce = 0.0
+        #     loss_dice = 0.0
 
         # iter_num = iter_num + 1 
         # if iter_num % (total_batchs*10)==0:
