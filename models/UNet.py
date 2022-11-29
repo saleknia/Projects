@@ -569,12 +569,15 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        # self.transformer = MobileViTAttention()
+        # self.transformer = MobileViTAttention()  
+        self.dense_21 = ConvBatchNorm(in_channels=36, out_channels=18)
 
-        self.psa_4_0 = SequentialPolarizedSelfAttention(channel=18)
-        self.psa_4_1 = SequentialPolarizedSelfAttention(channel=36)
-        self.psa_4_2 = SequentialPolarizedSelfAttention(channel=72)
-        self.psa_4_3 = SequentialPolarizedSelfAttention(channel=144)   
+        self.dense_31 = ConvBatchNorm(in_channels=54, out_channels=18)
+        self.dense_32 = ConvBatchNorm(in_channels=72, out_channels=36)
+
+        self.dense_41 = ConvBatchNorm(in_channels=72 , out_channels=18)
+        self.dense_42 = ConvBatchNorm(in_channels=108, out_channels=36)
+        self.dense_43 = ConvBatchNorm(in_channels=144, out_channels=72)
 
         self.up3 = UpBlock(144, 72, nb_Conv=2)
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
@@ -599,18 +602,34 @@ class UNet(nn.Module):
         x = self.encoder.act2(x)
         x = self.encoder.layer1(x)
 
+        x_1_1 = x
+
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
+
+        x_2_1 = yl[0]
+        x_2_2 = yl[1]
+
+        yl[0], yl[1] = self.dense_21(torch.cat([x_1_1, x_2_1], dim=1)), x_2_2
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
+        x_3_1 = yl[0]
+        x_3_2 = yl[1]
+        x_3_3 = yl[2]
+
+        yl[0], yl[1], yl[2] = self.dense_31(torch.cat([x_1_1, x_2_1, x_3_1], dim=1)), self.dense_32(torch.cat([x_2_2, x_3_2], dim=1)), x_3_3
+
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl[0] = self.psa_4_0(xl[0])
-        xl[1] = self.psa_4_1(xl[1])
-        xl[2] = self.psa_4_2(xl[2])
-        xl[3] = self.psa_4_3(xl[3])
-        xl = self.encoder.stage4(xl)
+        yl = self.encoder.stage4(xl)
+
+        x_4_1 = yl[0]
+        x_4_2 = yl[1]
+        x_4_3 = yl[2]
+        x_4_4 = yl[3]
+
+        yl[0], yl[1], yl[2], yl[3] = self.dense_41(torch.cat([x_1_1, x_2_1, x_3_1, x_4_1], dim=1)), self.dense_42(torch.cat([x_2_2, x_3_2, x_4_2], dim=1)), self.dense_43(torch.cat([x_3_3, x_4_3], dim=1)), x_4_4
 
         # emb = self.patch_embed(x0)
         # for i in range(12):
@@ -619,7 +638,7 @@ class UNet(nn.Module):
         # feature_tf = feature_tf.view(b, 384, 14, 14)
         # xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
 
-        x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
 
