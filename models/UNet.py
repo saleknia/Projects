@@ -545,7 +545,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w64', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         self.encoder.stage4 = None
@@ -570,14 +570,14 @@ class UNet(nn.Module):
         # torch.Size([8, 256, 7  , 7])
 
         # self.up3 = UpBlock(256, 128, nb_Conv=2)
-        self.up2 = UpBlock(256, 128, nb_Conv=2)
-        self.up1 = UpBlock(128, 64 , nb_Conv=2)
+        self.up2 = UpBlock(128, 64, nb_Conv=2)
+        self.up1 = UpBlock(64 , 32, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
