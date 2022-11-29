@@ -319,12 +319,12 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
     layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
     for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
 class ConvBatchNorm(nn.Module):
@@ -419,7 +419,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=2, padding=2)
         # self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
     def forward(self, x, skip_x):
         # skip_x = self.att(skip_x)
@@ -571,19 +571,6 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention() 
 
-        self.dense_41 = nn.Sequential(
-            SequentialPolarizedSelfAttention(channel=54),
-            ConvBatchNorm(in_channels=54 , out_channels=18),
-        ) 
-        self.dense_42 = nn.Sequential(
-            SequentialPolarizedSelfAttention(channel=108),
-            ConvBatchNorm(in_channels=108, out_channels=36),
-        ) 
-        self.dense_43 = nn.Sequential(
-            SequentialPolarizedSelfAttention(channel=144),
-            ConvBatchNorm(in_channels=144, out_channels=72),
-        ) 
-
         self.up3 = UpBlock(144, 72, nb_Conv=2)
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
         self.up1 = UpBlock(36 , 18, nb_Conv=2)
@@ -610,25 +597,11 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-        x_2_1 = yl[0]
-        x_2_2 = yl[1]
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        x_3_1 = yl[0]
-        x_3_2 = yl[1]
-        x_3_3 = yl[2]
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
-
-        x_4_1 = yl[0]
-        x_4_2 = yl[1]
-        x_4_3 = yl[2]
-        x_4_4 = yl[3]
-
-        yl[0], yl[1], yl[2], yl[3] = self.dense_41(torch.cat([x_2_1, x_3_1, x_4_1], dim=1)), self.dense_42(torch.cat([x_2_2, x_3_2, x_4_2], dim=1)), self.dense_43(torch.cat([x_3_3, x_4_3], dim=1)), x_4_4
 
         # emb = self.patch_embed(x0)
         # for i in range(12):
