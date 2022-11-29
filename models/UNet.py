@@ -571,11 +571,12 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention()  
 
-        self.dense_31 = ConvBatchNorm(in_channels=54, out_channels=18)
-        self.dense_32 = ConvBatchNorm(in_channels=72, out_channels=36)
+        self.dense_31 = ConvBatchNorm(in_channels=36, out_channels=18)
+        self.dense_32 = ConvBatchNorm(in_channels=54, out_channels=36)
 
         self.dense_41 = ConvBatchNorm(in_channels=72 , out_channels=18)
         self.dense_42 = ConvBatchNorm(in_channels=108, out_channels=36)
+        
         self.dense_43 = ConvBatchNorm(in_channels=144, out_channels=72)
 
         self.up3 = UpBlock(144, 72, nb_Conv=2)
