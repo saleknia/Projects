@@ -571,9 +571,17 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention()
 
-        self.sk_1 = SKAttention(channel=18)
-        self.sk_2 = SKAttention(channel=36)
-        self.sk_3 = SKAttention(channel=72)
+        self.psa_2_0 = SequentialPolarizedSelfAttention(channel=18)
+        self.psa_2_1 = SequentialPolarizedSelfAttention(channel=36)
+
+        self.psa_3_0 = SequentialPolarizedSelfAttention(channel=18)
+        self.psa_3_1 = SequentialPolarizedSelfAttention(channel=36)
+        self.psa_3_2 = SequentialPolarizedSelfAttention(channel=72)
+
+        self.psa_4_0 = SequentialPolarizedSelfAttention(channel=18)
+        self.psa_4_1 = SequentialPolarizedSelfAttention(channel=36)
+        self.psa_4_2 = SequentialPolarizedSelfAttention(channel=72)
+        self.psa_4_3 = SequentialPolarizedSelfAttention(channel=144)   
 
         self.up3 = UpBlock(144, 72, nb_Conv=2)
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
@@ -599,12 +607,21 @@ class UNet(nn.Module):
         x = self.encoder.layer1(x)
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        xl[0] = self.psa_2_0(xl[0])
+        xl[1] = self.psa_2_1(xl[1])
         yl = self.encoder.stage2(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        xl[0] = self.psa_3_0(xl[0])
+        xl[1] = self.psa_3_1(xl[1])
+        xl[2] = self.psa_3_2(xl[2])
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        xl[0] = self.psa_4_0(xl[0])
+        xl[1] = self.psa_4_1(xl[1])
+        xl[2] = self.psa_4_2(xl[2])
+        xl[3] = self.psa_4_3(xl[3])
         xl = self.encoder.stage4(xl)
 
         # emb = self.patch_embed(x0)
@@ -615,10 +632,6 @@ class UNet(nn.Module):
         # xl[3] = self.BiFusion_block(g=xl[3],x=feature_tf)
 
         x1, x2, x3, x4 = xl[0], xl[1], xl[2], xl[3]
-
-        x1 = self.sk_1(x1)
-        x2 = self.sk_2(x2)
-        x3 = self.sk_3(x3)
 
         # x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
 
