@@ -571,10 +571,6 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention()
 
-        self.psa_3_0 = SequentialPolarizedSelfAttention(channel=18)
-        self.psa_3_1 = SequentialPolarizedSelfAttention(channel=36)
-        self.psa_3_2 = SequentialPolarizedSelfAttention(channel=72)
-
         self.psa_4_0 = SequentialPolarizedSelfAttention(channel=18)
         self.psa_4_1 = SequentialPolarizedSelfAttention(channel=36)
         self.psa_4_2 = SequentialPolarizedSelfAttention(channel=72)
@@ -607,9 +603,6 @@ class UNet(nn.Module):
         yl = self.encoder.stage2(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        xl[0] = self.psa_3_0(xl[0])
-        xl[1] = self.psa_3_1(xl[1])
-        xl[2] = self.psa_3_2(xl[2])
         yl = self.encoder.stage3(xl)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
