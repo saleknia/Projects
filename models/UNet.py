@@ -570,7 +570,6 @@ class UNet(nn.Module):
         # torch.Size([8, 256, 7  , 7])
 
         # self.transformer = MobileViTAttention()  
-        self.dense_21 = ConvBatchNorm(in_channels=36, out_channels=18)
 
         self.dense_31 = ConvBatchNorm(in_channels=54, out_channels=18)
         self.dense_32 = ConvBatchNorm(in_channels=72, out_channels=36)
@@ -617,7 +616,7 @@ class UNet(nn.Module):
         x_3_2 = yl[1]
         x_3_3 = yl[2]
 
-        yl[0], yl[1], yl[2] = self.dense_31(torch.cat([x_1_1, x_2_1, x_3_1], dim=1)), self.dense_32(torch.cat([x_2_2, x_3_2], dim=1)), x_3_3
+        yl[0], yl[1], yl[2] = self.dense_31(torch.cat([x_2_1, x_3_1], dim=1)), self.dense_32(torch.cat([x_2_2, x_3_2], dim=1)), x_3_3
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
@@ -627,7 +626,7 @@ class UNet(nn.Module):
         x_4_3 = yl[2]
         x_4_4 = yl[3]
 
-        yl[0], yl[1], yl[2], yl[3] = self.dense_41(torch.cat([x_1_1, x_2_1, x_3_1, x_4_1], dim=1)), self.dense_42(torch.cat([x_2_2, x_3_2, x_4_2], dim=1)), self.dense_43(torch.cat([x_3_3, x_4_3], dim=1)), x_4_4
+        yl[0], yl[1], yl[2], yl[3] = self.dense_41(torch.cat([x_2_1, x_3_1, x_4_1], dim=1)), self.dense_42(torch.cat([x_2_2, x_3_2, x_4_2], dim=1)), self.dense_43(torch.cat([x_3_3, x_4_3], dim=1)), x_4_4
 
         # emb = self.patch_embed(x0)
         # for i in range(12):
