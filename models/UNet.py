@@ -569,10 +569,7 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7])
 
-        # self.transformer = MobileViTAttention()  
-
-        self.dense_31 = ConvBatchNorm(in_channels=36, out_channels=18)
-        self.dense_32 = ConvBatchNorm(in_channels=72, out_channels=36)
+        # self.transformer = MobileViTAttention() 
 
         self.dense_41 = ConvBatchNorm(in_channels=54 , out_channels=18)
         self.dense_42 = ConvBatchNorm(in_channels=108, out_channels=36)
@@ -607,16 +604,12 @@ class UNet(nn.Module):
         x_2_1 = yl[0]
         x_2_2 = yl[1]
 
-        yl[0], yl[1] = x_2_1, x_2_2
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
         x_3_1 = yl[0]
         x_3_2 = yl[1]
         x_3_3 = yl[2]
-
-        yl[0], yl[1], yl[2] = self.dense_31(torch.cat([x_2_1, x_3_1], dim=1)), self.dense_32(torch.cat([x_2_2, x_3_2], dim=1)), x_3_3
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
