@@ -572,16 +572,16 @@ class UNet(nn.Module):
         # self.transformer = MobileViTAttention() 
 
         self.dense_41 = nn.Sequential(
+            SequentialPolarizedSelfAttention(channel=54),
             ConvBatchNorm(in_channels=54 , out_channels=18),
-            SequentialPolarizedSelfAttention(channel=18),
         ) 
         self.dense_42 = nn.Sequential(
+            SequentialPolarizedSelfAttention(channel=108),
             ConvBatchNorm(in_channels=108, out_channels=36),
-            SequentialPolarizedSelfAttention(channel=36),
         ) 
         self.dense_43 = nn.Sequential(
+            SequentialPolarizedSelfAttention(channel=144),
             ConvBatchNorm(in_channels=144, out_channels=72),
-            SequentialPolarizedSelfAttention(channel=72),
         ) 
 
         self.up3 = UpBlock(144, 72, nb_Conv=2)
