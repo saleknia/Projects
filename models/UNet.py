@@ -602,15 +602,13 @@ class UNet(nn.Module):
         x = self.encoder.act2(x)
         x = self.encoder.layer1(x)
 
-        x_1_1 = x
-
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
         x_2_1 = yl[0]
         x_2_2 = yl[1]
 
-        yl[0], yl[1] = self.dense_21(torch.cat([x_1_1, x_2_1], dim=1)), x_2_2
+        yl[0], yl[1] = x_2_1, x_2_2
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
