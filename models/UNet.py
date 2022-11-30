@@ -602,16 +602,18 @@ class UNet(nn.Module):
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
 
+        feature_cnn = xl[3]
         emb = self.patch_embed(x0)
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
-
-        feature_cat = torch.cat((xl[3], feature_tf), dim=1)
+        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
         feature_att = self.se(feature_cat)
-        xl[3] = self.conv2d(feature_att)
+        feature_out = self.conv2d(feature_att)
+
+        xl[3] = xl[3] + feature_out
         
         yl = self.encoder.stage4(xl)
 
