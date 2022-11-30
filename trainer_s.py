@@ -150,19 +150,22 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
-
+    scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
-
-        
         inputs = inputs.float()
-        outputs = model(inputs)
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
+            loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+            loss_dice = dice_loss(inputs=outputs, targets=targets)
+            loss = loss_ce + loss_dice
 
-        loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-        loss_dice = dice_loss(inputs=outputs, targets=targets)
-        loss = loss_ce + loss_dice
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
+        optimizer.zero_grad()
         
         # if type(outputs)==tuple:
         #     lateral_map_4, lateral_map_3, lateral_map_2 = outputs
@@ -190,9 +193,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         # iter_num = iter_num + 1        
         
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
