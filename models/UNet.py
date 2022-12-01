@@ -545,9 +545,9 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
-        self.encoder.conv1.stride = (1, 1)
+        # self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=get_CTranS_config().patch_sizes)
@@ -563,23 +563,23 @@ class UNet(nn.Module):
         
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
-        # torch.Size([8, 16 , 112, 112])
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
         # torch.Size([8, 128, 14 , 14])
-        # torch.Size([8, 256, 7  , 7])
+        # torch.Size([8, 256, 7  , 7 ])
 
         # self.transformer = MobileViTAttention() 
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1 = UpBlock(64 , 32, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -634,6 +634,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
+        out = self.final_up(out)
 
         return out
 

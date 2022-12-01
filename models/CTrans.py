@@ -149,7 +149,6 @@ class Attention_org(nn.Module):
         attention_probs1 = self.softmax(self.psi(attention_scores1)) if emb1 is not None else None
         attention_probs2 = self.softmax(self.psi(attention_scores2)) if emb2 is not None else None
         attention_probs3 = self.softmax(self.psi(attention_scores3)) if emb3 is not None else None
-        # print(attention_probs4.size())
 
         if self.vis:
             weights =  []
