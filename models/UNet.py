@@ -419,7 +419,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=2, padding=2)
+        self.conv = _make_nConv(in_channels=((in_channels//2)+out_channels), out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=2, padding=2)
         # self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
     def forward(self, x, skip_x):
         # skip_x = self.att(skip_x)
@@ -569,15 +569,15 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention() 
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3 = UpBlock(128, 64, nb_Conv=2)
+        self.up2 = UpBlock(64 , 32, nb_Conv=2)
+        self.up1 = UpBlock(32 , 16, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(16, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
