@@ -573,11 +573,11 @@ class UNet(nn.Module):
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
         self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(16, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
