@@ -545,7 +545,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
@@ -569,9 +569,9 @@ class UNet(nn.Module):
 
         # self.transformer = MobileViTAttention() 
 
-        self.up3 = UpBlock(128, 64, nb_Conv=2)
-        self.up2 = UpBlock(64 , 32, nb_Conv=2)
-        self.up1 = UpBlock(32 , 16, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(16, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
