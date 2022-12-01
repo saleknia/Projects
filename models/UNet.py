@@ -547,7 +547,7 @@ class UNet(nn.Module):
 
         self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
-        # self.encoder.conv1.stride = (1, 1)
+        self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=get_CTranS_config().patch_sizes)
@@ -579,7 +579,6 @@ class UNet(nn.Module):
         self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -634,8 +633,6 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
-        out = self.final_up(out)
-
         return out
 
 class _ASPPModule(nn.Module):
