@@ -817,7 +817,7 @@ class UNet(nn.Module):
         if self.training:
             out = (alpha * out_1) + ((1-alpha) * out_2)
         else:
-            out = (out_1 + out_2) / 2
+            out = (out_1, out_2)
  
         return out
 

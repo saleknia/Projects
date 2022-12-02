@@ -130,9 +130,14 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             outputs = model(inputs)
 
-            loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
-            loss_dice = dice_loss(inputs=outputs, targets=targets)
-            loss = loss_ce + loss_dice           
+            if type(outputs)==tuple:
+                loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1))
+                loss_dice = dice_loss(inputs=outputs[0], targets=targets)
+                loss = loss_ce + loss_dice     
+            else:
+                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
+                loss_dice = dice_loss(inputs=outputs, targets=targets)
+                loss = loss_ce + loss_dice     
 
             # loss_ce = ce_loss(outputs, targets[:].long())
             # loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
@@ -142,8 +147,14 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             targets = targets.long()
 
+            if type(outputs)==tuple:
+                predictions = (torch.round(torch.sigmoid(torch.squeeze(outputs[0], dim=1)))+torch.round(torch.sigmoid(torch.squeeze(outputs[1], dim=1)))) / 2.0  
+            else:
+                predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+
+
             # predictions = torch.round(torch.squeeze(outputs, dim=1))
-            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+            # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
 
             # accuracy.update(Eval.Pixel_Accuracy())
