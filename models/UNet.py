@@ -413,11 +413,11 @@ class AttentionBlock(nn.Module):
         out = self.combine(torch.cat([out_r, out_s], dim=1))
         return out
 
-class UpBlock(nn.Module):
+class UpBlock_V1(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock, self).__init__()
+        super(UpBlock_V1, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
@@ -427,6 +427,21 @@ class UpBlock(nn.Module):
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         # x = self.att(x)
+        return x
+
+class UpBlock_V2(nn.Module):
+    """Upscaling then conv"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(UpBlock_V2, self).__init__()
+        self.up = nn.Upsample(scale_factor=2.0)
+        self.conv_in = _make_nConv(in_channels=in_channels, out_channels=in_channels // 2, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv_out = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+    def forward(self, x, skip_x):
+        x = self.up(x)
+        x = self.conv_in(x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv_out(x)
         return x
 
 class DecoderBottleneckLayer(nn.Module):
@@ -738,9 +753,13 @@ class UNet(nn.Module):
         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
-        self.up3 = UpBlock(512, 256, nb_Conv=2)
-        self.up2 = UpBlock(256, 128, nb_Conv=2)
-        self.up1 = UpBlock(128, 64 , nb_Conv=2)
+        self.up3_1 = UpBlock_V1(512, 256, nb_Conv=2)
+        self.up2_1 = UpBlock_V1(256, 128, nb_Conv=2)
+        self.up1_1 = UpBlock_V1(128, 64 , nb_Conv=2)
+
+        self.up3_2 = UpBlock_V2(512, 256, nb_Conv=2)
+        self.up2_2 = UpBlock_V2(256, 128, nb_Conv=2)
+        self.up1_2 = UpBlock_V2(128, 64 , nb_Conv=2)
 
         filters = [64, 128, 256, 512]
         self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
@@ -762,6 +781,12 @@ class UNet(nn.Module):
         self.final_2_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_2_relu2 = nn.ReLU(inplace=True)
         self.final_2_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+
+        self.final_3_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
+        self.final_3_relu1 = nn.ReLU(inplace=True)
+        self.final_3_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_3_relu2 = nn.ReLU(inplace=True)
+        self.final_3_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -796,9 +821,13 @@ class UNet(nn.Module):
         d3 = self.decoder3(d4) + e2
         d2 = self.decoder2(d3) + e1
 
-        x = self.up3(e4, e3)
-        x = self.up2(x , e2) 
-        x = self.up1(x , e1) 
+        x = self.up3_1(e4, e3)
+        x = self.up2_1(x , e2) 
+        x = self.up1_1(x , e1) 
+
+        y = self.up3_2(e4, e3)
+        y = self.up2_2(y , e2) 
+        y = self.up1_2(y , e1) 
 
         out_1 = self.final_1_conv1(d2)
         out_1 = self.final_1_relu1(out_1)
@@ -812,15 +841,23 @@ class UNet(nn.Module):
         out_2 = self.final_2_relu2(out_2)
         out_2 = self.final_2_conv3(out_2)
 
-        alpha = torch.randint(2, (1,))[0].item()
+        out_3 = self.final_3_conv1(y)
+        out_3 = self.final_3_relu1(out_3)
+        out_3 = self.final_3_conv2(out_3)
+        out_3 = self.final_3_relu2(out_3)
+        out_3 = self.final_3_conv3(out_3)
+
+        alpha = torch.randint(3, (1,))[0].item()
 
         if self.training:
             if alpha == 0:
                 out = out_1
             if alpha == 1:
                 out = out_2
+            if alpha == 2:
+                out = out_3
         else:
-            out = (out_1, out_2)
+            out = (out_1, out_2, out_3)
  
         return out
 
