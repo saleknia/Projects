@@ -817,7 +817,7 @@ class UNet(nn.Module):
         if self.training:
             if alpha == 0:
                 out = out_1
-            if alpha== 1:
+            if alpha == 1:
                 out = out_2
         else:
             out = (out_1, out_2)

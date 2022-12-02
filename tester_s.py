@@ -151,7 +151,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             targets = targets.long()
 
             if type(outputs)==tuple:
-                predictions = (torch.round(torch.sigmoid(torch.squeeze(outputs[0], dim=1)))+torch.round(torch.sigmoid(torch.squeeze(outputs[1], dim=1)))) / 2.0  
+                predictions = torch.round((torch.sigmoid(torch.squeeze(outputs[0], dim=1))+torch.sigmoid(torch.squeeze(outputs[1], dim=1))) / 2.0)  
             else:
                 predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
 
