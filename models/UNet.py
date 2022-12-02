@@ -815,7 +815,10 @@ class UNet(nn.Module):
         alpha = torch.randint(2, (1,))[0].item()
 
         if self.training:
-            out = (alpha * out_1) + ((1-alpha) * out_2)
+            if alpha == 0:
+                out = out_1
+            if alpha== 1:
+                out = out_2
         else:
             out = (out_1, out_2)
  
