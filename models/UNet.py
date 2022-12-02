@@ -795,15 +795,20 @@ class UNet(nn.Module):
         x = self.up2(x , e2) 
         x = self.up1(x , e1) 
 
-        d2 = self.final_fuse_conv(torch.cat([x, d2], dim=1))
-        d2 = self.final_fuse_relu(d2)
+        out_1 = self.final_conv1(d2)
+        out_1 = self.final_relu1(out_1)
+        out_1 = self.final_conv2(out_1)
+        out_1 = self.final_relu2(out_1)
+        out_1 = self.final_conv3(out_1)
 
-        out1 = self.final_conv1(d2)
-        out1 = self.final_relu1(out1)
-        out = self.final_conv2(out1)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
+        out_2 = self.final_conv1(x)
+        out_2 = self.final_relu1(out_2)
+        out_2 = self.final_conv2(out_2)
+        out_2 = self.final_relu2(out_2)
+        out_2 = self.final_conv3(out_2)
 
+        out = (out_1 + out_2) / 2.0
+        
         return out
 
 from torch import nn
