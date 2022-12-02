@@ -817,48 +817,70 @@ class UNet(nn.Module):
             e2 = self.FAM2[i](e2)
         for i in range(6):
             e1 = self.FAM1[i](e1)
-        d4 = self.decoder4(e4) + e3
-        d3 = self.decoder3(d4) + e2
-        d2 = self.decoder2(d3) + e1
-
-        x = self.up3_1(e4, e3)
-        x = self.up2_1(x , e2) 
-        x = self.up1_1(x , e1) 
-
-        y = self.up3_2(e4, e3)
-        y = self.up2_2(y , e2) 
-        y = self.up1_2(y , e1) 
-
-        out_1 = self.final_1_conv1(d2)
-        out_1 = self.final_1_relu1(out_1)
-        out_1 = self.final_1_conv2(out_1)
-        out_1 = self.final_1_relu2(out_1)
-        out_1 = self.final_1_conv3(out_1)
-
-        out_2 = self.final_2_conv1(x)
-        out_2 = self.final_2_relu1(out_2)
-        out_2 = self.final_2_conv2(out_2)
-        out_2 = self.final_2_relu2(out_2)
-        out_2 = self.final_2_conv3(out_2)
-
-        out_3 = self.final_3_conv1(y)
-        out_3 = self.final_3_relu1(out_3)
-        out_3 = self.final_3_conv2(out_3)
-        out_3 = self.final_3_relu2(out_3)
-        out_3 = self.final_3_conv3(out_3)
 
         alpha = torch.randint(3, (1,))[0].item()
 
         if self.training:
             if alpha == 0:
+                d4 = self.decoder4(e4) + e3
+                d3 = self.decoder3(d4) + e2
+                d2 = self.decoder2(d3) + e1
+                out_1 = self.final_1_conv1(d2)
+                out_1 = self.final_1_relu1(out_1)
+                out_1 = self.final_1_conv2(out_1)
+                out_1 = self.final_1_relu2(out_1)
+                out_1 = self.final_1_conv3(out_1)
                 out = out_1
             if alpha == 1:
+                x = self.up3_1(e4, e3)
+                x = self.up2_1(x , e2) 
+                x = self.up1_1(x , e1) 
+                out_2 = self.final_2_conv1(x)
+                out_2 = self.final_2_relu1(out_2)
+                out_2 = self.final_2_conv2(out_2)
+                out_2 = self.final_2_relu2(out_2)
+                out_2 = self.final_2_conv3(out_2)
                 out = out_2
             if alpha == 2:
+                y = self.up3_2(e4, e3)
+                y = self.up2_2(y , e2) 
+                y = self.up1_2(y , e1) 
+                out_3 = self.final_3_conv1(y)
+                out_3 = self.final_3_relu1(out_3)
+                out_3 = self.final_3_conv2(out_3)
+                out_3 = self.final_3_relu2(out_3)
+                out_3 = self.final_3_conv3(out_3)
                 out = out_3
         else:
-            out = (out_1, out_2, out_3)
- 
+                d4 = self.decoder4(e4) + e3
+                d3 = self.decoder3(d4) + e2
+                d2 = self.decoder2(d3) + e1
+                out_1 = self.final_1_conv1(d2)
+                out_1 = self.final_1_relu1(out_1)
+                out_1 = self.final_1_conv2(out_1)
+                out_1 = self.final_1_relu2(out_1)
+                out_1 = self.final_1_conv3(out_1)
+
+                x = self.up3_1(e4, e3)
+                x = self.up2_1(x , e2) 
+                x = self.up1_1(x , e1) 
+                out_2 = self.final_2_conv1(x)
+                out_2 = self.final_2_relu1(out_2)
+                out_2 = self.final_2_conv2(out_2)
+                out_2 = self.final_2_relu2(out_2)
+                out_2 = self.final_2_conv3(out_2)
+
+                y = self.up3_2(e4, e3)
+                y = self.up2_2(y , e2) 
+                y = self.up1_2(y , e1) 
+                out_3 = self.final_3_conv1(y)
+                out_3 = self.final_3_relu1(out_3)
+                out_3 = self.final_3_conv2(out_3)
+                out_3 = self.final_3_relu2(out_3)
+                out_3 = self.final_3_conv3(out_3)
+                
+                out = (out_1, out_2, out_3)
+
         return out
 
 from torch import nn
