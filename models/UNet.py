@@ -738,11 +738,18 @@ class UNet(nn.Module):
         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
+        self.up3 = UpBlock(512, 256, nb_Conv=2)
+        self.up2 = UpBlock(256, 128, nb_Conv=2)
+        self.up1 = UpBlock(128, 64 , nb_Conv=2)
+
         filters = [64, 128, 256, 512]
         self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
         self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
         self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
+
+        self.final_fuse_conv = nn.Conv2d(128, 64, 3, padding=1)
+        self.final_fuse_relu = nn.ReLU(inplace=True)
 
         self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -761,7 +768,7 @@ class UNet(nn.Module):
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
-        feature_cnn = self.encoder4(e3)
+        e4 = self.encoder4(e3)
 
         emb = self.patch_embed(x)
         for i in range(12):
@@ -770,9 +777,9 @@ class UNet(nn.Module):
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
+        feature_cat = torch.cat((e4, feature_tf), dim=1)
         feature_att = self.se(feature_cat)
-        feature_out = self.conv2d(feature_att)
+        e4 = self.conv2d(feature_att)
 
         for i in range(2):
             e3 = self.FAM3[i](e3)
@@ -780,9 +787,16 @@ class UNet(nn.Module):
             e2 = self.FAM2[i](e2)
         for i in range(6):
             e1 = self.FAM1[i](e1)
-        d4 = self.decoder4(feature_out) + e3
+        d4 = self.decoder4(e4) + e3
         d3 = self.decoder3(d4) + e2
         d2 = self.decoder2(d3) + e1
+
+        x = self.up3(e4, e3)
+        x = self.up2(x , e2) 
+        x = self.up1(x , e1) 
+
+        d2 = self.final_fuse_conv(torch.cat([x, d2], dim=1))
+        d2 = self.final_fuse_relu(d2)
 
         out1 = self.final_conv1(d2)
         out1 = self.final_relu1(out1)
