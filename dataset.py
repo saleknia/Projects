@@ -77,10 +77,11 @@ class ISIC2017(Dataset):
         
         self.transform = A.Compose(
             [
-                A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=20, p=0.5, border_mode=0),
+                # A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=20, p=0.5, border_mode=0),
+                A.Rotate (limit=20, border_mode=0, always_apply=False, p=0.5),
                 A.ColorJitter (brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
-                A.HorizontalFlip(),
-                A.VerticalFlip()
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5)
             ]
         )
 
