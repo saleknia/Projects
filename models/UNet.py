@@ -807,8 +807,13 @@ class UNet(nn.Module):
         out_2 = self.final_relu2(out_2)
         out_2 = self.final_conv3(out_2)
 
-        out = (out_1 + out_2) / 2.0
-        
+        alpha = torch.randint(2, (1,))[0].item()
+
+        if self.training:
+            out = (alpha * out_1) + ((1-alpha) * out_2)
+        else:
+            out = (out_1 + out_2) / 2
+
         return out
 
 from torch import nn
