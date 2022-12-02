@@ -115,7 +115,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     pos_weight = dataloader['pos_weight']
 
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
