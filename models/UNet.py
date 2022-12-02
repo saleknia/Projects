@@ -751,11 +751,20 @@ class UNet(nn.Module):
         self.final_fuse_conv = nn.Conv2d(128, 64, 3, padding=1)
         self.final_fuse_relu = nn.ReLU(inplace=True)
 
-        self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_1_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
+        self.final_1_relu1 = nn.ReLU(inplace=True)
+        self.final_1_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_1_relu2 = nn.ReLU(inplace=True)
+        self.final_1_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+
+        self.final_2_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
+        self.final_2_relu1 = nn.ReLU(inplace=True)
+        self.final_2_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_2_relu2 = nn.ReLU(inplace=True)
+        self.final_2_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+
+
+        self.activation = nn.Sigmoid()
 
 
     def forward(self, x):
@@ -795,17 +804,19 @@ class UNet(nn.Module):
         x = self.up2(x , e2) 
         x = self.up1(x , e1) 
 
-        out_1 = self.final_conv1(d2)
-        out_1 = self.final_relu1(out_1)
-        out_1 = self.final_conv2(out_1)
-        out_1 = self.final_relu2(out_1)
-        out_1 = self.final_conv3(out_1)
+        out_1 = self.final_1_conv1(d2)
+        out_1 = self.final_1_relu1(out_1)
+        out_1 = self.final_1_conv2(out_1)
+        out_1 = self.final_1_relu2(out_1)
+        out_1 = self.final_1_conv3(out_1)
+        out_1 = self.activation(out_1)
 
-        out_2 = self.final_conv1(x)
-        out_2 = self.final_relu1(out_2)
-        out_2 = self.final_conv2(out_2)
-        out_2 = self.final_relu2(out_2)
-        out_2 = self.final_conv3(out_2)
+        out_2 = self.final_2_conv1(x)
+        out_2 = self.final_2_relu1(out_2)
+        out_2 = self.final_2_conv2(out_2)
+        out_2 = self.final_2_relu2(out_2)
+        out_2 = self.final_2_conv3(out_2)
+        out_2 = self.activation(out_2)
 
         alpha = torch.randint(2, (1,))[0].item()
 

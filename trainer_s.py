@@ -145,7 +145,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loader = dataloader['train'] 
     pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+
+    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    ce_loss = torch.nn.BCELoss()
 
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
@@ -203,8 +205,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         targets = targets.long()
 
-        # predictions = torch.round(torch.squeeze(outputs, dim=1))
-        predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+        predictions = torch.round(torch.squeeze(outputs, dim=1))
+        # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
         Eval.add_batch(gt_image=targets,pre_image=predictions)
         # accuracy.update(Eval.Pixel_Accuracy())
 

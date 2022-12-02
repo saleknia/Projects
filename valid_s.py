@@ -115,7 +115,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     pos_weight = dataloader['pos_weight']
 
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    ce_loss = torch.nn.BCELoss()
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
@@ -141,8 +142,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
 
             targets = targets.long()
 
-            # predictions = torch.round(torch.squeeze(outputs, dim=1))
-            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
+            predictions = torch.round(torch.squeeze(outputs, dim=1))
+            # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
 
             # accuracy.update(Eval.Pixel_Accuracy())
