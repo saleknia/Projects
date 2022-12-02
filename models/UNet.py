@@ -763,10 +763,6 @@ class UNet(nn.Module):
         self.final_2_relu2 = nn.ReLU(inplace=True)
         self.final_2_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
-
-        self.activation = nn.Sigmoid()
-
-
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -809,14 +805,12 @@ class UNet(nn.Module):
         out_1 = self.final_1_conv2(out_1)
         out_1 = self.final_1_relu2(out_1)
         out_1 = self.final_1_conv3(out_1)
-        out_1 = self.activation(out_1)
 
         out_2 = self.final_2_conv1(x)
         out_2 = self.final_2_relu1(out_2)
         out_2 = self.final_2_conv2(out_2)
         out_2 = self.final_2_relu2(out_2)
         out_2 = self.final_2_conv3(out_2)
-        out_2 = self.activation(out_2)
 
         alpha = torch.randint(2, (1,))[0].item()
 
@@ -824,7 +818,7 @@ class UNet(nn.Module):
             out = (alpha * out_1) + ((1-alpha) * out_2)
         else:
             out = (out_1 + out_2) / 2
-
+ 
         return out
 
 from torch import nn
