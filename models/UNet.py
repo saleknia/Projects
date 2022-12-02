@@ -864,6 +864,7 @@ class UNet(nn.Module):
                 x = self.up3_1(e4, e3)
                 x = self.up2_1(x , e2) 
                 x = self.up1_1(x , e1) 
+                
                 out_2 = self.final_2_conv1(x)
                 out_2 = self.final_2_relu1(out_2)
                 out_2 = self.final_2_conv2(out_2)
@@ -878,7 +879,7 @@ class UNet(nn.Module):
                 out_3 = self.final_3_conv2(out_3)
                 out_3 = self.final_3_relu2(out_3)
                 out_3 = self.final_3_conv3(out_3)
-                
+
                 out = (out_1, out_2, out_3)
 
         return out
