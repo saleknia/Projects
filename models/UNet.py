@@ -753,14 +753,6 @@ class UNet(nn.Module):
         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
-        self.up3_1 = UpBlock_V1(512, 256, nb_Conv=2)
-        self.up2_1 = UpBlock_V1(256, 128, nb_Conv=2)
-        self.up1_1 = UpBlock_V1(128, 64 , nb_Conv=2)
-
-        self.up3_2 = UpBlock_V2(512, 256, nb_Conv=2)
-        self.up2_2 = UpBlock_V2(256, 128, nb_Conv=2)
-        self.up1_2 = UpBlock_V2(128, 64 , nb_Conv=2)
-
         filters = [64, 128, 256, 512]
         self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
         self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
