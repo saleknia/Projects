@@ -583,12 +583,14 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
-        self.CPF_21 = CFPModule(nIn=32, d=8)
-        self.CPF_22 = CFPModule(nIn=64, d=8)
-
         self.CPF_31 = CFPModule(nIn=32, d=8)
         self.CPF_32 = CFPModule(nIn=64, d=8)
         self.CPF_33 = CFPModule(nIn=128, d=8)
+
+        self.CPF_41 = CFPModule(nIn=32, d=8)
+        self.CPF_42 = CFPModule(nIn=64, d=8)
+        self.CPF_43 = CFPModule(nIn=128, d=8)
+        self.CPF_44 = CFPModule(nIn=256, d=8)
 
         self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
@@ -615,9 +617,6 @@ class UNet(nn.Module):
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
-        
-        yl[0] = self.CPF_21(yl[0])
-        yl[1] = self.CPF_22(yl[1])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
@@ -628,6 +627,11 @@ class UNet(nn.Module):
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl) 
+
+        yl[0] = self.CPF_41(yl[0])
+        yl[1] = self.CPF_42(yl[1])
+        yl[2] = self.CPF_43(yl[2])
+        yl[3] = self.CPF_44(yl[3])
 
         # feature_cnn = xl[3]
 
