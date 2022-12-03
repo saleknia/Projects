@@ -560,18 +560,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
-
-        
-        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
@@ -589,10 +578,10 @@ class UNet(nn.Module):
         #     nn.ReLU()
         #     )
         
-        self.fuse_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
-        self.fuse_2 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
-        self.fuse_3 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
-        self.fuse_4 = ConvBatchNorm(in_channels=768, out_channels=256, kernel_size=1, padding=0, dilation=1)
+        # self.fuse_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
+        # self.fuse_2 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
+        # self.fuse_3 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
+        # self.fuse_4 = ConvBatchNorm(in_channels=768, out_channels=256, kernel_size=1, padding=0, dilation=1)
 
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
@@ -610,36 +599,20 @@ class UNet(nn.Module):
         # self.CPF_43 = CFPModule(nIn=128, d=8)
         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(256, 128, nb_Conv=2)
-        self.up2 = UpBlock(128, 64 , nb_Conv=2)
-        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
-
-        e0 = self.firstconv(x0)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
-
-        x = self.encoder.conv1(x0)
-        x = self.encoder.bn1(x)
-        x = self.encoder.act1(x)
-        x = self.encoder.conv2(x)
-        x = self.encoder.bn2(x)
-        x = self.encoder.act2(x)
-        x = self.encoder.layer1(x)
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
@@ -647,9 +620,9 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        yl[0] = self.CPF_31(yl[0])
-        yl[1] = self.CPF_32(yl[1])
-        yl[2] = self.CPF_33(yl[2])
+        # yl[0] = self.CPF_31(yl[0])
+        # yl[1] = self.CPF_32(yl[1])
+        # yl[2] = self.CPF_33(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)    
@@ -672,10 +645,10 @@ class UNet(nn.Module):
 
         # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
 
-        x1 = self.fuse_1(torch.cat([x1, e1], dim=1))
-        x2 = self.fuse_2(torch.cat([x2, e2], dim=1))
-        x3 = self.fuse_3(torch.cat([x3, e3], dim=1))
-        x4 = self.fuse_4(torch.cat([x4, e4], dim=1))    
+        # x1 = self.fuse_1(torch.cat([x1, e1], dim=1))
+        # x2 = self.fuse_2(torch.cat([x2, e2], dim=1))
+        # x3 = self.fuse_3(torch.cat([x3, e3], dim=1))
+        # x4 = self.fuse_4(torch.cat([x4, e4], dim=1))    
 
         # x1, x2, x3 = xl[0], xl[1], xl[2]
 
