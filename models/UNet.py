@@ -572,9 +572,11 @@ class UNet(nn.Module):
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=512)
-        self.conv2d = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, padding=0)
+        self.fuse = nn.Sequential(
+            nn.Conv2d(194, 256, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU()
+            )
         
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
@@ -583,14 +585,14 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
-        self.CPF_31 = CFPModule(nIn=32, d=8)
-        self.CPF_32 = CFPModule(nIn=64, d=8)
-        self.CPF_33 = CFPModule(nIn=128, d=8)
+        # self.CPF_31 = CFPModule(nIn=32, d=8)
+        # self.CPF_32 = CFPModule(nIn=64, d=8)
+        # self.CPF_33 = CFPModule(nIn=128, d=8)
 
-        self.CPF_41 = CFPModule(nIn=32, d=8)
-        self.CPF_42 = CFPModule(nIn=64, d=8)
-        self.CPF_43 = CFPModule(nIn=128, d=8)
-        self.CPF_44 = CFPModule(nIn=256, d=8)
+        # self.CPF_41 = CFPModule(nIn=32, d=8)
+        # self.CPF_42 = CFPModule(nIn=64, d=8)
+        # self.CPF_43 = CFPModule(nIn=128, d=8)
+        # self.CPF_44 = CFPModule(nIn=256, d=8)
 
         self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
@@ -626,7 +628,6 @@ class UNet(nn.Module):
         # yl[2] = self.CPF_33(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl) 
 
         feature_cnn = yl[3]
 
@@ -635,12 +636,12 @@ class UNet(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
-        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        feature_out = self.conv2d(feature_att)
-        
+        feature_tf = self.fuse(feature_tf)
+        feature_out = feature_cnn + feature_tf
+
         yl[3] = feature_out 
+
+        yl = self.encoder.stage4(xl)        
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
