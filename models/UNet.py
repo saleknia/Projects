@@ -573,7 +573,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
         self.fuse = nn.Sequential(
-            nn.Conv2d(194, 256, 1, 1, 0, bias=False),
+            nn.Conv2d(192, 256, 1, 1, 0, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU()
             )
