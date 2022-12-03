@@ -533,7 +533,7 @@ def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
     # config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 480  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
@@ -543,8 +543,8 @@ def get_CTranS_config():
     config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0
     # config.patch_sizes = [16,8,4,2]
-    config.patch_sizes = [4,2,1]
-    config.base_channel = 64 # base channel of U-Net
+    config.patch_sizes = [8,4,2,1]
+    config.base_channel = 32 # base channel of U-Net
     config.n_classes = 1
     return config
 
@@ -565,19 +565,24 @@ class UNet(nn.Module):
         self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
 
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=get_CTranS_config().patch_sizes)
+        self.mtc = ChannelTransformer(config=get_CTranS_config())
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-        self.fuse = nn.Sequential(
-            nn.Conv2d(192, 256, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(256),
-            nn.ReLU()
-            )
+        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
+        # self.fuse = nn.Sequential(
+        #     nn.Conv2d(192, 256, 1, 1, 0, bias=False),
+        #     nn.BatchNorm2d(256),
+        #     nn.ReLU()
+        #     )
         
+        self.fuse_1 = ConvBatchNorm(in_channels=64 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
+        self.fuse_2 = ConvBatchNorm(in_channels=128, out_channels=64 , kernel_size=1, padding=0, dilation=1)
+        self.fuse_3 = ConvBatchNorm(in_channels=256, out_channels=128, kernel_size=1, padding=0, dilation=1)
+        self.fuse_4 = ConvBatchNorm(in_channels=512, out_channels=256, kernel_size=1, padding=0, dilation=1)
+
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
         # torch.Size([8, 32 , 56 , 56])
@@ -628,24 +633,30 @@ class UNet(nn.Module):
         # yl[2] = self.CPF_33(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder.stage4(xl)    
 
-        feature_cnn = xl[3]
+        # feature_cnn = xl[3]
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.fuse(feature_tf)
-        feature_out = feature_cnn + feature_tf
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+        # feature_tf = self.fuse(feature_tf)
+        # feature_out = feature_cnn + feature_tf
 
-        xl[3] = feature_out 
+        # xl[3] = feature_out 
 
-        yl = self.encoder.stage4(xl)        
+        # yl = self.encoder.stage4(xl)        
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        # x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
+        t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
+
+        x1 = self.fuse_1(torch.cat([x1, t1], dim=1))
+        x2 = self.fuse_2(torch.cat([x2, t2], dim=1))
+        x3 = self.fuse_3(torch.cat([x3, t3], dim=1))
+        x4 = self.fuse_4(torch.cat([x4, t4], dim=1))    
 
         # x1, x2, x3 = xl[0], xl[1], xl[2]
 
@@ -658,6 +669,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         out = self.final_conv3(x)
+
         return out
 
 class _ASPPModule(nn.Module):
