@@ -413,11 +413,11 @@ class AttentionBlock(nn.Module):
         out = self.combine(torch.cat([out_r, out_s], dim=1))
         return out
 
-class UpBlock_V1(nn.Module):
+class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock_V1, self).__init__()
+        super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
