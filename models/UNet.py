@@ -629,7 +629,7 @@ class UNet(nn.Module):
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
 
-        feature_cnn = yl[3]
+        feature_cnn = xl[3]
 
         emb = self.patch_embed(x0)
         for i in range(12):
@@ -639,7 +639,7 @@ class UNet(nn.Module):
         feature_tf = self.fuse(feature_tf)
         feature_out = feature_cnn + feature_tf
 
-        yl[3] = feature_out 
+        xl[3] = feature_out 
 
         yl = self.encoder.stage4(xl)        
 
