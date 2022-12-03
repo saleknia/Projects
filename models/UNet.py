@@ -560,12 +560,23 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        
         self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.conv1.stride = (1, 1)
         # self.encoder.stage4 = None
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config())
+        # self.mtc = ChannelTransformer(config=get_CTranS_config())
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -578,10 +589,10 @@ class UNet(nn.Module):
         #     nn.ReLU()
         #     )
         
-        self.fuse_1 = ConvBatchNorm(in_channels=64 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
-        self.fuse_2 = ConvBatchNorm(in_channels=128, out_channels=64 , kernel_size=1, padding=0, dilation=1)
-        self.fuse_3 = ConvBatchNorm(in_channels=256, out_channels=128, kernel_size=1, padding=0, dilation=1)
-        self.fuse_4 = ConvBatchNorm(in_channels=512, out_channels=256, kernel_size=1, padding=0, dilation=1)
+        self.fuse_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
+        self.fuse_2 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
+        self.fuse_3 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
+        self.fuse_4 = ConvBatchNorm(in_channels=768, out_channels=256, kernel_size=1, padding=0, dilation=1)
 
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
@@ -590,9 +601,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
-        self.CPF_31 = CFPModule(nIn=32, d=8)
-        self.CPF_32 = CFPModule(nIn=64, d=8)
-        self.CPF_33 = CFPModule(nIn=128, d=8)
+        # self.CPF_31 = CFPModule(nIn=32, d=8)
+        # self.CPF_32 = CFPModule(nIn=64, d=8)
+        # self.CPF_33 = CFPModule(nIn=128, d=8)
 
         # self.CPF_41 = CFPModule(nIn=32, d=8)
         # self.CPF_42 = CFPModule(nIn=64, d=8)
@@ -613,6 +624,14 @@ class UNet(nn.Module):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
+
+        e0 = self.firstconv(x0)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
         x = self.encoder.conv1(x0)
         x = self.encoder.bn1(x)
@@ -651,12 +670,12 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
+        # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
 
-        x1 = self.fuse_1(torch.cat([x1, t1], dim=1))
-        x2 = self.fuse_2(torch.cat([x2, t2], dim=1))
-        x3 = self.fuse_3(torch.cat([x3, t3], dim=1))
-        x4 = self.fuse_4(torch.cat([x4, t4], dim=1))    
+        x1 = self.fuse_1(torch.cat([x1, e1], dim=1))
+        x2 = self.fuse_2(torch.cat([x2, e2], dim=1))
+        x3 = self.fuse_3(torch.cat([x3, e3], dim=1))
+        x4 = self.fuse_4(torch.cat([x4, e4], dim=1))    
 
         # x1, x2, x3 = xl[0], xl[1], xl[2]
 
