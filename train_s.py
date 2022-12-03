@@ -372,6 +372,42 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
+    elif TASK_NAME=='ISIC2016':
+
+        train_dataset = ISIC2016(split='train')
+        valid_dataset = ISIC2016(split='valid')
+        test_dataset  = ISIC2016(split='test')
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        pos_weight = train_dataset.pos_weight.to(DEVICE)
+        print(50 * '*')
+        print(f'Positive Weight: {pos_weight}')
+        print(50 * '*')
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
+
     elif TASK_NAME=='ISIC2017':
 
         train_dataset = ISIC2017(split='train')
