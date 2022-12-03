@@ -225,7 +225,10 @@ class AttentionUNet(nn.Module):
         out = self.Conv(d2)
 
         return out
-        # if self.training:
-        #     return out, d5, d4, d3, d2, e5, e4, e3, e2, e1
-        # else:
-        #     return out  
+ 
+
+
+
+
+
+
