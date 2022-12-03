@@ -567,14 +567,14 @@ class UNet(nn.Module):
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=get_CTranS_config().patch_sizes)
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
-        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=144, kernel_size=1, padding=0)
-        # self.se = SEBlock(channel=288)
-        # self.conv2d = nn.Conv2d(in_channels=288, out_channels=144, kernel_size=1, padding=0)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=256, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=512)
+        self.conv2d = nn.Conv2d(in_channels=512, out_channels=256, kernel_size=1, padding=0)
         
         # self.BiFusion_block = BiFusion_block(ch_1=256, ch_2=384, r_2=4, ch_int=256, ch_out=256, drop_rate=0.0)
 
@@ -585,9 +585,9 @@ class UNet(nn.Module):
         # self.CPF_21 = CFPModule(nIn=32, d=8)
         # self.CPF_22 = CFPModule(nIn=64, d=8)
 
-        self.CPF_31 = CFPModule(nIn=32, d=8)
-        self.CPF_32 = CFPModule(nIn=64, d=8)
-        self.CPF_33 = CFPModule(nIn=128, d=8)
+        # self.CPF_31 = CFPModule(nIn=32, d=8)
+        # self.CPF_32 = CFPModule(nIn=64, d=8)
+        # self.CPF_33 = CFPModule(nIn=128, d=8)
 
         self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
@@ -621,25 +621,26 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        yl[0] = self.CPF_31(yl[0])
-        yl[1] = self.CPF_32(yl[1])
-        yl[2] = self.CPF_33(yl[2])
+        # yl[0] = self.CPF_31(yl[0])
+        # yl[1] = self.CPF_32(yl[1])
+        # yl[2] = self.CPF_33(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl)    
-        # feature_cnn = xl[3]
+        yl = self.encoder.stage4(xl) 
 
-        # emb = self.patch_embed(x0)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.conv_seq_img(feature_tf)
-        # feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-        # feature_att = self.se(feature_cat)
-        # feature_out = self.conv2d(feature_att)
+        feature_cnn = xl[3]
+
+        emb = self.patch_embed(x0)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
+        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
+        feature_att = self.se(feature_cat)
+        feature_out = self.conv2d(feature_att)
         
-        # xl[3] = feature_out + feature_cnn
+        xl[3] = feature_out + feature_cnn
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
