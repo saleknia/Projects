@@ -550,6 +550,13 @@ class DAT(nn.Module):
         
         return outputs
 
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
+    else:
+        return nn.ReLU()
+
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -598,7 +605,7 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = DAT(
+        self.encoder = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -624,58 +631,30 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96 )
+      
+
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
-        x = self.encoder.conv1(x0)
-        x = self.encoder.bn1(x)
-        x = self.encoder.act1(x)
-        x = self.encoder.conv2(x)
-        x = self.encoder.bn2(x)
-        x = self.encoder.act2(x)
-        x = self.encoder.layer1(x)
-
-        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
-        yl = self.encoder.stage2(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        yl = self.encoder.stage3(xl)
-
-        # yl[0] = self.CPF_31(yl[0])
-        # yl[1] = self.CPF_32(yl[1])
-        # yl[2] = self.CPF_33(yl[2])
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl)    
-
-        # emb = self.patch_embed(x0)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
-
-        # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
-
-        # x1 = self.fuse_1(torch.cat([x1, e1], dim=1))
-        # x2 = self.fuse_2(torch.cat([x2, e2], dim=1))
-        # x3 = self.fuse_3(torch.cat([x3, e3], dim=1))
-        # x4 = self.fuse_4(torch.cat([x4, e4], dim=1))    
-
-        # x1, x2, x3 = xl[0], xl[1], xl[2]
+        outputs = self.encoder(x0)
+        x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
@@ -685,8 +664,8 @@ class DATUNet(nn.Module):
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
-        out = self.final_conv3(x)
-
+        x = self.final_conv3(x)
+        out = self.final_up(x)
         return out
 
 
