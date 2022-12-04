@@ -606,7 +606,7 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
         self.encoder = DAT(
-            img_size=448,
+            img_size=384,
             patch_size=4,
             num_classes=1000,
             expansion=4,
