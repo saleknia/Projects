@@ -209,7 +209,7 @@ class DeformableConv2d(nn.Module):
                                       padding=self.padding,
                                       bias=bias)
 
-    def forward(self, x, offset):
+    def forward(self, x):
 
         offset = self.offset_conv(x)
         modulator = 2. * torch.sigmoid(self.modulator_conv(x))
@@ -636,7 +636,7 @@ class UNet(nn.Module):
         #     emb = self.transformers[i](emb)
         # feature_tf = emb.permute(0, 2, 1)
         # feature_tf = feature_tf.view(b, 192, 14, 14)
-        
+
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
