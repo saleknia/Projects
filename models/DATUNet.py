@@ -592,6 +592,39 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
+def make_fuse_layers():
+    num_branches = 4
+    num_in_chs = [96, 192, 384, 768]
+    fuse_layers = []
+    for i in range(num_branches):
+        fuse_layer = []
+        for j in range(num_branches):
+            if j > i:
+                fuse_layer.append(nn.Sequential(
+                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(num_in_chs[i]),
+                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+            elif j == i:
+                fuse_layer.append(nn.Identity())
+            else:
+                conv3x3s = []
+                for k in range(i - j):
+                    if k == i - j - 1:
+                        num_outchannels_conv3x3 = num_in_chs[i]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3)))
+                    else:
+                        num_outchannels_conv3x3 = num_in_chs[j]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3),
+                            nn.ReLU(False)))
+                fuse_layer.append(nn.Sequential(*conv3x3s))
+        fuse_layers.append(nn.ModuleList(fuse_layer))
+
+    return nn.ModuleList(fuse_layers)
+
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -606,7 +639,7 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
         self.encoder = DAT(
-            img_size=384,
+            img_size=224,
             patch_size=4,
             num_classes=1000,
             expansion=4,
@@ -636,6 +669,8 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96 )
       
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -655,6 +690,20 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
+
+        x = [x1, x2, x3, x4]
+
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, len(x)):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
+
+        x4, x3, x2, x1 = x_fuse[3], x_fuse[2], x_fuse[1], x_fuse[0]
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
