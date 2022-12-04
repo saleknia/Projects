@@ -663,10 +663,10 @@ class UNet(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
 
-        yl[3] = yl[3] + self.fuse_4(yl[3])
-        yl[2] = yl[2] + self.fuse_3(yl[2])
-        yl[1] = yl[1] + self.fuse_2(yl[1])
-        yl[0] = yl[0] + self.fuse_1(yl[0])
+        yl[3] = yl[3] + self.fuse_4(feature_tf)
+        yl[2] = yl[2] + self.fuse_3(feature_tf)
+        yl[1] = yl[1] + self.fuse_2(feature_tf)
+        yl[0] = yl[0] + self.fuse_1(feature_tf)
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
