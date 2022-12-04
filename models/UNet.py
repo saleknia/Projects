@@ -567,17 +567,39 @@ class UNet(nn.Module):
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config())
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
-        # self.fuse = nn.Sequential(
-        #     nn.Conv2d(192, 256, 1, 1, 0, bias=False),
-        #     nn.BatchNorm2d(256),
-        #     nn.ReLU()
-        #     )
-        
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+        self.fuse_4 = nn.Sequential(
+            nn.Conv2d(192, 256, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=1, mode='nearest')
+            )
+
+        self.fuse_3 = nn.Sequential(
+            nn.Conv2d(192, 128, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=2, mode='nearest')
+            )
+
+        self.fuse_2 = nn.Sequential(
+            nn.Conv2d(192, 64, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(64),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=4, mode='nearest')
+            )
+
+        self.fuse_1 = nn.Sequential(
+            nn.Conv2d(192, 32, 1, 1, 0, bias=False),
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Upsample(scale_factor=8, mode='nearest')
+            )
+
         # self.fuse_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
         # self.fuse_2 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
         # self.fuse_3 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
@@ -599,15 +621,15 @@ class UNet(nn.Module):
         # self.CPF_43 = CFPModule(nIn=128, d=8)
         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 16, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -635,19 +657,16 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)    
 
-        # feature_cnn = xl[3]
+        emb = self.patch_embed(x0)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
 
-        # emb = self.patch_embed(x0)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(b, 192, 14, 14)
-        # feature_tf = self.fuse(feature_tf)
-        # feature_out = feature_cnn + feature_tf
-
-        # xl[3] = feature_out 
-
-        # yl = self.encoder.stage4(xl)        
+        yl[3] = yl[3] + self.fuse_4(yl[3])
+        yl[2] = yl[2] + self.fuse_3(yl[2])
+        yl[1] = yl[1] + self.fuse_2(yl[1])
+        yl[0] = yl[0] + self.fuse_1(yl[0])
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
