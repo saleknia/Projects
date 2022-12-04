@@ -166,30 +166,28 @@ class BiFusion_block(nn.Module):
 
 class DeformableConv2d(nn.Module):
     def __init__(self,
-                 in_channels,
-                 out_channels,
-                 offset_channels,
-                 kernel_size=3,
-                 stride=1,
-                 padding=1,
-                 bias=False,
-                 up_scale=1.0):
+                in_channels,
+                out_channels,
+                kernel_size=3,
+                stride=1,
+                padding=1,
+                bias=False):
 
         super(DeformableConv2d, self).__init__()
         
         assert type(kernel_size) == tuple or type(kernel_size) == int
 
         kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
+
         self.stride = stride if type(stride) == tuple else (stride, stride)
         self.padding = padding
         
-        self.offset_conv = nn.Conv2d(offset_channels, 
+        self.offset_conv = nn.Conv2d(in_channels, 
                                      2 * kernel_size[0] * kernel_size[1],
                                      kernel_size=kernel_size, 
                                      stride=stride,
                                      padding=self.padding, 
                                      bias=True)
-        self.up = nn.Upsample(scale_factor=up_scale)
 
         nn.init.constant_(self.offset_conv.weight, 0.)
         nn.init.constant_(self.offset_conv.bias, 0.)
@@ -212,10 +210,8 @@ class DeformableConv2d(nn.Module):
                                       bias=bias)
 
     def forward(self, x, offset):
-        #h, w = x.shape[2:]
-        #max_offset = max(h, w)/4.
-        offset = self.up(offset)
-        offset = self.offset_conv(offset)#.clamp(-max_offset, max_offset)
+
+        offset = self.offset_conv(x)
         modulator = 2. * torch.sigmoid(self.modulator_conv(x))
         
         x = torchvision.ops.deform_conv2d(input=x, 
@@ -227,52 +223,6 @@ class DeformableConv2d(nn.Module):
                                           stride=self.stride,
                                           )
         return x
-
-class SKAttention(nn.Module):
-    def __init__(self, channel=512,kernels=[3,5],reduction=16,group=1,L=32):
-        super().__init__()
-        self.d=max(L,channel//reduction)
-        self.convs=nn.ModuleList([])
-        for k in kernels:
-            self.convs.append(
-                nn.Sequential(OrderedDict([
-                    ('conv',nn.Conv2d(channel,channel,kernel_size=k,padding=k//2,groups=group)),
-                    ('bn',nn.BatchNorm2d(channel)),
-                    ('relu',nn.ReLU())
-                ]))
-            )
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(len(kernels)):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x):
-        bs, c, _, _ = x.size()
-        conv_outs=[]
-        ### split
-        for conv in self.convs:
-            conv_outs.append(conv(x))
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
-        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weughts*feats).sum(0)
-        return V
 
 class SequentialPolarizedSelfAttention(nn.Module):
 
@@ -370,6 +320,28 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
         layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
+def _make_nDConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+    layers = []
+    layers.append(DConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+
+    for _ in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    return nn.Sequential(*layers)
+
+class DConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+        super(DConvBatchNorm, self).__init__()
+        self.conv = DeformableConv2d(in_channels,out_channels,kernel_size=3,stride=1,padding=1,bias=False)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
+
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -462,7 +434,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nDConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.att = SequentialPolarizedSelfAttention(channel=in_channels//2)
     def forward(self, x, skip_x):
         # skip_x = self.att(skip_x)
@@ -472,20 +444,6 @@ class UpBlock(nn.Module):
         # x = self.att(x)
         return x
 
-class UpBlock_V2(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock_V2, self).__init__()
-        self.up = nn.Upsample(scale_factor=2.0)
-        self.conv_in = _make_nConv(in_channels=in_channels, out_channels=in_channels // 2, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.conv_out = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-    def forward(self, x, skip_x):
-        x = self.up(x)
-        x = self.conv_in(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv_out(x)
-        return x
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -616,8 +574,6 @@ class UNet(nn.Module):
         #     [transformer.blocks[i] for i in range(12)]
         # )
 
-        self.CCA = CrissCrossAttention(in_dim=256)
-
         # self.fuse_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , kernel_size=1, padding=0, dilation=1)
         # self.fuse_2 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
         # self.fuse_3 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
@@ -680,9 +636,7 @@ class UNet(nn.Module):
         #     emb = self.transformers[i](emb)
         # feature_tf = emb.permute(0, 2, 1)
         # feature_tf = feature_tf.view(b, 192, 14, 14)
-
-        yl[3] = self.CCA(yl[3])
-
+        
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
