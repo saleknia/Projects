@@ -593,8 +593,8 @@ class UpBlock(nn.Module):
         return x
 
 def make_fuse_layers():
-    num_branches = 4
-    num_in_chs = [96, 192, 384, 768]
+    num_branches = 3
+    num_in_chs = [96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -691,7 +691,7 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
-        x = [x1, x2, x3, x4]
+        x = [x1, x2, x3]
 
         x_fuse = []
         for i, fuse_outer in enumerate(self.fuse_layers):
@@ -703,7 +703,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x4, x3, x2, x1 = x_fuse[3], x_fuse[2], x_fuse[1], x_fuse[0]
+        x3, x2, x1 = x_fuse[2], x_fuse[1], x_fuse[0]
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
