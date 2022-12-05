@@ -829,10 +829,10 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
-        x0 = e0
-        x1 = self.BiFusion_block_1(g=e1, x=x1)
-        x2 = self.BiFusion_block_2(g=e2, x=x2)
-        x3 = self.BiFusion_block_3(g=e3, x=x3)
+        x0 = e1
+        x1 = self.BiFusion_block_1(g=e2, x=x1)
+        x2 = self.BiFusion_block_2(g=e3, x=x2)
+        x3 = self.BiFusion_block_3(g=e4, x=x3)
         x4 = x4
 
         # x = [x1, x2, x3]
