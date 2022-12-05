@@ -479,6 +479,8 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
+
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -541,7 +543,7 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 3:
@@ -763,7 +765,7 @@ class DATUNet(nn.Module):
 
         self.encoder = DAT(
             img_size=224,
-            patch_size=2,
+            patch_size=4,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
@@ -787,7 +789,7 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_4 = LayerNormProxy(dim=768)
+        # self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96 )
@@ -795,7 +797,7 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(768, 384, nb_Conv=2)
+        # self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
@@ -821,7 +823,9 @@ class DATUNet(nn.Module):
         # e4 = self.encoder4(e3)
 
         outputs = self.encoder(x0)
-        x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
+        # x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
+        x3, x2, x1 = self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
+
 
         # x0 = e1
         # x1 = self.BiFusion_block_1(g=e2, x=x1)
@@ -843,8 +847,8 @@ class DATUNet(nn.Module):
 
         # x3, x2, x1 = x_fuse[2], x_fuse[1], x_fuse[0]
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2) 
+        # x = self.up3(x4, x3)
+        x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
         # x = self.up0(x , x0) 
 
