@@ -640,7 +640,7 @@ class DATUNet(nn.Module):
 
         self.encoder = DAT(
             img_size=224,
-            patch_size=4,
+            patch_size=2,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
@@ -669,8 +669,8 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96 )
       
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -681,7 +681,7 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2)
+        # self.final_up = nn.Upsample(scale_factor=2)
 
     def forward(self, x):
         # Question here
@@ -691,19 +691,19 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
-        x = [x1, x2, x3, x4]
+        # x = [x1, x2, x3, x4]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, len(x)):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, len(x)):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x4, x3, x2, x1 = x_fuse[3], x_fuse[2], x_fuse[1], x_fuse[0]
+        # x4, x3, x2, x1 = x_fuse[3], x_fuse[2], x_fuse[1], x_fuse[0]
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
@@ -714,7 +714,7 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        out = self.final_up(x)
-        return out
+        # x = self.final_up(x)
+        return x
 
 
