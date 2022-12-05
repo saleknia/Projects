@@ -747,19 +747,19 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = resnet.layer2
+        # self.encoder3 = resnet.layer3
+        # self.encoder4 = resnet.layer4
 
-        self.BiFusion_block_1 = BiFusion_block(ch_1=128, ch_2=96 , r_2=8, ch_int=96 , ch_out=96, drop_rate=0.0)
-        self.BiFusion_block_2 = BiFusion_block(ch_1=256, ch_2=192, r_2=8, ch_int=192, ch_out=192, drop_rate=0.0)
-        self.BiFusion_block_3 = BiFusion_block(ch_1=512, ch_2=384, r_2=8, ch_int=384, ch_out=384, drop_rate=0.0)
+        # self.BiFusion_block_1 = BiFusion_block(ch_1=128, ch_2=96 , r_2=8, ch_int=96 , ch_out=96, drop_rate=0.0)
+        # self.BiFusion_block_2 = BiFusion_block(ch_1=256, ch_2=192, r_2=8, ch_int=192, ch_out=192, drop_rate=0.0)
+        # self.BiFusion_block_3 = BiFusion_block(ch_1=512, ch_2=384, r_2=8, ch_int=384, ch_out=384, drop_rate=0.0)
 
         self.encoder = DAT(
             img_size=224,
@@ -798,42 +798,36 @@ class DATUNet(nn.Module):
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
-        self.up0 = UpBlock(96 , 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
-
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
-        e0 = self.firstconv(x0)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
+        # e0 = self.firstconv(x0)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # e4 = self.encoder4(e3)
 
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
-        x0 = e1
-        x1 = self.BiFusion_block_1(g=e2, x=x1)
-        x2 = self.BiFusion_block_2(g=e3, x=x2)
-        x3 = self.BiFusion_block_3(g=e4, x=x3)
-        x4 = x4
+        # x0 = e1
+        # x1 = self.BiFusion_block_1(g=e2, x=x1)
+        # x2 = self.BiFusion_block_2(g=e3, x=x2)
+        # x3 = self.BiFusion_block_3(g=e4, x=x3)
+        # x4 = x4
 
         # x = [x1, x2, x3]
 
@@ -852,13 +846,14 @@ class DATUNet(nn.Module):
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
-        x = self.up0(x , x0) 
+        # x = self.up0(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
+        x = self.final_up(x)
 
         return x
 
