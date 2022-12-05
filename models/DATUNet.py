@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import einops
+from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
@@ -585,7 +586,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
@@ -625,6 +626,114 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+class Conv(nn.Module):
+    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
+        super(Conv, self).__init__()
+        self.inp_dim = inp_dim
+        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
+        self.relu = None
+        self.bn = None
+        if relu:
+            self.relu = nn.ReLU(inplace=True)
+        if bn:
+            self.bn = nn.BatchNorm2d(out_dim)
+    def forward(self, x):
+        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
+        x = self.conv(x)
+        if self.bn is not None:
+            x = self.bn(x)
+        if self.relu is not None:
+            x = self.relu(x)
+        return x
+class ChannelPool(nn.Module):
+    def forward(self, x):
+        return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
+
+class Residual(nn.Module):
+    def __init__(self, inp_dim, out_dim):
+        super(Residual, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(inp_dim)
+        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
+        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
+        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
+        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
+        if inp_dim == out_dim:
+            self.need_skip = False
+        else:
+            self.need_skip = True
+        
+    def forward(self, x):
+        if self.need_skip:
+            residual = self.skip_layer(x)
+        else:
+            residual = x
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out += residual
+        return out 
+
+class BiFusion_block(nn.Module):
+    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0):
+        super(BiFusion_block, self).__init__()
+
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+
+        # bi-linear modelling for both
+        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+
+        self.relu = nn.ReLU(inplace=True)
+
+        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
+
+        self.dropout = nn.Dropout2d(drop_rate)
+        self.drop_rate = drop_rate
+
+        
+    def forward(self, g, x): # x ---> transformer
+        # bilinear pooling
+        W_g = self.W_g(g)
+        W_x = self.W_x(x)
+        bp = self.W(W_g*W_x)
+
+        # spatial attention for cnn branch
+        g_in = g
+        g = self.compress(g)
+        g = self.spatial(g)
+        g = self.sigmoid(g) * g_in
+
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+        fuse = self.residual(torch.cat([g, x, bp], 1))
+
+        if self.drop_rate > 0:
+            return self.dropout(fuse)
+        else:
+            return fuse
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -637,6 +746,20 @@ class DATUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
+
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        self.BiFusion_block_1 = BiFusion_block(ch_1=128, ch_2=96 , r_2=8, ch_int=96 , ch_out=96, drop_rate=0.0)
+        self.BiFusion_block_2 = BiFusion_block(ch_1=256, ch_2=192, r_2=8, ch_int=192, ch_out=192, drop_rate=0.0)
+        self.BiFusion_block_3 = BiFusion_block(ch_1=512, ch_2=384, r_2=8, ch_int=384, ch_out=384, drop_rate=0.0)
 
         self.encoder = DAT(
             img_size=224,
@@ -669,52 +792,74 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96 )
       
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up0 = UpBlock(96 , 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2)
+        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+
+        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
+        e0 = self.firstconv(x0)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
+
         outputs = self.encoder(x0)
         x4, x3, x2, x1 = self.norm_4(outputs[3]), self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
-        x = [x1, x2, x3]
+        x0 = e0
+        x1 = self.BiFusion_block_1(g=e1, x=x1)
+        x2 = self.BiFusion_block_2(g=e2, x=x2)
+        x3 = self.BiFusion_block_3(g=e3, x=x3)
+        x4 = x4
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, len(x)):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x = [x1, x2, x3]
 
-        x3, x2, x1 = x_fuse[2], x_fuse[1], x_fuse[0]
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, len(x)):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
+
+        # x3, x2, x1 = x_fuse[2], x_fuse[1], x_fuse[0]
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
+        x = self.up0(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        x = self.final_up(x)
+
         return x
 
 
