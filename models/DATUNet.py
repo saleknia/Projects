@@ -476,7 +476,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_base_in1k_224.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -794,13 +794,13 @@ class DATUNet(nn.Module):
             patch_size=4,
             num_classes=1000,
             expansion=4,
-            dim_stem=128,
-            dims=[128, 256, 512, 1024],
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
             depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D', 'L', 'D', 'L', 'D', 'L', 'D', 'L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[4, 8, 16, 32],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 4, 8],
+            groups=[-1, -1, 3, 6],
             use_pes=[False, False, True, True],
             dwc_pes=[False, False, False, False],
             strides=[-1, -1, 1, 1],
@@ -812,34 +812,27 @@ class DATUNet(nn.Module):
             use_conv_patches=False,
             drop_rate=0.0,
             attn_drop_rate=0.0,
-            drop_path_rate=0.5,
+            drop_path_rate=0.2,
         )
 
         # self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=512)
-        self.norm_2 = LayerNormProxy(dim=256)
-        self.norm_1 = LayerNormProxy(dim=128)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
       
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
         # self.up3 = UpBlock(768, 384, nb_Conv=2)
-        self.up2 = UpBlock(512, 256, nb_Conv=2)
-        self.up1 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(384, 192, nb_Conv=2)
+        self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(128, 64, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(64, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
         self.final_up = nn.Upsample(scale_factor=2.0)
-
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
