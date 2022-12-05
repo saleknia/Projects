@@ -804,7 +804,7 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up = nn.Upsample(scale_factor=2.0)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -853,7 +853,7 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        # x = self.final_up(x)
+        x = self.final_up(x)
 
         return x
 
