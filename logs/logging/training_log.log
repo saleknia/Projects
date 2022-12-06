@@ -1170,3 +1170,70 @@ Epoch: 5 ---> Train , Loss = 0.9067 , Dice = 86.47 , IoU = 77.30 , Pixel Accurac
 Epoch: 5 ---> Valid , Loss = 0.7919 , Dice = 87.26  , IoU = 78.22 , Pixel Accuracy = 94.17 , lr = 1e-05
 Epoch: 6 ---> Train , Loss = 0.7798 , Dice = 86.82 , IoU = 77.72 , Pixel Accuracy = 94.57 , lr = 1e-05
 Epoch: 6 ---> Valid , Loss = 0.6807 , Dice = 87.64  , IoU = 78.79 , Pixel Accuracy = 93.80 , lr = 1e-05
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════╕
+│ Hyperparameter   │ Value            │
+╞══════════════════╪══════════════════╡
+│ Learning Rate    │ 1e-05            │
+├──────────────────┼──────────────────┤
+│ Num Classes      │ 1                │
+├──────────────────┼──────────────────┤
+│ Device           │ cuda             │
+├──────────────────┼──────────────────┤
+│ Batch Size       │ 16               │
+├──────────────────┼──────────────────┤
+│ COSINE LR        │ False            │
+├──────────────────┼──────────────────┤
+│ Num Epochs       │ 60               │
+├──────────────────┼──────────────────┤
+│ Num Workers      │ 4                │
+├──────────────────┼──────────────────┤
+│ Image Height     │ 224              │
+├──────────────────┼──────────────────┤
+│ Image Width      │ 224              │
+├──────────────────┼──────────────────┤
+│ Pin Memory       │ True             │
+├──────────────────┼──────────────────┤
+│ Early Stopping   │ 200              │
+├──────────────────┼──────────────────┤
+│ Load Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Save Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Download Dataset │ False            │
+├──────────────────┼──────────────────┤
+│ Model Name       │ DATUNet          │
+├──────────────────┼──────────────────┤
+│ Seed             │ 666              │
+├──────────────────┼──────────────────┤
+│ Task Name        │ ISIC2016         │
+├──────────────────┼──────────────────┤
+│ GPU              │ Tesla T4         │
+├──────────────────┼──────────────────┤
+│ Checkpoint Name  │ DATUNet_ISIC2016 │
+╘══════════════════╧══════════════════╛
+Loading pretrained weights from url (https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-hrnet/hrnetv2_w48-abd2e6ab.pth)
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ DATUNet         │ 44.98 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2016_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 1.3325 , Dice = 52.25 , IoU = 38.53 , Pixel Accuracy = 74.40 , lr = 1e-05
+Epoch: 1 ---> Valid , Loss = 1.2792 , Dice = 75.35  , IoU = 63.08 , Pixel Accuracy = 88.05 , lr = 1e-05
+Epoch: 2 ---> Train , Loss = 1.2626 , Dice = 82.88 , IoU = 72.77 , Pixel Accuracy = 92.35 , lr = 1e-05
+Epoch: 2 ---> Valid , Loss = 1.1610 , Dice = 84.59  , IoU = 74.84 , Pixel Accuracy = 92.83 , lr = 1e-05
+Epoch: 3 ---> Train , Loss = 1.1592 , Dice = 86.28 , IoU = 77.02 , Pixel Accuracy = 94.28 , lr = 1e-05
+Epoch: 3 ---> Valid , Loss = 1.0499 , Dice = 88.79  , IoU = 80.57 , Pixel Accuracy = 94.82 , lr = 1e-05
+Epoch: 4 ---> Train , Loss = 1.0357 , Dice = 86.15 , IoU = 76.82 , Pixel Accuracy = 94.31 , lr = 1e-05
+Epoch: 4 ---> Valid , Loss = 0.9080 , Dice = 88.06  , IoU = 79.33 , Pixel Accuracy = 94.64 , lr = 1e-05
+Epoch: 5 ---> Train , Loss = 0.9062 , Dice = 86.63 , IoU = 77.51 , Pixel Accuracy = 94.55 , lr = 1e-05
+Epoch: 5 ---> Valid , Loss = 0.7910 , Dice = 87.72  , IoU = 78.90 , Pixel Accuracy = 94.44 , lr = 1e-05
+Epoch: 6 ---> Train , Loss = 0.7807 , Dice = 87.01 , IoU = 77.98 , Pixel Accuracy = 94.64 , lr = 1e-05
+Epoch: 6 ---> Valid , Loss = 0.6740 , Dice = 87.93  , IoU = 79.19 , Pixel Accuracy = 94.02 , lr = 1e-05

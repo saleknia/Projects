@@ -935,9 +935,9 @@ class DATUNet(nn.Module):
         # self.fuse_layers_2 = make_fuse_layers()
         # self.fuse_act_2 = nn.ReLU()
 
-        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
@@ -966,7 +966,7 @@ class DATUNet(nn.Module):
         x = [x1, x2, x3]
         y = self.skip(x)
 
-        x1, x2, x3 = torch.cat([x[0], y[0]], 1), torch.cat([x[1], y[1]], 1), torch.cat([x[2], y[2]], 1)
+        x1, x2, x3 = self.combine_1(torch.cat([x[0], y[0]], 1)), self.combine_2(torch.cat([x[1], y[1]], 1)), self.combine_3(torch.cat([x[2], y[2]], 1))
 
         x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
