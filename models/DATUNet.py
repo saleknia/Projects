@@ -1034,7 +1034,7 @@ class DATUNet(nn.Module):
         x_fuse = []
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, self.num_branches):
+            for j in range(1, 3):
                 if i == j:
                     y = torch.cat([y , x[j]], dim=1)
                 else:
