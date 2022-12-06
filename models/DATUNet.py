@@ -889,7 +889,7 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4
+        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
 
         self.encoder = DAT(
             img_size=224,
