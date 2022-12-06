@@ -893,7 +893,7 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
+        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3[0:2]
 
         self.encoder = DAT(
             img_size=224,
