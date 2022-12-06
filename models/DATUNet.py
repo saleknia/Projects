@@ -748,19 +748,10 @@ class BasicBlock(nn.Module):
         x = self.bn1(x)
         x = self.drop_block(x)
         x = self.act1(x)
-        x = self.aa(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
 
-        if self.se is not None:
-            x = self.se(x)
-
-        if self.drop_path is not None:
-            x = self.drop_path(x)
-
-        if self.downsample is not None:
-            shortcut = self.downsample(shortcut)
         x += shortcut
         x = self.act2(x)
 
@@ -981,8 +972,6 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.skip = make_stage()
-
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -1013,19 +1002,16 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96 )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
 
-        # self.fuse_layers_2 = make_fuse_layers()
-        # self.fuse_act_2 = nn.ReLU()
+        self.combine_3 = ConvBatchNorm(in_channels=384*3, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192*3, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_1 = ConvBatchNorm(in_channels=96 *3, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine = [combine_1, combine_2, combine_3]
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1044,9 +1030,18 @@ class DATUNet(nn.Module):
         x1, x2, x3 = self.norm_1(outputs[0]), self.norm_2(outputs[1]), self.norm_3(outputs[2])
 
         x = [x1, x2, x3]
-        x = self.skip(x)
 
-        x1, x2, x3 = x[0], x[1], x[2]
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, self.num_branches):
+                if i == j:
+                    y = torch.cat([y , x[j]], dim=1)
+                else:
+                    y = torch.cat([y , fuse_outer[j](x[j])], dim=1) 
+            x_fuse.append(self.combine[i](y))
+
+        x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2]
     
         x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
