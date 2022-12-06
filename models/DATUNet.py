@@ -1008,7 +1008,7 @@ class DATUNet(nn.Module):
         self.combine_2 = ConvBatchNorm(in_channels=192*3, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.combine_1 = ConvBatchNorm(in_channels=96 *3, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.combine = [combine_1, combine_2, combine_3]
+        self.combine = [self.combine_1, self.combine_2, self.combine_3]
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
