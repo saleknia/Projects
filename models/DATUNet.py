@@ -885,7 +885,7 @@ class DATUNet(nn.Module):
 
         self.FAMBlock1 = FAMBlock(in_channels=64, out_channels=64)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.Reduce = FAMBlock(in_channels=64, out_channels=48)
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.encoder = DAT(
             img_size=224,
