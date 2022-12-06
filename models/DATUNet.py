@@ -766,7 +766,7 @@ class BasicBlock(nn.Module):
         return x
 
 
-def make_stage():
+def make_stage(multi_scale_output=True):
     num_modules = 4
     num_branches = 3
     num_blocks = (1, 1, 1)
