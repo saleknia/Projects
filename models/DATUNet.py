@@ -771,8 +771,8 @@ def make_stage(multi_scale_output=True):
     num_modules = 4
     num_branches = 3
     num_blocks = (1, 1, 1)
-    num_channels = (48, 96, 192)
-    num_in_chs = (48, 96, 192)
+    num_channels = [48, 96, 192]
+    num_in_chs = [48, 96, 192]
     block = BasicBlock
     fuse_method = 'SUM'
 
