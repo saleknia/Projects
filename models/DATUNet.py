@@ -870,7 +870,7 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 672  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
+    config.transformer.num_layers = 2
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
@@ -992,7 +992,7 @@ class DATUNet(nn.Module):
         x1, x2, x3 = self.norm_1(outputs[0]), self.norm_2(outputs[1]), self.norm_3(outputs[2])
 
         x1, x2, x3, att_weights = self.mtc(x1, x2, x3)
-        
+
         # x = [x1, x2, x3]
         # y = self.skip(x)
         # x0, x1, x2, x3 = x[0]+y[0], x[1]+y[1], x[2]+y[2], x[3]+y[3]
