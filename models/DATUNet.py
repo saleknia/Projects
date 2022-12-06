@@ -843,11 +843,11 @@ class ConvBatchNorm(nn.Module):
         return self.activation(out)
 
 class FAMBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels, out_channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
@@ -883,9 +883,9 @@ class DATUNet(nn.Module):
         self.encoder3 = None
         self.encoder4 = None
 
-        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock1 = FAMBlock(in_channels=64, out_channels=64)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.Reduce = FAMBlock(in_channels=64, out_channels=48)
 
         self.encoder = DAT(
             img_size=224,
@@ -961,12 +961,6 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x0)
         x3, x2, x1, x0 = self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0]), e0
-
-        # x0 = e1
-        # x1 = self.BiFusion_block_1(g=e2, x=x1)
-        # x2 = self.BiFusion_block_2(g=e3, x=x2)
-        # x3 = self.BiFusion_block_3(g=e4, x=x3)
-        # x4 = x4
 
         # x = [x1, x2, x3]
 
