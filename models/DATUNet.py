@@ -476,7 +476,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_base_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -861,6 +861,7 @@ class FAMBlock(nn.Module):
 
         return out
 
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -886,19 +887,19 @@ class DATUNet(nn.Module):
         # self.FAMBlock1 = FAMBlock(in_channels=64, out_channels=64)
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
         # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-    
+
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
             expansion=4,
             dim_stem=128,
-            dims=[128, 256, 512, 1024],
+            dims=[96, 192, 384, 768],
             depths=[2, 2, 18, 2],
             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[4, 8, 16, 32],
+            heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 4, 8],
+            groups=[-1, -1, 3, 6],
             use_pes=[False, False, True, True],
             dwc_pes=[False, False, False, False],
             strides=[-1, -1, 1, 1],
@@ -913,9 +914,9 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_3 = LayerNormProxy(dim=512)
-        self.norm_2 = LayerNormProxy(dim=256)
-        self.norm_1 = LayerNormProxy(dim=128)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96 )
       
         # self.fuse_layers_1 = make_fuse_layers()
         # self.fuse_act_1 = nn.ReLU()
@@ -927,8 +928,8 @@ class DATUNet(nn.Module):
         # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
         # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
-        self.up2 = UpBlock(512, 256, nb_Conv=2)
-        self.up1 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(384, 192, nb_Conv=2)
+        self.up1 = UpBlock(192, 96 , nb_Conv=2)
         # self.up0 = UpBlock(96 , 48 , nb_Conv=2)
 
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
@@ -937,11 +938,11 @@ class DATUNet(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1 = nn.ConvTranspose2d(128, 64, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(64, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
         self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
@@ -978,20 +979,6 @@ class DATUNet(nn.Module):
         # x_fuse_1[1] = self.combine_2(x_fuse_1[1])
         # x_fuse_1[2] = self.combine_3(x_fuse_1[2])
 
-        # x_fuse_2 = []
-        # for i, fuse_outer in enumerate(self.fuse_layers_2):
-        #     y = x_fuse_1[0] if i == 0 else fuse_outer[0](x_fuse_1[0])
-        #     for j in range(1, len(x_fuse_1)):
-        #         if i == j:
-        #             y = y + x_fuse_1[j]
-        #         else:
-        #             y = y + fuse_outer[j](x_fuse_1[j])
-        #     x_fuse_2.append(self.fuse_act_2(y))
-
-        # x3, x2, x1 = x_fuse_2[2]+x[2], x_fuse_2[1]+x[1], x_fuse_2[0]+x[0]
-
-
-        # x3, x2, x1 = x_fuse[2]+x[2], x_fuse[1]+x[1], x_fuse[0]+x[0]
 
         x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
