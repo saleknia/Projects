@@ -696,6 +696,8 @@ class BiFusion_block(nn.Module):
         else:
             return fuse
 
+# se
+
 def create_aa(aa_layer, channels, stride=2, enable=True):
     if not aa_layer or not enable:
         return nn.Identity()
@@ -729,8 +731,7 @@ class BasicBlock(nn.Module):
             first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
         self.bn2 = norm_layer(outplanes)
 
-        self.se = create_attn(attn_layer, outplanes)
-
+        self.se = None
         self.act2 = act_layer(inplace=True)
         self.downsample = downsample
         self.stride = stride
