@@ -885,7 +885,7 @@ class DATUNet(nn.Module):
 
         self.FAMBlock1 = FAMBlock(channels=64)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=1, padding=1, dilation=1)
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.encoder = DAT(
             img_size=224,
@@ -917,15 +917,15 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
       
-        self.fuse_layers_1 = make_fuse_layers()
-        self.fuse_act_1 = nn.ReLU()
+        # self.fuse_layers_1 = make_fuse_layers()
+        # self.fuse_act_1 = nn.ReLU()
 
-        self.fuse_layers_2 = make_fuse_layers()
-        self.fuse_act_2 = nn.ReLU()
+        # self.fuse_layers_2 = make_fuse_layers()
+        # self.fuse_act_2 = nn.ReLU()
 
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
