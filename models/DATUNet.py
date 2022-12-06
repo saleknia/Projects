@@ -980,7 +980,7 @@ class DATUNet(nn.Module):
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
-            x_fuse_1.append(self.fuse_act(y))
+            x_fuse_1.append(self.fuse_act_1(y))
 
         x_fuse_1[0] = self.combine_1(x_fuse_1[0])
         x_fuse_1[1] = self.combine_2(x_fuse_1[1])
@@ -994,7 +994,7 @@ class DATUNet(nn.Module):
                     y = y + x_fuse_1[j]
                 else:
                     y = y + fuse_outer[j](x_fuse_1[j])
-            x_fuse_2.append(self.fuse_act(y))
+            x_fuse_2.append(self.fuse_act_2(y))
 
         x3, x2, x1 = x_fuse_2[2]+x[2], x_fuse_2[1]+x[1], x_fuse_2[0]+x[0]
 
