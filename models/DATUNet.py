@@ -603,6 +603,7 @@ class Conv(nn.Module):
         if self.relu is not None:
             x = self.relu(x)
         return x
+
 class ChannelPool(nn.Module):
     def forward(self, x):
         return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
@@ -872,19 +873,19 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = None
+        # self.encoder3 = None
+        # self.encoder4 = None
 
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.FAMBlock1 = FAMBlock(channels=64)
+        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.encoder = DAT(
             img_size=224,
@@ -917,45 +918,50 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
       
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        self.fuse_layers_1 = make_fuse_layers()
+        self.fuse_act_1 = nn.ReLU()
 
-        # self.up3 = UpBlock(768, 384, nb_Conv=2)
+        self.fuse_layers_2 = make_fuse_layers()
+        self.fuse_act_2 = nn.ReLU()
+
+        self.combine_1 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
-        self.up0 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up0 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
         # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up = nn.Upsample(scale_factor=2.0)
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.encoder1(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # e0 = self.encoder1(e0)
         
-        for i in range(6):
-            e0 = self.FAM1[i](e0)
+        # for i in range(6):
+        #     e0 = self.FAM1[i](e0)
         
-        e0 = self.Reduce(e0)
+        # e0 = self.Reduce(e0)
 
         outputs = self.encoder(x0)
-        x3, x2, x1, x0 = self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0]), e0
+        x3, x2, x1 = self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0])
 
 
         # x0 = e1
@@ -966,28 +972,45 @@ class DATUNet(nn.Module):
 
         x = [x1, x2, x3]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
+        x_fuse_1 = []
+        for i, fuse_outer in enumerate(self.fuse_layers_1):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, len(x)):
                 if i == j:
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+            x_fuse_1.append(self.fuse_act(y))
 
-        x3, x2, x1 = x_fuse[2]+x[2], x_fuse[1]+x[1], x_fuse[0]+x[0]
+        x_fuse_1[0] = self.combine_1(x_fuse_1[0])
+        x_fuse_1[1] = self.combine_2(x_fuse_1[1])
+        x_fuse_1[2] = self.combine_3(x_fuse_1[2])
+
+        x_fuse_2 = []
+        for i, fuse_outer in enumerate(self.fuse_layers_2):
+            y = x_fuse_1[0] if i == 0 else fuse_outer[0](x_fuse_1[0])
+            for j in range(1, len(x_fuse_1)):
+                if i == j:
+                    y = y + x_fuse_1[j]
+                else:
+                    y = y + fuse_outer[j](x_fuse_1[j])
+            x_fuse_2.append(self.fuse_act(y))
+
+        x3, x2, x1 = x_fuse_2[2]+x[2], x_fuse_2[1]+x[1], x_fuse_2[0]+x[0]
+
+
+        # x3, x2, x1 = x_fuse[2]+x[2], x_fuse[1]+x[1], x_fuse[0]+x[0]
 
         x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
-        x = self.up0(x , x0) 
+        # x = self.up0(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        # x = self.final_up(x)
+        x = self.final_up(x)
         return x
 
 
