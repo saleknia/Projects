@@ -889,7 +889,7 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
+        # self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
 
         self.encoder = DAT(
             img_size=224,
@@ -965,20 +965,20 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x0)
         x3, x2, x1, x0 = self.norm_3(outputs[2]), self.norm_2(outputs[1]), self.norm_1(outputs[0]), e0
 
-        x = [x0, x1, x2, x3]
-        y = self.skip(x)
-        x0, x1, x2, x3 = x[0]+y[0], x[1]+y[1], x[2]+y[2], x[3]+y[3]
-        # x_fuse = []
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, len(x)):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x = [x1, x2, x3]
+        # y = self.skip(x)
+        # x0, x1, x2, x3 = x[0]+y[0], x[1]+y[1], x[2]+y[2], x[3]+y[3]
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, len(x)):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x3, x2, x1 = x[2] + x_fuse[2], x[1] + x_fuse[1], x[0] + x_fuse[0]
+        x3, x2, x1 = x[2] + x_fuse[2], x[1] + x_fuse[1], x[0] + x_fuse[0]
 
         # x_fuse_1[0] = self.combine_1(x_fuse_1[0])
         # x_fuse_1[1] = self.combine_2(x_fuse_1[1])
