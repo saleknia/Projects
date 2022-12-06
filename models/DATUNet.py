@@ -893,7 +893,7 @@ class DATUNet(nn.Module):
             patch_size=4,
             num_classes=1000,
             expansion=4,
-            dim_stem=128,
+            dim_stem=96,
             dims=[96, 192, 384, 768],
             depths=[2, 2, 18, 2],
             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
@@ -930,6 +930,7 @@ class DATUNet(nn.Module):
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
+
         # self.up0 = UpBlock(96 , 48 , nb_Conv=2)
 
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
