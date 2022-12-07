@@ -2468,3 +2468,4 @@ Epoch: 1 ---> Test , Loss = 0.2171 , Dice = 91.57 , IoU = 85.35 , Pixel Accuracy
 **************************************************
 
 
+Logging Directory: ./logs/logging
