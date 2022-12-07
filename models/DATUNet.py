@@ -877,8 +877,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [96, 192, 384]
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -972,19 +972,19 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.encoder2 = resnet.layer2
-        # self.encoder3 = resnet.layer3
-        # self.encoder4 = resnet.layer4
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        # self.BiFusion_block_1 = BiFusion_block(ch_1=128, ch_2=96 , r_2=8, ch_int=96 , ch_out=96 , drop_rate=0.0)
-        # self.BiFusion_block_2 = BiFusion_block(ch_1=256, ch_2=192, r_2=8, ch_int=192, ch_out=192, drop_rate=0.0)
-        # self.BiFusion_block_3 = BiFusion_block(ch_1=512, ch_2=384, r_2=8, ch_int=384, ch_out=384, drop_rate=0.0)
 
         self.encoder = DAT(
             img_size=224,
@@ -993,8 +993,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -1012,100 +1012,65 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
-
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96 )
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96 )
+        self.norm_1 = LayerNormProxy(dim=48 )
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.combine_3 = ConvBatchNorm(in_channels=384*3, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.combine_2 = ConvBatchNorm(in_channels=192*3, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.combine_1 = ConvBatchNorm(in_channels=96 *3, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.combine = [self.combine_1, self.combine_2, self.combine_3]
-
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2.0)
+        # self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
-        x0 = x.float()
+        x_input = x.float()
         b, c, h, w = x.shape
 
-        # e0 = self.firstconv(x0)
-        # e0 = self.firstbn(e0)
-        # e0 = self.firstrelu(e0)
+        x0 = self.firstconv(x_input)
+        x0 = self.firstbn(x0)
+        x0 = self.firstrelu(x0)
+        x0 = self.encoder1(x0)
+        x0 = self.Reduce(x0)
+        for i in range(6):
+            x0 = self.FAM1[i](x0)
 
-        # e0 = self.encoder1(e0)
-        # e1 = self.encoder2(e0)
-        # e2 = self.encoder3(e1)
-        # e3 = self.encoder4(e2)
+        outputs = self.encoder(x_input)
+        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-
-        outputs = self.encoder(x0)
-        x1, x2, x3 = self.norm_1(outputs[0]), self.norm_2(outputs[1]), self.norm_3(outputs[2])
-
-        # x1 = self.BiFusion_block_1(x=x1, g=e1)
-        # x2 = self.BiFusion_block_2(x=x2, g=e2)
-        # x3 = self.BiFusion_block_3(x=x3, g=e3)
-
-        x = [x1, x2, x3]
+        x = [x0, x1, x2, x3]
 
         x_fuse = []
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, 3):
+            for j in range(1, 4):
                 if i == j:
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2]
+        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
     
-        x = self.up2(x3, x2) 
-        x = self.up1(x , x1) 
+        x = self.up3(x3, x2) 
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        x = self.final_up(x)
+        # x = self.final_up(x)
         return x
 
 
