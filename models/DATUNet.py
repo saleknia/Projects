@@ -972,6 +972,20 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        self.BiFusion_block_1 = BiFusion_block(ch_1=128, ch_2=96 , r_2=8, ch_int=96 , ch_out=96 , drop_rate=0.0)
+        self.BiFusion_block_2 = BiFusion_block(ch_1=256, ch_2=192, r_2=8, ch_int=192, ch_out=192, drop_rate=0.0)
+        self.BiFusion_block_3 = BiFusion_block(ch_1=512, ch_2=384, r_2=8, ch_int=384, ch_out=384, drop_rate=0.0)
+
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -1051,9 +1065,22 @@ class DATUNet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
+        e0 = self.firstconv(x0)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+
+        e0 = self.encoder1(e0)
+        e1 = self.encoder2(e0)
+        e2 = self.encoder3(e1)
+        e3 = self.encoder4(e2)
+
 
         outputs = self.encoder(x0)
         x1, x2, x3 = self.norm_1(outputs[0]), self.norm_2(outputs[1]), self.norm_3(outputs[2])
+
+        x1 = self.BiFusion_block_1(x=x1, g=e1)
+        x2 = self.BiFusion_block_2(x=x2, g=e2)
+        x3 = self.BiFusion_block_3(x=x3, g=e3)
 
         # x = [x1, x2, x3]
 
