@@ -4,6 +4,7 @@ import os
 # os.system('pip install torch==1.10.0')
 # os.system('pip install torch==1.10.0+cu111')
 # os.system('pip install torch==1.10.0+cu111 torchvision==0.11.0+cu111 torchaudio==0.10.0 torchtext==0.11.0 -f https://download.pytorch.org/whl/torch_stable.html')
+os.system('pip install torch==1.12.1+cu113 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113')
 # os.system('pip install torchvision==0.11.1')
 # os.system('pip install --upgrade --force-reinstall --no-deps kaggle')
 os.system('pip install einops==0.3.0')
