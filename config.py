@@ -1,5 +1,6 @@
 import os
 import torch
+import torchvision
 import logging
 from utils import color
 from tabulate import tabulate
