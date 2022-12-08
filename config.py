@@ -276,6 +276,8 @@ table = tabulate(
         ['Seed', SEED],
         ['Task Name', TASK_NAME],
         ['GPU', torch.cuda.get_device_name(0)],
+        ['Torch', torch.__version__],
+        ['Torchvision', torchvision.__version__],
         ['Checkpoint Name', CKPT_NAME]],
     headers=['Hyperparameter', 'Value'],
     tablefmt="fancy_grid"
