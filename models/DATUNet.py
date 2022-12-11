@@ -234,10 +234,12 @@ class DAttentionBaseline(nn.Module):
         else:
             pos = (offset + reference).tanh()
         
+        x = x.to('cpu')
         x_sampled = F.grid_sample(
             input=x.reshape(B * self.n_groups, self.n_group_channels, H, W), 
             grid=pos[..., (1, 0)], # y, x -> x, y
             mode='bilinear', align_corners=True) # B * g, Cg, Hg, Wg
+        x_sampled = x_sampled.to('cuda')
             
         x_sampled = x_sampled.reshape(B, C, 1, n_sample)
 
