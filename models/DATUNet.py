@@ -1046,6 +1046,22 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class BR(nn.Module):
+    def __init__(self, out_c):
+        super(BR, self).__init__()
+        self.bn = nn.BatchNorm2d(out_c)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(out_c,out_c, kernel_size=3,padding=1)
+        self.conv2 = nn.Conv2d(out_c,out_c, kernel_size=3,padding=1)
+    
+    def forward(self,x):
+        x_res = x
+        x_res = self.conv1(x_res)
+        x_res = self.bn(x_res)
+        x_res = self.relu(x_res)
+        x_res = self.conv2(x_res)
+        x = x + x_res
+        return x
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1104,8 +1120,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.CPF_2 = CFPModule(nIn=192, d=8)
-        self.CPF_1 = CFPModule(nIn=96 , d=8)
+        self.BR_3 = BR(192)
+        self.BR_2 = BR(96)
+        self.BR_1 = BR(48)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1203,8 +1220,11 @@ class DATUNet(nn.Module):
 
    
         x = self.up3(x3, x2) 
+        x = self.BR_3(x)
         x = self.up2(x , x1) 
+        x = self.BR_2(x)
         x = self.up1(x , x0) 
+        x = self.BR_1(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
