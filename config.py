@@ -255,7 +255,7 @@ elif model_id==26:
 elif model_id==27:
     MODEL_NAME = 'DATUNet'
 
-elif model_id==27:
+elif model_id==28:
     MODEL_NAME = 'SEUNet'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
