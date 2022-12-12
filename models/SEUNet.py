@@ -183,6 +183,7 @@ class SEUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
+        self.counter = 0
         # Question here
 
         resnet = resnet_model.resnet34(pretrained=True)
@@ -272,12 +273,11 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        alpha = torch.randint(0, 2, (1,)).item()
 
         if self.training:
 
-            if alpha==0:
-                
+            if self.counter % 2 == 0:
+
                 for i in range(2):
                     e3 = self.FAM3_1[i](e3)
                 for i in range(4):
@@ -295,7 +295,7 @@ class SEUNet(nn.Module):
                 out = self.final_relu2_1(out)
                 out = self.final_conv3_1(out)
 
-            if alpha==1:
+            if self.counter % 2 == 1:
 
                 e1, e2, e3, e4 = e1.detach(), e2.detach(), e3.detach(), e4.detach()
 
@@ -354,7 +354,7 @@ class SEUNet(nn.Module):
 
             out = (out_1, out_2)
 
-
+        self.counter = self.counter + 1
         return out
 
 
