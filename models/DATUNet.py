@@ -1259,13 +1259,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
-
-        x0 = self.PSA_0(x0)
-        x1 = self.PSA_1(x1)
-        x2 = self.PSA_2(x2)
-        x3 = self.PSA_3(x3)
-
+        x0, x1, x2, x3 = x[0] + self.PSA_0(x_fuse[0]) , x[1] + self.PSA_1(x_fuse[1]) , x[2] + self.PSA_2(x_fuse[2]) , x[3] + self.PSA_3(x_fuse[3])
    
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
