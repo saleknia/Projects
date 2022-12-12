@@ -183,7 +183,6 @@ class SEUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.counter = 0
         # Question here
 
         resnet = resnet_model.resnet34(pretrained=True)
@@ -274,87 +273,44 @@ class SEUNet(nn.Module):
         e4 = self.encoder4(e3)
 
 
-        if self.training:
+        for i in range(2):
+            a3 = self.FAM3_1[i](e3)
+        for i in range(4):
+            a2 = self.FAM2_1[i](e2)
+        for i in range(6):
+            a1 = self.FAM1_1[i](e1)
 
-            if self.counter % 2 == 0:
+        a = self.up3_1(e4, a3)
+        a = self.up2_1(a , a2)
+        a = self.up1_1(a , a1)
 
-                for i in range(2):
-                    e3 = self.FAM3_1[i](e3)
-                for i in range(4):
-                    e2 = self.FAM2_1[i](e2)
-                for i in range(6):
-                    e1 = self.FAM1_1[i](e1)
+        out_1 = self.final_conv1_1(a)
+        out_1 = self.final_relu1_1(out_1)
+        out_1 = self.final_conv2_1(out_1)
+        out_1 = self.final_relu2_1(out_1)
+        out_1 = self.final_conv3_1(out_1)
 
-                x = self.up3_1(e4, e3)
-                x = self.up2_1(x , e2)
-                x = self.up1_1(x , e1)
+        q1, q2, q3, q4 = e1.clone().detach(), e2.clone().detach(), e3.clone().detach(), e4.clone().detach()
 
-                out = self.final_conv1_1(x)
-                out = self.final_relu1_1(out)
-                out = self.final_conv2_1(out)
-                out = self.final_relu2_1(out)
-                out = self.final_conv3_1(out)
+        for i in range(2):
+            b3 = self.FAM3_2[i](q3)
+        for i in range(4):
+            b2 = self.FAM2_2[i](q2)
+        for i in range(6):
+            b1 = self.FAM1_2[i](q1)
 
-            if self.counter % 2 == 1:
+        d4 = self.decoder3(q4) + b3
+        d3 = self.decoder2(d4) + b2
+        d2 = self.decoder1(d3) + b1
 
-                e1, e2, e3, e4 = e1.detach(), e2.detach(), e3.detach(), e4.detach()
+        out_2 = self.final_conv1_2(d2)
+        out_2 = self.final_relu1_2(out_2)
+        out_2 = self.final_conv2_2(out_2)
+        out_2 = self.final_relu2_2(out_2)
+        out_2 = self.final_conv3_2(out_2)
 
-                for i in range(2):
-                    e3 = self.FAM3_2[i](e3)
-                for i in range(4):
-                    e2 = self.FAM2_2[i](e2)
-                for i in range(6):
-                    e1 = self.FAM1_2[i](e1)
+        out = (out_1, out_2)
 
-                d4 = self.decoder3(e4) + e3
-                d3 = self.decoder2(d4) + e2
-                d2 = self.decoder1(d3) + e1
-
-                out = self.final_conv1_2(d2)
-                out = self.final_relu1_2(out)
-                out = self.final_conv2_2(out)
-                out = self.final_relu2_2(out)
-                out = self.final_conv3_2(out)
-
-        else:
-
-            for i in range(2):
-                e31 = self.FAM3_1[i](e3)
-            for i in range(4):
-                e21 = self.FAM2_1[i](e2)
-            for i in range(6):
-                e11 = self.FAM1_1[i](e1)
-
-            x1 = self.up3_1(e4, e31)
-            x1 = self.up2_1(x1, e21)
-            x1 = self.up1_1(x1, e11)
-
-            out_1 = self.final_conv1_1(x1)
-            out_1 = self.final_relu1_1(out_1)
-            out_1 = self.final_conv2_1(out_1)
-            out_1 = self.final_relu2_1(out_1)
-            out_1 = self.final_conv3_1(out_1)
-
-            for i in range(2):
-                e32 = self.FAM3_2[i](e3)
-            for i in range(4):
-                e22 = self.FAM2_2[i](e2)
-            for i in range(6):
-                e12 = self.FAM1_2[i](e1)
-
-            d4 = self.decoder3(e4) + e32
-            d3 = self.decoder2(d4) + e22
-            d2 = self.decoder1(d3) + e12
-
-            out_2 = self.final_conv1_2(d2)
-            out_2 = self.final_relu1_2(out_2)
-            out_2 = self.final_conv2_2(out_2)
-            out_2 = self.final_relu2_2(out_2)
-            out_2 = self.final_conv3_2(out_2)
-
-            out = (out_1, out_2)
-
-        self.counter = self.counter + 1
         return out
 
 
