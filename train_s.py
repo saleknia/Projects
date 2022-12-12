@@ -20,6 +20,7 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
+from models.SEUNet import SEUNet
 from models.UNet import UNet
 from models.UNet_loss import UNet_loss
 from models.UNet_plus import NestedUNet
@@ -190,6 +191,9 @@ def main(args):
 
     elif MODEL_NAME == 'DATUNet':
         model = DATUNet().to(DEVICE)
+
+    elif MODEL_NAME=='SEUNet':
+        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')

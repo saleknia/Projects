@@ -133,7 +133,7 @@ elif task_id==10:
     NUM_CLASS = 1
     TASK_NAME = 'ISIC2016'
 
-model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27']
+model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28']
 model_table = tabulate(
                     tabular_data=[
                         ['UCTransNet', 1],
@@ -162,7 +162,8 @@ model_table = tabulate(
                         ['ESPNet_loss',24],
                         ['DABNet_loss',25],
                         ['TransFuse_S',26],
-                        ['DATUNet',27]],
+                        ['DATUNet',27],
+                        ['SEUNet',28]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -253,6 +254,9 @@ elif model_id==26:
 
 elif model_id==27:
     MODEL_NAME = 'DATUNet'
+
+elif model_id==27:
+    MODEL_NAME = 'SEUNet'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
