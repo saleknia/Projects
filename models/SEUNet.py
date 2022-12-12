@@ -8,12 +8,12 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
     layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
     for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
 class ConvBatchNorm(nn.Module):
