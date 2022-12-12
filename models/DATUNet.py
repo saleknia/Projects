@@ -1207,12 +1207,12 @@ class DATUNet(nn.Module):
         t1 = self.up2_1(t2, x1) 
         t0 = self.up1_1(t1, x0) 
 
-        k1 = self.up2_2(t2, t1) 
-        k0 = self.up1_2(k1, t0) 
+        k1 = self.up2_2(t2, t1) + t1
+        k0 = self.up1_2(k1, t0) + t0
 
-        x = self.up1_3(k1, k0)
+        f0 = self.up1_3(k1, k0) + k0
 
-        x = self.final_conv1(x)
+        x = self.final_conv1(f0)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
