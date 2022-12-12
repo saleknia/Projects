@@ -274,7 +274,7 @@ class SEUNet(nn.Module):
 
         alpha = torch.randint(0, 3, (1,)).item()
 
-        if self.training and alpha==1:
+        if self.training and alpha==0:
             for i in range(2):
                 e3 = self.FAM3_1[i](e3)
             for i in range(4):
@@ -292,7 +292,7 @@ class SEUNet(nn.Module):
             out = self.final_relu2_1(out)
             out = self.final_conv3_1(out)
 
-        if self.training and alpha==2:
+        if self.training and alpha==1:
             for i in range(2):
                 e3 = self.FAM3_2[i](e3)
             for i in range(4):
@@ -310,7 +310,7 @@ class SEUNet(nn.Module):
             out = self.final_relu2_2(out)
             out = self.final_conv3_2(out)
 
-        if self.training and alpha==3:
+        if self.training and alpha==2:
             for i in range(2):
                 e3 = self.FAM3_3[i](e3)
             for i in range(4):
