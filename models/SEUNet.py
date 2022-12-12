@@ -295,6 +295,8 @@ class SEUNet(nn.Module):
                 out = self.final_conv3_1(out)
 
             if alpha==1:
+                e1, e2, e3, e4 = e1.detach(), e2.detach(), e3.detach(), e4.detach()
+                
                 for i in range(2):
                     e3 = self.FAM3_2[i](e3)
                 for i in range(4):
