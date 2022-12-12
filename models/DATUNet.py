@@ -1107,14 +1107,9 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.up3_1 = UpBlock(384, 192, nb_Conv=2)
-        self.up2_1 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2)
-
-        self.up2_2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2)
-
-        self.up1_3 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1203,16 +1198,12 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
     
-        t2 = self.up3_1(x3, x2) 
-        t1 = self.up2_1(t2, x1) 
-        t0 = self.up1_1(t1, x0) 
+        x = self.up3_1(x3, x2) 
+        x = self.up2_1(x , x1) 
+        x = self.up1_1(x , x0) 
 
-        k1 = self.up2_2(t2, t1) + t1
-        k0 = self.up1_2(k1, t0) + t0
 
-        f0 = self.up1_3(k1, k0) + k0
-
-        x = self.final_conv1(f0)
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
