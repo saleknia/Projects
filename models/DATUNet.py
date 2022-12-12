@@ -664,14 +664,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.dconv = _make_nDConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
 
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.dconv(x)
         return x
 
 
@@ -1109,9 +1107,14 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3_1 = UpBlock(384, 192, nb_Conv=2)
+        self.up2_1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.up2_2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.up1_3 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1200,9 +1203,14 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
     
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        t2 = self.up3_1(x3, x2) 
+        t1 = self.up2_1(x , x1) 
+        t0 = self.up1_1(x , x0) 
+
+        k1 = self.up2_2(t2, t1) 
+        k0 = self.up1_2(k1, t0) 
+
+        x = self.up1_3(k1, k0)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)

@@ -605,7 +605,7 @@ if __name__ == "__main__":
     else:
         cudnn.benchmark = False
         cudnn.deterministic = True
-        torch.use_deterministic_algorithms(True)
+        # torch.use_deterministic_algorithms(True)
     
     random.seed(SEED)    
     np.random.seed(SEED)  

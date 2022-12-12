@@ -24,7 +24,7 @@ def logger_config(log_path):
 SEED = 666
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+# os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
 ##########################################################################
