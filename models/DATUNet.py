@@ -1104,6 +1104,11 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
+        self.CPF_3 = CFPModule(nIn=384, d=8)
+        self.CPF_2 = CFPModule(nIn=192, d=8)
+        self.CPF_1 = CFPModule(nIn=96 , d=8)
+        self.CPF_0 = CFPModule(nIn=48 , d=8)
+
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
@@ -1197,11 +1202,15 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
-    
+
+        x3 = self.CPF_3(x3)
+        x2 = self.CPF_2(x2)
+        x1 = self.CPF_1(x1)
+        x0 = self.CPF_0(x0)
+   
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
         x = self.up1(x , x0) 
-
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
@@ -1228,9 +1237,134 @@ class DATUNet(nn.Module):
 
         return x
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import math
 
 
+class Conv(nn.Module):
+    def __init__(self, nIn, nOut, kSize, stride, padding, dilation=(1, 1), groups=1, bn_acti=False, bias=False):
+        super().__init__()
+        
+        self.bn_acti = bn_acti
+        
+        self.conv = nn.Conv2d(nIn, nOut, kernel_size = kSize,
+                              stride=stride, padding=padding,
+                              dilation=dilation,groups=groups,bias=bias)
+        
+        if self.bn_acti:
+            self.bn_relu = BNPReLU(nOut)
+            
+    def forward(self, input):
+        output = self.conv(input)
 
+        if self.bn_acti:
+            output = self.bn_relu(output)
+
+        return output  
+    
+    
+class BNPReLU(nn.Module):
+    def __init__(self, nIn):
+        super().__init__()
+        self.bn = nn.BatchNorm2d(nIn, eps=1e-3)
+        self.acti = nn.PReLU(nIn)
+
+    def forward(self, input):
+        output = self.bn(input)
+        output = self.acti(output)
+        
+        return output
+
+class CFPModule(nn.Module):
+    def __init__(self, nIn, d=1, KSize=3,dkSize=3):
+        super().__init__()
+        
+        self.bn_relu_1 = BNPReLU(nIn)
+        self.bn_relu_2 = BNPReLU(nIn)
+        self.conv1x1_1 = Conv(nIn, nIn // 4, KSize, 1, padding=1, bn_acti=True)
+        
+        self.dconv_4_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_4_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_4_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        
+        
+        self.dconv_1_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_1_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_1_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        
+        
+        self.dconv_2_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_2_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_2_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        
+        self.dconv_3_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_3_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_3_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+                      
+        
+        self.conv1x1 = Conv(nIn, nIn, 1, 1, padding=0,bn_acti=False)  
+        
+    def forward(self, input):
+        inp = self.bn_relu_1(input)
+        inp = self.conv1x1_1(inp)
+        
+        o1_1 = self.dconv_1_1(inp)
+        o1_2 = self.dconv_1_2(o1_1)
+        o1_3 = self.dconv_1_3(o1_2)
+        
+        o2_1 = self.dconv_2_1(inp)
+        o2_2 = self.dconv_2_2(o2_1)
+        o2_3 = self.dconv_2_3(o2_2)
+        
+        o3_1 = self.dconv_3_1(inp)
+        o3_2 = self.dconv_3_2(o3_1)
+        o3_3 = self.dconv_3_3(o3_2)
+        
+        o4_1 = self.dconv_4_1(inp)
+        o4_2 = self.dconv_4_2(o4_1)
+        o4_3 = self.dconv_4_3(o4_2)
+        
+        output_1 = torch.cat([o1_1,o1_2,o1_3], 1)
+        output_2 = torch.cat([o2_1,o2_2,o2_3], 1)      
+        output_3 = torch.cat([o3_1,o3_2,o3_3], 1)       
+        output_4 = torch.cat([o4_1,o4_2,o4_3], 1)   
+        
+        
+        ad1 = output_1
+        ad2 = ad1 + output_2
+        ad3 = ad2 + output_3
+        ad4 = ad3 + output_4
+        output = torch.cat([ad1,ad2,ad3,ad4],1)
+        output = self.bn_relu_2(output)
+        output = self.conv1x1(output)
+        
+        return output+input
 
 
 

@@ -567,6 +567,15 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
+        # self.CPF_31 = CFPModule(nIn=32, d=8)
+        # self.CPF_32 = CFPModule(nIn=64, d=8)
+        # self.CPF_33 = CFPModule(nIn=128, d=8)
+
+        # self.CPF_41 = CFPModule(nIn=32, d=8)
+        # self.CPF_42 = CFPModule(nIn=64, d=8)
+        # self.CPF_43 = CFPModule(nIn=128, d=8)
+        # self.CPF_44 = CFPModule(nIn=256, d=8)
+
         self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
         self.up1 = UpBlock(64 , 32 , nb_Conv=2)
@@ -596,10 +605,29 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
+        # yl[0] = self.CPF_31(yl[0])
+        # yl[1] = self.CPF_32(yl[1])
+        # yl[2] = self.CPF_33(yl[2])
+
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)    
 
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 192, 14, 14)
+
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+
+        # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
+
+        # x1 = self.fuse_1(torch.cat([x1, e1], dim=1))
+        # x2 = self.fuse_2(torch.cat([x2, e2], dim=1))
+        # x3 = self.fuse_3(torch.cat([x3, e3], dim=1))
+        # x4 = self.fuse_4(torch.cat([x4, e4], dim=1))    
+
+        # x1, x2, x3 = xl[0], xl[1], xl[2]
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
