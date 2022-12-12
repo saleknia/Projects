@@ -242,22 +242,22 @@ class SEUNet(nn.Module):
         #####################################################################
         #####################################################################
 
-        self.FAMBlock1_3 = FAMBlock(channels=64)
-        self.FAMBlock2_3 = FAMBlock(channels=128)
-        self.FAMBlock3_3 = FAMBlock(channels=256)
-        self.FAM1_3 = nn.ModuleList([self.FAMBlock1_3 for i in range(6)])
-        self.FAM2_3 = nn.ModuleList([self.FAMBlock2_3 for i in range(4)])
-        self.FAM3_3 = nn.ModuleList([self.FAMBlock3_3 for i in range(2)])
+        # self.FAMBlock1_3 = FAMBlock(channels=64)
+        # self.FAMBlock2_3 = FAMBlock(channels=128)
+        # self.FAMBlock3_3 = FAMBlock(channels=256)
+        # self.FAM1_3 = nn.ModuleList([self.FAMBlock1_3 for i in range(6)])
+        # self.FAM2_3 = nn.ModuleList([self.FAMBlock2_3 for i in range(4)])
+        # self.FAM3_3 = nn.ModuleList([self.FAMBlock3_3 for i in range(2)])
 
-        feature_channels = [64, 128, 256, 512]
-        self.PPN = PSPModule(feature_channels[-1])
-        self.FPN = FPN_fuse(feature_channels, fpn_out=64)
+        # feature_channels = [64, 128, 256, 512]
+        # self.PPN = PSPModule(feature_channels[-1])
+        # self.FPN = FPN_fuse(feature_channels, fpn_out=64)
 
-        self.final_conv1_3 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1_3 = nn.ReLU(inplace=True)
-        self.final_conv2_3 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2_3 = nn.ReLU(inplace=True)
-        self.final_conv3_3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        # self.final_conv1_3 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1_3 = nn.ReLU(inplace=True)
+        # self.final_conv2_3 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2_3 = nn.ReLU(inplace=True)
+        # self.final_conv3_3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -272,63 +272,47 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        alpha = torch.randint(0, 3, (1,)).item()
+        alpha = torch.randint(0, 2, (1,)).item()
 
-        if self.training and alpha==0:
-            for i in range(2):
-                e3 = self.FAM3_1[i](e3)
-            for i in range(4):
-                e2 = self.FAM2_1[i](e2)
-            for i in range(6):
-                e1 = self.FAM1_1[i](e1)
+        if self.training:
 
-            x = self.up3_1(e4, e3)
-            x = self.up2_1(x , e2)
-            x = self.up1_1(x , e1)
+            if alpha==0:
+                for i in range(2):
+                    e3 = self.FAM3_1[i](e3)
+                for i in range(4):
+                    e2 = self.FAM2_1[i](e2)
+                for i in range(6):
+                    e1 = self.FAM1_1[i](e1)
 
-            out = self.final_conv1_1(x)
-            out = self.final_relu1_1(out)
-            out = self.final_conv2_1(out)
-            out = self.final_relu2_1(out)
-            out = self.final_conv3_1(out)
+                x = self.up3_1(e4, e3)
+                x = self.up2_1(x , e2)
+                x = self.up1_1(x , e1)
 
-        if self.training and alpha==1:
-            for i in range(2):
-                e3 = self.FAM3_2[i](e3)
-            for i in range(4):
-                e2 = self.FAM2_2[i](e2)
-            for i in range(6):
-                e1 = self.FAM1_2[i](e1)
+                out = self.final_conv1_1(x)
+                out = self.final_relu1_1(out)
+                out = self.final_conv2_1(out)
+                out = self.final_relu2_1(out)
+                out = self.final_conv3_1(out)
 
-            d4 = self.decoder3(e4) + e3
-            d3 = self.decoder2(d4) + e2
-            d2 = self.decoder1(d3) + e1
+            if alpha==1:
+                for i in range(2):
+                    e3 = self.FAM3_2[i](e3)
+                for i in range(4):
+                    e2 = self.FAM2_2[i](e2)
+                for i in range(6):
+                    e1 = self.FAM1_2[i](e1)
 
-            out = self.final_conv1_2(d2)
-            out = self.final_relu1_2(out)
-            out = self.final_conv2_2(out)
-            out = self.final_relu2_2(out)
-            out = self.final_conv3_2(out)
+                d4 = self.decoder3(e4) + e3
+                d3 = self.decoder2(d4) + e2
+                d2 = self.decoder1(d3) + e1
 
-        if self.training and alpha==2:
-            for i in range(2):
-                e3 = self.FAM3_3[i](e3)
-            for i in range(4):
-                e2 = self.FAM2_3[i](e2)
-            for i in range(6):
-                e1 = self.FAM1_3[i](e1)
+                out = self.final_conv1_2(d2)
+                out = self.final_relu1_2(out)
+                out = self.final_conv2_2(out)
+                out = self.final_relu2_2(out)
+                out = self.final_conv3_2(out)
 
-            features = [e1, e2, e3, e4]
-            features[-1] = self.PPN(features[-1])
-            x = self.FPN(features)
-
-            out = self.final_conv1_3(x)
-            out = self.final_relu1_3(out)
-            out = self.final_conv2_3(out)
-            out = self.final_relu2_3(out)
-            out = self.final_conv3_3(out)
-
-        if not self.training:
+        else:
 
             for i in range(2):
                 e31 = self.FAM3_1[i](e3)
@@ -364,25 +348,7 @@ class SEUNet(nn.Module):
             out_2 = self.final_relu2_2(out_2)
             out_2 = self.final_conv3_2(out_2)
 
-
-            for i in range(2):
-                e33 = self.FAM3_3[i](e3)
-            for i in range(4):
-                e23 = self.FAM2_3[i](e2)
-            for i in range(6):
-                e13 = self.FAM1_3[i](e1)
-
-            features = [e13, e23, e33, e4]
-            features[-1] = self.PPN(features[-1])
-            x3 = self.FPN(features)
-
-            out_3 = self.final_conv1_3(x3)
-            out_3 = self.final_relu1_3(out_3)
-            out_3 = self.final_conv2_3(out_3)
-            out_3 = self.final_relu2_3(out_3)
-            out_3 = self.final_conv3_3(out_3)
-
-            out = (out_1, out_2, out_3)
+            out = (out_1, out_2)
 
 
         return out

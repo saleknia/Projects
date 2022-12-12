@@ -148,15 +148,7 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             targets = targets.long()
 
             if type(outputs)==tuple:
-                predictions_1 = torch.round(torch.sigmoid(torch.squeeze(outputs[0], dim=1)))
-                predictions_2 = torch.round(torch.sigmoid(torch.squeeze(outputs[1], dim=1)))
-                predictions_3 = torch.round(torch.sigmoid(torch.squeeze(outputs[2], dim=1)))
-                predictions = predictions_1 + predictions_2 + predictions_3 + 4
-                predictions[predictions==4] = 0.0
-                predictions[predictions==5] = 0.0              
-                predictions[predictions==6] = 1.0               
-                predictions[predictions==7] = 1.0
-
+                predictions = torch.round((torch.sigmoid(torch.squeeze(outputs[0], dim=1)) + torch.sigmoid(torch.squeeze(outputs[1], dim=1))) / 2.0)  
             else:
                 predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
 
