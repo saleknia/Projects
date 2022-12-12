@@ -202,9 +202,9 @@ class SEUNet(nn.Module):
         self.FAMBlock1_1 = FAMBlock(channels=64)
         self.FAMBlock2_1 = FAMBlock(channels=128)
         self.FAMBlock3_1 = FAMBlock(channels=256)
-        self.FAM1_1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2_1 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3_1 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAM1_1 = nn.ModuleList([self.FAMBlock1_1 for i in range(6)])
+        self.FAM2_1 = nn.ModuleList([self.FAMBlock2_1 for i in range(4)])
+        self.FAM3_1 = nn.ModuleList([self.FAMBlock3_1 for i in range(2)])
 
         self.up3_1 = UpBlock(512, 256, nb_Conv=2)
         self.up2_1 = UpBlock(256, 128, nb_Conv=2)
@@ -223,9 +223,9 @@ class SEUNet(nn.Module):
         self.FAMBlock1_2 = FAMBlock(channels=64)
         self.FAMBlock2_2 = FAMBlock(channels=128)
         self.FAMBlock3_2 = FAMBlock(channels=256)
-        self.FAM1_2 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2_2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3_2 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAM1_2 = nn.ModuleList([self.FAMBlock1_2 for i in range(6)])
+        self.FAM2_2 = nn.ModuleList([self.FAMBlock2_2 for i in range(4)])
+        self.FAM3_2 = nn.ModuleList([self.FAMBlock3_2 for i in range(2)])
 
         filters = [64, 128, 256, 512]
         self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
@@ -241,6 +241,13 @@ class SEUNet(nn.Module):
         #####################################################################
         #####################################################################
         #####################################################################
+
+        self.FAMBlock1_3 = FAMBlock(channels=64)
+        self.FAMBlock2_3 = FAMBlock(channels=128)
+        self.FAMBlock3_3 = FAMBlock(channels=256)
+        self.FAM1_3 = nn.ModuleList([self.FAMBlock1_3 for i in range(6)])
+        self.FAM2_3 = nn.ModuleList([self.FAMBlock2_3 for i in range(4)])
+        self.FAM3_3 = nn.ModuleList([self.FAMBlock3_3 for i in range(2)])
 
         feature_channels = [64, 128, 256, 512]
         self.PPN = PSPModule(feature_channels[-1])
