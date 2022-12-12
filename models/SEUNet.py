@@ -290,7 +290,9 @@ class SEUNet(nn.Module):
         out_1 = self.final_relu2_1(out_1)
         out_1 = self.final_conv3_1(out_1)
 
-        q1, q2, q3, q4 = e1.clone().detach(), e2.clone().detach(), e3.clone().detach(), e4.clone().detach()
+        # q1, q2, q3, q4 = e1.clone().detach(), e2.clone().detach(), e3.clone().detach(), e4.clone().detach()
+        q1, q2, q3, q4 = e1, e2, e3, e4
+
 
         for i in range(2):
             b3 = self.FAM3_2[i](q3)
