@@ -1203,9 +1203,7 @@ class DATUNet(nn.Module):
 
    
         x = self.up3(x3, x2) 
-        x = self.CPF_2(x)
         x = self.up2(x , x1) 
-        x = self.CPF_1(x)
         x = self.up1(x , x0) 
 
         x = self.final_conv1(x)
