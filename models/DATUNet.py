@@ -1145,8 +1145,8 @@ class AttentionBlock(nn.Module):
         x1 = self.W_x(x)
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
-        x_f = self.PSA_F(x * psi)
-        x_b = self.PSA_B(x * (1.0 - psi))
+        x_f = self.PSA_F(x * psi) + (x * psi)
+        x_b = self.PSA_B(x * (1.0 - psi)) + (x * (1.0 - psi))
         out = self.Conv(torch.cat([x_f, x_b], dim=1))
         return out
 
