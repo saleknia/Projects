@@ -1226,7 +1226,7 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.AttentionBlock_3 = AttentionBlock(384) 
+        # self.AttentionBlock_3 = AttentionBlock(384) 
         self.AttentionBlock_2 = AttentionBlock(192) 
         self.AttentionBlock_1 = AttentionBlock(96) 
         self.AttentionBlock_0 = AttentionBlock(48) 
@@ -1326,7 +1326,7 @@ class DATUNet(nn.Module):
         x0 = self.AttentionBlock_0(x0) + x0
         x1 = self.AttentionBlock_1(x1) + x1
         x2 = self.AttentionBlock_2(x2) + x2
-        x3 = self.AttentionBlock_3(x3) + x3
+        # x3 = self.AttentionBlock_3(x3) + x3
 
    
         x = self.up3(x3, x2) 
