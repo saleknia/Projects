@@ -461,6 +461,7 @@ class Save_Checkpoint(object):
         # self.net=net
         # self.optimizer=optimizer
         # self.lr_scheduler=lr_scheduler
+        self.best_loss = None
         self.best_acc = initial_best_acc
         self.best_epoch = 1
         self.initial_best_epoch = initial_best_epoch
@@ -474,8 +475,8 @@ class Save_Checkpoint(object):
         self.last_path = '/content/drive/MyDrive/checkpoint/' + self.filename + '_last.pth'
         os.makedirs(self.folder, exist_ok=True)
 
-    def save_best(self, acc, acc_per_class, epoch, net, optimizer, lr_scheduler):
-        if self.best_acc < acc:
+    def save_best(self, loss, acc, acc_per_class, epoch, net, optimizer, lr_scheduler):
+        if self.best_loss==None or loss < self.best_loss:
             print(color.BOLD+color.RED+'Saving best checkpoint...'+color.END)
             state = {
                 'net': net.state_dict(),
