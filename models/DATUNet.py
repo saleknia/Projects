@@ -1174,9 +1174,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.skip_stage = make_stage()
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        # self.skip_stage = make_stage()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1257,22 +1257,22 @@ class DATUNet(nn.Module):
 
         x = [x0, x1, x2, x3]
 
-        # x_fuse = []
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, 4):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, 4):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x0, x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
+        x0, x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
 
         # # x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
-        x = self.skip_stage(x)
+        # x = self.skip_stage(x)
 
-        x0, x1, x2, x3 = x[0], x[1], x[2], x[3]
+        # x0, x1, x2, x3 = x[0], x[1], x[2], x[3]
    
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
