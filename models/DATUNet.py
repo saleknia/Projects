@@ -1132,7 +1132,8 @@ class AttentionBlock(nn.Module):
             nn.Sigmoid()
         )
         self.relu = nn.ReLU(inplace=True)
-        self.PSA = ParallelPolarizedSelfAttention(channel=F_g)
+        self.PSA_F = ParallelPolarizedSelfAttention(channel=F_g)
+        self.PSA_B = ParallelPolarizedSelfAttention(channel=F_g)
         self.Conv = ConvBatchNorm(in_channels=F_g*2, out_channels=F_g, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
     def forward(self, x):
@@ -1140,13 +1141,12 @@ class AttentionBlock(nn.Module):
         :param x: activation from corresponding encoder layer
         :return: output activations
         """
-        gate = self.PSA(x)
-        g1 = self.W_gate(gate)
+        g1 = self.W_gate(x)
         x1 = self.W_x(x)
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
-        x_f = x * psi
-        x_b = x * (1.0 - psi)
+        x_f = self.PSA_F(x * psi)
+        x_b = self.PSA_B(x * (1.0 - psi))
         out = self.Conv(torch.cat([x_f, x_b], dim=1))
         return out
 
