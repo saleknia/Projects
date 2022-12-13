@@ -1142,7 +1142,7 @@ class AttentionBlock(nn.Module):
         x1 = self.W_x(x)
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
-        x_f = x * psi
+        x_f = x
         x_b = x * (1.0 - psi)
         return x_f, x_b
 
