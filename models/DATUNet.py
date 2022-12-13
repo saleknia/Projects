@@ -1008,19 +1008,7 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
 
 class FAMBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -1116,6 +1104,67 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        n_coefficients = F_g // 2
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+        self.relu = nn.ReLU(inplace=True)
+        self.PSA = ParallelPolarizedSelfAttention(channel=F_g)
+        self.Conv = ConvBatchNorm(in_channels=F_g, out_channels=F_g, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+
+    def forward(self, x):
+        """
+        :param x: activation from corresponding encoder layer
+        :return: output activations
+        """
+        gate = self.PSA(x)
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(x)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        x_f = x * psi
+        x_b = self.Conv(x * (1.0 - psi))
+        out = x_b + x_f
+        return out
+
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
+
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1176,6 +1225,11 @@ class DATUNet(nn.Module):
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
+
+        self.AttentionBlock_3 = AttentionBlock(384) 
+        self.AttentionBlock_2 = AttentionBlock(192) 
+        self.AttentionBlock_1 = AttentionBlock(96) 
+        self.AttentionBlock_0 = AttentionBlock(48) 
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1269,6 +1323,11 @@ class DATUNet(nn.Module):
         # x0, x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
 
         x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+
+        x0 = self.AttentionBlock_0(x0)
+        x1 = self.AttentionBlock_1(x1)
+        x2 = self.AttentionBlock_2(x2)
+        x3 = self.AttentionBlock_3(x3)
 
    
         x = self.up3(x3, x2) 
