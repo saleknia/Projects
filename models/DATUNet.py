@@ -1132,9 +1132,6 @@ class AttentionBlock(nn.Module):
             nn.Sigmoid()
         )
         self.relu = nn.ReLU(inplace=True)
-        self.PSA_F = ParallelPolarizedSelfAttention(channel=F_g)
-        self.PSA_B = ParallelPolarizedSelfAttention(channel=F_g)
-        self.Conv = ConvBatchNorm(in_channels=F_g*2, out_channels=F_g, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
     def forward(self, x):
         """
@@ -1145,10 +1142,9 @@ class AttentionBlock(nn.Module):
         x1 = self.W_x(x)
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
-        x_f = self.PSA_F(x * psi) + (x * psi)
-        x_b = self.PSA_B(x * (1.0 - psi)) + (x * (1.0 - psi))
-        out = self.Conv(torch.cat([x_f, x_b], dim=1))
-        return out
+        x_f = x * psi
+        x_b = x * (1.0 - psi)
+        return x_f, x_b
 
 
 class ConvBatchNorm(nn.Module):
@@ -1223,19 +1219,23 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.AttentionBlock_3 = AttentionBlock(384) 
         self.AttentionBlock_2 = AttentionBlock(192) 
         self.AttentionBlock_1 = AttentionBlock(96) 
         self.AttentionBlock_0 = AttentionBlock(48) 
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3_1 = UpBlock(384, 192, nb_Conv=2)
+        self.up2_1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.up3_2 = UpBlock(384, 192, nb_Conv=2)
+        self.up2_2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -1308,30 +1308,36 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-        x = [x0, x1, x2, x3]
+        # x = [x0, x1, x2, x3]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, 4):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, 4):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+        # x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
 
-        x0 = self.AttentionBlock_0(x0) + x0
-        x1 = self.AttentionBlock_1(x1) + x1
-        x2 = self.AttentionBlock_2(x2) + x2
-        x3 = self.AttentionBlock_3(x3) + x3
+        x0, y0 = self.AttentionBlock_0(x0) 
+        x1, y1 = self.AttentionBlock_1(x1) 
+        x2, y2 = self.AttentionBlock_2(x2)
+        x3, y3 = self.AttentionBlock_3(x3) 
 
    
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        x = self.up3_1(x3, x2) 
+        x = self.up2_1(x , x1) 
+        x = self.up1_1(x , x0) 
+
+        y = self.up3_1(y3, y2) 
+        y = self.up2_1(y , y1) 
+        y = self.up1_1(y , y0) 
+
+        x = torch.cat([x, y], dim=1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
