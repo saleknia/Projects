@@ -790,8 +790,6 @@ def create_aa(aa_layer, channels, stride=2, enable=True):
         return nn.Identity()
     return aa_layer(stride) if issubclass(aa_layer, nn.AvgPool2d) else aa_layer(channels=channels, stride=stride)
 
-import timm
-from timm.layers import DropBlock2d, DropPath, AvgPool2dSame, BlurPool2d, GroupNorm, create_attn, get_attn, create_classifier
 
 class BasicBlock(nn.Module):
     expansion = 1
@@ -821,7 +819,7 @@ class BasicBlock(nn.Module):
             first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
         self.bn2 = norm_layer(outplanes)
 
-        self.se = create_attn(attn_layer, outplanes)
+        self.se = None
 
         self.act2 = act_layer(inplace=True)
         self.downsample = downsample
