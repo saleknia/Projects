@@ -1133,7 +1133,7 @@ class AttentionBlock(nn.Module):
         )
         self.relu = nn.ReLU(inplace=True)
         self.PSA = ParallelPolarizedSelfAttention(channel=F_g)
-        self.Conv = ConvBatchNorm(in_channels=F_g, out_channels=F_g, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.Conv = ConvBatchNorm(in_channels=F_g*2, out_channels=F_g, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
     def forward(self, x):
         """
@@ -1146,8 +1146,8 @@ class AttentionBlock(nn.Module):
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
         x_f = x * psi
-        x_b = self.Conv(x * (1.0 - psi))
-        out = x_b + x_f
+        x_b = x * (1.0 - psi)
+        out = self.Conv(torch.cat([x_f, x_b], dim=1))
         return out
 
 
