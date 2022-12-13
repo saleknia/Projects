@@ -790,12 +790,15 @@ def create_aa(aa_layer, channels, stride=2, enable=True):
         return nn.Identity()
     return aa_layer(stride) if issubclass(aa_layer, nn.AvgPool2d) else aa_layer(channels=channels, stride=stride)
 
+import timm
+from timm.layers import DropBlock2d, DropPath, AvgPool2dSame, BlurPool2d, GroupNorm, create_attn, get_attn, create_classifier
+
 class BasicBlock(nn.Module):
     expansion = 1
 
     def __init__(
             self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
-            reduce_first=4, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
+            reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
             attn_layer=None, aa_layer=None, drop_block=None, drop_path=None):
         super(BasicBlock, self).__init__()
 
@@ -818,7 +821,8 @@ class BasicBlock(nn.Module):
             first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
         self.bn2 = norm_layer(outplanes)
 
-        self.se = None
+        self.se = create_attn(attn_layer, outplanes)
+
         self.act2 = act_layer(inplace=True)
         self.downsample = downsample
         self.stride = stride
@@ -835,22 +839,32 @@ class BasicBlock(nn.Module):
         x = self.bn1(x)
         x = self.drop_block(x)
         x = self.act1(x)
+        x = self.aa(x)
 
         x = self.conv2(x)
         x = self.bn2(x)
 
+        if self.se is not None:
+            x = self.se(x)
+
+        if self.drop_path is not None:
+            x = self.drop_path(x)
+
+        if self.downsample is not None:
+            shortcut = self.downsample(shortcut)
         x += shortcut
         x = self.act2(x)
 
         return x
 
 
+
 def make_stage(multi_scale_output=True):
-    num_modules = 4
-    num_branches = 3
-    num_blocks = (1, 1, 1)
-    num_channels = [96, 192, 384]
-    num_in_chs = [96, 192, 384]
+    num_modules = 1
+    num_branches = 4
+    num_blocks = (1, 1, 1, 1)
+    num_channels = [48, 96, 192, 384]
+    num_in_chs = [48, 96, 192, 384]
     block = BasicBlock
     fuse_method = 'SUM'
 
@@ -1162,13 +1176,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.PSA_3 = ParallelPolarizedSelfAttention(channel=384)
-        self.PSA_2 = ParallelPolarizedSelfAttention(channel=192)
-        self.PSA_1 = ParallelPolarizedSelfAttention(channel=96)
-        self.PSA_0 = ParallelPolarizedSelfAttention(channel=48)
-
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        self.skip_stage = make_stage()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1249,17 +1259,20 @@ class DATUNet(nn.Module):
 
         x = [x0, x1, x2, x3]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, 4):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, 4):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x0, x1, x2, x3 = x[0] + self.PSA_0(x_fuse[0]) , x[1] + self.PSA_1(x_fuse[1]) , x[2] + self.PSA_2(x_fuse[2]) , x[3] + self.PSA_3(x_fuse[3])
+        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        x = self.skip_stage(x)
+
+        x0, x1, x2, x3 = x[0], x[1], x[2], x[3]
    
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
