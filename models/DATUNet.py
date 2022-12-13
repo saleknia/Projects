@@ -858,7 +858,7 @@ class BasicBlock(nn.Module):
 
 
 def make_stage(multi_scale_output=True):
-    num_modules = 3
+    num_modules = 2
     num_branches = 4
     num_blocks = (1, 1, 1, 1)
     num_channels = [48, 96, 192, 384]
