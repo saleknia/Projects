@@ -1231,18 +1231,15 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.encoder2 = resnet.layer2
-        # self.encoder3 = resnet.layer3
-        # self.encoder4 = None
-
-        self.cnn_encoder = timm.create_model('skresnet34', features_only=True, out_indices=(1, 2, 3), pretrained=True)
-        self.cnn_encoder.maxpool = torch.nn.Identity()
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = None
 
         self.encoder = DAT(
             img_size=224,
@@ -1274,13 +1271,13 @@ class DATUNet(nn.Module):
 
         self.conv_seq_img = ConvBatchNorm(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
-        # self.up_gate_3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        # self.up_gate_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)        
-        # self.up_gate_1 = nn.ConvTranspose2d(128, 64 , kernel_size=2, stride=2)  
+        self.up_gate_3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.up_gate_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)        
+        self.up_gate_1 = nn.ConvTranspose2d(128, 64 , kernel_size=2, stride=2)  
 
-        # self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)     
-        # self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
-        # self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
+        self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)     
+        self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
+        self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
@@ -1349,27 +1346,25 @@ class DATUNet(nn.Module):
         b, c, h, w = x.shape
 
 
-        # x0 = self.firstconv(x_input)
-        # x0 = self.firstbn(x0)
-        # x0 = self.firstrelu(x0)
+        x0 = self.firstconv(x_input)
+        x0 = self.firstbn(x0)
+        x0 = self.firstrelu(x0)
 
-        # x1 = self.encoder1(x0)
-        # x2 = self.encoder2(x1)
-        # x3 = self.encoder3(x2)
-
-        x1, x2, x3 = self.cnn_encoder(x_input)
-
+        x1 = self.encoder1(x0)
+        x2 = self.encoder2(x1)
+        x3 = self.encoder3(x2)
         x4 = self.encoder(x_input)[2]
+
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
-        # gate_3 = self.up_gate_3(x4)
-        # gate_2 = self.up_gate_2(gate_3)
-        # gate_1 = self.up_gate_1(gate_2)
+        gate_3 = self.up_gate_3(x4)
+        gate_2 = self.up_gate_2(gate_3)
+        gate_1 = self.up_gate_1(gate_2)
 
-        # x3 = self.att_3(gate_3, x3)
-        # x2 = self.att_2(gate_2, x2)
-        # x1 = self.att_1(gate_1, x1)
+        x3 = self.att_3(gate_3, x3)
+        x2 = self.att_2(gate_2, x2)
+        x1 = self.att_1(gate_1, x1)
 
         # x = [x1, x2, x3, x4]
 
