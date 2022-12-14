@@ -1302,8 +1302,8 @@ class DATUNet(nn.Module):
         self.conv_seq_img = ConvBatchNorm(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         # self.skip = make_stage()
 
