@@ -1394,7 +1394,7 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
 
-        x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x[3] 
+        x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
