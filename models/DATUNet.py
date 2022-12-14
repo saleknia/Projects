@@ -1222,13 +1222,17 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.up3_1 = UpBlock(384, 192, nb_Conv=2)
-        self.up2_1 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3_1 = UpBlock(384, 192, nb_Conv=2, dilation=1)
+        self.up2_1 = UpBlock(192, 96 , nb_Conv=2, dilation=1)
+        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2, dilation=1)
 
         self.up3_2 = UpBlock(384, 192, nb_Conv=2, dilation=2)
         self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=2)
         self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=2)
+
+        self.up3_2 = UpBlock(384, 192, nb_Conv=2, dilation=3)
+        self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=3)
+        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=3)
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1328,7 +1332,11 @@ class DATUNet(nn.Module):
         y = self.up2_2(y , x1) 
         y = self.up1_2(y , x0) 
 
-        x = torch.cat([x, y], dim=1)
+        z = self.up3_3(x3, x2) 
+        z = self.up2_3(z , x1) 
+        z = self.up1_3(z , x0) 
+
+        x = x + y + z
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
