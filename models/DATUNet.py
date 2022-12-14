@@ -979,7 +979,7 @@ def make_fuse_layers():
     num_branches = 4
     num_in_chs = [64, 128, 256, 512]
     fuse_layers = []
-    for i in range(num_branches):
+    for i in range(num_branches-1):
         fuse_layer = []
         for j in range(num_branches):
             if j > i:
@@ -1381,20 +1381,20 @@ class DATUNet(nn.Module):
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
-        # x = [x1, x2, x3, x4]
+        x = [x1, x2, x3, x4]
 
-        # x_fuse = []
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(0, 4):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(0, 4):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
 
-        # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+        x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x[3] 
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
