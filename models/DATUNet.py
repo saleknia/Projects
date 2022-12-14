@@ -1279,7 +1279,7 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.skip = make_fuse_layers()
+        self.skip = make_stage()
 
         self.up3 = UpBlock(384, 192, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(192, 96 , nb_Conv=1, dilation=1)
