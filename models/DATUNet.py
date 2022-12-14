@@ -976,8 +976,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 2
-    num_in_chs = [48, 96, 192, 384]
+    num_branches = 4
+    num_in_chs = [64, 128, 256, 512]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
