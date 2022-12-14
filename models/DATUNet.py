@@ -1104,49 +1104,6 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        n_coefficients = F_g // 2
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        """
-        :param x: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(x)
-        x1 = self.W_x(x)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        x_f = x
-        x_b = x * (1.0 - psi)
-        return x_f, x_b
-
-
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -1218,6 +1175,49 @@ class SKAttention(nn.Module):
         V=(attention_weughts*feats).sum(0)
         return V
 
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
+
+
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1240,36 +1240,6 @@ class DATUNet(nn.Module):
         self.encoder2 = resnet.layer2
         self.encoder3 = resnet.layer3
         self.encoder4 = None
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=128,
-        #     dims=[128, 256, 512, 1024],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[4, 8, 16, 32],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 4, 8],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.5,
-        # )
-
 
         self.encoder = DAT(
             img_size=224,
@@ -1301,11 +1271,18 @@ class DATUNet(nn.Module):
 
         self.conv_seq_img = ConvBatchNorm(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
+        self.up_gate_3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.up_gate_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)        
+        self.up_gate_1 = nn.ConvTranspose2d(128, 64 , kernel_size=2, stride=2)  
+
+        self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)     
+        self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
+        self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.skip = make_stage()
+        # self.skip = make_stage()
 
         self.up3 = UpBlock(512, 256, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(256, 128, nb_Conv=1, dilation=1)
@@ -1381,7 +1358,15 @@ class DATUNet(nn.Module):
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
-        x = [x1, x2, x3, x4]
+        gate_3 = self.up_gate_3(x4)
+        gate_2 = self.up_gate_2(gate_3)
+        gate_1 = self.up_gate_1(gate_2)
+
+        x3 = self.att_3(gate_3, x3)
+        x2 = self.att_2(gate_2, x2)
+        x1 = self.att_1(gate_1, x1)
+
+        # x = [x1, x2, x3, x4]
 
         # x_fuse = []
         # for i, fuse_outer in enumerate(self.fuse_layers):
@@ -1396,9 +1381,9 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
 
-        x = self.skip(x)
+        # x = self.skip(x)
 
-        x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
+        # x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
