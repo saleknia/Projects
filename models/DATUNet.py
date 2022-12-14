@@ -1396,7 +1396,7 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
 
-        x =self.skip(x)
+        x = self.skip(x)
 
         x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
 
