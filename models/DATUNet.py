@@ -567,15 +567,15 @@ def get_activation(activation_type):
         return nn.ReLU()
 
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=1):
     layers = []
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
     for i in range(nb_Conv - 1):
         if i==0:
-            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=1, padding=padding))
+            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=1, padding=1))
         else:
-            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=dilation))
     return nn.Sequential(*layers)
 
 import torchvision
