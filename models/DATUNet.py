@@ -482,7 +482,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_base_in1k_224.pth', map_location='cuda') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cuda') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -1244,45 +1244,18 @@ class DATUNet(nn.Module):
         # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=128,
-            dims=[128, 256, 512, 1024],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[4, 8, 16, 32],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 4, 8],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.5,
-        )
-
-
         # self.encoder = DAT(
         #     img_size=224,
         #     patch_size=4,
         #     num_classes=1000,
         #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
+        #     dim_stem=128,
+        #     dims=[128, 256, 512, 1024],
         #     depths=[2, 2, 18, 2],
         #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
+        #     heads=[4, 8, 16, 32],
         #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
+        #     groups=[-1, -1, 4, 8],
         #     use_pes=[False, False, True, True],
         #     dwc_pes=[False, False, False, False],
         #     strides=[-1, -1, 1, 1],
@@ -1294,10 +1267,37 @@ class DATUNet(nn.Module):
         #     use_conv_patches=False,
         #     drop_rate=0.0,
         #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
+        #     drop_path_rate=0.5,
         # )
 
-        self.norm_4 = LayerNormProxy(dim=512)
+
+        self.encoder = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
+
+        self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=256)
         self.norm_2 = LayerNormProxy(dim=128)
         self.norm_1 = LayerNormProxy(dim=64)
@@ -1308,7 +1308,7 @@ class DATUNet(nn.Module):
 
         # self.skip = make_stage()
 
-        self.up3 = UpBlock(512, 256, nb_Conv=1, dilation=1)
+        self.up3 = UpBlock(384, 256, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(256, 128, nb_Conv=1, dilation=1)
         self.up1 = UpBlock(128, 64 , nb_Conv=1, dilation=1)
 
