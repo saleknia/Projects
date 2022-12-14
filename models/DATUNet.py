@@ -572,10 +572,7 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
     for i in range(nb_Conv - 1):
-        if i==0:
-            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=1, padding=1))
-        else:
-            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=dilation))
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=dilation))
     return nn.Sequential(*layers)
 
 import torchvision
@@ -667,7 +664,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, dilation=1,activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=dilation, padding=1)
+        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=dilation, padding=dilation)
 
     def forward(self, x, skip_x):
         x = self.up(x)
@@ -1233,7 +1230,7 @@ class DATUNet(nn.Module):
         self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=2)
         self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -1331,7 +1328,7 @@ class DATUNet(nn.Module):
         y = self.up2_2(y , x1) 
         y = self.up1_2(y , x0) 
 
-        x = x + y
+        x = torch.cat([x, y], dim=1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
