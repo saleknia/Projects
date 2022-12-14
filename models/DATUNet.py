@@ -1161,6 +1161,63 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+from collections import OrderedDict
+
+
+
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=8,group=1,L=32):
+        super().__init__()
+        self.d=max(L,channel//reduction)
+        self.convs=nn.ModuleList([])
+        for k in kernels:
+            self.convs.append(
+                nn.Sequential(OrderedDict([
+                    ('conv',nn.Conv2d(channel,channel,kernel_size=k,padding=k//2,groups=group)),
+                    ('bn',nn.BatchNorm2d(channel)),
+                    ('relu',nn.ReLU())
+                ]))
+            )
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(len(kernels)):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+
+
+    def forward(self, x):
+        bs, c, _, _ = x.size()
+        conv_outs=[]
+        ### split
+        for conv in self.convs:
+            conv_outs.append(conv(x))
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
+        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weughts*feats).sum(0)
+        return V
+
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1219,20 +1276,16 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
+        self.SK_3 = SKAttention(channel=192)
+        self.SK_2 = SKAttention(channel=96)
+        self.SK_1 = SKAttention(channel=48)
+
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.up3_1 = UpBlock(384, 192, nb_Conv=2, dilation=1)
-        self.up2_1 = UpBlock(192, 96 , nb_Conv=2, dilation=1)
-        self.up1_1 = UpBlock(96 , 48 , nb_Conv=2, dilation=1)
-
-        self.up3_2 = UpBlock(384, 192, nb_Conv=2, dilation=2)
-        self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=2)
-        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=2)
-
-        self.up3_3 = UpBlock(384, 192, nb_Conv=2, dilation=3)
-        self.up2_3 = UpBlock(192, 96 , nb_Conv=2, dilation=3)
-        self.up1_3 = UpBlock(96 , 48 , nb_Conv=2, dilation=3)
+        self.up3 = UpBlock(384, 192, nb_Conv=1, dilation=1)
+        self.up2 = UpBlock(192, 96 , nb_Conv=1, dilation=1)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=1, dilation=1)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1321,22 +1374,13 @@ class DATUNet(nn.Module):
 
 
         # x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
-
-
    
-        x = self.up3_1(x3, x2) 
-        x = self.up2_1(x , x1) 
-        x = self.up1_1(x , x0) 
-
-        y = self.up3_2(x3, x2) 
-        y = self.up2_2(y , x1) 
-        y = self.up1_2(y , x0) 
-
-        z = self.up3_3(x3, x2) 
-        z = self.up2_3(z , x1) 
-        z = self.up1_3(z , x0) 
-
-        x = x + y + z
+        x = self.up3(x3, x2) 
+        x = self.SK_3(x)
+        x = self.up2(x , x1)
+        x = self.SK_2(x) 
+        x = self.up1(x , x0)
+        x = self.SK_1(x) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
