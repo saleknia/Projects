@@ -1234,7 +1234,7 @@ class DATUNet(nn.Module):
         self.up2_3 = UpBlock(192, 96 , nb_Conv=2, dilation=3)
         self.up1_3 = UpBlock(96 , 48 , nb_Conv=2, dilation=3)
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
