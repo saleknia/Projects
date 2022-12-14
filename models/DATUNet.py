@@ -858,11 +858,11 @@ class BasicBlock(nn.Module):
 
 
 def make_stage(multi_scale_output=True):
-    num_modules = 1
-    num_branches = 4
-    num_blocks = (1, 1, 1, 1)
-    num_channels = [64, 128, 256, 512]
-    num_in_chs = [64, 128, 256, 512]
+    num_modules = 2
+    num_branches = 3
+    num_blocks = (1, 1, 1)
+    num_channels = [64, 128, 256]
+    num_in_chs = [64, 128, 256]
     block = BasicBlock
     fuse_method = 'SUM'
 
@@ -1271,18 +1271,18 @@ class DATUNet(nn.Module):
 
         self.conv_seq_img = ConvBatchNorm(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
-        self.up_gate_3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.up_gate_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)        
-        self.up_gate_1 = nn.ConvTranspose2d(128, 64 , kernel_size=2, stride=2)  
+        # self.up_gate_3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        # self.up_gate_2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)        
+        # self.up_gate_1 = nn.ConvTranspose2d(128, 64 , kernel_size=2, stride=2)  
 
-        self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)     
-        self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
-        self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
+        # self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)     
+        # self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
+        # self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        # self.skip = make_stage()
+        self.skip = make_stage()
 
         self.up3 = UpBlock(512, 256, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(256, 128, nb_Conv=1, dilation=1)
@@ -1345,7 +1345,6 @@ class DATUNet(nn.Module):
         x_input = x.float()
         b, c, h, w = x.shape
 
-
         x0 = self.firstconv(x_input)
         x0 = self.firstbn(x0)
         x0 = self.firstrelu(x0)
@@ -1358,13 +1357,13 @@ class DATUNet(nn.Module):
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
-        gate_3 = self.up_gate_3(x4)
-        gate_2 = self.up_gate_2(gate_3)
-        gate_1 = self.up_gate_1(gate_2)
+        # gate_3 = self.up_gate_3(x4)
+        # gate_2 = self.up_gate_2(gate_3)
+        # gate_1 = self.up_gate_1(gate_2)
 
-        x3 = self.att_3(gate_3, x3)
-        x2 = self.att_2(gate_2, x2)
-        x1 = self.att_1(gate_1, x1)
+        # x3 = self.att_3(gate_3, x3)
+        # x2 = self.att_2(gate_2, x2)
+        # x1 = self.att_1(gate_1, x1)
 
         # x = [x1, x2, x3, x4]
 
@@ -1381,9 +1380,9 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
 
-        # x = self.skip(x)
-
-        # x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
+        x = [x1, x2, x3]
+        x = self.skip(x)
+        x1, x2, x3 = x[0], x[1], x[2]
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
