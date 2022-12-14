@@ -976,7 +976,7 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 4
+    num_branches = 2
     num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
@@ -1276,12 +1276,10 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.SK_3 = SKAttention(channel=192)
-        self.SK_2 = SKAttention(channel=96)
-        self.SK_1 = SKAttention(channel=48)
-
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
+
+        self.skip = make_fuse_layers()
 
         self.up3 = UpBlock(384, 192, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(192, 96 , nb_Conv=1, dilation=1)
@@ -1359,8 +1357,11 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x_input)
 
         x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
+        x = [x0, x1, x2, x3]
 
-        # x = [x0, x1, x2, x3]
+        x = self.skip(x)
+
+        x0, x1, x2 , x3 = x[0], x[1], x[2], x[3]
 
         # x_fuse = []
         # for i, fuse_outer in enumerate(self.fuse_layers):
@@ -1376,11 +1377,8 @@ class DATUNet(nn.Module):
         # x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
    
         x = self.up3(x3, x2) 
-        x = self.SK_3(x)
         x = self.up2(x , x1)
-        x = self.SK_2(x) 
         x = self.up1(x , x0)
-        x = self.SK_1(x) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
