@@ -13182,3 +13182,7 @@ No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2017_best.pth
 **************************************************
 Training Phase
 **************************************************
+Epoch: 8 ---> Train , Loss = 0.1380 , Dice = 90.23 , IoU = 83.10 , Pixel Accuracy = 97.44 , lr = 5e-05
+Epoch: 8 ---> Valid , Loss = 0.3888 , Dice = 85.50  , IoU = 76.93 , Pixel Accuracy = 95.51 , lr = 5e-05
+Epoch: 9 ---> Train , Loss = 0.1323 , Dice = 90.38 , IoU = 83.23 , Pixel Accuracy = 97.52 , lr = 5e-05
+Epoch: 9 ---> Valid , Loss = 0.3621 , Dice = 85.11  , IoU = 76.59 , Pixel Accuracy = 95.66 , lr = 5e-05
