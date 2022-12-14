@@ -1299,7 +1299,7 @@ class DATUNet(nn.Module):
 
         self.norm = LayerNormProxy(dim=384)
 
-        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        self.conv_seq_img = ConvBatchNorm(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
 
         # self.fuse_layers = make_fuse_layers()
