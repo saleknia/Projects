@@ -1230,9 +1230,9 @@ class DATUNet(nn.Module):
         self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=2)
         self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=2)
 
-        self.up3_2 = UpBlock(384, 192, nb_Conv=2, dilation=3)
-        self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=3)
-        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=3)
+        self.up3_3 = UpBlock(384, 192, nb_Conv=2, dilation=3)
+        self.up2_3 = UpBlock(192, 96 , nb_Conv=2, dilation=3)
+        self.up1_3 = UpBlock(96 , 48 , nb_Conv=2, dilation=3)
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
