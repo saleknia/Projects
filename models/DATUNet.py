@@ -1327,9 +1327,9 @@ class DATUNet(nn.Module):
         x = self.up2_1(x , x1) 
         x = self.up1_1(x , x0) 
 
-        y = self.up3_1(x3, x2) 
-        y = self.up2_1(y , x1) 
-        y = self.up1_1(y , x0) 
+        y = self.up3_2(x3, x2) 
+        y = self.up2_2(y , x1) 
+        y = self.up1_2(y , x0) 
 
         x = x + y
 
