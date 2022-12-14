@@ -1171,7 +1171,7 @@ from collections import OrderedDict
 
 class SKAttention(nn.Module):
 
-    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=8,group=1,L=32):
+    def __init__(self, channel=512,kernels=[3,5,7],reduction=8,group=1,L=32):
         super().__init__()
         self.d=max(L,channel//reduction)
         self.convs=nn.ModuleList([])
