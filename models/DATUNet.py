@@ -1297,10 +1297,7 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_4 = LayerNormProxy(dim=512)
-        self.norm_3 = LayerNormProxy(dim=256)
-        self.norm_2 = LayerNormProxy(dim=128)
-        self.norm_1 = LayerNormProxy(dim=64)
+        self.norm = LayerNormProxy(dim=384)
 
         self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
 
@@ -1379,13 +1376,10 @@ class DATUNet(nn.Module):
         x1 = self.encoder1(x0)
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
-        x4 = self.conv_seq_img(self.encoder(x_input)[2])
+        x4 = self.encoder(x_input)[2]
 
-
-        x1 = self.norm_1(x1)
-        x2 = self.norm_2(x2)
-        x3 = self.norm_3(x3)
-        x4 = self.norm_4(x4)
+        x4 = self.norm(x4)
+        x4 = self.conv_seq_img(x4)
    
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
