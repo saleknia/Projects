@@ -661,10 +661,10 @@ class DConvBatchNorm(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, dilation=1,activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=dilation, padding=1)
 
     def forward(self, x, skip_x):
         x = self.up(x)
@@ -1222,18 +1222,13 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.AttentionBlock_3 = AttentionBlock(384) 
-        self.AttentionBlock_2 = AttentionBlock(192) 
-        self.AttentionBlock_1 = AttentionBlock(96) 
-        self.AttentionBlock_0 = AttentionBlock(48) 
-
         self.up3_1 = UpBlock(384, 192, nb_Conv=2)
         self.up2_1 = UpBlock(192, 96 , nb_Conv=2)
         self.up1_1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up3_2 = UpBlock(384, 192, nb_Conv=2)
-        self.up2_2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3_2 = UpBlock(384, 192, nb_Conv=2, dilation=2)
+        self.up2_2 = UpBlock(192, 96 , nb_Conv=2, dilation=2)
+        self.up1_2 = UpBlock(96 , 48 , nb_Conv=2, dilation=2)
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1323,19 +1318,15 @@ class DATUNet(nn.Module):
 
         # x0, x1, x2, x3 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
 
-        x0, y0 = self.AttentionBlock_0(x0) 
-        x1, y1 = self.AttentionBlock_1(x1) 
-        x2, y2 = self.AttentionBlock_2(x2)
-        x3, y3 = self.AttentionBlock_3(x3) 
 
    
         x = self.up3_1(x3, x2) 
         x = self.up2_1(x , x1) 
         x = self.up1_1(x , x0) 
 
-        y = self.up3_1(y3, y2) 
-        y = self.up2_1(y , y1) 
-        y = self.up1_1(y , y0) 
+        y = self.up3_1(x3, x2) 
+        y = self.up2_1(y , x1) 
+        y = self.up1_1(y , x0) 
 
         x = torch.cat([x, y], dim=1)
 
