@@ -979,7 +979,7 @@ def make_fuse_layers():
     num_branches = 4
     num_in_chs = [64, 128, 256, 512]
     fuse_layers = []
-    for i in range(num_branches-1):
+    for i in range(num_branches):
         fuse_layer = []
         for j in range(num_branches):
             if j > i:
@@ -1282,7 +1282,14 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.skip = make_stage()
+        # self.skip = make_stage()
+
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         self.up3 = UpBlock(512, 256, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(256, 128, nb_Conv=1, dilation=1)
@@ -1352,8 +1359,15 @@ class DATUNet(nn.Module):
         x1 = self.encoder1(x0)
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
-        x4 = self.encoder(x_input)[2]
 
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
+
+        x4 = self.encoder(x_input)[2]
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
@@ -1380,9 +1394,9 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
 
-        x = [x1, x2, x3]
-        x = self.skip(x)
-        x1, x2, x3 = x[0], x[1], x[2]
+        # x = [x1, x2, x3]
+        # x = self.skip(x)
+        # x1, x2, x3 = x[0], x[1], x[2]
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
