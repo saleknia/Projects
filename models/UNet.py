@@ -558,6 +558,32 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        self.encoder_tf = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
+
         self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
         self.encoder.stage4 = None
@@ -616,7 +642,7 @@ class UNet(nn.Module):
         # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         # yl = self.encoder.stage4(xl)    
 
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], self.Reduce(self.norm(self.encoder(x0)[2]))
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], self.Reduce(self.norm(self.encoder_tf(x0)[2]))
 
         # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
 
