@@ -978,16 +978,12 @@ class DATUNet(nn.Module):
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
+        self.encoder2 = None
+        self.encoder3 = None
         self.encoder4 = None
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-
-        self.Reduce_0 = ConvBatchNorm(in_channels=64 , out_channels=48 , kernel_size=3, padding=1)
-        self.Reduce_1 = ConvBatchNorm(in_channels=224, out_channels=96 , kernel_size=3, padding=1)
-        self.Reduce_2 = ConvBatchNorm(in_channels=448, out_channels=192, kernel_size=3, padding=1)
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         self.encoder = DAT(
             img_size=224,
@@ -1018,14 +1014,17 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
-        # self.norm_1 = LayerNormProxy(dim=48 )
+        self.norm_1 = LayerNormProxy(dim=48 )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.PPN = PSPModule(384)
+        self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
+
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1042,41 +1041,36 @@ class DATUNet(nn.Module):
         x0 = self.firstconv(x_input)
         x0 = self.firstbn(x0)
         x0 = self.firstrelu(x0)
-
-        x0_cnn = self.encoder1(x0)
-        x1_cnn = self.encoder2(x0_cnn)
-        x2_cnn = self.encoder3(x1_cnn)
-
-        # x0 = self.Reduce(x0)
-        # for i in range(6):
-        #     x0 = self.FAM1[i](x0)
+        x0 = self.encoder1(x0)
+        x0 = self.Reduce(x0)
+        for i in range(6):
+            x0 = self.FAM1[i](x0)
 
         outputs = self.encoder(x_input)
-        x1_tf, x2_tf, x3_tf = self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
+        # x1, x2, x3 = self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
+        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-        # x = [x0, x1, x2, x3]
+        x = [x0, x1, x2, x3]
 
-        # x_fuse = []
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, 4):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, 4):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x0 = self.Reduce_0(x0_cnn)
-        x1 = self.Reduce_1(torch.cat([x1_cnn, x1_tf], dim=1))
-        x2 = self.Reduce_2(torch.cat([x2_cnn, x2_tf], dim=1))
-        x3 = x3_tf
+        x3 = self.PPN(x3)
+        x3 = self.FPN(x3)
 
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        # x = self.up3(x3, x2) 
+        # x = self.up2(x , x1) 
+        # x = self.up1(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
@@ -1088,6 +1082,66 @@ class DATUNet(nn.Module):
 
 
 
+class PSPModule(nn.Module):
+    # In the original inmplementation they use precise RoI pooling 
+    # Instead of using adaptative average pooling
+    def __init__(self, in_channels, bin_sizes=[1, 2, 4, 6]):
+        super(PSPModule, self).__init__()
+        out_channels = in_channels // len(bin_sizes)
+        self.stages = nn.ModuleList([self._make_stages(in_channels, out_channels, b_s) 
+                                                        for b_s in bin_sizes])
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels+(out_channels * len(bin_sizes)), in_channels, 
+                                    kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(0.1)
+        )
+
+    def _make_stages(self, in_channels, out_channels, bin_sz):
+        prior = nn.AdaptiveAvgPool2d(output_size=bin_sz)
+        conv = nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
+        bn = nn.BatchNorm2d(out_channels)
+        relu = nn.ReLU(inplace=True)
+        return nn.Sequential(prior, conv, bn, relu)
+    
+    def forward(self, features):
+        h, w = features.size()[2], features.size()[3]
+        pyramids = [features]
+        pyramids.extend([F.interpolate(stage(features), size=(h, w), mode='bilinear', 
+                                        align_corners=True) for stage in self.stages])
+        output = self.bottleneck(torch.cat(pyramids, dim=1))
+        return output
+
+def up_and_add(x, y):
+    return F.interpolate(x, size=(y.size(2), y.size(3)), mode='bilinear', align_corners=True) + y
+
+class FPN_fuse(nn.Module):
+    def __init__(self, feature_channels=[256, 512, 1024, 2048], fpn_out=256):
+        super(FPN_fuse, self).__init__()
+        assert feature_channels[0] == fpn_out
+        self.conv1x1 = nn.ModuleList([nn.Conv2d(ft_size, fpn_out, kernel_size=1)
+                                    for ft_size in feature_channels[1:]])
+        self.smooth_conv =  nn.ModuleList([nn.Conv2d(fpn_out, fpn_out, kernel_size=3, padding=1)] 
+                                    * (len(feature_channels)-1))
+        self.conv_fusion = nn.Sequential(
+            nn.Conv2d(len(feature_channels)*fpn_out, fpn_out, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(fpn_out),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, features):
+        
+        features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
+        P = [up_and_add(features[i], features[i-1]) for i in reversed(range(1, len(features)))]
+        P = [smooth_conv(x) for smooth_conv, x in zip(self.smooth_conv, P)]
+        P = list(reversed(P))
+        P.append(features[-1]) #P = [P1, P2, P3, P4]
+        H, W = P[0].size(2), P[0].size(3)
+        P[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in P[1:]]
+
+        x = self.conv_fusion(torch.cat((P), dim=1))
+        return x
 
 
 
