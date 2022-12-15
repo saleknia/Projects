@@ -1070,8 +1070,8 @@ class DATUNet(nn.Module):
         # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
         x0 = self.Reduce_0(x0_cnn)
-        x1 = self.Reduce_1(torch.cat(x1_cnn, x1_tf), dim=1)
-        x2 = self.Reduce_2(torch.cat(x2_cnn, x2_tf), dim=1)
+        x1 = self.Reduce_1(torch.cat([x1_cnn, x1_tf], dim=1)
+        x2 = self.Reduce_2(torch.cat([x2_cnn, x2_tf], dim=1)
         x3 = x3_tf
 
         x = self.up3(x3, x2) 
