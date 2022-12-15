@@ -1019,7 +1019,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.PPN = PSPModule(384)
         self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
@@ -1065,8 +1064,9 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x3 = self.PPN(x3)
-        x3 = self.FPN(x3)
+
+        x = [x0, x1, x2, x3]
+        x = self.FPN(x)
 
         # x = self.up3(x3, x2) 
         # x = self.up2(x , x1) 
