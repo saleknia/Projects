@@ -546,6 +546,39 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+def make_fuse_layers():
+    num_branches = 4
+    num_in_chs = [32, 64, 128, 256]
+    fuse_layers = []
+    for i in range(num_branches):
+        fuse_layer = []
+        for j in range(num_branches):
+            if j > i:
+                fuse_layer.append(nn.Sequential(
+                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(num_in_chs[i]),
+                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+            elif j == i:
+                fuse_layer.append(nn.Identity())
+            else:
+                conv3x3s = []
+                for k in range(i - j):
+                    if k == i - j - 1:
+                        num_outchannels_conv3x3 = num_in_chs[i]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3)))
+                    else:
+                        num_outchannels_conv3x3 = num_in_chs[j]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3),
+                            nn.ReLU(False)))
+                fuse_layer.append(nn.Sequential(*conv3x3s))
+        fuse_layers.append(nn.ModuleList(fuse_layer))
+
+    return nn.ModuleList(fuse_layers)
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -591,6 +624,9 @@ class UNet(nn.Module):
 
         self.Reduce = ConvBatchNorm(in_channels=384, out_channels=256, kernel_size=1, padding=0)
         self.norm = LayerNormProxy(dim=384)
+
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
@@ -643,6 +679,22 @@ class UNet(nn.Module):
         # yl = self.encoder.stage4(xl)    
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], self.Reduce(self.norm(self.encoder_tf(x0)[2]))
+
+        x = [x1, x2, x3, x4]
+
+
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
+
+        x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
         # t1, t2, t3, t4, att_weights = self.mtc(x1, x2, x3, x4)
 
