@@ -978,13 +978,16 @@ class DATUNet(nn.Module):
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
         self.encoder4 = None
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
+        self.Reduce_0 = ConvBatchNorm(in_channels=64 , out_channels=48 , kernel_size=3, padding=1)
+        self.Reduce_1 = ConvBatchNorm(in_channels=224, out_channels=96 , kernel_size=3, padding=1)
+        self.Reduce_2 = ConvBatchNorm(in_channels=448, out_channels=192, kernel_size=3, padding=1)
 
         self.encoder = DAT(
             img_size=224,
@@ -1015,10 +1018,10 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
-        self.norm_1 = LayerNormProxy(dim=48 )
+        # self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1039,30 +1042,38 @@ class DATUNet(nn.Module):
         x0 = self.firstconv(x_input)
         x0 = self.firstbn(x0)
         x0 = self.firstrelu(x0)
-        x0 = self.encoder1(x0)
-        x0 = self.Reduce(x0)
-        for i in range(6):
-            x0 = self.FAM1[i](x0)
+
+        x0_cnn = self.encoder1(x0)
+        x1_cnn = self.encoder2(x0_cnn)
+        x2_cnn = self.encoder3(x1_cnn)
+
+        # x0 = self.Reduce(x0)
+        # for i in range(6):
+        #     x0 = self.FAM1[i](x0)
 
         outputs = self.encoder(x_input)
-        # x1, x2, x3 = self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
+        x1_tf, x2_tf, x3_tf = self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-        x = [x0, x1, x2, x3]
+        # x = [x0, x1, x2, x3]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, 4):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, 4):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
-    
+        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+
+        x0 = self.Reduce_0(x0_cnn)
+        x1 = self.Reduce_1(torch.cat(x1_cnn, x1_tf), dim=1)
+        x2 = self.Reduce_2(torch.cat(x2_cnn, x2_tf), dim=1)
+        x3 = x3_tf
+
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
         x = self.up1(x , x0) 
