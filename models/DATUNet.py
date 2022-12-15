@@ -1011,11 +1011,11 @@ def make_fuse_layers():
 
 
 class FAMBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
@@ -1279,17 +1279,10 @@ class DATUNet(nn.Module):
         # self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)     
         # self.att_1 = AttentionBlock(F_g=64, F_l=64, n_coefficients=32)     
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         # self.skip = make_stage()
-
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAMBlock2 = FAMBlock(channels=128)
-        self.FAMBlock3 = FAMBlock(channels=256)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         self.up3 = UpBlock(512, 256, nb_Conv=1, dilation=1)
         self.up2 = UpBlock(256, 128, nb_Conv=1, dilation=1)
@@ -1360,43 +1353,25 @@ class DATUNet(nn.Module):
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
 
-        for i in range(2):
-            x3 = self.FAM3[i](x3)
-        for i in range(4):
-            x2 = self.FAM2[i](x2)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
-
         x4 = self.encoder(x_input)[2]
         x4 = self.norm(x4)
         x4 = self.conv_seq_img(x4)
 
-        # gate_3 = self.up_gate_3(x4)
-        # gate_2 = self.up_gate_2(gate_3)
-        # gate_1 = self.up_gate_1(gate_2)
+        x = [x1, x2, x3, x4]
 
-        # x3 = self.att_3(gate_3, x3)
-        # x2 = self.att_2(gate_2, x2)
-        # x1 = self.att_1(gate_1, x1)
-
-        # x = [x1, x2, x3, x4]
-
-        # x_fuse = []
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(0, 4):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
 
-        # x1, x2, x3, x4 = x[0] + x_fuse[0], x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] 
-
-        # x = [x1, x2, x3]
-        # x = self.skip(x)
-        # x1, x2, x3 = x[0], x[1], x[2]
+        x1, x2, x3, x4 = x[0]+x_fuse[0], x[1]+x_fuse[1], x[2]+x_fuse[2], x[3]+x_fuse[3]
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2)
