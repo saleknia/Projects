@@ -1197,6 +1197,8 @@ class SKAttention(nn.Module):
 
     def __init__(self, in_channels, out_channels,kernels=[1,3,5,7],reduction=4,group=1,L=12):
         super().__init__()
+        self.in_channels = in_channels
+        self.out_channels= out_channels
         self.d=max(L,out_channels//reduction)
         self.convs=nn.ModuleList([])
         for k in kernels:
@@ -1233,7 +1235,7 @@ class SKAttention(nn.Module):
         weights=[]
         for fc in self.fcs:
             weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
+            weights.append(weight.view(bs,self.out_channels,1,1)) #bs,channel
         attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
         attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
 
