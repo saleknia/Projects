@@ -960,6 +960,8 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+import torchvision
+from collections import OrderedDict
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1020,9 +1022,15 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
+        self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        self.up1 = nn.Upsample(scale_factor=2.0)
+        self.up2 = nn.Upsample(scale_factor=4.0)
+        self.up3 = nn.Upsample(scale_factor=8.0)
+
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1063,9 +1071,24 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x2 = self.up3(x3, x2) 
-        x1 = self.up2(x , x1) 
-        x0 = self.up1(x , x0) 
+        x['x0'] = x0
+        x['x1'] = x1
+        x['x2'] = x2
+        x['x3'] = x3
+
+        x = self.FPN(x)
+
+        x0 = x['x0']
+        x1 = self.up1(x['x1'])        
+        x2 = self.up2(x['x2'])        
+        x3 = self.up3(x['x3'])
+
+        x = torch.cat([x0, x1, x2, x3], dim=1)
+        x = self.combine(x)
+
+        # x2 = self.up3(x3, x2) 
+        # x1 = self.up2(x , x1) 
+        # x0 = self.up1(x , x0) 
 
         x = self.final_conv1(x0)
         x = self.final_relu1(x)
