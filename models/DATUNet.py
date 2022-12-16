@@ -1084,8 +1084,7 @@ class DATUNet(nn.Module):
         # x = self.final_up(x)
         return x
 
-
-class ParallelPolarizedSelfAttention(nn.Module):
+class SequentialPolarizedSelfAttention(nn.Module):
 
     def __init__(self, channel=512):
         super().__init__()
@@ -1114,17 +1113,17 @@ class ParallelPolarizedSelfAttention(nn.Module):
         channel_out=channel_weight*x
 
         #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wv=self.sp_wv(channel_out) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(channel_out) #bs,c//2,h,w
         spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
         spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
         spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
         spatial_wq=self.softmax_spatial(spatial_wq)
         spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
         spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
+        spatial_out=spatial_weight*channel_out
+        return spatial_out
+
 
 
 
@@ -1176,7 +1175,7 @@ class FPN_fuse(nn.Module):
             nn.BatchNorm2d(fpn_out),
             nn.ReLU(inplace=True)
         )
-        self.CAM = CAM_Module()
+        self.PSA = SequentialPolarizedSelfAttention(192)
 
     def forward(self, features):
 
@@ -1188,17 +1187,15 @@ class FPN_fuse(nn.Module):
         H, W = P[0].size(2), P[0].size(3)
         P[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in P[1:]]
         x = torch.cat((P), dim=1)
-        x = self.CAM(x)
+        x = self.PSA(x)
         x = self.conv_fusion(x)
         return x
 
 from torch.nn import Softmax, Parameter, Module
 class CAM_Module(Module):
     """ Channel attention module"""
-    def __init__(self, in_dim):
+    def __init__(self):
         super(CAM_Module, self).__init__()
-        self.chanel_in = in_dim
-
 
         self.gamma = Parameter(torch.zeros(1))
         self.softmax  = Softmax(dim=-1)
@@ -1222,7 +1219,7 @@ class CAM_Module(Module):
         out = out.view(m_batchsize, C, height, width)
 
         out = self.gamma*out + x
-        return 
+        return out
 
 
 
