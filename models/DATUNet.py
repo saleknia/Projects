@@ -1183,7 +1183,7 @@ class FPN_fuse(nn.Module):
         for i in reversed(range(1, len(features))):
             features[i-1] = up_and_add(features[i], features[i-1])
         features = features[0:3]
-        features = [smooth_conv(x) for smooth_conv, x in zip(self.smooth_conv, features)]
+        features = [smooth_conv(x)+x for smooth_conv, x in zip(self.smooth_conv, features)]
         H, W = features[0].size(2), features[0].size(3)
         features[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in features[1:]]
         x = torch.cat((features), dim=1)
