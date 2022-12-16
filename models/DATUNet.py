@@ -1071,17 +1071,19 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x['x0'] = x0
-        x['x1'] = x1
-        x['x2'] = x2
-        x['x3'] = x3
+        x_in = OrderedDict()
 
-        x = self.FPN(x)
+        x_in['x0'] = x0
+        x_in['x1'] = x1
+        x_in['x2'] = x2
+        x_in['x3'] = x3
 
-        x0 = x['x0']
-        x1 = self.up1(x['x1'])        
-        x2 = self.up2(x['x2'])        
-        x3 = self.up3(x['x3'])
+        x_out = self.FPN(x)
+
+        x0 = x_out['x0']
+        x1 = self.up1(x_out['x1'])        
+        x2 = self.up2(x_out['x2'])        
+        x3 = self.up3(x_out['x3'])
 
         x = torch.cat([x0, x1, x2, x3], dim=1)
         x = self.combine(x)
