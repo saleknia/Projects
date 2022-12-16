@@ -1192,13 +1192,16 @@ class FPN_fuse(nn.Module):
         x = self.conv_fusion(x)
         return x
 
-from torch.nn import Softmax
-class CAM_Module(nn.Module):
+from torch.nn import Softmax, Parameter, Module
+class CAM_Module(Module):
     """ Channel attention module"""
-    def __init__(self):
+    def __init__(self, in_dim):
         super(CAM_Module, self).__init__()
-        self.softmax  = Softmax(dim=-1)
+        self.chanel_in = in_dim
 
+
+        self.gamma = Parameter(torch.zeros(1))
+        self.softmax  = Softmax(dim=-1)
     def forward(self,x):
         """
             inputs :
@@ -1218,8 +1221,8 @@ class CAM_Module(nn.Module):
         out = torch.bmm(attention, proj_value)
         out = out.view(m_batchsize, C, height, width)
 
-        out = out + x
-        return out
+        out = self.gamma*out + x
+        return 
 
 
 
