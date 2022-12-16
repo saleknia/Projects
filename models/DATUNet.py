@@ -1021,8 +1021,8 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
-        self.PSP = PSPModule(in_channels=384)
-        # self.PSA = ParallelPolarizedSelfAttention(channel=48)
+
+        # 
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
         # self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1066,7 +1066,6 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
-        x3 = self.PSP(x3)
 
         x = [x0, x1, x2, x3]
         x = self.FPN(x)
@@ -1176,7 +1175,7 @@ class FPN_fuse(nn.Module):
             nn.BatchNorm2d(fpn_out),
             nn.ReLU(inplace=True)
         )
-
+        self.PSA = ParallelPolarizedSelfAttention(channel=192)
     def forward(self, features):
 
         features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
@@ -1186,8 +1185,8 @@ class FPN_fuse(nn.Module):
         P.append(features[-1]) #P = [P1, P2, P3, P4]
         H, W = P[0].size(2), P[0].size(3)
         P[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in P[1:]]
-
-        x = self.conv_fusion(torch.cat((P), dim=1))
+        x = self.PSA(torch.cat((P), dim=1))
+        x = self.conv_fusion(x)
         return x
 
 
