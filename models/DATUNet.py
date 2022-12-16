@@ -1161,7 +1161,6 @@ class FPN_fuse(nn.Module):
             nn.BatchNorm2d(fpn_out),
             nn.ReLU(inplace=True)
         )
-        self.PSA = SequentialPolarizedSelfAttention(192)
 
     def forward(self, features):
 
@@ -1173,7 +1172,6 @@ class FPN_fuse(nn.Module):
         H, W = P[0].size(2), P[0].size(3)
         P[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in P[1:]]
         x = torch.cat((P), dim=1)
-        x = self.PSA(x)
         x = self.conv_fusion(x)
         return x
 
