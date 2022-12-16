@@ -1168,10 +1168,8 @@ class FPN_fuse(nn.Module):
     def __init__(self, feature_channels=[256, 512, 1024, 2048], fpn_out=256):
         super(FPN_fuse, self).__init__()
         assert feature_channels[0] == fpn_out
-        self.conv1x1 = nn.ModuleList([nn.Conv2d(ft_size, fpn_out, kernel_size=1)
-                                    for ft_size in feature_channels[1:]])
-        self.smooth_conv =  nn.ModuleList([nn.Conv2d(fpn_out, fpn_out, kernel_size=3, padding=1)] 
-                                    * (len(feature_channels)-1))
+        self.conv1x1 = nn.ModuleList([nn.Conv2d(ft_size, fpn_out, kernel_size=1) for ft_size in feature_channels])
+        self.smooth_conv =  nn.ModuleList([nn.Conv2d(fpn_out, fpn_out, kernel_size=3, padding=1)] * (len(feature_channels)-1))
 
         self.conv_fusion = nn.Sequential(
             nn.Conv2d(len(feature_channels)*fpn_out, fpn_out, kernel_size=3, padding=1, bias=False),
@@ -1181,14 +1179,14 @@ class FPN_fuse(nn.Module):
 
     def forward(self, features):
 
-        features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
-        P = [up_and_add(features[i], features[i-1]) for i in reversed(range(1, len(features)))]
-        P = [smooth_conv(x) for smooth_conv, x in zip(self.smooth_conv, P)]
-        P = list(reversed(P))
-        P.append(features[-1]) #P = [P1, P2, P3, P4]
-        H, W = P[0].size(2), P[0].size(3)
-        P[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in P[1:]]
-        x = torch.cat((P), dim=1)
+        features = [conv1x1(feature) for feature, conv1x1 in zip(features, self.conv1x1)]
+        for i in reversed(range(1, len(features))):
+            features[i-1] = up_and_add(features[i], features[i-1])
+        features = features[0:3]
+        features = [smooth_conv(x) for smooth_conv, x in zip(self.smooth_conv, features)]
+        H, W = features[0].size(2), features[0].size(3)
+        features[1:] = [F.interpolate(feature, size=(H, W), mode='bilinear', align_corners=True) for feature in features[1:]]
+        x = torch.cat((features), dim=1)
         x = self.conv_fusion(x)
         return x
 
