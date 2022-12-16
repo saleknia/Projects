@@ -1,6 +1,7 @@
 import math
 import torch
 import torch.nn as nn
+import torchvision
 import torch.nn.functional as F
 import einops
 import timm
@@ -1020,7 +1021,7 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
-        self.PSA = ParallelPolarizedSelfAttention(channel=48)
+        # self.PSA = ParallelPolarizedSelfAttention(channel=48)
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
         # self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1068,8 +1069,8 @@ class DATUNet(nn.Module):
         x = [x0, x1, x2, x3]
         x = self.FPN(x)
 
-        x = self.PSA(x)
-        
+        # x = self.PSA(x)
+
         # x = self.up3(x3, x2) 
         # x = self.up2(x , x1) 
         # x = self.up1(x , x0) 
@@ -1175,7 +1176,11 @@ class FPN_fuse(nn.Module):
         )
 
     def forward(self, features):
-        
+
+        features[1:] = torchvision.ops.stochastic_depth(input=features[1:], p=0.5, mode='row', training = True)
+        features[2:] = torchvision.ops.stochastic_depth(input=features[1:], p=0.5, mode='row', training = True)
+        features[3:] = torchvision.ops.stochastic_depth(input=features[1:], p=0.5, mode='row', training = True)
+
         features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
         P = [up_and_add(features[i], features[i-1]) for i in reversed(range(1, len(features)))]
         P = [smooth_conv(x) for smooth_conv, x in zip(self.smooth_conv, P)]
