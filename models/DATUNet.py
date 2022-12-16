@@ -1020,9 +1020,15 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
+        # self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
+        self.decoder_31 = DecoderBottleneckLayer(in_channels=384)
+        self.decoder_21 = DecoderBottleneckLayer(in_channels=192)
+        self.decoder_11 = DecoderBottleneckLayer(in_channels=96)
 
-        # 
+        self.decoder_22 = DecoderBottleneckLayer(in_channels=192)
+        self.decoder_12 = DecoderBottleneckLayer(in_channels=96)
+
+        self.decoder_13 = DecoderBottleneckLayer(in_channels=96)
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
         # self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1067,8 +1073,17 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x = [x0, x1, x2, x3]
-        x = self.FPN(x)
+        x2 = self.decoder_31(x3) + x2
+        x1 = self.decoder_21(x2) + x1
+        x0 = self.decoder_11(x1) + x0
+
+        x1 = self.decoder_22(x2) + x1
+        x0 = self.decoder_12(x1) + x0
+
+        x0 = self.decoder_13(x1) + x0
+
+        # x = [x0, x1, x2, x3]
+        # x = self.FPN(x)
 
         # x = self.PSA(x)
 
@@ -1076,7 +1091,7 @@ class DATUNet(nn.Module):
         # x = self.up2(x , x1) 
         # x = self.up1(x , x0) 
 
-        x = self.final_conv1(x)
+        x = self.final_conv1(x0)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
@@ -1110,7 +1125,19 @@ class SequentialPolarizedSelfAttention(nn.Module):
 
         return channel_out
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels):
+        super(DecoderBottleneckLayer, self).__init__()
 
+        self.up = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, in_channels, 3, stride=2, padding=1, output_padding=1),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        x = self.up(x)
+        return x
 
 
 class PSPModule(nn.Module):
