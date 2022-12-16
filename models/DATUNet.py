@@ -1177,7 +1177,7 @@ class FPN_fuse(nn.Module):
             nn.ReLU(inplace=True)
         )
         self.CAM = CAM_Module()
-        
+
     def forward(self, features):
 
         features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
@@ -1197,7 +1197,6 @@ class CAM_Module(nn.Module):
     """ Channel attention module"""
     def __init__(self):
         super(CAM_Module, self).__init__()
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
         self.softmax  = Softmax(dim=-1)
 
     def forward(self,x):
@@ -1219,7 +1218,7 @@ class CAM_Module(nn.Module):
         out = torch.bmm(attention, proj_value)
         out = out.view(m_batchsize, C, height, width)
 
-        out = self.gamma*out + x
+        out = out + x
         return out
 
 
