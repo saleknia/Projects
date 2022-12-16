@@ -1021,6 +1021,7 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
+        self.PSP = PSPModule(in_channels=384)
         # self.PSA = ParallelPolarizedSelfAttention(channel=48)
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
@@ -1065,6 +1066,7 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        x3 = self.PSP(x3)
 
         x = [x0, x1, x2, x3]
         x = self.FPN(x)
@@ -1130,7 +1132,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
 class PSPModule(nn.Module):
     # In the original inmplementation they use precise RoI pooling 
     # Instead of using adaptative average pooling
-    def __init__(self, in_channels, bin_sizes=[1, 2, 4, 6]):
+    def __init__(self, in_channels, bin_sizes=[2, 4, 6]):
         super(PSPModule, self).__init__()
         out_channels = in_channels // len(bin_sizes)
         self.stages = nn.ModuleList([self._make_stages(in_channels, out_channels, b_s) 
@@ -1176,10 +1178,6 @@ class FPN_fuse(nn.Module):
         )
 
     def forward(self, features):
-
-        features[1] = torchvision.ops.stochastic_depth(input=features[1], p=0.5, mode='batch', training = True)
-        features[2] = torchvision.ops.stochastic_depth(input=features[2], p=0.5, mode='batch', training = True)
-        features[3] = torchvision.ops.stochastic_depth(input=features[3], p=0.5, mode='batch', training = True)
 
         features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
         P = [up_and_add(features[i], features[i-1]) for i in reversed(range(1, len(features)))]
