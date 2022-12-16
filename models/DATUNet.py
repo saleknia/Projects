@@ -1020,14 +1020,9 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
-        self.decoder_3 = DecoderBottleneckLayer(in_channels=384)
-        self.decoder_2 = DecoderBottleneckLayer(in_channels=192)
-        self.decoder_1 = DecoderBottleneckLayer(in_channels=96)
-
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1068,18 +1063,9 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x2 = self.decoder_3(x3) + x2
-        x1 = self.decoder_2(x2) + x1
-        x0 = self.decoder_1(x1) + x0
-
-        # x = [x0, x1, x2, x3]
-        # x = self.FPN(x)
-
-        # x = self.PSA(x)
-
-        # x = self.up3(x3, x2) 
-        # x = self.up2(x , x1) 
-        # x = self.up1(x , x0) 
+        x2 = self.up3(x3, x2) 
+        x1 = self.up2(x , x1) 
+        x0 = self.up1(x , x0) 
 
         x = self.final_conv1(x0)
         x = self.final_relu1(x)
@@ -1189,36 +1175,6 @@ class FPN_fuse(nn.Module):
         x = torch.cat((features), dim=1)
         x = self.conv_fusion(x)
         return x
-
-from torch.nn import Softmax, Parameter, Module
-class CAM_Module(Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-
-        self.gamma = Parameter(torch.zeros(1))
-        self.softmax  = Softmax(dim=-1)
-    def forward(self,x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
-
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
-
-        out = self.gamma*out + x
-        return out
 
 
 
