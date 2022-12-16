@@ -1078,7 +1078,7 @@ class DATUNet(nn.Module):
         x_in['x2'] = x2
         x_in['x3'] = x3
 
-        x_out = self.FPN(x)
+        x_out = self.FPN(x_in)
 
         x0 = x_out['x0']
         x1 = self.up1(x_out['x1'])        
