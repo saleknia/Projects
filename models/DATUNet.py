@@ -1090,11 +1090,11 @@ class DATUNet(nn.Module):
         # x = torch.cat([x0, x1, x2, x3], dim=1)
         # x = self.combine(x)
 
-        x2 = self.up3(x3, x2) 
-        x1 = self.up2(x , x1) 
-        x0 = self.up1(x , x0) 
+        x = self.up3(x3, x2) 
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
 
-        x = self.final_conv1(x0)
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
