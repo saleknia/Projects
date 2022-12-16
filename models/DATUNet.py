@@ -948,15 +948,15 @@ import ml_collections
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 672  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 192  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 2
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.embeddings_dropout_rate = 0.0
+    config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0.0
-    config.patch_sizes = [4,2,1]
-    config.base_channel = 96 # base channel of U-Net
+    config.patch_sizes = [8,4,2,1]
+    config.base_channel = 48 # base channel of U-Net
     config.n_classes = 1
     return config
 
@@ -1023,14 +1023,20 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        # self.up1 = nn.Upsample(scale_factor=2.0)
-        # self.up2 = nn.Upsample(scale_factor=4.0)
-        # self.up3 = nn.Upsample(scale_factor=8.0)
+        self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
+        self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
+        self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+
+        self.up1 = nn.Upsample(scale_factor=2.0)
+        self.up2 = nn.Upsample(scale_factor=4.0)
+        self.up3 = nn.Upsample(scale_factor=8.0)
+
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1072,6 +1078,11 @@ class DATUNet(nn.Module):
         # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+
+        x0 = self.reduction_0(x0)
+        x1 = self.reduction_1(x1)
+        x2 = self.reduction_2(x2)
+        x3 = self.reduction_3(x3)
 
         # x_in = OrderedDict()
 
