@@ -1177,9 +1177,9 @@ class FPN_fuse(nn.Module):
 
     def forward(self, features):
 
-        features[1] = torchvision.ops.stochastic_depth(input=features[1], p=0.5, mode='row', training = True)
-        features[2] = torchvision.ops.stochastic_depth(input=features[2], p=0.5, mode='row', training = True)
-        features[3] = torchvision.ops.stochastic_depth(input=features[3], p=0.5, mode='row', training = True)
+        features[1] = torchvision.ops.stochastic_depth(input=features[1], p=0.5, mode='batch', training = True)
+        features[2] = torchvision.ops.stochastic_depth(input=features[2], p=0.5, mode='batch', training = True)
+        features[3] = torchvision.ops.stochastic_depth(input=features[3], p=0.5, mode='batch', training = True)
 
         features[1:] = [conv1x1(feature) for feature, conv1x1 in zip(features[1:], self.conv1x1)]
         P = [up_and_add(features[i], features[i-1]) for i in reversed(range(1, len(features)))]
