@@ -1130,7 +1130,7 @@ class DecoderBottleneckLayer(nn.Module):
         super(DecoderBottleneckLayer, self).__init__()
 
         self.up = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels, 3, stride=2, padding=1, output_padding=1),
+            nn.ConvTranspose2d(in_channels, in_channels//2, 3, stride=2, padding=1, output_padding=1),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True)
         )
