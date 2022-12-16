@@ -1022,15 +1022,15 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        self.up1 = nn.Upsample(scale_factor=2.0)
-        self.up2 = nn.Upsample(scale_factor=4.0)
-        self.up3 = nn.Upsample(scale_factor=8.0)
+        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
+        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        # self.up1 = nn.Upsample(scale_factor=2.0)
+        # self.up2 = nn.Upsample(scale_factor=4.0)
+        # self.up3 = nn.Upsample(scale_factor=8.0)
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1069,28 +1069,30 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x_in = OrderedDict()
+        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x_in['x0'] = x0
-        x_in['x1'] = x1
-        x_in['x2'] = x2
-        x_in['x3'] = x3
+        # x_in = OrderedDict()
 
-        x_out = self.FPN(x_in)
+        # x_in['x0'] = x0
+        # x_in['x1'] = x1
+        # x_in['x2'] = x2
+        # x_in['x3'] = x3
 
-        x0 = x_out['x0']
-        x1 = self.up1(x_out['x1'])        
-        x2 = self.up2(x_out['x2'])        
-        x3 = self.up3(x_out['x3'])
+        # x_out = self.FPN(x_in)
 
-        x = torch.cat([x0, x1, x2, x3], dim=1)
-        x = self.combine(x)
+        # x0 = x_out['x0']
+        # x1 = self.up1(x_out['x1'])        
+        # x2 = self.up2(x_out['x2'])        
+        # x3 = self.up3(x_out['x3'])
 
-        # x2 = self.up3(x3, x2) 
-        # x1 = self.up2(x , x1) 
-        # x0 = self.up1(x , x0) 
+        # x = torch.cat([x0, x1, x2, x3], dim=1)
+        # x = self.combine(x)
+
+        x2 = self.up3(x3, x2) 
+        x1 = self.up2(x , x1) 
+        x0 = self.up1(x , x0) 
 
         x = self.final_conv1(x0)
         x = self.final_relu1(x)
