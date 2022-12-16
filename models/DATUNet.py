@@ -1021,14 +1021,9 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         # self.FPN = FPN_fuse(feature_channels=[48, 96, 192, 384], fpn_out=48)
-        self.decoder_31 = DecoderBottleneckLayer(in_channels=384)
-        self.decoder_21 = DecoderBottleneckLayer(in_channels=192)
-        self.decoder_11 = DecoderBottleneckLayer(in_channels=96)
-
-        self.decoder_22 = DecoderBottleneckLayer(in_channels=192)
-        self.decoder_12 = DecoderBottleneckLayer(in_channels=96)
-
-        self.decoder_13 = DecoderBottleneckLayer(in_channels=96)
+        self.decoder_3 = DecoderBottleneckLayer(in_channels=384)
+        self.decoder_2 = DecoderBottleneckLayer(in_channels=192)
+        self.decoder_1 = DecoderBottleneckLayer(in_channels=96)
 
         # self.up3 = UpBlock(384, 192, nb_Conv=2)
         # self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1073,14 +1068,9 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x2 = self.decoder_31(x3) + x2
-        x1 = self.decoder_21(x2) + x1
-        x0 = self.decoder_11(x1) + x0
-
-        x1 = self.decoder_22(x2) + x1
-        x0 = self.decoder_12(x1) + x0
-
-        x0 = self.decoder_13(x1) + x0
+        x2 = self.decoder_3(x3) + x2
+        x1 = self.decoder_2(x2) + x1
+        x0 = self.decoder_1(x1) + x0
 
         # x = [x0, x1, x2, x3]
         # x = self.FPN(x)
