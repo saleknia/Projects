@@ -1029,6 +1029,7 @@ class DATUNet(nn.Module):
         self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
 
         self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
 
         self.up1 = nn.Upsample(scale_factor=2.0)
         self.up2 = nn.Upsample(scale_factor=4.0)
@@ -1084,6 +1085,15 @@ class DATUNet(nn.Module):
         x2 = self.reduction_2(x2)
         x3 = self.reduction_3(x3)
 
+        x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
+
+        x1 = self.up1(x1)
+        x2 = self.up2(x2)
+        x3 = self.up3(x3)
+
+        x = torch.cat([x0, x1, x2, x3], dim=1)
+        x = self.combine(x)
+
         # x_in = OrderedDict()
 
         # x_in['x0'] = x0
@@ -1101,9 +1111,9 @@ class DATUNet(nn.Module):
         # x = torch.cat([x0, x1, x2, x3], dim=1)
         # x = self.combine(x)
 
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        # x = self.up3(x3, x2) 
+        # x = self.up2(x , x1) 
+        # x = self.up1(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
