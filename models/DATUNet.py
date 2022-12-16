@@ -1093,6 +1093,7 @@ class SequentialPolarizedSelfAttention(nn.Module):
         self.softmax_channel=nn.Softmax(1)
         self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
         self.ln=nn.LayerNorm(channel)
+        self.sigmoid=nn.Sigmoid()
 
     def forward(self, x):
         b, c, h, w = x.size()
