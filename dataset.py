@@ -103,6 +103,9 @@ class ISIC2018(Dataset):
             seg = self.gt_transform(seg)
 
         return img, seg[0]
+        
+    def __len__(self):
+        return len(self.data)
 
 class ISIC2016(Dataset):
     def __init__(self, path_Data='/content/drive/MyDrive/ISIC2016_dataset/', split='train'):
