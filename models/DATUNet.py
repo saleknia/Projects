@@ -881,7 +881,7 @@ def make_fuse_layers():
     num_branches = 4
     num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
-    for i in range(num_branches-1):
+    for i in range(num_branches):
         fuse_layer = []
         for j in range(num_branches):
             if j > i:
