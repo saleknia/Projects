@@ -18568,3 +18568,77 @@ Epoch: 1 ---> Test , Loss = 0.5614 , Dice = 85.26 , IoU = 77.30 , Pixel Accuracy
 **************************************************
 
 
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════╕
+│ Hyperparameter   │ Value            │
+╞══════════════════╪══════════════════╡
+│ Learning Rate    │ 5e-05            │
+├──────────────────┼──────────────────┤
+│ Num Classes      │ 1                │
+├──────────────────┼──────────────────┤
+│ Device           │ cuda             │
+├──────────────────┼──────────────────┤
+│ Batch Size       │ 16               │
+├──────────────────┼──────────────────┤
+│ COSINE LR        │ False            │
+├──────────────────┼──────────────────┤
+│ Num Epochs       │ 30               │
+├──────────────────┼──────────────────┤
+│ Num Workers      │ 4                │
+├──────────────────┼──────────────────┤
+│ Image Height     │ 224              │
+├──────────────────┼──────────────────┤
+│ Image Width      │ 224              │
+├──────────────────┼──────────────────┤
+│ Pin Memory       │ True             │
+├──────────────────┼──────────────────┤
+│ Early Stopping   │ 200              │
+├──────────────────┼──────────────────┤
+│ Load Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Save Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Download Dataset │ False            │
+├──────────────────┼──────────────────┤
+│ Model Name       │ DATUNet          │
+├──────────────────┼──────────────────┤
+│ Seed             │ 666              │
+├──────────────────┼──────────────────┤
+│ Task Name        │ ISIC2017         │
+├──────────────────┼──────────────────┤
+│ GPU              │ Tesla T4         │
+├──────────────────┼──────────────────┤
+│ Torch            │ 1.13.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Torchvision      │ 0.14.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Checkpoint Name  │ DATUNet_ISIC2017 │
+╘══════════════════╧══════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ DATUNet         │ 37.54 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2017_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 1.0297 , Dice = 61.01 , IoU = 51.67 , Pixel Accuracy = 90.04 , lr = 5e-05
+Epoch: 1 ---> Valid , Loss = 0.5486 , Dice = 78.38  , IoU = 66.83 , Pixel Accuracy = 93.91 , lr = 5e-05
+Epoch: 2 ---> Train , Loss = 0.2807 , Dice = 86.56 , IoU = 78.10 , Pixel Accuracy = 96.42 , lr = 5e-05
+Epoch: 2 ---> Valid , Loss = 0.3096 , Dice = 85.33  , IoU = 76.25 , Pixel Accuracy = 95.71 , lr = 5e-05
+Epoch: 3 ---> Train , Loss = 0.1870 , Dice = 88.00 , IoU = 79.94 , Pixel Accuracy = 96.86 , lr = 5e-05
+Epoch: 3 ---> Valid , Loss = 0.3258 , Dice = 84.12  , IoU = 75.24 , Pixel Accuracy = 95.47 , lr = 5e-05
+Epoch: 4 ---> Train , Loss = 0.1712 , Dice = 88.67 , IoU = 80.95 , Pixel Accuracy = 97.03 , lr = 5e-05
+Epoch: 4 ---> Valid , Loss = 0.2903 , Dice = 85.41  , IoU = 76.43 , Pixel Accuracy = 95.88 , lr = 5e-05
+Epoch: 5 ---> Train , Loss = 0.1578 , Dice = 89.16 , IoU = 81.45 , Pixel Accuracy = 97.18 , lr = 5e-05
+Epoch: 5 ---> Valid , Loss = 0.3155 , Dice = 85.32  , IoU = 76.36 , Pixel Accuracy = 95.69 , lr = 5e-05
+Epoch: 6 ---> Train , Loss = 0.1506 , Dice = 89.53 , IoU = 82.02 , Pixel Accuracy = 97.28 , lr = 5e-05
+Epoch: 6 ---> Valid , Loss = 0.2664 , Dice = 85.27  , IoU = 76.05 , Pixel Accuracy = 95.72 , lr = 5e-05
+Epoch: 7 ---> Train , Loss = 0.1400 , Dice = 90.00 , IoU = 82.72 , Pixel Accuracy = 97.44 , lr = 5e-05
+Epoch: 7 ---> Valid , Loss = 0.2915 , Dice = 85.96  , IoU = 77.41 , Pixel Accuracy = 95.85 , lr = 5e-05
+Epoch: 8 ---> Train , Loss = 0.1399 , Dice = 90.05 , IoU = 82.82 , Pixel Accuracy = 97.43 , lr = 5e-05
+Epoch: 8 ---> Valid , Loss = 0.3254 , Dice = 85.71  , IoU = 77.01 , Pixel Accuracy = 95.68 , lr = 5e-05
