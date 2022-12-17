@@ -1045,8 +1045,8 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
         # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
@@ -1090,21 +1090,21 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
-        x = [x0, x1, x2, x3]
+        # x = [x0, x1, x2, x3]
 
-        x_fuse = []
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, 4):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, 4):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
+        # # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
         # x0 = self.reduction_0(x0)
         # x1 = self.reduction_1(x1)
