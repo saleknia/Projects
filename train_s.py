@@ -55,7 +55,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
 from tester_s import tester_s
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
@@ -379,6 +379,42 @@ def main(args):
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+    elif TASK_NAME=='ISIC2018':
+
+        train_dataset = ISIC2018(split='train')
+        valid_dataset = ISIC2018(split='valid')
+        test_dataset  = ISIC2018(split='test')
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=30,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        pos_weight = train_dataset.pos_weight.to(DEVICE)
+        print(50 * '*')
+        print(f'Positive Weight: {pos_weight}')
+        print(50 * '*')
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
     elif TASK_NAME=='ISIC2016':
 

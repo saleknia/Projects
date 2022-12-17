@@ -45,6 +45,65 @@ def dataset_normalized(imgs):
         imgs_normalized[i] = ((imgs_normalized[i] - np.min(imgs_normalized[i])) / (np.max(imgs_normalized[i])-np.min(imgs_normalized[i])))*255
     return imgs_normalized
      
+
+
+class ISIC2018(Dataset):
+    def __init__(self, path_Data='/content/drive/MyDrive/ISIC2018_dataset/', split='train'):
+        super(ISIC2018, self)
+        if split=='train':
+            self.train = True
+            self.data   = np.load(path_Data+'data_train.npy')
+            self.mask   = np.load(path_Data+'mask_train.npy')
+            self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==255.0))
+        elif split=='test':
+            self.train = False
+            self.data   = np.load(path_Data+'data_test.npy')
+            self.mask   = np.load(path_Data+'mask_test.npy')
+        elif split=='valid':
+            self.train = False
+            self.data   = np.load(path_Data+'data_val.npy')
+            self.mask   = np.load(path_Data+'mask_val.npy')          
+          
+        self.mask = np.expand_dims(self.mask, axis=3)
+        self.mask = self.mask /255.0
+        self.data = self.data /255.0
+
+        self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406],
+                                 [0.229, 0.224, 0.225])
+        ])
+        self.gt_transform = transforms.Compose([
+            transforms.ToTensor()])
+        
+        self.transform = A.Compose(
+            [
+                A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=20, p=0.5, border_mode=0),
+                A.ColorJitter (brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
+                A.HorizontalFlip(p=0.5),
+                A.VerticalFlip(p=0.5)
+            ]
+        )
+
+    def __getitem__(self, indx):
+        img = self.data[indx]
+        seg = self.mask[indx]
+
+        img = np.float32(img)
+        seg = np.float32(seg)
+        # (256, 256, 3)
+        img, seg = self.resize(img, seg)
+
+        if self.train:
+            transformed = self.transform(image=img, mask=seg)
+            img = self.img_transform(transformed['image'])
+            seg = self.gt_transform(transformed['mask'])
+        else:
+            img = self.img_transform(img)
+            seg = self.gt_transform(seg)
+
+        return img, seg[0]
+
 class ISIC2016(Dataset):
     def __init__(self, path_Data='/content/drive/MyDrive/ISIC2016_dataset/', split='train'):
         super(ISIC2016, self)
