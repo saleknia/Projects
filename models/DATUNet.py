@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -995,8 +995,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 6, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -1014,6 +1014,32 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
+        # self.encoder = DAT(
+        #     img_size=224,
+        #     patch_size=4,
+        #     num_classes=1000,
+        #     expansion=4,
+        #     dim_stem=96,
+        #     dims=[96, 192, 384, 768],
+        #     depths=[2, 2, 18, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     heads=[3, 6, 12, 24],
+        #     window_sizes=[7, 7, 7, 7] ,
+        #     groups=[-1, -1, 3, 6],
+        #     use_pes=[False, False, True, True],
+        #     dwc_pes=[False, False, False, False],
+        #     strides=[-1, -1, 1, 1],
+        #     sr_ratios=[-1, -1, -1, -1],
+        #     offset_range_factor=[-1, -1, 2, 2],
+        #     no_offs=[False, False, False, False],
+        #     fixed_pes=[False, False, False, False],
+        #     use_dwc_mlps=[False, False, False, False],
+        #     use_conv_patches=False,
+        #     drop_rate=0.0,
+        #     attn_drop_rate=0.0,
+        #     drop_path_rate=0.2,
+        # )
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
@@ -1023,21 +1049,21 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
-        self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
-        self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
 
-        self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
+        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
 
-        self.up1 = nn.Upsample(scale_factor=2.0)
-        self.up2 = nn.Upsample(scale_factor=4.0)
-        self.up3 = nn.Upsample(scale_factor=8.0)
+        # self.up1 = nn.Upsample(scale_factor=2.0)
+        # self.up2 = nn.Upsample(scale_factor=4.0)
+        # self.up3 = nn.Upsample(scale_factor=8.0)
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1080,19 +1106,19 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
-        x0 = self.reduction_0(x0)
-        x1 = self.reduction_1(x1)
-        x2 = self.reduction_2(x2)
-        x3 = self.reduction_3(x3)
+        # x0 = self.reduction_0(x0)
+        # x1 = self.reduction_1(x1)
+        # x2 = self.reduction_2(x2)
+        # x3 = self.reduction_3(x3)
 
-        x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
+        # x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
 
-        x1 = self.up1(x1)
-        x2 = self.up2(x2)
-        x3 = self.up3(x3)
+        # x1 = self.up1(x1)
+        # x2 = self.up2(x2)
+        # x3 = self.up3(x3)
 
-        x = torch.cat([x0, x1, x2, x3], dim=1)
-        x = self.combine(x)
+        # x = torch.cat([x0, x1, x2, x3], dim=1)
+        # x = self.combine(x)
 
         # x_in = OrderedDict()
 
@@ -1111,9 +1137,9 @@ class DATUNet(nn.Module):
         # x = torch.cat([x0, x1, x2, x3], dim=1)
         # x = self.combine(x)
 
-        # x = self.up3(x3, x2) 
-        # x = self.up2(x , x1) 
-        # x = self.up1(x , x0) 
+        x = self.up3(x3, x2) 
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
