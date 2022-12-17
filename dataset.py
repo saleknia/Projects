@@ -103,7 +103,13 @@ class ISIC2018(Dataset):
             seg = self.gt_transform(seg)
 
         return img, seg[0]
-        
+
+    def resize(self, img, seg):
+        size = 224
+        img = skimage.transform.resize(img, (size, size, 3))
+        seg = skimage.transform.resize(seg, (size, size, 1))
+        return img, seg
+               
     def __len__(self):
         return len(self.data)
 
