@@ -475,8 +475,6 @@ class DAT(nn.Module):
                 )
             )
 
-
-        self.down_projs[2][0].stride = 1
            
         self.cls_norm = LayerNormProxy(dims[-1]) 
         self.cls_head = nn.Linear(dims[-1], num_classes)
@@ -485,6 +483,10 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
+
+        self.down_projs[2][0].kernel_size = 1
+        self.down_projs[2][0].stride = 1
+        self.down_projs[2][0].padding = 0
 
         # self.stages[3] = None
     
