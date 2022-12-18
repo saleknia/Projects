@@ -1095,28 +1095,11 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.make_fuse_layers_decode = make_fuse_layers_decode()
-        self.fuse_act_decode = nn.ReLU()
-
         self.SA = SpatialAttention()
 
-
-        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
-
-        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
-
-        # self.up1 = nn.Upsample(scale_factor=2.0)
-        # self.up2 = nn.Upsample(scale_factor=4.0)
-        # self.up3 = nn.Upsample(scale_factor=8.0)
-
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1159,55 +1142,11 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
 
-        x = [x0, x1, x2, x3]
+        x = self.up3(x3, x2) 
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
 
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.make_fuse_layers_decode):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act_decode(y))
-
-        x = x_fuse[0] + self.SA(x_fuse[0])
-        
-        # x0 = self.reduction_0(x0)
-        # x1 = self.reduction_1(x1)
-        # x2 = self.reduction_2(x2)
-        # x3 = self.reduction_3(x3)
-
-        # x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
-
-        # x1 = self.up1(x1)
-        # x2 = self.up2(x2)
-        # x3 = self.up3(x3)
-
-        # x = torch.cat([x0, x1, x2, x3], dim=1)
-        # x = self.combine(x)
-
-        # x_in = OrderedDict()
-
-        # x_in['x0'] = x0
-        # x_in['x1'] = x1
-        # x_in['x2'] = x2
-        # x_in['x3'] = x3
-
-        # x_out = self.FPN(x_in)
-
-        # x0 = x_out['x0']
-        # x1 = self.up1(x_out['x1'])        
-        # x2 = self.up2(x_out['x2'])        
-        # x3 = self.up3(x_out['x3'])
-
-        # x = torch.cat([x0, x1, x2, x3], dim=1)
-        # x = self.combine(x)
-
-        # x = self.up3(x3, x2) 
-        # x = self.up2(x , x1) 
-        # x = self.up1(x , x0) 
+        x = self.SA(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
