@@ -1077,12 +1077,11 @@ class DATUNet(nn.Module):
         self.norm_41 = LayerNormProxy(dim=384)
         self.norm_31 = LayerNormProxy(dim=192)
         self.norm_21 = LayerNormProxy(dim=96 )
-        self.norm_11 = LayerNormProxy(dim=48 )
+        self.norm_1 = LayerNormProxy(dim=48 )
 
         self.norm_42 = LayerNormProxy(dim=384)
         self.norm_32 = LayerNormProxy(dim=192)
         self.norm_22 = LayerNormProxy(dim=96 )
-        self.norm_12 = LayerNormProxy(dim=48 )
 
         self.combine_1 = ConvBatchNorm(in_channels=192, out_channels=96, kernel_size=1, padding=0)
         self.combine_2 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
