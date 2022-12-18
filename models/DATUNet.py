@@ -465,15 +465,27 @@ class DAT(nn.Module):
 
         self.down_projs = nn.ModuleList()
         for i in range(3):
-            self.down_projs.append(
-                nn.Sequential(
-                    nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
-                    LayerNormProxy(dims[i + 1])
-                ) if use_conv_patches else nn.Sequential(
-                    nn.Conv2d(dims[i], dims[i + 1], 2, 2, 0, bias=False),
-                    LayerNormProxy(dims[i + 1])
+            if i==2:
+                self.down_projs.append(
+                    nn.Sequential(
+                        nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
+                        LayerNormProxy(dims[i + 1])
+                    ) if use_conv_patches else nn.Sequential(
+                        nn.Conv2d(dims[i], dims[i + 1], 1, 1, 0, bias=False),
+                        LayerNormProxy(dims[i + 1])
+                    )
                 )
-            )
+            
+            else:
+                self.down_projs.append(
+                    nn.Sequential(
+                        nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
+                        LayerNormProxy(dims[i + 1])
+                    ) if use_conv_patches else nn.Sequential(
+                        nn.Conv2d(dims[i], dims[i + 1], 2, 2, 0, bias=False),
+                        LayerNormProxy(dims[i + 1])
+                    )
+                )
 
            
         self.cls_norm = LayerNormProxy(dims[-1]) 
@@ -483,10 +495,6 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-
-        self.down_projs[2][0].kernel_size = 1
-        self.down_projs[2][0].stride = 1
-        self.down_projs[2][0].padding = 0
 
         # self.stages[3] = None
     
