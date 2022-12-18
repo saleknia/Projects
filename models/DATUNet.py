@@ -1071,9 +1071,10 @@ class DATUNet(nn.Module):
         # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
 
-        # self.up1 = nn.Upsample(scale_factor=2.0)
-        # self.up2 = nn.Upsample(scale_factor=4.0)
         # self.up3 = nn.Upsample(scale_factor=8.0)
+        # self.up3 = nn.Upsample(scale_factor=8.0)
+        # self.up2 = nn.Upsample(scale_factor=4.0)
+        # self.up1 = nn.Upsample(scale_factor=2.0)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
