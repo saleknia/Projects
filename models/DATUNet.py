@@ -474,6 +474,9 @@ class DAT(nn.Module):
                     LayerNormProxy(dims[i + 1])
                 )
             )
+
+
+        self.down_projs[2][0].stride = 1
            
         self.cls_norm = LayerNormProxy(dims[-1]) 
         self.cls_head = nn.Linear(dims[-1], num_classes)
@@ -550,7 +553,7 @@ class DAT(nn.Module):
             x, pos, ref = self.stages[i](x)
             if i!=2:
                 outputs.append(x)
-            if i < 2:
+            if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
