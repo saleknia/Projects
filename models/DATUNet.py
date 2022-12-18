@@ -928,6 +928,8 @@ def make_fuse_layers_decode():
     num_branches = 4
     num_in_chs = [48, 96, 192, 384]
     fuse_layer = []
+    fuse_layers = []
+    i = 0
     for j in range(num_branches):
         if j > i:
             fuse_layer.append(nn.Sequential(
