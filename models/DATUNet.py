@@ -1091,10 +1091,12 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
+
+        self.Reduction = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
 
         self.fuse_layers = make_fuse_layers()
@@ -1125,7 +1127,7 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
+        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.Reduction(self.norm_4(outputs[2]))
 
         x = [x0, x1, x2, x3]
 
