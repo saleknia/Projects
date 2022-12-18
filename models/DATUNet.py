@@ -483,7 +483,7 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -546,7 +546,7 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 3:
@@ -1054,7 +1054,6 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
@@ -1063,15 +1062,18 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.attention = nn.Sequential(
-            ConvBatchNorm(in_channels=768, out_channels=1, kernel_size=1, padding=0),
-            nn.Sigmoid()
-        )
+        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
+        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
 
-        self.up_scale_0 = nn.Upsample(scale_factor=16.0)
-        self.up_scale_1 = nn.Upsample(scale_factor=8.0)
-        self.up_scale_2 = nn.Upsample(scale_factor=4.0)
-        self.up_scale_3 = nn.Upsample(scale_factor=2.0)
+        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
+
+        # self.up1 = nn.Upsample(scale_factor=2.0)
+        # self.up2 = nn.Upsample(scale_factor=4.0)
+        # self.up3 = nn.Upsample(scale_factor=8.0)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1099,11 +1101,7 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x0, x1, x2, x3, x4 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2]), self.norm_5(outputs[3])
-
-        x4 = self.attention(x4)
-
-        x0, x1, x2, x3 = x0 + (self.up_scale_0(x4) * x0), x1 + (self.up_scale_1(x4) * x1), x2 + (self.up_scale_2(x4) * x2), x3 + (self.up_scale_3(x4) * x3)
+        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
 
         x = [x0, x1, x2, x3]
 
@@ -1120,7 +1118,7 @@ class DATUNet(nn.Module):
 
         # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
+        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
 
         # x0 = self.reduction_0(x0)
         # x1 = self.reduction_1(x1)
