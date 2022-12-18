@@ -483,7 +483,7 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        self.stages[3] = None
+        # self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -546,9 +546,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
-            outputs.append(x)
+            if i!=2:
+                outputs.append(x)
             if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
@@ -1095,8 +1096,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.SA = SpatialAttention()
-
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1106,7 +1105,6 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -1142,13 +1140,11 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
 
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        x2 = self.up3(x3, x2) 
+        x1 = self.up2(x2, x1) 
+        x0 = self.up1(x1, x0) 
 
-        x = self.SA(x)
-
-        x = self.final_conv1(x)
+        x = self.final_conv1(x0)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
