@@ -584,7 +584,7 @@ class SpatialAttention(nn.Module):
         result=torch.cat([max_result,avg_result],1)
         output=self.conv(result)
         output=self.sigmoid(output)
-        return output
+        return output * x
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
