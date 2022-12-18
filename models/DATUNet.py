@@ -465,28 +465,15 @@ class DAT(nn.Module):
 
         self.down_projs = nn.ModuleList()
         for i in range(3):
-            if i==2:
-                self.down_projs.append(
-                    nn.Sequential(
-                        nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
-                        LayerNormProxy(dims[i + 1])
-                    ) if use_conv_patches else nn.Sequential(
-                        nn.Conv2d(dims[i], dims[i + 1], 1, 1, 0, bias=False),
-                        LayerNormProxy(dims[i + 1])
-                    )
+            self.down_projs.append(
+                nn.Sequential(
+                    nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
+                    LayerNormProxy(dims[i + 1])
+                ) if use_conv_patches else nn.Sequential(
+                    nn.Conv2d(dims[i], dims[i + 1], 2, 2, 0, bias=False),
+                    LayerNormProxy(dims[i + 1])
                 )
-            
-            else:
-                self.down_projs.append(
-                    nn.Sequential(
-                        nn.Conv2d(dims[i], dims[i + 1], 3, 2, 1, bias=False),
-                        LayerNormProxy(dims[i + 1])
-                    ) if use_conv_patches else nn.Sequential(
-                        nn.Conv2d(dims[i], dims[i + 1], 2, 2, 0, bias=False),
-                        LayerNormProxy(dims[i + 1])
-                    )
-                )
-
+            )
            
         self.cls_norm = LayerNormProxy(dims[-1]) 
         self.cls_head = nn.Linear(dims[-1], num_classes)
@@ -561,8 +548,7 @@ class DAT(nn.Module):
         outputs = []
         for i in range(4):
             x, pos, ref = self.stages[i](x)
-            if i!=2:
-                outputs.append(x)
+            outputs.append(x)
             if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
@@ -598,7 +584,7 @@ class SpatialAttention(nn.Module):
         result=torch.cat([max_result,avg_result],1)
         output=self.conv(result)
         output=self.sigmoid(output)
-        return output * x
+        return output
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -906,8 +892,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 4
-    num_in_chs = [48, 96, 192, 384]
+    num_branches = 5
+    num_in_chs = [48, 96, 192, 384, 768]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -935,39 +921,6 @@ def make_fuse_layers():
                             nn.ReLU(False)))
                 fuse_layer.append(nn.Sequential(*conv3x3s))
         fuse_layers.append(nn.ModuleList(fuse_layer))
-
-    return nn.ModuleList(fuse_layers)
-
-def make_fuse_layers_decode():
-    num_branches = 4
-    num_in_chs = [48, 96, 192, 384]
-    fuse_layer = []
-    fuse_layers = []
-    i = 0
-    for j in range(num_branches):
-        if j > i:
-            fuse_layer.append(nn.Sequential(
-                nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
-                nn.BatchNorm2d(num_in_chs[i]),
-                nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
-        elif j == i:
-            fuse_layer.append(nn.Identity())
-        else:
-            conv3x3s = []
-            for k in range(i - j):
-                if k == i - j - 1:
-                    num_outchannels_conv3x3 = num_in_chs[i]
-                    conv3x3s.append(nn.Sequential(
-                        nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                        nn.BatchNorm2d(num_outchannels_conv3x3)))
-                else:
-                    num_outchannels_conv3x3 = num_in_chs[j]
-                    conv3x3s.append(nn.Sequential(
-                        nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                        nn.BatchNorm2d(num_outchannels_conv3x3),
-                        nn.ReLU(False)))
-            fuse_layer.append(nn.Sequential(*conv3x3s))
-    fuse_layers.append(nn.ModuleList(fuse_layer))
 
     return nn.ModuleList(fuse_layers)
 
@@ -1101,17 +1054,29 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_5 = LayerNormProxy(dim=768)
+        self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96 )
         self.norm_1 = LayerNormProxy(dim=48 )
 
-        self.Reduction = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
-
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
+        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+
+        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
+        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
+
+        # self.up1 = nn.Upsample(scale_factor=2.0)
+        # self.up2 = nn.Upsample(scale_factor=4.0)
+        # self.up3 = nn.Upsample(scale_factor=8.0)
+
+        self.up4 = UpBlock(768, 384, nb_Conv=2)
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1121,6 +1086,7 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -1137,12 +1103,12 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.Reduction(self.norm_4(outputs[2]))
+        x0, x1, x2, x3, x4 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2]), self.norm_5(outputs[3])
 
-        x = [x0, x1, x2, x3]
+        x = [x0, x1, x2, x3, x4]
 
         x_fuse = []
-        num_branches = 4
+        num_branches = 5
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
@@ -1154,13 +1120,45 @@ class DATUNet(nn.Module):
 
         # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
+        x0, x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3], x[4] + x_fuse[4] 
 
-        x2 = self.up3(x3, x2) 
-        x1 = self.up2(x2, x1) 
-        x0 = self.up1(x1, x0) 
+        # x0 = self.reduction_0(x0)
+        # x1 = self.reduction_1(x1)
+        # x2 = self.reduction_2(x2)
+        # x3 = self.reduction_3(x3)
 
-        x = self.final_conv1(x0)
+        # x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
+
+        # x1 = self.up1(x1)
+        # x2 = self.up2(x2)
+        # x3 = self.up3(x3)
+
+        # x = torch.cat([x0, x1, x2, x3], dim=1)
+        # x = self.combine(x)
+
+        # x_in = OrderedDict()
+
+        # x_in['x0'] = x0
+        # x_in['x1'] = x1
+        # x_in['x2'] = x2
+        # x_in['x3'] = x3
+
+        # x_out = self.FPN(x_in)
+
+        # x0 = x_out['x0']
+        # x1 = self.up1(x_out['x1'])        
+        # x2 = self.up2(x_out['x2'])        
+        # x3 = self.up3(x_out['x3'])
+
+        # x = torch.cat([x0, x1, x2, x3], dim=1)
+        # x = self.combine(x)
+
+        x = self.up4(x4, x2) 
+        x = self.up3(x , x2) 
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
+
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
