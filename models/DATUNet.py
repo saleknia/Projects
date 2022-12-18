@@ -1098,6 +1098,8 @@ class DATUNet(nn.Module):
         self.make_fuse_layers_decode = make_fuse_layers_decode()
         self.fuse_act_decode = nn.ReLU()
 
+        self.SA = SpatialAttention()
+
 
         # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
         # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
@@ -1168,9 +1170,9 @@ class DATUNet(nn.Module):
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+            x_fuse.append(self.fuse_act_decode(y))
 
-        x = x_fuse[0]
+        x = x_fuse[0] + self.SA(x_fuse[0])
         
         # x0 = self.reduction_0(x0)
         # x1 = self.reduction_1(x1)
