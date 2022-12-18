@@ -1028,33 +1028,33 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
+        self.encoder_1 = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
 
-        self.encoder = CrossFormer(
+        self.encoder_2 = CrossFormer(
                                 img_size=224,
                                 patch_size=[4, 8, 16, 32],
                                 in_chans= 3,
@@ -1073,11 +1073,20 @@ class DATUNet(nn.Module):
                                 use_checkpoint=False,
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
-                                
-        self.norm_4 = LayerNormProxy(dim=384)
-        self.norm_3 = LayerNormProxy(dim=192)
-        self.norm_2 = LayerNormProxy(dim=96 )
-        self.norm_1 = LayerNormProxy(dim=48 )
+
+        self.norm_41 = LayerNormProxy(dim=384)
+        self.norm_31 = LayerNormProxy(dim=192)
+        self.norm_21 = LayerNormProxy(dim=96 )
+        self.norm_11 = LayerNormProxy(dim=48 )
+
+        self.norm_42 = LayerNormProxy(dim=384)
+        self.norm_32 = LayerNormProxy(dim=192)
+        self.norm_22 = LayerNormProxy(dim=96 )
+        self.norm_12 = LayerNormProxy(dim=48 )
+
+        self.combine_1 = ConvBatchNorm(in_channels=192, out_channels=96, kernel_size=1, padding=0)
+        self.combine_2 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
+        self.combine_3 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1106,9 +1115,14 @@ class DATUNet(nn.Module):
         for i in range(6):
             x0 = self.FAM1[i](x0)
 
-        outputs = self.encoder(x_input)
+        outputs_1 = self.encoder_1(x_input)
+        outputs_2 = self.encoder_2(x_input)
 
-        x0, x1, x2, x3 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2])
+
+        x0 = self.norm_1(x0)
+        x1 = self.combine_1(torch.cat([self.norm_21(outputs_1[0]),self.norm_22(outputs_2[0])], dim=1))
+        x2 = self.combine_2(torch.cat([self.norm_31(outputs_1[1]),self.norm_32(outputs_2[1])], dim=1))
+        x3 = self.combine_3(torch.cat([self.norm_41(outputs_1[2]),self.norm_42(outputs_2[2])], dim=1))
 
         x = [x0, x1, x2, x3]
 
