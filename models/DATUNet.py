@@ -892,8 +892,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 5
-    num_in_chs = [48, 96, 192, 384, 768]
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1063,20 +1063,16 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+        self.attention = nn.Sequential(
+            ConvBatchNorm(in_channels=768, out_channels=1, kernel_size=1, padding=0),
+            nn.Sigmoid()
+        )
 
-        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
+        self.up_scale_0 = nn.Upsample(scale_factor=16.0)
+        self.up_scale_1 = nn.Upsample(scale_factor=8.0)
+        self.up_scale_2 = nn.Upsample(scale_factor=4.0)
+        self.up_scale_3 = nn.Upsample(scale_factor=2.0)
 
-        # self.up1 = nn.Upsample(scale_factor=2.0)
-        # self.up2 = nn.Upsample(scale_factor=4.0)
-        # self.up3 = nn.Upsample(scale_factor=8.0)
-
-        self.up4 = UpBlock(768, 384, nb_Conv=2)
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1105,10 +1101,14 @@ class DATUNet(nn.Module):
 
         x0, x1, x2, x3, x4 = self.norm_1(x0), self.norm_2(outputs[0]), self.norm_3(outputs[1]), self.norm_4(outputs[2]), self.norm_5(outputs[3])
 
-        x = [x0, x1, x2, x3, x4]
+        x4 = self.attention(x4)
+
+        x0, x1, x2, x3 = x0 + (self.up_scale_0(x4) * x0), x1 + (self.up_scale_1(x4) * x1), x2 + (self.up_scale_2(x4) * x2), x3 + (self.up_scale_3(x4) * x3)
+
+        x = [x0, x1, x2, x3]
 
         x_fuse = []
-        num_branches = 5
+        num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
@@ -1120,7 +1120,7 @@ class DATUNet(nn.Module):
 
         # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x0, x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3], x[4] + x_fuse[4] 
+        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3]
 
         # x0 = self.reduction_0(x0)
         # x1 = self.reduction_1(x1)
@@ -1153,8 +1153,7 @@ class DATUNet(nn.Module):
         # x = torch.cat([x0, x1, x2, x3], dim=1)
         # x = self.combine(x)
 
-        x = self.up4(x4, x3) 
-        x = self.up3(x , x2) 
+        x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
         x = self.up1(x , x0) 
 
