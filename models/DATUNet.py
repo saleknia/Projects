@@ -1062,20 +1062,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.FPN = torchvision.ops.FeaturePyramidNetwork([48, 96, 192, 384], 48)
-        # self.reduction_0 = ConvBatchNorm(in_channels=48, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_1 = ConvBatchNorm(in_channels=96, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        # self.reduction_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
-
-        # self.combine = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=3, padding=1)
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1])
-
-        # self.up3 = nn.Upsample(scale_factor=8.0)
-        # self.up3 = nn.Upsample(scale_factor=8.0)
-        # self.up2 = nn.Upsample(scale_factor=4.0)
-        # self.up1 = nn.Upsample(scale_factor=2.0)
-
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)

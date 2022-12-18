@@ -79,133 +79,72 @@ class Attention_org(nn.Module):
         self.channel_num = channel_num
         self.num_attention_heads = config.transformer["num_heads"]
 
-        self.query1 = nn.ModuleList()
-        self.query2 = nn.ModuleList()
-        self.query3 = nn.ModuleList()
-        self.query4 = nn.ModuleList()
+        self.query = nn.ModuleList()
         self.key = nn.ModuleList()
         self.value = nn.ModuleList()
 
         for _ in range(config.transformer["num_heads"]):
-            query1 = nn.Linear(channel_num[0], channel_num[0], bias=False)
-            query2 = nn.Linear(channel_num[1], channel_num[1], bias=False)
-            query3 = nn.Linear(channel_num[2], channel_num[2], bias=False)
-            query4 = nn.Linear(channel_num[3], channel_num[3], bias=False)
+            query = nn.Linear(channel_num[0], channel_num[0], bias=False)
             key = nn.Linear( self.KV_size,  self.KV_size, bias=False)
             value = nn.Linear(self.KV_size,  self.KV_size, bias=False)
-            self.query1.append(copy.deepcopy(query1))
-            self.query2.append(copy.deepcopy(query2))
-            self.query3.append(copy.deepcopy(query3))
-            self.query4.append(copy.deepcopy(query4))
+            self.query.append(copy.deepcopy(query))
             self.key.append(copy.deepcopy(key))
             self.value.append(copy.deepcopy(value))
         self.psi = nn.InstanceNorm2d(self.num_attention_heads)
         self.softmax = Softmax(dim=3)
-        self.out1 = nn.Linear(channel_num[0], channel_num[0], bias=False)
-        self.out2 = nn.Linear(channel_num[1], channel_num[1], bias=False)
-        self.out3 = nn.Linear(channel_num[2], channel_num[2], bias=False)
-        self.out4 = nn.Linear(channel_num[3], channel_num[3], bias=False)
+        self.out = nn.Linear(channel_num[0], channel_num[0], bias=False)
         self.attn_dropout = Dropout(config.transformer["attention_dropout_rate"])
         self.proj_dropout = Dropout(config.transformer["attention_dropout_rate"])
 
 
 
-    def forward(self, emb1,emb2,emb3,emb4, emb_all):
-        multi_head_Q1_list = []
-        multi_head_Q2_list = []
-        multi_head_Q3_list = []
-        multi_head_Q4_list = []
+    def forward(self, emb, emb_all):
+        multi_head_Q_list = []
         multi_head_K_list = []
         multi_head_V_list = []
-        if emb1 is not None:
-            for query1 in self.query1:
-                Q1 = query1(emb1)
-                multi_head_Q1_list.append(Q1)
-        if emb2 is not None:
-            for query2 in self.query2:
-                Q2 = query2(emb2)
-                multi_head_Q2_list.append(Q2)
-        if emb3 is not None:
-            for query3 in self.query3:
-                Q3 = query3(emb3)
-                multi_head_Q3_list.append(Q3)
-        if emb4 is not None:
-            for query4 in self.query4:
-                Q4 = query4(emb4)
-                multi_head_Q4_list.append(Q4)
+        if emb is not None:
+            for query in self.query:
+                Q = query(emb)
+                multi_head_Q_list.append(Q)
         for key in self.key:
             K = key(emb_all)
             multi_head_K_list.append(K)
         for value in self.value:
             V = value(emb_all)
             multi_head_V_list.append(V)
-        # print(len(multi_head_Q4_list))
 
-        multi_head_Q1 = torch.stack(multi_head_Q1_list, dim=1) if emb1 is not None else None
-        multi_head_Q2 = torch.stack(multi_head_Q2_list, dim=1) if emb2 is not None else None
-        multi_head_Q3 = torch.stack(multi_head_Q3_list, dim=1) if emb3 is not None else None
-        multi_head_Q4 = torch.stack(multi_head_Q4_list, dim=1) if emb4 is not None else None
+        multi_head_Q = torch.stack(multi_head_Q_list, dim=1) if emb is not None else None
         multi_head_K = torch.stack(multi_head_K_list, dim=1)
         multi_head_V = torch.stack(multi_head_V_list, dim=1)
 
-        multi_head_Q1 = multi_head_Q1.transpose(-1, -2) if emb1 is not None else None
-        multi_head_Q2 = multi_head_Q2.transpose(-1, -2) if emb2 is not None else None
-        multi_head_Q3 = multi_head_Q3.transpose(-1, -2) if emb3 is not None else None
-        multi_head_Q4 = multi_head_Q4.transpose(-1, -2) if emb4 is not None else None
+        multi_head_Q = multi_head_Q.transpose(-1, -2) if emb is not None else None
 
-        attention_scores1 = torch.matmul(multi_head_Q1, multi_head_K) if emb1 is not None else None
-        attention_scores2 = torch.matmul(multi_head_Q2, multi_head_K) if emb2 is not None else None
-        attention_scores3 = torch.matmul(multi_head_Q3, multi_head_K) if emb3 is not None else None
-        attention_scores4 = torch.matmul(multi_head_Q4, multi_head_K) if emb4 is not None else None
+        attention_scores = torch.matmul(multi_head_Q, multi_head_K) if emb is not None else None
+ 
+        attention_scores = attention_scores / math.sqrt(self.KV_size) if emb is not None else None
 
-        attention_scores1 = attention_scores1 / math.sqrt(self.KV_size) if emb1 is not None else None
-        attention_scores2 = attention_scores2 / math.sqrt(self.KV_size) if emb2 is not None else None
-        attention_scores3 = attention_scores3 / math.sqrt(self.KV_size) if emb3 is not None else None
-        attention_scores4 = attention_scores4 / math.sqrt(self.KV_size) if emb4 is not None else None
+        attention_probs = self.softmax(self.psi(attention_scores)) if emb is not None else None
 
-        attention_probs1 = self.softmax(self.psi(attention_scores1)) if emb1 is not None else None
-        attention_probs2 = self.softmax(self.psi(attention_scores2)) if emb2 is not None else None
-        attention_probs3 = self.softmax(self.psi(attention_scores3)) if emb3 is not None else None
-        attention_probs4 = self.softmax(self.psi(attention_scores4)) if emb4 is not None else None
-        # print(attention_probs4.size())
 
         if self.vis:
             weights =  []
-            weights.append(attention_probs1.mean(1))
-            weights.append(attention_probs2.mean(1))
-            weights.append(attention_probs3.mean(1))
-            weights.append(attention_probs4.mean(1))
+            weights.append(attention_probs.mean(1))
         else: weights=None
 
-        attention_probs1 = self.attn_dropout(attention_probs1) if emb1 is not None else None
-        attention_probs2 = self.attn_dropout(attention_probs2) if emb2 is not None else None
-        attention_probs3 = self.attn_dropout(attention_probs3) if emb3 is not None else None
-        attention_probs4 = self.attn_dropout(attention_probs4) if emb4 is not None else None
+        attention_probs = self.attn_dropout(attention_probs) if emb is not None else None
 
         multi_head_V = multi_head_V.transpose(-1, -2)
-        context_layer1 = torch.matmul(attention_probs1, multi_head_V) if emb1 is not None else None
-        context_layer2 = torch.matmul(attention_probs2, multi_head_V) if emb2 is not None else None
-        context_layer3 = torch.matmul(attention_probs3, multi_head_V) if emb3 is not None else None
-        context_layer4 = torch.matmul(attention_probs4, multi_head_V) if emb4 is not None else None
+        context_layer = torch.matmul(attention_probs, multi_head_V) if emb is not None else None
 
-        context_layer1 = context_layer1.permute(0, 3, 2, 1).contiguous() if emb1 is not None else None
-        context_layer2 = context_layer2.permute(0, 3, 2, 1).contiguous() if emb2 is not None else None
-        context_layer3 = context_layer3.permute(0, 3, 2, 1).contiguous() if emb3 is not None else None
-        context_layer4 = context_layer4.permute(0, 3, 2, 1).contiguous() if emb4 is not None else None
-        context_layer1 = context_layer1.mean(dim=3) if emb1 is not None else None
-        context_layer2 = context_layer2.mean(dim=3) if emb2 is not None else None
-        context_layer3 = context_layer3.mean(dim=3) if emb3 is not None else None
-        context_layer4 = context_layer4.mean(dim=3) if emb4 is not None else None
+        context_layer = context_layer.permute(0, 3, 2, 1).contiguous() if emb is not None else None
 
-        O1 = self.out1(context_layer1) if emb1 is not None else None
-        O2 = self.out2(context_layer2) if emb2 is not None else None
-        O3 = self.out3(context_layer3) if emb3 is not None else None
-        O4 = self.out4(context_layer4) if emb4 is not None else None
-        O1 = self.proj_dropout(O1) if emb1 is not None else None
-        O2 = self.proj_dropout(O2) if emb2 is not None else None
-        O3 = self.proj_dropout(O3) if emb3 is not None else None
-        O4 = self.proj_dropout(O4) if emb4 is not None else None
-        return O1,O2,O3,O4, weights
+        context_layer = context_layer.mean(dim=3) if emb is not None else None
+
+        O = self.out(context_layer) if emb is not None else None
+
+        O = self.proj_dropout(O) if emb is not None else None
+
+        return O, weights
 
 
 
@@ -237,21 +176,14 @@ class Block_ViT(nn.Module):
     def __init__(self, config, vis, channel_num):
         super(Block_ViT, self).__init__()
         expand_ratio = config.expand_ratio
-        self.attn_norm1 = LayerNorm(channel_num[0],eps=1e-6)
-        self.attn_norm2 = LayerNorm(channel_num[1],eps=1e-6)
-        self.attn_norm3 = LayerNorm(channel_num[2],eps=1e-6)
-        self.attn_norm4 = LayerNorm(channel_num[3],eps=1e-6)
-        self.attn_norm =  LayerNorm(config.KV_size,eps=1e-6)
+        self.attn_norm = LayerNorm(channel_num[0],eps=1e-6)
+        self.attn_norm_all =  LayerNorm(config.KV_size,eps=1e-6)
         self.channel_attn = Attention_org(config, vis, channel_num)
 
-        self.ffn_norm1 = LayerNorm(channel_num[0],eps=1e-6)
-        self.ffn_norm2 = LayerNorm(channel_num[1],eps=1e-6)
-        self.ffn_norm3 = LayerNorm(channel_num[2],eps=1e-6)
-        self.ffn_norm4 = LayerNorm(channel_num[3],eps=1e-6)
-        self.ffn1 = Mlp(config,channel_num[0],channel_num[0]*expand_ratio)
-        self.ffn2 = Mlp(config,channel_num[1],channel_num[1]*expand_ratio)
-        self.ffn3 = Mlp(config,channel_num[2],channel_num[2]*expand_ratio)
-        self.ffn4 = Mlp(config,channel_num[3],channel_num[3]*expand_ratio)
+        self.ffn_norm = LayerNorm(channel_num[0],eps=1e-6)
+
+        self.ffn = Mlp(config,channel_num[0],channel_num[0]*expand_ratio)
+
 
 
     def forward(self, emb1,emb2,emb3,emb4):
