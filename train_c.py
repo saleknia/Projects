@@ -58,6 +58,28 @@ from tensorboardX import SummaryWriter
 import warnings
 warnings.filterwarnings('ignore')
 
+class collect(nn.Module):
+    def __init__(self, start_epoch):
+        super(collect, self).__init__()
+
+        self.outputs = None
+        self.labels = None
+        self.start_epoch = start_epoch
+
+    def forward(self, outputs, labels, epoch):
+        if self.start_epoch <= epoch:
+            if self.outputs==None:
+                self.outputs = outputs.detach().cpu()
+                self.labels = labels.detach().cpu()
+            else:
+                outputs = outputs.detach().cpu()
+                labels = labels.detach().cpu()
+                self.outputs = torch.cat([self.outputs, outputs], dim=0)
+                self.labels = torch.cat([self.labels, labels], dim=0)
+    def save(self):
+        self.outputs = self.outputs.numpy()
+        self.labels = self.labels.numpy()
+        np.savez('outputs.npz', outputs=self.outputs, labels=self.labels)
 
 def main(args):
 
@@ -167,11 +189,11 @@ def main(args):
         )
     logger.info(model_table)
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
     # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9, weight_decay=0.0001)
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9)
 
     if COSINE_LR is True:
         lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
@@ -373,7 +395,7 @@ def main(args):
         logger.info(50*'*')
         logger.info('Training Phase')
         logger.info(50*'*')
-        loss_function = disparity_har()
+        loss_function = collect(start_epoch=40)
         for epoch in range(start_epoch,end_epoch+1):
             trainer(
                 end_epoch=end_epoch,
@@ -433,6 +455,7 @@ def main(args):
                     logger.info(50*'*')
                     logger.info(50*'*')
                     logger.info('\n')
+        loss_function.save()
     if tensorboard:
         writer.close()
 
