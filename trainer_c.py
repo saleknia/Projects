@@ -26,8 +26,8 @@ def loss_label_smoothing(outputs, labels):
     """
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
-    smoothed_labels = torch.zeros(N, C)
-    g_labels = torch.tensor(general_labels)
+    smoothed_labels = torch.zeros(N, C).to('cuda')
+    g_labels = torch.tensor(general_labels).to('cuda')
 
     for i in range(len(labels)):
         smoothed_labels[i] = g_labels[labels[i]]
