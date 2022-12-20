@@ -23282,3 +23282,69 @@ Logging Directory: ./logs/logging
 ├──────────────────┼──────────────┤
 │ Checkpoint Name  │ U_Synapse    │
 ╘══════════════════╧══════════════╛
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════╕
+│ Hyperparameter   │ Value        │
+╞══════════════════╪══════════════╡
+│ Learning Rate    │ 0.001        │
+├──────────────────┼──────────────┤
+│ Num Classes      │ 9            │
+├──────────────────┼──────────────┤
+│ Device           │ cuda         │
+├──────────────────┼──────────────┤
+│ Batch Size       │ 8            │
+├──────────────────┼──────────────┤
+│ COSINE LR        │ False        │
+├──────────────────┼──────────────┤
+│ Num Epochs       │ 60           │
+├──────────────────┼──────────────┤
+│ Num Workers      │ 4            │
+├──────────────────┼──────────────┤
+│ Image Height     │ 224          │
+├──────────────────┼──────────────┤
+│ Image Width      │ 224          │
+├──────────────────┼──────────────┤
+│ Pin Memory       │ True         │
+├──────────────────┼──────────────┤
+│ Early Stopping   │ 200          │
+├──────────────────┼──────────────┤
+│ Load Model       │ True         │
+├──────────────────┼──────────────┤
+│ Save Model       │ True         │
+├──────────────────┼──────────────┤
+│ Download Dataset │ False        │
+├──────────────────┼──────────────┤
+│ Model Name       │ U            │
+├──────────────────┼──────────────┤
+│ Seed             │ 666          │
+├──────────────────┼──────────────┤
+│ Task Name        │ Synapse      │
+├──────────────────┼──────────────┤
+│ GPU              │ Tesla T4     │
+├──────────────────┼──────────────┤
+│ Torch            │ 1.13.0+cu116 │
+├──────────────────┼──────────────┤
+│ Torchvision      │ 0.14.0+cu116 │
+├──────────────────┼──────────────┤
+│ Checkpoint Name  │ U_Synapse    │
+╘══════════════════╧══════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ U               │ 1.69 M        │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/U_Synapse_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss: 0.4756 , mIoU: 4.81 , Dice: 7.07 , Pixel Accuracy: 92.39, lr: 0.001
+Epoch: 2 ---> Train , Loss: 0.3629 , mIoU: 19.40 , Dice: 29.88 , Pixel Accuracy: 96.77, lr: 0.001
+Epoch: 3 ---> Train , Loss: 0.2979 , mIoU: 31.09 , Dice: 45.43 , Pixel Accuracy: 97.25, lr: 0.001
+Epoch: 4 ---> Train , Loss: 0.2732 , mIoU: 36.33 , Dice: 51.42 , Pixel Accuracy: 97.41, lr: 0.001
+Epoch: 5 ---> Train , Loss: 0.2526 , mIoU: 40.72 , Dice: 56.15 , Pixel Accuracy: 97.73, lr: 0.001
+Epoch: 6 ---> Train , Loss: 0.2308 , mIoU: 44.39 , Dice: 59.98 , Pixel Accuracy: 97.93, lr: 0.001
+Epoch: 7 ---> Train , Loss: 0.2259 , mIoU: 46.87 , Dice: 62.33 , Pixel Accuracy: 98.09, lr: 0.001
+Epoch: 8 ---> Train , Loss: 0.2107 , mIoU: 49.39 , Dice: 64.54 , Pixel Accuracy: 98.21, lr: 0.001

@@ -15,22 +15,45 @@ from torch.autograd import Variable
 from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 import os
+import numpy as np
 warnings.filterwarnings("ignore")
+
+general_labels = np.load('/content/UNet_V2/labels.npy')
 
 def loss_label_smoothing(outputs, labels):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.4
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
-    smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
-    smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+    smoothed_labels = torch.zeros(N, C)
+    g_labels = torch.tensor(general_labels)
+
+    for i in range(len(labels)):
+        smoothed_labels[i] = g_labels[labels[i]]
+
+    smoothed_labels = torch.tensor(general_labels)[labels.int()]
 
     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
     loss = -torch.sum(log_prob * smoothed_labels) / N
 
     return loss
+
+
+# def loss_label_smoothing(outputs, labels):
+#     """
+#     loss function for label smoothing regularization
+#     """
+#     alpha = 0.4
+#     N = outputs.size(0)  # batch_size
+#     C = outputs.size(1)  # number of classes
+#     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
+#     smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+
+#     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
+#     loss = -torch.sum(log_prob * smoothed_labels) / N
+
+#     return loss
 
 
 def loss_kd_regularization(outputs, labels):
@@ -161,9 +184,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets.long()) * weights
             loss_ce = torch.mean(loss_ce)
         else:
-            loss_ce = ce_loss(outputs, targets.long())
+            # loss_ce = ce_loss(outputs, targets.long())
             # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
-            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
         # loss_ce = ce_loss(outputs, targets.long())
 
