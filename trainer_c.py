@@ -158,33 +158,33 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
-
+    scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
+            loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
-        outputs = model(inputs)
-        loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
+            predictions = torch.argmax(input=outputs,dim=1).long()
+            accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
-        accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+            if teacher_model is not None:
+                with torch.no_grad():
+                    outputs_t = teacher_model(inputs)
+                    weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
+                    weights = torch.nn.functional.softmax(weights)
+                    weights = weights.detach()
 
-        if teacher_model is not None:
-            with torch.no_grad():
-                outputs_t = teacher_model(inputs)
-                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
-                weights = torch.nn.functional.softmax(weights)
-                weights = weights.detach()
-
-        if teacher_model is not None:
-            loss_ce = ce_loss(outputs, targets.long()) * weights
-            loss_ce = torch.mean(loss_ce)
-        else:
-            # loss_ce = ce_loss(outputs, targets.long())
-            # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
-            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+            if teacher_model is not None:
+                loss_ce = ce_loss(outputs, targets.long()) * weights
+                loss_ce = torch.mean(loss_ce)
+            else:
+                loss_ce = ce_loss(outputs, targets.long())
+                # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
+                # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
         # loss_ce = ce_loss(outputs, targets.long())
 

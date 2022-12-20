@@ -395,7 +395,7 @@ def main(args):
         logger.info(50*'*')
         logger.info('Training Phase')
         logger.info(50*'*')
-        loss_function = collect(start_epoch=40)
+        loss_function = collect(start_epoch=56)
         for epoch in range(start_epoch,end_epoch+1):
             trainer(
                 end_epoch=end_epoch,
