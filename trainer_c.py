@@ -32,8 +32,6 @@ def loss_label_smoothing(outputs, labels):
     for i in range(len(labels)):
         smoothed_labels[i] = g_labels[labels[i]]
 
-    smoothed_labels = torch.tensor(general_labels)[labels.int()]
-
     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
     loss = -torch.sum(log_prob * smoothed_labels) / N
 
