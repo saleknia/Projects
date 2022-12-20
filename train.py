@@ -41,6 +41,7 @@ from models.Fast_SCNN import Fast_SCNN
 from models.Fast_SCNN_loss import Fast_SCNN_loss
 from models.ESPNet import ESPNet
 from models.ESPNet_loss import ESPNet_loss
+from models.SEUNet import SEUNet
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
@@ -157,6 +158,9 @@ def main(args):
 
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='SEUNet':
+        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
