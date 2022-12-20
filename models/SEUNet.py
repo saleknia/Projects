@@ -150,6 +150,8 @@ class SEUNet(nn.Module):
         # Question here
         x = x.float()
 
+        x = torch.cat([x, x, x], dim=1)
+
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
