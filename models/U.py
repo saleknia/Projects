@@ -3,7 +3,36 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
+reduce_factor = 4
+
 class DoubleConv(nn.Module):
+    """(convolution => [BN] => ReLU) * 2"""
+
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        super().__init__()
+        if not mid_channels:
+            mid_channels = out_channels
+        self.double_conv = nn.Sequential(
+            nn.Sequential(
+                        nn.Conv2d(in_channels                , in_channels//reduce_factor , kernel_size=1, padding=0),
+                        nn.Conv2d(in_channels//reduce_factor , mid_channels//reduce_factor, kernel_size=3, padding=1),
+                        nn.Conv2d(mid_channels//reduce_factor, mid_channels               , kernel_size=1, padding=0),
+                        ),
+            nn.BatchNorm2d(mid_channels),
+            nn.ReLU(inplace=True),
+            nn.Sequential(
+                        nn.Conv2d(mid_channels                , mid_channels//reduce_factor , kernel_size=1, padding=0),
+                        nn.Conv2d(mid_channels//reduce_factor , out_channels//reduce_factor, kernel_size=3, padding=1),
+                        nn.Conv2d(out_channels//reduce_factor , out_channels               , kernel_size=1, padding=0),
+                        ),            
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        return self.double_conv(x)
+
+class DoubleConv_(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
 
     def __init__(self, in_channels, out_channels, mid_channels=None):
@@ -39,28 +68,21 @@ class Down(nn.Module):
 class Up(nn.Module):
     """Upscaling then double conv"""
 
-    def __init__(self, in_channels, out_channels, bilinear=True):
+    def __init__(self, in_channels, out_channels):
         super().__init__()
-
-        # if bilinear, use the normal convolutions to reduce the number of channels
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
-        else:
-            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels)
-
+        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.conv = DoubleConv(in_channels, out_channels)
+        self.reduction = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels // reduce_factor, kernel_size=1, padding=0, bias=False),
+            nn.BatchNorm2d(in_channels // reduce_factor),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels // reduce_factor, in_channels // 2, kernel_size=1, padding=0, bias=False),
+            nn.BatchNorm2d(in_channels // 2),
+            nn.ReLU(inplace=True),
+        )
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        # input is CHW
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
-
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
-        # if you have padding issues, see
-        # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
-        # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
+        x1 = self.reduction(x1)
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 
@@ -73,35 +95,45 @@ class OutConv(nn.Module):
         return self.conv(x)
 
 class U(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1, bilinear=False):
+    def __init__(self, n_channels=3, n_classes=1):
         super(U, self).__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.bilinear = bilinear
-        in_channels = 64
-        self.inc = DoubleConv(n_channels, in_channels)
-        self.down1 = Down(in_channels  , in_channels*2)
-        self.down2 = Down(in_channels*2, in_channels*4)
-        self.down3 = Down(in_channels*4, in_channels*8)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(in_channels*8, (in_channels*16) // factor)
-        self.up1 = Up(in_channels*16, in_channels*8  // factor, bilinear)
-        self.up2 = Up(in_channels*8 , in_channels*4 // factor, bilinear)
-        self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
-        self.up4 = Up(in_channels*2 , in_channels , bilinear)
-        self.outc = OutConv(in_channels , n_classes)
-        # self.last_activation = nn.Sigmoid()
 
-    def forward(self, x, multiple=False):
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        up1 = self.up1(x5, x4)
-        up2 = self.up2(up1, x3)
-        up3 = self.up3(up2, x2)
-        up4 = self.up4(up3, x1)
-        x = self.outc(up4)
-        # logits = self.last_activation(x)
+        in_channels = 32
+        
+        self.inc = DoubleConv_(n_channels, in_channels)
+        
+        self.down1 = Down(in_channels*1, in_channels*2 ) # 64
+        self.down2 = Down(in_channels*2, in_channels*4 ) # 128
+        self.down3 = Down(in_channels*4, in_channels*8 ) # 256
+        self.down4 = Down(in_channels*8, in_channels*16) # 512
+        
+        self.up1 = Up(in_channels*16, in_channels*8)
+        self.up2 = Up(in_channels*8 , in_channels*4)
+        self.up3 = Up(in_channels*4 , in_channels*2)
+
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+
+    def forward(self, x):
+        x0 = self.inc(x)
+        x1 = self.down1(x0)
+        x2 = self.down2(x1)
+        x3 = self.down3(x2)
+        x4 = self.down4(x3)
+        
+        x3 = self.up1(x4, x3)
+        x2 = self.up2(x3, x2)
+        x1 = self.up3(x2, x1)
+
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv3(x)
+        
         return x
