@@ -22602,3 +22602,70 @@ Training Phase
 **************************************************
 Epoch: 1 ---> Train , Loss: 0.5049 , mIoU: 2.02 , Dice: 3.49 , Pixel Accuracy: 92.94, lr: 0.001
 Epoch: 2 ---> Train , Loss: 0.4363 , mIoU: 6.07 , Dice: 8.17 , Pixel Accuracy: 96.58, lr: 0.001
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════╕
+│ Hyperparameter   │ Value        │
+╞══════════════════╪══════════════╡
+│ Learning Rate    │ 0.001        │
+├──────────────────┼──────────────┤
+│ Num Classes      │ 9            │
+├──────────────────┼──────────────┤
+│ Device           │ cuda         │
+├──────────────────┼──────────────┤
+│ Batch Size       │ 8            │
+├──────────────────┼──────────────┤
+│ COSINE LR        │ False        │
+├──────────────────┼──────────────┤
+│ Num Epochs       │ 60           │
+├──────────────────┼──────────────┤
+│ Num Workers      │ 4            │
+├──────────────────┼──────────────┤
+│ Image Height     │ 224          │
+├──────────────────┼──────────────┤
+│ Image Width      │ 224          │
+├──────────────────┼──────────────┤
+│ Pin Memory       │ True         │
+├──────────────────┼──────────────┤
+│ Early Stopping   │ 200          │
+├──────────────────┼──────────────┤
+│ Load Model       │ True         │
+├──────────────────┼──────────────┤
+│ Save Model       │ True         │
+├──────────────────┼──────────────┤
+│ Download Dataset │ False        │
+├──────────────────┼──────────────┤
+│ Model Name       │ U            │
+├──────────────────┼──────────────┤
+│ Seed             │ 666          │
+├──────────────────┼──────────────┤
+│ Task Name        │ Synapse      │
+├──────────────────┼──────────────┤
+│ GPU              │ Tesla T4     │
+├──────────────────┼──────────────┤
+│ Torch            │ 1.13.0+cu116 │
+├──────────────────┼──────────────┤
+│ Torchvision      │ 0.14.0+cu116 │
+├──────────────────┼──────────────┤
+│ Checkpoint Name  │ U_Synapse    │
+╘══════════════════╧══════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ U               │ 1.26 M        │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/U_Synapse_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss: 0.5076 , mIoU: 2.74 , Dice: 4.52 , Pixel Accuracy: 92.92, lr: 0.001
+Epoch: 2 ---> Train , Loss: 0.4404 , mIoU: 6.35 , Dice: 8.90 , Pixel Accuracy: 96.54, lr: 0.001
+Epoch: 3 ---> Train , Loss: 0.4154 , mIoU: 11.38 , Dice: 16.63 , Pixel Accuracy: 96.90, lr: 0.001
+Epoch: 4 ---> Train , Loss: 0.4003 , mIoU: 13.80 , Dice: 20.30 , Pixel Accuracy: 96.73, lr: 0.001
+Epoch: 5 ---> Train , Loss: 0.3841 , mIoU: 16.92 , Dice: 25.30 , Pixel Accuracy: 96.73, lr: 0.001
+Epoch: 6 ---> Train , Loss: 0.3612 , mIoU: 20.82 , Dice: 31.30 , Pixel Accuracy: 96.93, lr: 0.001
+Epoch: 7 ---> Train , Loss: 0.3483 , mIoU: 22.55 , Dice: 33.87 , Pixel Accuracy: 96.89, lr: 0.001
+Epoch: 8 ---> Train , Loss: 0.3390 , mIoU: 24.61 , Dice: 36.62 , Pixel Accuracy: 96.92, lr: 0.001
+Epoch: 9 ---> Train , Loss: 0.3239 , mIoU: 27.22 , Dice: 39.71 , Pixel Accuracy: 97.03, lr: 0.001
