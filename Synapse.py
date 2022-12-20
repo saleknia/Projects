@@ -251,14 +251,14 @@ def making_train_npz(path='/content/data/Synapse/train_npz',
                 # slice_2d = augmentations["image"]
                 # label_2d = augmentations["mask"]
 
-                # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
+                lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                # label_2d = label_2d.astype(dtype=np.uint8)
-                # row,col = label_2d.shape
-                # for r in range(row):
-                #     for c in range(col):
-                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
-                # label_2d = label_2d.astype(dtype=np.float32)
+                label_2d = label_2d.astype(dtype=np.uint8)
+                row,col = label_2d.shape
+                for r in range(row):
+                    for c in range(col):
+                        label_2d[r,c] = lookup_table[label_2d[r,c]]
+                label_2d = label_2d.astype(dtype=np.float32)
 
                 # slice_2d = np.flip(m=slice_2d,axis=1)
                 # label_2d = np.flip(m=label_2d,axis=1)
@@ -413,14 +413,14 @@ def making_test_npz(path='/content/data/Synapse/test_vol_h5',
                 # slice_2d = augmentations["image"]
                 # label_2d = augmentations["mask"]
 
-                # lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
+                lookup_table=[0,7,4,3,2,0,5,8,1,0,0,6,0,0]
 
-                # label_2d = label_2d.astype(dtype=np.uint8)
-                # row,col = label_2d.shape
-                # for r in range(row):
-                #     for c in range(col):
-                #         label_2d[r,c] = lookup_table[label_2d[r,c]]
-                # label_2d = label_2d.astype(dtype=np.float32)
+                label_2d = label_2d.astype(dtype=np.uint8)
+                row,col = label_2d.shape
+                for r in range(row):
+                    for c in range(col):
+                        label_2d[r,c] = lookup_table[label_2d[r,c]]
+                label_2d = label_2d.astype(dtype=np.float32)
 
                 # slice_2d = np.flip(m=slice_2d,axis=1)
                 # label_2d = np.flip(m=label_2d,axis=1)
