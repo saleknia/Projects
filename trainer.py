@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.optim as optim
 from multiprocessing.pool import Pool
 from torch.nn.modules.loss import CrossEntropyLoss
-from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss, disparity
+from utils import DiceLoss,atten_loss,prototype_loss,IM_loss,M_loss
 from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
@@ -120,10 +120,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
-    loss_kd_total = utils.AverageMeter()
-    loss_proto_total = utils.AverageMeter()
-    loss_att_total = utils.AverageMeter()
-    loss_ct_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -134,9 +130,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()
-    kd_loss = CriterionPixelWise()
-    proto_loss = disparity()
-    ct_loss = FSP()
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -152,7 +145,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        outputs, up1, up2, up3, up4 = model(inputs,multiple=True)
+        outputs = model(inputs)
 
         if teacher_model is not None:
             with torch.no_grad():
@@ -161,21 +154,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
 
-        # loss_proto = 0.001 * proto_loss(targets, up1, up2, up3, up4, up1_t, up2_t, up3_t, up4_t)
-        # loss_kd = 0.1 * kd_loss(preds_S=outputs, preds_T=outputs_t)
-        # loss_att = 0.1 * (im_distill(up1, up1_t) + im_distill(up2, up2_t) + im_distill(up3, up3_t) + im_distill(up4, up4_t))
-        # loss_ct = ct_loss(fm_s1=x4, fm_s2=x5, fm_t1=x4_t, fm_t2=x5_t)
         ###############################################
         alpha = 0.5
         beta = 0.5
 
-        # loss = alpha * loss_dice + beta * loss_ce
-        loss_kd = 0.0
-        loss_att = 0.0
-        loss_proto = 0.0
-        loss_ct = 0.0
+        loss = alpha * loss_dice + beta * loss_ce
 
-        loss = alpha * loss_dice + beta * loss_ce + loss_kd + loss_att + loss_proto + loss_ct
         ###############################################
 
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -192,10 +176,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-        loss_kd_total.update(loss_kd)
-        loss_att_total.update(loss_att)
-        loss_proto_total.update(loss_proto)
-        loss_ct_total.update(loss_ct)
+        
         ###############################################
         targets = targets.long()
 
@@ -208,7 +189,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , ct_loss = {loss_ct_total.avg:.4f} , kd_loss = {loss_kd_total.avg:.4f} , att_loss = {loss_att_total.avg:.4f} , proto_loss = {loss_proto_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
