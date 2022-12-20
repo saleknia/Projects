@@ -22669,3 +22669,97 @@ Epoch: 6 ---> Train , Loss: 0.3612 , mIoU: 20.82 , Dice: 31.30 , Pixel Accuracy:
 Epoch: 7 ---> Train , Loss: 0.3483 , mIoU: 22.55 , Dice: 33.87 , Pixel Accuracy: 96.89, lr: 0.001
 Epoch: 8 ---> Train , Loss: 0.3390 , mIoU: 24.61 , Dice: 36.62 , Pixel Accuracy: 96.92, lr: 0.001
 Epoch: 9 ---> Train , Loss: 0.3239 , mIoU: 27.22 , Dice: 39.71 , Pixel Accuracy: 97.03, lr: 0.001
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════╕
+│ Hyperparameter   │ Value        │
+╞══════════════════╪══════════════╡
+│ Learning Rate    │ 0.001        │
+├──────────────────┼──────────────┤
+│ Num Classes      │ 9            │
+├──────────────────┼──────────────┤
+│ Device           │ cuda         │
+├──────────────────┼──────────────┤
+│ Batch Size       │ 8            │
+├──────────────────┼──────────────┤
+│ COSINE LR        │ False        │
+├──────────────────┼──────────────┤
+│ Num Epochs       │ 60           │
+├──────────────────┼──────────────┤
+│ Num Workers      │ 4            │
+├──────────────────┼──────────────┤
+│ Image Height     │ 224          │
+├──────────────────┼──────────────┤
+│ Image Width      │ 224          │
+├──────────────────┼──────────────┤
+│ Pin Memory       │ True         │
+├──────────────────┼──────────────┤
+│ Early Stopping   │ 200          │
+├──────────────────┼──────────────┤
+│ Load Model       │ True         │
+├──────────────────┼──────────────┤
+│ Save Model       │ True         │
+├──────────────────┼──────────────┤
+│ Download Dataset │ False        │
+├──────────────────┼──────────────┤
+│ Model Name       │ U            │
+├──────────────────┼──────────────┤
+│ Seed             │ 666          │
+├──────────────────┼──────────────┤
+│ Task Name        │ Synapse      │
+├──────────────────┼──────────────┤
+│ GPU              │ Tesla T4     │
+├──────────────────┼──────────────┤
+│ Torch            │ 1.13.0+cu116 │
+├──────────────────┼──────────────┤
+│ Torchvision      │ 0.14.0+cu116 │
+├──────────────────┼──────────────┤
+│ Checkpoint Name  │ U_Synapse    │
+╘══════════════════╧══════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ U               │ 1.63 M        │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/U_Synapse_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss: 0.4998 , mIoU: 3.50 , Dice: 5.50 , Pixel Accuracy: 93.05, lr: 0.001
+Epoch: 2 ---> Train , Loss: 0.4328 , mIoU: 6.26 , Dice: 8.39 , Pixel Accuracy: 96.81, lr: 0.001
+Epoch: 3 ---> Train , Loss: 0.4169 , mIoU: 9.32 , Dice: 13.93 , Pixel Accuracy: 96.88, lr: 0.001
+Epoch: 4 ---> Train , Loss: 0.3948 , mIoU: 13.85 , Dice: 21.28 , Pixel Accuracy: 96.75, lr: 0.001
+Epoch: 5 ---> Train , Loss: 0.3784 , mIoU: 17.48 , Dice: 26.80 , Pixel Accuracy: 96.71, lr: 0.001
+Epoch: 6 ---> Train , Loss: 0.3554 , mIoU: 21.02 , Dice: 31.97 , Pixel Accuracy: 96.83, lr: 0.001
+Epoch: 7 ---> Train , Loss: 0.3422 , mIoU: 23.63 , Dice: 35.49 , Pixel Accuracy: 96.93, lr: 0.001
+Epoch: 8 ---> Train , Loss: 0.3319 , mIoU: 25.21 , Dice: 37.92 , Pixel Accuracy: 96.95, lr: 0.001
+Epoch: 9 ---> Train , Loss: 0.3206 , mIoU: 27.62 , Dice: 40.83 , Pixel Accuracy: 96.95, lr: 0.001
+Epoch: 10 ---> Train , Loss: 0.3059 , mIoU: 30.05 , Dice: 43.87 , Pixel Accuracy: 97.42, lr: 0.001
+Epoch: 11 ---> Train , Loss: 0.2973 , mIoU: 31.92 , Dice: 46.12 , Pixel Accuracy: 97.35, lr: 0.001
+Epoch: 12 ---> Train , Loss: 0.2880 , mIoU: 33.36 , Dice: 47.65 , Pixel Accuracy: 97.39, lr: 0.001
+Epoch: 13 ---> Train , Loss: 0.2877 , mIoU: 33.81 , Dice: 48.30 , Pixel Accuracy: 97.53, lr: 0.001
+Epoch: 14 ---> Train , Loss: 0.2790 , mIoU: 34.80 , Dice: 49.32 , Pixel Accuracy: 97.59, lr: 0.001
+Epoch: 15 ---> Train , Loss: 0.2734 , mIoU: 36.90 , Dice: 51.76 , Pixel Accuracy: 97.75, lr: 0.001
+Epoch: 16 ---> Train , Loss: 0.2665 , mIoU: 38.20 , Dice: 53.21 , Pixel Accuracy: 97.76, lr: 0.001
+Epoch: 17 ---> Train , Loss: 0.2638 , mIoU: 38.64 , Dice: 53.74 , Pixel Accuracy: 97.77, lr: 0.001
+Epoch: 18 ---> Train , Loss: 0.2573 , mIoU: 39.53 , Dice: 54.70 , Pixel Accuracy: 97.79, lr: 0.001
+Epoch: 19 ---> Train , Loss: 0.2609 , mIoU: 39.68 , Dice: 54.88 , Pixel Accuracy: 97.87, lr: 0.001
+Epoch: 20 ---> Train , Loss: 0.2554 , mIoU: 40.52 , Dice: 55.69 , Pixel Accuracy: 97.94, lr: 0.001
+Epoch: 21 ---> Train , Loss: 0.2485 , mIoU: 41.78 , Dice: 57.15 , Pixel Accuracy: 98.04, lr: 0.001
+Epoch: 22 ---> Train , Loss: 0.2448 , mIoU: 42.55 , Dice: 57.92 , Pixel Accuracy: 97.95, lr: 0.001
+Epoch: 23 ---> Train , Loss: 0.2402 , mIoU: 43.48 , Dice: 58.76 , Pixel Accuracy: 98.09, lr: 0.001
+Epoch: 24 ---> Train , Loss: 0.2352 , mIoU: 43.83 , Dice: 59.21 , Pixel Accuracy: 98.05, lr: 0.001
+Epoch: 25 ---> Train , Loss: 0.2391 , mIoU: 43.29 , Dice: 58.62 , Pixel Accuracy: 98.08, lr: 0.001
+Epoch: 26 ---> Train , Loss: 0.2402 , mIoU: 43.82 , Dice: 59.12 , Pixel Accuracy: 98.11, lr: 0.001
+Epoch: 27 ---> Train , Loss: 0.2331 , mIoU: 45.31 , Dice: 60.68 , Pixel Accuracy: 98.13, lr: 0.001
+Epoch: 28 ---> Train , Loss: 0.2332 , mIoU: 45.21 , Dice: 60.68 , Pixel Accuracy: 98.14, lr: 0.001
+Epoch: 29 ---> Train , Loss: 0.2253 , mIoU: 47.13 , Dice: 62.57 , Pixel Accuracy: 98.17, lr: 0.001
+Epoch: 30 ---> Train , Loss: 0.2281 , mIoU: 46.23 , Dice: 61.85 , Pixel Accuracy: 98.16, lr: 0.001
+Epoch: 31 ---> Train , Loss: 0.2220 , mIoU: 47.88 , Dice: 63.05 , Pixel Accuracy: 98.31, lr: 0.001
+Epoch: 32 ---> Train , Loss: 0.2186 , mIoU: 47.93 , Dice: 63.20 , Pixel Accuracy: 98.29, lr: 0.001
+Epoch: 33 ---> Train , Loss: 0.2239 , mIoU: 47.55 , Dice: 63.00 , Pixel Accuracy: 98.30, lr: 0.001
+Epoch: 34 ---> Train , Loss: 0.2125 , mIoU: 49.09 , Dice: 64.35 , Pixel Accuracy: 98.35, lr: 0.001
+Epoch: 35 ---> Train , Loss: 0.2082 , mIoU: 50.09 , Dice: 65.36 , Pixel Accuracy: 98.35, lr: 0.001
+Epoch: 36 ---> Train , Loss: 0.2097 , mIoU: 50.55 , Dice: 65.75 , Pixel Accuracy: 98.49, lr: 0.001
