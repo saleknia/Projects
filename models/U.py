@@ -73,11 +73,8 @@ class Up(nn.Module):
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
         self.conv = DoubleConv(in_channels, out_channels)
         self.reduction = nn.Sequential(
-            nn.Conv2d(in_channels, in_channels // reduce_factor, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(in_channels // reduce_factor),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels // reduce_factor, in_channels // 2, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(in_channels // 2),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0, bias=False),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
     def forward(self, x1, x2):
