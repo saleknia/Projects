@@ -51,7 +51,39 @@ class DoubleConv_(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
 
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
+        self.norm3 = nn.BatchNorm2d(out_channels)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
+        
 class Down(nn.Module):
     """Downscaling with maxpool then double conv"""
 
@@ -70,16 +102,11 @@ class Up(nn.Module):
 
     def __init__(self, in_channels, out_channels):
         super().__init__()
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.up = DecoderBottleneckLayer(in_channels=in_channels, out_channels=in_channels//2)
         self.conv = DoubleConv(in_channels, out_channels)
-        self.reduction = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),
-        )
+
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        x1 = self.reduction(x1)
         x = torch.cat([x2, x1], dim=1)
         return self.conv(x)
 
