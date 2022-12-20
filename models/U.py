@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 
-reduce_factor = 2
+reduce_factor = 4
 
 class DoubleConv(nn.Module):
     """(convolution => [BN] => ReLU) * 2"""
