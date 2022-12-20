@@ -20,38 +20,38 @@ warnings.filterwarnings("ignore")
 
 general_labels = np.load('/content/UNet_V2/labels.npy')
 
-# def loss_label_smoothing(outputs, labels):
-#     """
-#     loss function for label smoothing regularization
-#     """
-#     N = outputs.size(0)  # batch_size
-#     C = outputs.size(1)  # number of classes
-#     smoothed_labels = torch.zeros(N, C).to('cuda')
-#     g_labels = torch.tensor(general_labels).to('cuda')
-
-#     for i in range(len(labels)):
-#         smoothed_labels[i] = g_labels[labels[i]]
-
-#     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
-#     loss = -torch.sum(log_prob * smoothed_labels) / N
-
-#     return loss
-
-
 def loss_label_smoothing(outputs, labels):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.4
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
-    smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
-    smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+    smoothed_labels = torch.zeros(N, C).to('cuda')
+    g_labels = torch.tensor(general_labels).to('cuda')
+
+    for i in range(len(labels)):
+        smoothed_labels[i] = g_labels[labels[i]]
 
     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
     loss = -torch.sum(log_prob * smoothed_labels) / N
 
     return loss
+
+
+# def loss_label_smoothing(outputs, labels):
+#     """
+#     loss function for label smoothing regularization
+#     """
+#     alpha = 0.4
+#     N = outputs.size(0)  # batch_size
+#     C = outputs.size(1)  # number of classes
+#     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
+#     smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+
+#     log_prob = torch.nn.functional.log_softmax(outputs, dim=1)
+#     loss = -torch.sum(log_prob * smoothed_labels) / N
+
+#     return loss
 
 
 def loss_kd_regularization(outputs, labels):
