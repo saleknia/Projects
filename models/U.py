@@ -19,7 +19,7 @@ class DoubleConv(nn.Module):
 
         self.expand = nn.Sequential(
             nn.Conv2d(out_channels//reduce_factor, out_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(in_channels//reduce_factor),
+            nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
         )
 
