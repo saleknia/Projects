@@ -23114,3 +23114,67 @@ No Such file : /content/drive/MyDrive/checkpoint/SEUNet_Synapse_last.pth
 Training Phase
 **************************************************
 Epoch: 1 ---> Train , Loss: 0.4806 , mIoU: 4.47 , Dice: 6.89 , Pixel Accuracy: 92.11, lr: 0.001
+Logging Directory: ./logs/logging
+╒══════════════════╤════════════════╕
+│ Hyperparameter   │ Value          │
+╞══════════════════╪════════════════╡
+│ Learning Rate    │ 0.001          │
+├──────────────────┼────────────────┤
+│ Num Classes      │ 9              │
+├──────────────────┼────────────────┤
+│ Device           │ cuda           │
+├──────────────────┼────────────────┤
+│ Batch Size       │ 8              │
+├──────────────────┼────────────────┤
+│ COSINE LR        │ False          │
+├──────────────────┼────────────────┤
+│ Num Epochs       │ 60             │
+├──────────────────┼────────────────┤
+│ Num Workers      │ 4              │
+├──────────────────┼────────────────┤
+│ Image Height     │ 224            │
+├──────────────────┼────────────────┤
+│ Image Width      │ 224            │
+├──────────────────┼────────────────┤
+│ Pin Memory       │ True           │
+├──────────────────┼────────────────┤
+│ Early Stopping   │ 200            │
+├──────────────────┼────────────────┤
+│ Load Model       │ True           │
+├──────────────────┼────────────────┤
+│ Save Model       │ True           │
+├──────────────────┼────────────────┤
+│ Download Dataset │ False          │
+├──────────────────┼────────────────┤
+│ Model Name       │ ESPNet         │
+├──────────────────┼────────────────┤
+│ Seed             │ 666            │
+├──────────────────┼────────────────┤
+│ Task Name        │ Synapse        │
+├──────────────────┼────────────────┤
+│ GPU              │ Tesla T4       │
+├──────────────────┼────────────────┤
+│ Torch            │ 1.13.0+cu116   │
+├──────────────────┼────────────────┤
+│ Torchvision      │ 0.14.0+cu116   │
+├──────────────────┼────────────────┤
+│ Checkpoint Name  │ ESPNet_Synapse │
+╘══════════════════╧════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ ESPNet          │ 0.19 M        │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/ESPNet_Synapse_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss: 0.9878 , mIoU: 1.12 , Dice: 2.11 , Pixel Accuracy: 57.99, lr: 0.001
+Epoch: 2 ---> Train , Loss: 0.5102 , mIoU: 0.00 , Dice: 0.00 , Pixel Accuracy: 95.58, lr: 0.001
+Epoch: 3 ---> Train , Loss: 0.4539 , mIoU: 3.18 , Dice: 5.07 , Pixel Accuracy: 95.67, lr: 0.001
+Epoch: 4 ---> Train , Loss: 0.4174 , mIoU: 7.85 , Dice: 9.64 , Pixel Accuracy: 97.21, lr: 0.001
+Epoch: 5 ---> Train , Loss: 0.4008 , mIoU: 9.09 , Dice: 11.67 , Pixel Accuracy: 97.48, lr: 0.001
+Epoch: 6 ---> Train , Loss: 0.3876 , mIoU: 12.49 , Dice: 17.02 , Pixel Accuracy: 97.45, lr: 0.001
