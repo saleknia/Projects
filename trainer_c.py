@@ -166,7 +166,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         targets = targets.float()
         with torch.autocast(device_type=device, dtype=torch.float16):
             outputs = model(inputs)
-            loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
+            # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
             predictions = torch.argmax(input=outputs,dim=1).long()
             accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -182,9 +182,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 loss_ce = ce_loss(outputs, targets.long()) * weights
                 loss_ce = torch.mean(loss_ce)
             else:
-                loss_ce = ce_loss(outputs, targets.long())
+                # loss_ce = ce_loss(outputs, targets.long())
                 # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
-                # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+                loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
         # loss_ce = ce_loss(outputs, targets.long())
 

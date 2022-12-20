@@ -455,7 +455,7 @@ def main(args):
                     logger.info(50*'*')
                     logger.info(50*'*')
                     logger.info('\n')
-        loss_function.save()
+        # loss_function.save()
     if tensorboard:
         writer.close()
 
