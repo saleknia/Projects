@@ -1079,10 +1079,7 @@ class DATUNet(nn.Module):
         self.norm_21 = LayerNormProxy(dim=96 )
         self.norm_10 = LayerNormProxy(dim=48 )
 
-        self.CPF_0 = CFPModule(nIn=48 , d=8)
-        self.CPF_1 = CFPModule(nIn=96 , d=8)
-        self.CPF_2 = CFPModule(nIn=192, d=8)
-        self.CPF_3 = CFPModule(nIn=384, d=8)
+        self.CPF = CFPModule(nIn=48, d=8)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1117,11 +1114,6 @@ class DATUNet(nn.Module):
         x1 = self.norm_21(outputs[0])
         x2 = self.norm_31(outputs[1]) 
         x3 = self.norm_41(outputs[2]) 
-
-        x0 = self.CPF_0(x0)
-        x1 = self.CPF_1(x1)
-        x2 = self.CPF_2(x2)
-        x3 = self.CPF_3(x3)
 
         x = [x0, x1, x2, x3]
 
@@ -1175,6 +1167,8 @@ class DATUNet(nn.Module):
         x = self.up3(x3, x2) 
         x = self.up2(x , x1) 
         x = self.up1(x , x0) 
+
+        x = self.CPF(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
