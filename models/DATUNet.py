@@ -593,10 +593,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.CPF = CFPModule(nIn=out_channels, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        x = self.CPF(x)
         return x
 
 
@@ -1028,7 +1030,7 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        self.encoder_1 = DAT(
+        self.encoder = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -1054,34 +1056,30 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.encoder_2 = CrossFormer(
-                                img_size=224,
-                                patch_size=[4, 8, 16, 32],
-                                in_chans= 3,
-                                num_classes=1000,
-                                embed_dim=96,
-                                depths=[2, 2, 6, 2],
-                                num_heads=[3, 6, 12, 24],
-                                group_size=[7, 7, 7, 7],
-                                mlp_ratio=4.,
-                                qkv_bias=True,
-                                qk_scale=None,
-                                drop_rate=0.0,
-                                drop_path_rate=0.1,
-                                ape=False,
-                                patch_norm=True,
-                                use_checkpoint=False,
-                                merge_size=[[2, 4], [2,4], [2, 4]]
-                                )
+        # self.encoder_2 = CrossFormer(
+        #                         img_size=224,
+        #                         patch_size=[4, 8, 16, 32],
+        #                         in_chans= 3,
+        #                         num_classes=1000,
+        #                         embed_dim=96,
+        #                         depths=[2, 2, 6, 2],
+        #                         num_heads=[3, 6, 12, 24],
+        #                         group_size=[7, 7, 7, 7],
+        #                         mlp_ratio=4.,
+        #                         qkv_bias=True,
+        #                         qk_scale=None,
+        #                         drop_rate=0.0,
+        #                         drop_path_rate=0.1,
+        #                         ape=False,
+        #                         patch_norm=True,
+        #                         use_checkpoint=False,
+        #                         merge_size=[[2, 4], [2,4], [2, 4]]
+        #                         )
 
         self.norm_41 = LayerNormProxy(dim=384)
         self.norm_31 = LayerNormProxy(dim=192)
         self.norm_21 = LayerNormProxy(dim=96 )
         self.norm_10 = LayerNormProxy(dim=48 )
-
-        self.norm_42 = LayerNormProxy(dim=384)
-        self.norm_32 = LayerNormProxy(dim=192)
-        self.norm_22 = LayerNormProxy(dim=96 )
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1110,13 +1108,12 @@ class DATUNet(nn.Module):
         for i in range(6):
             x0 = self.FAM1[i](x0)
 
-        outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        outputs = self.encoder(x_input)
 
         x0 = self.norm_10(x0)
-        x1 = self.norm_21(outputs_1[0]) + self.norm_22(outputs_2[0])
-        x2 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
-        x3 = self.norm_41(outputs_1[2]) + self.norm_42(outputs_2[2])
+        x1 = self.norm_21(outputs[0])
+        x2 = self.norm_31(outputs[1]) 
+        x3 = self.norm_41(outputs[2]) 
 
         x = [x0, x1, x2, x3]
 
