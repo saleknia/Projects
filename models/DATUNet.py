@@ -1077,7 +1077,7 @@ class DATUNet(nn.Module):
         self.norm_41 = LayerNormProxy(dim=384)
         self.norm_31 = LayerNormProxy(dim=192)
         self.norm_21 = LayerNormProxy(dim=96 )
-        self.norm_1 = LayerNormProxy(dim=48 )
+        self.norm_10 = LayerNormProxy(dim=48 )
 
         self.norm_42 = LayerNormProxy(dim=384)
         self.norm_32 = LayerNormProxy(dim=192)
@@ -1113,7 +1113,7 @@ class DATUNet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-        x0 = self.norm_1(x0)
+        x0 = self.norm_10(x0)
         x1 = self.norm_21(outputs_1[0]) + self.norm_22(outputs_2[0])
         x2 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
         x3 = self.norm_41(outputs_1[2]) + self.norm_42(outputs_2[2])
