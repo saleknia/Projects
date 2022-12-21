@@ -1083,10 +1083,6 @@ class DATUNet(nn.Module):
         self.norm_32 = LayerNormProxy(dim=192)
         self.norm_22 = LayerNormProxy(dim=96 )
 
-        self.combine_1 = ConvBatchNorm(in_channels=192, out_channels=96, kernel_size=1, padding=0)
-        self.combine_2 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
-        self.combine_3 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
@@ -1117,11 +1113,10 @@ class DATUNet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-
         x0 = self.norm_1(x0)
-        x1 = self.combine_1(torch.cat([self.norm_21(outputs_1[0]),self.norm_22(outputs_2[0])], dim=1))
-        x2 = self.combine_2(torch.cat([self.norm_31(outputs_1[1]),self.norm_32(outputs_2[1])], dim=1))
-        x3 = self.combine_3(torch.cat([self.norm_41(outputs_1[2]),self.norm_42(outputs_2[2])], dim=1))
+        x1 = self.norm_21(outputs_1[0]) + self.norm_22(outputs_2[0])
+        x2 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
+        x3 = self.norm_41(outputs_1[2]) + self.norm_42(outputs_2[2])
 
         x = [x0, x1, x2, x3]
 
