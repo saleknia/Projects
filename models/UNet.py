@@ -654,6 +654,9 @@ class UNet(nn.Module):
         self.norm_2_1 = LayerNormProxy(dim=32)
         self.norm_1_1 = LayerNormProxy(dim=16)
 
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
+
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
         # torch.Size([8, 128, 14 , 14])
