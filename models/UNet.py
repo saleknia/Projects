@@ -591,7 +591,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder_1 = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.conv1.stride = (1, 1)
 
