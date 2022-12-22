@@ -591,7 +591,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
+        self.encoder_1 = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.conv1.stride = (1, 1)
 
@@ -641,18 +641,15 @@ class UNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.combine_2 = ConvBatchNorm(in_channels=128, out_channels=32 , kernel_size=3, padding=1, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=256, out_channels=64 , kernel_size=3, padding=1, dilation=1)
-        self.combine_4 = ConvBatchNorm(in_channels=512, out_channels=128, kernel_size=3, padding=1, dilation=1)
 
         self.norm_4_2 = LayerNormProxy(dim=384)
         self.norm_3_2 = LayerNormProxy(dim=192)
         self.norm_2_2 = LayerNormProxy(dim=96 )
 
-        self.norm_4_1 = LayerNormProxy(dim=128)
-        self.norm_3_1 = LayerNormProxy(dim=64)
-        self.norm_2_1 = LayerNormProxy(dim=32)
-        self.norm_1_1 = LayerNormProxy(dim=16)
+        self.norm_4_1 = LayerNormProxy(dim=384)
+        self.norm_3_1 = LayerNormProxy(dim=192)
+        self.norm_2_1 = LayerNormProxy(dim=96)
+        self.norm_1_1 = LayerNormProxy(dim=48)
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
@@ -716,13 +713,9 @@ class UNet(nn.Module):
         y3 = self.norm_3_2(y3)
         y4 = self.norm_4_2(y4)
 
-        x2 = torch.cat([x2, y2], dim=1)
-        x3 = torch.cat([x3, y3], dim=1)
-        x4 = torch.cat([x4, y4], dim=1)
-
-        x2 = self.combine_2(x2)
-        x3 = self.combine_3(x3)        
-        x4 = self.combine_4(x4)
+        x2 = x2 + y2
+        x3 = x3 + y3
+        x4 = x4 + y4
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
