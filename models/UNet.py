@@ -645,6 +645,15 @@ class UNet(nn.Module):
         self.combine_3 = ConvBatchNorm(in_channels=256, out_channels=64 , kernel_size=3, padding=1, dilation=1)
         self.combine_4 = ConvBatchNorm(in_channels=512, out_channels=128, kernel_size=3, padding=1, dilation=1)
 
+        self.norm_4_2 = LayerNormProxy(dim=384)
+        self.norm_3_2 = LayerNormProxy(dim=192)
+        self.norm_2_2 = LayerNormProxy(dim=96 )
+
+        self.norm_4_1 = LayerNormProxy(dim=128)
+        self.norm_3_1 = LayerNormProxy(dim=64)
+        self.norm_2_1 = LayerNormProxy(dim=32)
+        self.norm_1_1 = LayerNormProxy(dim=16)
+
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
         # torch.Size([8, 128, 14 , 14])
@@ -693,7 +702,16 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
+        x1 = self.norm_1_1(x1)
+        x2 = self.norm_2_1(x2)
+        x3 = self.norm_3_1(x3)
+        x4 = self.norm_4_1(x4)
+
         y2, y3, y4 = self.encoder_2(x0)
+
+        y2 = self.norm_2_2(y2)
+        y3 = self.norm_3_2(y3)
+        y4 = self.norm_4_2(y4)
 
         x2 = torch.cat([x2, y2], dim=1)
         x3 = torch.cat([x3, y3], dim=1)
