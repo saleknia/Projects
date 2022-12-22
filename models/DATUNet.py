@@ -417,7 +417,7 @@ class TransformerStage(nn.Module):
 
 class DAT(nn.Module):
 
-    def __init__(self, img_size=224, patch_size=4, num_classes=1000, expansion=4,
+    def __init__(self, img_size=448, patch_size=4, num_classes=1000, expansion=4,
                  dim_stem=96, dims=[96, 192, 384, 768], depths=[2, 2, 6, 2], 
                  heads=[3, 6, 12, 24], 
                  window_sizes=[7, 7, 7, 7],
@@ -483,7 +483,7 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        self.stages[3] = None
+        # self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -546,7 +546,7 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 3:
@@ -989,18 +989,18 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = None
+        # self.encoder3 = None
+        # self.encoder4 = None
+        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.encoder = DAT(
         #     img_size=224,
@@ -1074,21 +1074,21 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        self.norm_41 = LayerNormProxy(dim=384)
-        self.norm_31 = LayerNormProxy(dim=192)
-        self.norm_21 = LayerNormProxy(dim=96 )
-        self.norm_10 = LayerNormProxy(dim=48 )
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96 )
 
-        self.CPF = CFPModule(nIn=48, d=8)
+        # self.CPF = CFPModule(nIn=48, d=8)
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(768, 384, nb_Conv=2)
+        self.up2 = UpBlock(384, 192, nb_Conv=2)
+        self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -1100,37 +1100,37 @@ class DATUNet(nn.Module):
         x_input = x.float()
         b, c, h, w = x.shape
 
-        x0 = self.firstconv(x_input)
-        x0 = self.firstbn(x0)
-        x0 = self.firstrelu(x0)
-        x0 = self.encoder1(x0)
-        x0 = self.Reduce(x0)
-        for i in range(6):
-            x0 = self.FAM1[i](x0)
+        # x0 = self.firstconv(x_input)
+        # x0 = self.firstbn(x0)
+        # x0 = self.firstrelu(x0)
+        # x0 = self.encoder1(x0)
+        # x0 = self.Reduce(x0)
+        # for i in range(6):
+        #     x0 = self.FAM1[i](x0)
 
         outputs = self.encoder(x_input)
 
-        x0 = self.norm_10(x0)
-        x1 = self.norm_21(outputs[0])
-        x2 = self.norm_31(outputs[1]) 
-        x3 = self.norm_41(outputs[2]) 
+        x1 = self.norm_1(outputs[0])
+        x2 = self.norm_2(outputs[1])
+        x3 = self.norm_3(outputs[2]) 
+        x4 = self.norm_4(outputs[3]) 
 
-        x = [x0, x1, x2, x3]
+        # x = [x0, x1, x2, x3]
 
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
+        # # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
 
-        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
+        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
 
         # x0 = self.reduction_0(x0)
         # x1 = self.reduction_1(x1)
@@ -1164,11 +1164,11 @@ class DATUNet(nn.Module):
         # x = self.combine(x)
 
 
-        x = self.up3(x3, x2) 
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
-        x = self.CPF(x)
+        # x = self.CPF(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
