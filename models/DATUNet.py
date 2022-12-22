@@ -1137,7 +1137,6 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        x = self.final_up(x)
         return x
 
 class SequentialPolarizedSelfAttention(nn.Module):
