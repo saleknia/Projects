@@ -649,11 +649,6 @@ class UNet(nn.Module):
         self.norm_3_2 = LayerNormProxy(dim=192)
         self.norm_2_2 = LayerNormProxy(dim=96 )
 
-        self.norm_4_1 = LayerNormProxy(dim=128)
-        self.norm_3_1 = LayerNormProxy(dim=64)
-        self.norm_2_1 = LayerNormProxy(dim=32)
-        self.norm_1_1 = LayerNormProxy(dim=16)
-
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
@@ -704,11 +699,6 @@ class UNet(nn.Module):
         yl = self.encoder_1.stage4(xl)    
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
-
-        x1 = self.norm_1_1(x1)
-        x2 = self.norm_2_1(x2)
-        x3 = self.norm_3_1(x3)
-        x4 = self.norm_4_1(x4)
 
         y2, y3, y4 = self.encoder_2(x0)
 
