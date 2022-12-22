@@ -1003,8 +1003,8 @@ class DATUNet(nn.Module):
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         self.encoder = DAT(
-            img_size=224,
-            patch_size=2,
+            img_size=448,
+            patch_size=4,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
@@ -1093,7 +1093,7 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up = nn.Upsample(scale_factor=2.0)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
@@ -1175,7 +1175,7 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        # x = self.final_up(x)
+        x = self.final_up(x)
         return x
 
 class SequentialPolarizedSelfAttention(nn.Module):
