@@ -619,9 +619,9 @@ class UNet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=192, out_channels=64 , kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=384, out_channels=128, kernel_size=1, padding=0, dilation=1)
 
-        self.combine_2 = ConvBatchNorm(in_channels=198, out_channels=96 , kernel_size=3, padding=1, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=3, padding=1, dilation=1)
-        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=3, padding=1, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=64 , out_channels=32 , kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=128, out_channels=64 , kernel_size=3, padding=1, dilation=1)
+        self.combine_4 = ConvBatchNorm(in_channels=256, out_channels=128, kernel_size=3, padding=1, dilation=1)
 
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])

@@ -25879,3 +25879,62 @@ Logging Directory: ./logs/logging
 │ Checkpoint Name  │ UNet_ISIC2016 │
 ╘══════════════════╧═══════════════╛
 Loading pretrained weights from url (https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-hrnet/hrnet_w18_small_v1-f460c6bc.pth)
+Logging Directory: ./logs/logging
+╒══════════════════╤═══════════════╕
+│ Hyperparameter   │ Value         │
+╞══════════════════╪═══════════════╡
+│ Learning Rate    │ 5e-05         │
+├──────────────────┼───────────────┤
+│ Num Classes      │ 1             │
+├──────────────────┼───────────────┤
+│ Device           │ cuda          │
+├──────────────────┼───────────────┤
+│ Batch Size       │ 16            │
+├──────────────────┼───────────────┤
+│ COSINE LR        │ False         │
+├──────────────────┼───────────────┤
+│ Num Epochs       │ 30            │
+├──────────────────┼───────────────┤
+│ Num Workers      │ 4             │
+├──────────────────┼───────────────┤
+│ Image Height     │ 224           │
+├──────────────────┼───────────────┤
+│ Image Width      │ 224           │
+├──────────────────┼───────────────┤
+│ Pin Memory       │ True          │
+├──────────────────┼───────────────┤
+│ Early Stopping   │ 200           │
+├──────────────────┼───────────────┤
+│ Load Model       │ True          │
+├──────────────────┼───────────────┤
+│ Save Model       │ True          │
+├──────────────────┼───────────────┤
+│ Download Dataset │ False         │
+├──────────────────┼───────────────┤
+│ Model Name       │ UNet          │
+├──────────────────┼───────────────┤
+│ Seed             │ 666           │
+├──────────────────┼───────────────┤
+│ Task Name        │ ISIC2016      │
+├──────────────────┼───────────────┤
+│ GPU              │ Tesla T4      │
+├──────────────────┼───────────────┤
+│ Torch            │ 1.13.0+cu116  │
+├──────────────────┼───────────────┤
+│ Torchvision      │ 0.14.0+cu116  │
+├──────────────────┼───────────────┤
+│ Checkpoint Name  │ UNet_ISIC2016 │
+╘══════════════════╧═══════════════╛
+Loading pretrained weights from url (https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-hrnet/hrnet_w18_small_v1-f460c6bc.pth)
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ UNet            │ 20.98 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/UNet_ISIC2016_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
