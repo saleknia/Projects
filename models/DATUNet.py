@@ -1128,7 +1128,7 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x1 = x1 + self.up_scale_2(x2) + self.up_scale_3(x3)
+        x = x1 + self.up_scale_2(x2) + self.up_scale_3(x3)
 
         # x = self.CPF(x)
 
