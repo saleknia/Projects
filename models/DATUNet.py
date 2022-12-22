@@ -1073,7 +1073,7 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.CPF = CFPModule(nIn=48, d=8)
+        self.CPF = CFPModule(nIn=48, d=8)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1130,7 +1130,7 @@ class DATUNet(nn.Module):
 
         x = x1 + self.up_scale_2(x2) + self.up_scale_3(x3)
 
-        # x = self.CPF(x)
+        x = self.CPF(x)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
