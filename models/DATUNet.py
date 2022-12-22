@@ -479,11 +479,11 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -774,11 +774,11 @@ class BasicBlock(nn.Module):
 
 
 def make_stage(multi_scale_output=True):
-    num_modules = 4
-    num_branches = 3
-    num_blocks = (1, 1, 1)
-    num_channels = [96, 192, 384]
-    num_in_chs = [96, 192, 384]
+    num_modules = 1
+    num_branches = 4
+    num_blocks = (1, 1, 1, 1)
+    num_channels = [48, 96, 192, 384]
+    num_in_chs = [48, 96, 192, 384]
     block = BasicBlock
     fuse_method = 'SUM'
 
@@ -989,54 +989,28 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.encoder2 = None
-        # self.encoder3 = None
-        # self.encoder4 = None
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-
-        self.encoder = DAT(
-            img_size=448,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.encoder = DAT(
         #     img_size=224,
-        #     patch_size=2,
+        #     patch_size=4,
         #     num_classes=1000,
         #     expansion=4,
         #     dim_stem=96,
         #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     depths=[2, 2, 6, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
         #     heads=[3, 6, 12, 24],
         #     window_sizes=[7, 7, 7, 7] ,
         #     groups=[-1, -1, 3, 6],
@@ -1054,59 +1028,79 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        # self.encoder_2 = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.encoder = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
 
-        self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96 )
+
+        self.up_scale_3 = nn.Sequential(
+                            nn.Conv2d(192, 48, 1, 1, 0, bias=False),
+                            nn.BatchNorm2d(48),
+                            nn.ReLU(True),
+                            nn.Upsample(scale_factor=8)
+                            )
+        self.up_scale_2 = nn.Sequential(
+                            nn.Conv2d(96, 48, 1, 1, 0, bias=False),
+                            nn.BatchNorm2d(48),
+                            nn.ReLU(True),
+                            nn.Upsample(scale_factor=4)
+                            )
+
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_1 = LayerNormProxy(dim=48)
 
         # self.CPF = CFPModule(nIn=48, d=8)
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.up3 = UpBlock(768, 384, nb_Conv=2)
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2.0)
+        # self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
         x_input = x.float()
         b, c, h, w = x.shape
 
-        # x0 = self.firstconv(x_input)
-        # x0 = self.firstbn(x0)
-        # x0 = self.firstrelu(x0)
-        # x0 = self.encoder1(x0)
-        # x0 = self.Reduce(x0)
-        # for i in range(6):
-        #     x0 = self.FAM1[i](x0)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
@@ -1115,58 +1109,26 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[2]) 
         x4 = self.norm_4(outputs[3]) 
 
-        # x = [x0, x1, x2, x3]
+        x = [x1, x2, x3, x4]
 
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # # x0, x1, x2, x3 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3]
+        x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
 
-        # x0, x1, x2, x3 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
-        # x0 = self.reduction_0(x0)
-        # x1 = self.reduction_1(x1)
-        # x2 = self.reduction_2(x2)
-        # x3 = self.reduction_3(x3)
-
-        # x0, x1, x2, x3 = self.mtc(x0, x1, x2, x3)
-
-        # x1 = self.up1(x1)
-        # x2 = self.up2(x2)
-        # x3 = self.up3(x3)
-
-        # x = torch.cat([x0, x1, x2, x3], dim=1)
-        # x = self.combine(x)
-
-        # x_in = OrderedDict()
-
-        # x_in['x0'] = x0
-        # x_in['x1'] = x1
-        # x_in['x2'] = x2
-        # x_in['x3'] = x3
-
-        # x_out = self.FPN(x_in)
-
-        # x0 = x_out['x0']
-        # x1 = self.up1(x_out['x1'])        
-        # x2 = self.up2(x_out['x2'])        
-        # x3 = self.up3(x_out['x3'])
-
-        # x = torch.cat([x0, x1, x2, x3], dim=1)
-        # x = self.combine(x)
-
-
-        x = self.up3(x4, x3) 
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+        x1 = x1 + self.up_scale_2(x2) + self.up_scale_3(x3)
 
         # x = self.CPF(x)
 
