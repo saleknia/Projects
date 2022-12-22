@@ -1055,19 +1055,6 @@ class DATUNet(nn.Module):
         )
 
 
-        self.up_scale_3 = nn.Sequential(
-                            nn.Conv2d(192, 48, 1, 1, 0, bias=False),
-                            nn.BatchNorm2d(48),
-                            nn.ReLU(True),
-                            nn.Upsample(scale_factor=4)
-                            )
-        self.up_scale_2 = nn.Sequential(
-                            nn.Conv2d(96, 48, 1, 1, 0, bias=False),
-                            nn.BatchNorm2d(48),
-                            nn.ReLU(True),
-                            nn.Upsample(scale_factor=2)
-                            )
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1122,13 +1109,12 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
+        # x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1] , x[2] + x_fuse[2] , x[3] + x_fuse[3] 
+        x1, x2, x3, x4 = x_fuse[0] , x_fuse[1] , x_fuse[2] , x_fuse[3] 
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
-
-        x = x1 + self.up_scale_2(x2) + self.up_scale_3(x3)
 
         x = self.CPF(x)
 
