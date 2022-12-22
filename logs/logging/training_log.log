@@ -26599,3 +26599,86 @@ Epoch: 1 ---> Train , Loss = 1.3444 , Dice = 6.01 , IoU = 3.27 , Pixel Accuracy 
 Epoch: 1 ---> Valid , Loss = 1.2311 , Dice = 0.00  , IoU = 0.00 , Pixel Accuracy = 79.71 , lr = 5e-05
 Epoch: 2 ---> Train , Loss = 1.0080 , Dice = 36.07 , IoU = 30.24 , Pixel Accuracy = 85.37 , lr = 5e-05
 Epoch: 2 ---> Valid , Loss = 0.7695 , Dice = 86.29  , IoU = 78.16 , Pixel Accuracy = 95.76 , lr = 5e-05
+Logging Directory: ./logs/logging
+╒══════════════════╤═══════════════╕
+│ Hyperparameter   │ Value         │
+╞══════════════════╪═══════════════╡
+│ Learning Rate    │ 5e-05         │
+├──────────────────┼───────────────┤
+│ Num Classes      │ 1             │
+├──────────────────┼───────────────┤
+│ Device           │ cuda          │
+├──────────────────┼───────────────┤
+│ Batch Size       │ 16            │
+├──────────────────┼───────────────┤
+│ COSINE LR        │ False         │
+├──────────────────┼───────────────┤
+│ Num Epochs       │ 30            │
+├──────────────────┼───────────────┤
+│ Num Workers      │ 4             │
+├──────────────────┼───────────────┤
+│ Image Height     │ 224           │
+├──────────────────┼───────────────┤
+│ Image Width      │ 224           │
+├──────────────────┼───────────────┤
+│ Pin Memory       │ True          │
+├──────────────────┼───────────────┤
+│ Early Stopping   │ 200           │
+├──────────────────┼───────────────┤
+│ Load Model       │ True          │
+├──────────────────┼───────────────┤
+│ Save Model       │ True          │
+├──────────────────┼───────────────┤
+│ Download Dataset │ False         │
+├──────────────────┼───────────────┤
+│ Model Name       │ UNet          │
+├──────────────────┼───────────────┤
+│ Seed             │ 666           │
+├──────────────────┼───────────────┤
+│ Task Name        │ ISIC2018      │
+├──────────────────┼───────────────┤
+│ GPU              │ Tesla T4      │
+├──────────────────┼───────────────┤
+│ Torch            │ 1.13.0+cu116  │
+├──────────────────┼───────────────┤
+│ Torchvision      │ 0.14.0+cu116  │
+├──────────────────┼───────────────┤
+│ Checkpoint Name  │ UNet_ISIC2018 │
+╘══════════════════╧═══════════════╛
+Loading pretrained weights from url (https://github.com/rwightman/pytorch-image-models/releases/download/v0.1-hrnet/hrnet_w18_small_v1-f460c6bc.pth)
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ UNet            │ 18.20 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/UNet_ISIC2018_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 1.3448 , Dice = 6.40 , IoU = 3.49 , Pixel Accuracy = 77.75 , lr = 5e-05
+Epoch: 1 ---> Valid , Loss = 1.2666 , Dice = 0.00  , IoU = 0.00 , Pixel Accuracy = 79.71 , lr = 5e-05
+Epoch: 2 ---> Train , Loss = 1.0112 , Dice = 41.84 , IoU = 34.50 , Pixel Accuracy = 86.34 , lr = 5e-05
+Epoch: 2 ---> Valid , Loss = 0.7793 , Dice = 85.25  , IoU = 76.84 , Pixel Accuracy = 95.05 , lr = 5e-05
+Epoch: 3 ---> Train , Loss = 0.6166 , Dice = 85.18 , IoU = 76.56 , Pixel Accuracy = 95.20 , lr = 5e-05
+Epoch: 3 ---> Valid , Loss = 0.4769 , Dice = 88.12  , IoU = 80.33 , Pixel Accuracy = 96.00 , lr = 5e-05
+Epoch: 4 ---> Train , Loss = 0.4027 , Dice = 86.95 , IoU = 78.92 , Pixel Accuracy = 95.89 , lr = 5e-05
+Epoch: 4 ---> Valid , Loss = 0.3458 , Dice = 87.08  , IoU = 78.57 , Pixel Accuracy = 95.47 , lr = 5e-05
+Epoch: 5 ---> Train , Loss = 0.2808 , Dice = 88.05 , IoU = 80.25 , Pixel Accuracy = 96.13 , lr = 5e-05
+Epoch: 5 ---> Valid , Loss = 0.2437 , Dice = 87.93  , IoU = 79.55 , Pixel Accuracy = 96.07 , lr = 5e-05
+Epoch: 6 ---> Train , Loss = 0.2255 , Dice = 88.66 , IoU = 81.09 , Pixel Accuracy = 96.38 , lr = 5e-05
+Epoch: 6 ---> Valid , Loss = 0.2350 , Dice = 88.22  , IoU = 80.10 , Pixel Accuracy = 95.92 , lr = 5e-05
+Epoch: 7 ---> Train , Loss = 0.2096 , Dice = 88.96 , IoU = 81.51 , Pixel Accuracy = 96.45 , lr = 5e-05
+Epoch: 7 ---> Valid , Loss = 0.2460 , Dice = 88.59  , IoU = 80.80 , Pixel Accuracy = 95.99 , lr = 5e-05
+Epoch: 8 ---> Train , Loss = 0.1929 , Dice = 89.30 , IoU = 81.97 , Pixel Accuracy = 96.68 , lr = 5e-05
+Epoch: 8 ---> Valid , Loss = 0.2267 , Dice = 88.67  , IoU = 80.82 , Pixel Accuracy = 96.17 , lr = 5e-05
+Epoch: 9 ---> Train , Loss = 0.1810 , Dice = 89.79 , IoU = 82.66 , Pixel Accuracy = 96.78 , lr = 5e-05
+Epoch: 9 ---> Valid , Loss = 0.2604 , Dice = 88.13  , IoU = 80.35 , Pixel Accuracy = 95.46 , lr = 5e-05
+Epoch: 10 ---> Train , Loss = 0.1757 , Dice = 89.99 , IoU = 82.96 , Pixel Accuracy = 96.86 , lr = 5e-05
+Epoch: 10 ---> Valid , Loss = 0.2229 , Dice = 89.22  , IoU = 81.65 , Pixel Accuracy = 96.18 , lr = 5e-05
+Epoch: 11 ---> Train , Loss = 0.1699 , Dice = 90.25 , IoU = 83.35 , Pixel Accuracy = 96.97 , lr = 5e-05
+Epoch: 11 ---> Valid , Loss = 0.1973 , Dice = 89.98  , IoU = 82.69 , Pixel Accuracy = 96.46 , lr = 5e-05
+Epoch: 12 ---> Train , Loss = 0.1584 , Dice = 90.96 , IoU = 84.27 , Pixel Accuracy = 97.11 , lr = 5e-05
+Epoch: 12 ---> Valid , Loss = 0.1994 , Dice = 89.31  , IoU = 81.78 , Pixel Accuracy = 96.48 , lr = 5e-05
