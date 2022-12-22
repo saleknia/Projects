@@ -628,6 +628,8 @@ class UNet(nn.Module):
         self.encoder_1.incre_modules = None
         self.encoder_1.conv1.stride = (1, 1)
 
+        self.fuse = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True).stage4
+
         self.encoder_2 = CrossFormer(
                                 img_size=224,
                                 patch_size=[4, 8, 16, 32],
@@ -709,6 +711,10 @@ class UNet(nn.Module):
         x2 = self.combine_2(x2)
         x3 = self.combine_3(x3)        
         x4 = self.combine_4(x4)
+
+        x = [x1, x2, x3, x4]
+        x = self.fuse(x)
+        x1, x2, x3, x4 = x
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
