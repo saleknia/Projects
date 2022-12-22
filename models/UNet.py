@@ -591,7 +591,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
+        self.encoder_1 = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.conv1.stride = (1, 1)
 
@@ -641,15 +641,18 @@ class UNet(nn.Module):
             drop_path_rate=0.2,
         )
 
+        self.combine_2 = ConvBatchNorm(in_channels=132, out_channels=36 , kernel_size=1, padding=0, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=264, out_channels=72 , kernel_size=1, padding=0, dilation=1)
+        self.combine_4 = ConvBatchNorm(in_channels=528, out_channels=144, kernel_size=1, padding=0, dilation=1)
 
         self.norm_4_2 = LayerNormProxy(dim=384)
         self.norm_3_2 = LayerNormProxy(dim=192)
         self.norm_2_2 = LayerNormProxy(dim=96 )
 
-        self.norm_4_1 = LayerNormProxy(dim=384)
-        self.norm_3_1 = LayerNormProxy(dim=192)
-        self.norm_2_1 = LayerNormProxy(dim=96)
-        self.norm_1_1 = LayerNormProxy(dim=48)
+        self.norm_4_1 = LayerNormProxy(dim=144)
+        self.norm_3_1 = LayerNormProxy(dim=72)
+        self.norm_2_1 = LayerNormProxy(dim=36)
+        self.norm_1_1 = LayerNormProxy(dim=18)
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
@@ -668,15 +671,15 @@ class UNet(nn.Module):
         # self.CPF_43 = CFPModule(nIn=128, d=8)
         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(128, 64, nb_Conv=2)
-        self.up2 = UpBlock(64 , 32, nb_Conv=2)
-        self.up1 = UpBlock(32 , 16, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(16, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -713,9 +716,13 @@ class UNet(nn.Module):
         y3 = self.norm_3_2(y3)
         y4 = self.norm_4_2(y4)
 
-        x2 = x2 + y2
-        x3 = x3 + y3
-        x4 = x4 + y4
+        x2 = torch.cat([x2, y2], dim=1)
+        x3 = torch.cat([x3, y3], dim=1)
+        x4 = torch.cat([x4, y4], dim=1)
+
+        x2 = self.combine_2(x2)
+        x3 = self.combine_3(x3)        
+        x4 = self.combine_4(x4)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
