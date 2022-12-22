@@ -579,6 +579,39 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+def make_fuse_layers():
+    num_branches = 3
+    num_in_chs = [96, 192, 384]
+    fuse_layers = []
+    for i in range(num_branches):
+        fuse_layer = []
+        for j in range(num_branches):
+            if j > i:
+                fuse_layer.append(nn.Sequential(
+                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(num_in_chs[i]),
+                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+            elif j == i:
+                fuse_layer.append(nn.Identity())
+            else:
+                conv3x3s = []
+                for k in range(i - j):
+                    if k == i - j - 1:
+                        num_outchannels_conv3x3 = num_in_chs[i]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3)))
+                    else:
+                        num_outchannels_conv3x3 = num_in_chs[j]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3),
+                            nn.ReLU(False)))
+                fuse_layer.append(nn.Sequential(*conv3x3s))
+        fuse_layers.append(nn.ModuleList(fuse_layer))
+
+    return nn.ModuleList(fuse_layers)
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
