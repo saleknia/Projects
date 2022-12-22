@@ -579,39 +579,6 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [96, 192, 384]
-    fuse_layers = []
-    for i in range(num_branches):
-        fuse_layer = []
-        for j in range(num_branches):
-            if j > i:
-                fuse_layer.append(nn.Sequential(
-                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
-                    nn.BatchNorm2d(num_in_chs[i]),
-                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
-            elif j == i:
-                fuse_layer.append(nn.Identity())
-            else:
-                conv3x3s = []
-                for k in range(i - j):
-                    if k == i - j - 1:
-                        num_outchannels_conv3x3 = num_in_chs[i]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3)))
-                    else:
-                        num_outchannels_conv3x3 = num_in_chs[j]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3),
-                            nn.ReLU(False)))
-                fuse_layer.append(nn.Sequential(*conv3x3s))
-        fuse_layers.append(nn.ModuleList(fuse_layer))
-
-    return nn.ModuleList(fuse_layers)
-
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -627,8 +594,6 @@ class UNet(nn.Module):
         self.encoder_1 = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.conv1.stride = (1, 1)
-
-        self.fuse = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True).stage4
 
         self.encoder_2 = CrossFormer(
                                 img_size=224,
@@ -650,9 +615,9 @@ class UNet(nn.Module):
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
 
-        self.combine_2 = ConvBatchNorm(in_channels=128, out_channels=32 , kernel_size=3, padding=1, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=256, out_channels=64 , kernel_size=3, padding=1, dilation=1)
-        self.combine_4 = ConvBatchNorm(in_channels=512, out_channels=128, kernel_size=3, padding=1, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=132, out_channels=36 , kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=264, out_channels=72 , kernel_size=3, padding=1, dilation=1)
+        self.combine_4 = ConvBatchNorm(in_channels=528, out_channels=144, kernel_size=3, padding=1, dilation=1)
 
         # torch.Size([8, 32 , 56 , 56])
         # torch.Size([8, 64 , 28 , 28])
@@ -668,15 +633,15 @@ class UNet(nn.Module):
         # self.CPF_43 = CFPModule(nIn=128, d=8)
         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(128, 64, nb_Conv=2)
-        self.up2 = UpBlock(64 , 32, nb_Conv=2)
-        self.up1 = UpBlock(32 , 16, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(16, 16, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(16, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -711,10 +676,6 @@ class UNet(nn.Module):
         x2 = self.combine_2(x2)
         x3 = self.combine_3(x3)        
         x4 = self.combine_4(x4)
-
-        x = [x1, x2, x3, x4]
-        x = self.fuse(x)
-        x1, x2, x3, x4 = x
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2) 
