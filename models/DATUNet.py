@@ -1059,13 +1059,13 @@ class DATUNet(nn.Module):
                             nn.Conv2d(192, 48, 1, 1, 0, bias=False),
                             nn.BatchNorm2d(48),
                             nn.ReLU(True),
-                            nn.Upsample(scale_factor=8)
+                            nn.Upsample(scale_factor=4)
                             )
         self.up_scale_2 = nn.Sequential(
                             nn.Conv2d(96, 48, 1, 1, 0, bias=False),
                             nn.BatchNorm2d(48),
                             nn.ReLU(True),
-                            nn.Upsample(scale_factor=4)
+                            nn.Upsample(scale_factor=2)
                             )
 
         self.norm_4 = LayerNormProxy(dim=384)
