@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -1167,10 +1167,15 @@ class DATUNet(nn.Module):
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
 
+        self.norm_extra = LayerNormProxy(dim=384)
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
+
+        self.se = SEAttention(768)
+        self.reduction = ConvBatchNorm(768, 384 , 1, 0)
 
         # self.CPF_1 = CFPModule(nIn=48 , d=8)
         # self.CPF_2 = CFPModule(nIn=96 , d=8)
@@ -1184,8 +1189,8 @@ class DATUNet(nn.Module):
 
         # self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         # self.MRFF_1 = MRFF(48)
         # self.MRFF_2 = MRFF(96)
@@ -1221,29 +1226,32 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x3 = self.norm_3(outputs[1]) 
         x4 = self.norm_4(outputs[2]) 
+        xe = self.norm_extra(outputs[3])
+
+        x4 = self.reduction(self.se(torch.cat([x4, xe], dim=1)))
 
         # x1 = self.MRFF_1(x1) + x1
         # x2 = self.MRFF_2(x2) + x2
         # x3 = self.MRFF_3(x3) + x3
 
-        x = [x1, x2, x3, x4]
+        # x = [x1, x2, x3, x4]
 
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                    # y = torch.cat([y, x[j]], dim=1)
-                else:
-                    y = y + fuse_outer[j](x[j])
-                    # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #             # y = torch.cat([y, x[j]], dim=1)
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #             # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
-            # x_fuse.append(self.combine[i](self.fuse_act(y)))
-            x_fuse.append(self.fuse_act(y))
+        #     # x_fuse.append(self.combine[i](self.fuse_act(y)))
+        #     x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+        # x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
 
         # # x1, x2, x3, x4 = self.CPF_1(x_fuse[0]) , self.CPF_2(x_fuse[1]) , self.CPF_3(x_fuse[2]) , self.CPF_4(x_fuse[3])
 
@@ -2099,6 +2107,33 @@ class CrossFormer(nn.Module):
 
         self.layers = self.layers[0:3]
 
+        extra_layer = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        ).stages[2]
+        self.norm_extra = LayerNormProxy(dim=384)
+
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
             trunc_normal_(m.weight, std=.02)
@@ -2122,8 +2157,12 @@ class CrossFormer(nn.Module):
 
         outs = []
         for i, layer in enumerate(self.layers):
+            if i==2:
+                temp = x
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
+            if i==2:
+                outs.append(self.extra_layer(self.norm_extra(temp)))
 
         return outs
 
