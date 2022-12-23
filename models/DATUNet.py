@@ -977,6 +977,39 @@ def get_CTranS_config():
 import torchvision
 from collections import OrderedDict
 
+class SEAttention(nn.Module):
+
+    def __init__(self, channel=512,reduction=16):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1070,10 +1103,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.combine_1 = ConvBatchNorm(in_channels=48*4, out_channels=48, kernel_size=1, padding=0)
-        self.combine_2 = ConvBatchNorm(in_channels=96*4, out_channels=96, kernel_size=1, padding=0)
-        self.combine_3 = ConvBatchNorm(in_channels=192*4, out_channels=192, kernel_size=1, padding=0)        
-        self.combine_4 = ConvBatchNorm(in_channels=384*4, out_channels=384, kernel_size=1, padding=0)
+        self.combine_1 = ConvBatchNorm(in_channels=48*4, out_channels=48, kernel_size=3, padding=1)
+        self.combine_2 = ConvBatchNorm(in_channels=96*4, out_channels=96, kernel_size=3, padding=1)
+        self.combine_3 = ConvBatchNorm(in_channels=192*4, out_channels=192, kernel_size=3, padding=1)        
+        self.combine_4 = ConvBatchNorm(in_channels=384*4, out_channels=384, kernel_size=3, padding=1)
 
         self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
