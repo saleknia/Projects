@@ -2166,7 +2166,7 @@ class CrossFormer(nn.Module):
             if i==1:
                 temp = feat
             if i==2:
-                outs.append(self.extra_layer(temp))
+                outs.append(self.extra_layer(self.extra_project(temp)))
 
         return outs
 
