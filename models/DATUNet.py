@@ -593,10 +593,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.MRFF = MRFF(in_channels=out_channels)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        x = self.MRFF(x)
         return x
 
 
@@ -1011,6 +1013,38 @@ class SEAttention(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
 
+class MRFF(nn.Module):
+
+    def __init__(self, in_channels=512):
+        super().__init__()
+        self.conv = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
+        self.FAMBlock = FAMBlock(in_channels=in_channels//4, out_channels=in_channels//4)
+        self.FAM1 = nn.ModuleList([self.FAMBlock for i in range(1)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock for i in range(2)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock for i in range(3)])
+
+    def forward(self, x):
+        x = self.conv(x)
+
+        x0 = x
+
+        for i in range(1):
+            x1 = self.FAM1[i](x)
+
+        for i in range(2):
+            x2 = self.FAM2[i](x)
+
+        for i in range(3):
+            x3 = self.FAM3[i](x)
+
+        x1 = x1 + x0
+        x2 = x2 + x1
+        x3 = x3 + x2
+
+        x = torch.cat([x0, x1, x2, x3], dim=1)
+
+        return x
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1104,27 +1138,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-
-        self.combine_1 = SEAttention(channel=48)
-        self.combine_2 = SEAttention(channel=96)
-        self.combine_3 = SEAttention(channel=192)
-        self.combine_4 = SEAttention(channel=384)
-
-
-        # self.combine_1 = nn.Sequential(
-        #     ConvBatchNorm(in_channels=48*1 , out_channels=48*1 , kernel_size=3, padding=1),
-        #                             )
-        # self.combine_2 = nn.Sequential(
-        #     ConvBatchNorm(in_channels=96*1 , out_channels=96*1 , kernel_size=3, padding=1),
-        #                             )
-        # self.combine_3 = nn.Sequential(
-        #     ConvBatchNorm(in_channels=192*1, out_channels=192*1, kernel_size=3, padding=1),
-        #                             )
-        # self.combine_4 = nn.Sequential(
-        #     ConvBatchNorm(in_channels=384*1, out_channels=384*1, kernel_size=3, padding=1),
-        #                             )
-        self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
-
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1170,7 +1183,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
                     # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
-            x_fuse.append(self.combine[i](self.fuse_act(y)))
+            x_fuse.append(self.fuse_act(y))
             # x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
