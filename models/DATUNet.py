@@ -1013,21 +1013,34 @@ class SEAttention(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
 
+class FAM(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(FAM, self).__init__()
+
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.relu(x)
+        return x
+
 class MRFF(nn.Module):
 
     def __init__(self, in_channels=512):
         super().__init__()
 
-        self.FAMBlock_1 = FAMBlock(in_channels=in_channels, out_channels=in_channels)
+        self.FAMBlock_1 = FAM(in_channels=in_channels, out_channels=in_channels)
         self.FAM1 = nn.ModuleList([self.FAMBlock_1 for i in range(1)])
 
-        self.FAMBlock_2 = FAMBlock(in_channels=in_channels, out_channels=in_channels)
+        self.FAMBlock_2 = FAM(in_channels=in_channels, out_channels=in_channels)
         self.FAM2 = nn.ModuleList([self.FAMBlock_2 for i in range(2)])
 
-        self.FAMBlock_3 = FAMBlock(in_channels=in_channels, out_channels=in_channels)
+        self.FAMBlock_3 = FAM(in_channels=in_channels, out_channels=in_channels)
         self.FAM3 = nn.ModuleList([self.FAMBlock_3 for i in range(4)])
 
-        self.FAMBlock_4 = FAMBlock(in_channels=in_channels, out_channels=in_channels)
+        self.FAMBlock_4 = FAM(in_channels=in_channels, out_channels=in_channels)
         self.FAM4 = nn.ModuleList([self.FAMBlock_4 for i in range(8)])
 
         self.fuse = ConvBatchNorm(in_channels=in_channels*4, out_channels=in_channels, kernel_size=1, padding=0)
