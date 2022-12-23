@@ -1196,8 +1196,8 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2]) 
 
         x1 = self.MRFF_1(x1) + x1
-        x2 = self.MRFF_2(x2) + x1
-        x3 = self.MRFF_3(x3) + x1
+        x2 = self.MRFF_2(x2) + x2
+        x3 = self.MRFF_3(x3) + x3
 
         # x = [x1, x2, x3]
 
