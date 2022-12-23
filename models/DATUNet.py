@@ -1175,7 +1175,7 @@ class DATUNet(nn.Module):
         self.norm_1 = LayerNormProxy(dim=48)
 
         self.se = SEAttention(768)
-        self.reduction = ConvBatchNorm(768, 384 , 1, 0)
+        self.reduction = ConvBatchNorm(in_channels=768, out_channels=384 , kernel_size=1, padding=0)
 
         # self.CPF_1 = CFPModule(nIn=48 , d=8)
         # self.CPF_2 = CFPModule(nIn=96 , d=8)
