@@ -170,6 +170,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss = loss_ce + loss_dice
 
         scaler.scale(loss).backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 2.0)
         scaler.step(optimizer)
         scaler.update()
         optimizer.zero_grad()
