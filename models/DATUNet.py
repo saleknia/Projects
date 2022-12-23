@@ -1017,31 +1017,42 @@ class MRFF(nn.Module):
 
     def __init__(self, in_channels=512):
         super().__init__()
-        self.conv = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
-        self.FAMBlock = FAMBlock(in_channels=in_channels//4, out_channels=in_channels//4)
-        self.FAM1 = nn.ModuleList([self.FAMBlock for i in range(1)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock for i in range(2)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock for i in range(3)])
+        self.conv_1 = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
+        self.conv_2 = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
+        self.conv_3 = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
+        self.conv_4 = ConvBatchNorm(in_channels=in_channels, out_channels=in_channels//4, kernel_size=1, padding=0)
+
+        self.FAMBlock_2 = FAMBlock(in_channels=in_channels//4, out_channels=in_channels//4)
+        self.FAM2 = nn.ModuleList([self.FAMBlock_2 for i in range(2)])
+
+        self.FAMBlock_3 = FAMBlock(in_channels=in_channels//4, out_channels=in_channels//4)
+        self.FAM3 = nn.ModuleList([self.FAMBlock_3 for i in range(4)])
+
+        self.FAMBlock_4 = FAMBlock(in_channels=in_channels//4, out_channels=in_channels//4)
+        self.FAM4 = nn.ModuleList([self.FAMBlock_4 for i in range(6)])
+
 
     def forward(self, x):
-        x = self.conv(x)
-
-        x0 = x
-
-        for i in range(1):
-            x1 = self.FAM1[i](x)
+        
+        x1 = self.conv_1(x)
+        x2 = self.conv_2(x)
+        x3 = self.conv_3(x)
+        x4 = self.conv_4(x)
 
         for i in range(2):
-            x2 = self.FAM2[i](x)
+            x2 = self.FAM2[i](x2)
 
-        for i in range(3):
-            x3 = self.FAM3[i](x)
+        for i in range(4):
+            x3 = self.FAM3[i](x3)
 
-        x1 = x1 + x0
+        for i in range(6):
+            x4 = self.FAM4[i](x4)
+
         x2 = x2 + x1
         x3 = x3 + x2
+        x4 = x4 + x3
 
-        x = torch.cat([x0, x1, x2, x3], dim=1)
+        x = torch.cat([x1, x2, x3, x4], dim=1)
 
         return x
 
