@@ -1101,32 +1101,6 @@ class DATUNet(nn.Module):
         #     expansion=4,
         #     dim_stem=96,
         #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 6, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
-
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
         #     depths=[2, 2, 18, 2],
         #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
         #     heads=[3, 6, 12, 24],
@@ -1147,7 +1121,7 @@ class DATUNet(nn.Module):
         # )
 
 
-        self.encoder = CrossFormer(
+        self.encoder_1 = CrossFormer(
                                 img_size=224,
                                 patch_size=[4, 8, 16, 32],
                                 in_chans= 3,
@@ -1167,10 +1141,40 @@ class DATUNet(nn.Module):
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
 
-        self.norm_4 = LayerNormProxy(dim=384)
-        self.norm_3 = LayerNormProxy(dim=192)
-        self.norm_2 = LayerNormProxy(dim=96)
-        self.norm_1 = LayerNormProxy(dim=48)
+        self.encoder_2 = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 6, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
+
+        self.norm_42 = LayerNormProxy(dim=384)
+        self.norm_32 = LayerNormProxy(dim=192)
+        self.norm_22 = LayerNormProxy(dim=96)
+
+        self.norm_41 = LayerNormProxy(dim=384)
+        self.norm_31 = LayerNormProxy(dim=192)
+        self.norm_21 = LayerNormProxy(dim=96)
+        self.norm_1  = LayerNormProxy(dim=48)
 
         # self.CPF_1 = CFPModule(nIn=48 , d=8)
         # self.CPF_2 = CFPModule(nIn=96 , d=8)
@@ -1215,12 +1219,12 @@ class DATUNet(nn.Module):
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
-        outputs = self.encoder(x_input)
+        outputs_1, outputs_2 = self.encoder_1(x_input), self.encoder_2(x_input)
 
         x1 = self.norm_1(x1)
-        x2 = self.norm_2(outputs[0])
-        x3 = self.norm_3(outputs[1]) 
-        x4 = self.norm_4(outputs[2]) 
+        x2 = self.norm_21(outputs_1[0]) + self.norm_22(outputs_2[0]) 
+        x3 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])  
+        x4 = self.norm_41(outputs_1[2]) + self.norm_42(outputs_2[2]) 
 
         # x1 = self.MRFF_1(x1) + x1
         # x2 = self.MRFF_2(x2) + x2
