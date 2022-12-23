@@ -894,8 +894,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 4
-    num_in_chs = [48, 96, 192, 384]
+    num_branches = 3
+    num_in_chs = [48, 96, 192]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1178,10 +1178,10 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1]) 
         x4 = self.norm_4(outputs[2]) 
 
-        x = [x1, x2, x3, x4]
+        x = [x1, x2, x3]
 
         x_fuse = []
-        num_branches = 4
+        num_branches = 3
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
@@ -1199,7 +1199,7 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = self.CPF_1(x_fuse[0]) , self.CPF_2(x_fuse[1]) , self.CPF_3(x_fuse[2]) , self.CPF_4(x_fuse[3])
 
-        x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
+        x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2]
 
 
         x3 = self.up3(x4, x3) 
