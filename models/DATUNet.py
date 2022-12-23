@@ -1103,11 +1103,22 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.combine_1 = ConvBatchNorm(in_channels=48*4, out_channels=48, kernel_size=3, padding=1)
-        self.combine_2 = ConvBatchNorm(in_channels=96*4, out_channels=96, kernel_size=3, padding=1)
-        self.combine_3 = ConvBatchNorm(in_channels=192*4, out_channels=192, kernel_size=3, padding=1)        
-        self.combine_4 = ConvBatchNorm(in_channels=384*4, out_channels=384, kernel_size=3, padding=1)
-
+        self.combine_1 = nn.Sequential(
+            ConvBatchNorm(in_channels=48*4, out_channels=48*1, kernel_size=1, padding=0),
+            ConvBatchNorm(in_channels=48*1, out_channels=48*1, kernel_size=3, padding=1),
+                                    )
+        self.combine_2 = nn.Sequential(
+            ConvBatchNorm(in_channels=96*4, out_channels=96*1, kernel_size=1, padding=0),
+            ConvBatchNorm(in_channels=96*1, out_channels=96*1, kernel_size=3, padding=1),
+                                    )
+        self.combine_3 = nn.Sequential(
+            ConvBatchNorm(in_channels=192*4, out_channels=192*1, kernel_size=1, padding=0),
+            ConvBatchNorm(in_channels=192*1, out_channels=192*1, kernel_size=3, padding=1),
+                                    )
+        self.combine_4 = nn.Sequential(
+            ConvBatchNorm(in_channels=384*4, out_channels=384*1, kernel_size=1, padding=0),
+            ConvBatchNorm(in_channels=384*1, out_channels=384*1, kernel_size=3, padding=1),
+                                    )
         self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
