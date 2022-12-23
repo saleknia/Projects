@@ -976,6 +976,7 @@ def get_CTranS_config():
 
 import torchvision
 from collections import OrderedDict
+from torch.nn import init
 
 class SEAttention(nn.Module):
 
@@ -1103,18 +1104,25 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.combine_1 = nn.Sequential(
-            ConvBatchNorm(in_channels=48*1 , out_channels=48*1 , kernel_size=3, padding=1),
-                                    )
-        self.combine_2 = nn.Sequential(
-            ConvBatchNorm(in_channels=96*1 , out_channels=96*1 , kernel_size=3, padding=1),
-                                    )
-        self.combine_3 = nn.Sequential(
-            ConvBatchNorm(in_channels=192*1, out_channels=192*1, kernel_size=3, padding=1),
-                                    )
-        self.combine_4 = nn.Sequential(
-            ConvBatchNorm(in_channels=384*1, out_channels=384*1, kernel_size=3, padding=1),
-                                    )
+
+        self.combine_1 = SEAttention(channel=48)
+        self.combine_2 = SEAttention(channel=96)
+        self.combine_3 = SEAttention(channel=192)
+        self.combine_4 = SEAttention(channel=384)
+
+
+        # self.combine_1 = nn.Sequential(
+        #     ConvBatchNorm(in_channels=48*1 , out_channels=48*1 , kernel_size=3, padding=1),
+        #                             )
+        # self.combine_2 = nn.Sequential(
+        #     ConvBatchNorm(in_channels=96*1 , out_channels=96*1 , kernel_size=3, padding=1),
+        #                             )
+        # self.combine_3 = nn.Sequential(
+        #     ConvBatchNorm(in_channels=192*1, out_channels=192*1, kernel_size=3, padding=1),
+        #                             )
+        # self.combine_4 = nn.Sequential(
+        #     ConvBatchNorm(in_channels=384*1, out_channels=384*1, kernel_size=3, padding=1),
+        #                             )
         self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
@@ -1162,7 +1170,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
                     # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
-            x_fuse.append(self.fuse_act(self.combine[i](y)))
+            x_fuse.append(self.combine[i](self.fuse_act(y)))
             # x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
