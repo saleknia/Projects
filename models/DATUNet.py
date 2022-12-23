@@ -593,12 +593,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.MRFF = MRFF(in_channels=out_channels)
+        # self.MRFF = MRFF(in_channels=out_channels)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.MRFF(x)
+        # x = self.MRFF(x)
         return x
 
 
@@ -1139,15 +1139,13 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.CPF_out = CFPModule(nIn=48, d=8)
-
         # self.CPF_1 = CFPModule(nIn=48 , d=8)
         # self.CPF_2 = CFPModule(nIn=96 , d=8)
         # self.CPF_3 = CFPModule(nIn=192, d=8)
         # self.CPF_4 = CFPModule(nIn=384, d=8)
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1180,24 +1178,24 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1]) 
         x4 = self.norm_4(outputs[2]) 
 
-        x = [x1, x2, x3, x4]
+        # x = [x1, x2, x3, x4]
 
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                    # y = torch.cat([y, x[j]], dim=1)
-                else:
-                    y = y + fuse_outer[j](x[j])
-                    # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #             # y = torch.cat([y, x[j]], dim=1)
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #             # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
-            x_fuse.append(self.fuse_act(y))
-            # x_fuse.append(self.fuse_act(y))
+        #     x_fuse.append(self.fuse_act(y))
+        #     # x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+        # x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
 
         # x1, x2, x3, x4 = self.CPF_1(x_fuse[0]) , self.CPF_2(x_fuse[1]) , self.CPF_3(x_fuse[2]) , self.CPF_4(x_fuse[3])
 
@@ -1207,8 +1205,6 @@ class DATUNet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
-
-        x = self.CPF_out(x1)
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
