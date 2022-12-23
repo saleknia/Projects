@@ -144,8 +144,8 @@ class ISIC2016(Dataset):
         
         self.transform = A.Compose(
             [
-                A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=20, p=0.5, border_mode=0),
-                A.ColorJitter (brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
+                A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=25, p=0.5, border_mode=0),
+                A.ColorJitter (brightness=0.2, contrast=0.2, saturation=0.2, hue=0.2, always_apply=False, p=0.5),
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.5)
             ]
