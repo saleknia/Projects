@@ -1209,7 +1209,7 @@ class DATUNet(nn.Module):
         x = [x1, x2, x3, x4]
 
         x_fuse = []
-        num_branches = 3
+        num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
