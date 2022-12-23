@@ -1104,16 +1104,16 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         self.combine_1 = nn.Sequential(
-            ConvBatchNorm(in_channels=48*4 , out_channels=48*1 , kernel_size=3, padding=1),
+            ConvBatchNorm(in_channels=48*1 , out_channels=48*1 , kernel_size=3, padding=1),
                                     )
         self.combine_2 = nn.Sequential(
-            ConvBatchNorm(in_channels=96*4 , out_channels=96*1 , kernel_size=3, padding=1),
+            ConvBatchNorm(in_channels=96*1 , out_channels=96*1 , kernel_size=3, padding=1),
                                     )
         self.combine_3 = nn.Sequential(
-            ConvBatchNorm(in_channels=192*4, out_channels=192*1, kernel_size=3, padding=1),
+            ConvBatchNorm(in_channels=192*1, out_channels=192*1, kernel_size=3, padding=1),
                                     )
         self.combine_4 = nn.Sequential(
-            ConvBatchNorm(in_channels=384*4, out_channels=384*1, kernel_size=3, padding=1),
+            ConvBatchNorm(in_channels=384*1, out_channels=384*1, kernel_size=3, padding=1),
                                     )
         self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
@@ -1156,11 +1156,11 @@ class DATUNet(nn.Module):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
                 if i == j:
-                    # y = y + x[j]
-                    y = torch.cat([y, x[j]], dim=1)
+                    y = y + x[j]
+                    # y = torch.cat([y, x[j]], dim=1)
                 else:
-                    # y = y + fuse_outer[j](x[j])
-                    y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
+                    y = y + fuse_outer[j](x[j])
+                    # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
             x_fuse.append(self.fuse_act(self.combine[i](y)))
             # x_fuse.append(self.fuse_act(y))
