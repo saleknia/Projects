@@ -2132,7 +2132,11 @@ class CrossFormer(nn.Module):
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
         ).stages[2]
-        self.norm_extra = LayerNormProxy(dim=384)
+        self.extra_project = nn.Sequential(
+                    nn.Conv2d(192, 384, 2, 2, 0, bias=False),
+                    LayerNormProxy(384),
+                )
+        
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -2162,7 +2166,7 @@ class CrossFormer(nn.Module):
             if i==1:
                 temp = feat
             if i==2:
-                outs.append(self.extra_layer(self.norm_extra(temp)))
+                outs.append(self.extra_layer(temp))
 
         return outs
 
