@@ -2107,7 +2107,7 @@ class CrossFormer(nn.Module):
 
         self.layers = self.layers[0:3]
 
-        extra_layer = DAT(
+        self.extra_layer = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
