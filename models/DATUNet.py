@@ -894,8 +894,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [48, 96, 192]
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1157,12 +1157,19 @@ class DATUNet(nn.Module):
         # self.CPF_3 = CFPModule(nIn=192, d=8)
         # self.CPF_4 = CFPModule(nIn=384, d=8)
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.combine_1 = ConvBatchNorm(in_channels=48*4 , out_channels=48*1 , kernel_size=1, padding=0)
+        self.combine_2 = ConvBatchNorm(in_channels=96*4 , out_channels=96*1 , kernel_size=1, padding=0)
+        self.combine_3 = ConvBatchNorm(in_channels=192*4, out_channels=192*1, kernel_size=1, padding=0)
+        self.combine_4 = ConvBatchNorm(in_channels=384*4, out_channels=384*1, kernel_size=1, padding=0)
 
-        self.MRFF_1 = MRFF(48)
-        self.MRFF_2 = MRFF(96)
-        self.MRFF_3 = MRFF(192)
+        self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
+
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
+
+        # self.MRFF_1 = MRFF(48)
+        # self.MRFF_2 = MRFF(96)
+        # self.MRFF_3 = MRFF(192)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1195,32 +1202,32 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1]) 
         x4 = self.norm_4(outputs[2]) 
 
-        x1 = self.MRFF_1(x1) + x1
-        x2 = self.MRFF_2(x2) + x2
-        x3 = self.MRFF_3(x3) + x3
+        # x1 = self.MRFF_1(x1) + x1
+        # x2 = self.MRFF_2(x2) + x2
+        # x3 = self.MRFF_3(x3) + x3
 
-        # x = [x1, x2, x3]
+        x = [x1, x2, x3, x4]
 
-        # x_fuse = []
-        # num_branches = 3
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #             # y = torch.cat([y, x[j]], dim=1)
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #             # y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
+        x_fuse = []
+        num_branches = 3
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    # y = y + x[j]
+                    y = torch.cat([y, x[j]], dim=1)
+                else:
+                    # y = y + fuse_outer[j](x[j])
+                    y = torch.cat([y, fuse_outer[j](x[j])], dim=1)
 
-        #     x_fuse.append(self.fuse_act(y))
-        #     # x_fuse.append(self.fuse_act(y))
+            x_fuse.append(self.combine[i](self.fuse_act(y)))
+            # x_fuse.append(self.fuse_act(y))
 
-        # # x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
+        # x1, x2, x3, x4 = x[0] + x_fuse[0] , x[1] + x_fuse[1], x[2] + x_fuse[2], x[3] + x_fuse[3]
 
-        # # x1, x2, x3, x4 = self.CPF_1(x_fuse[0]) , self.CPF_2(x_fuse[1]) , self.CPF_3(x_fuse[2]) , self.CPF_4(x_fuse[3])
+        # x1, x2, x3, x4 = self.CPF_1(x_fuse[0]) , self.CPF_2(x_fuse[1]) , self.CPF_3(x_fuse[2]) , self.CPF_4(x_fuse[3])
 
-        # x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2]
+        x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
 
         x3 = self.up3(x4, x3) 
