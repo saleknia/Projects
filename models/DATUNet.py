@@ -953,7 +953,7 @@ def make_deformable_head():
         drop_path_rate=0.2,
     ).stages[2]
 
-    return layer
+    return deformable_layer
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
