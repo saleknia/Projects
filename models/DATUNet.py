@@ -1248,16 +1248,16 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        # self.deformable_head = make_deformable_head()
-        # self.project = nn.Sequential(
-        #             nn.Conv2d(256, 384, 2, 2, 0, bias=False),
-        #             LayerNormProxy(384),
-        #         )
-        # self.norm = LayerNormProxy(384)
+        self.deformable_head = make_deformable_head()
+        self.project = nn.Sequential(
+                    nn.Conv2d(256, 384, 2, 2, 0, bias=False),
+                    LayerNormProxy(384),
+                )
+        self.norm = LayerNormProxy(384)
 
-        # self.increase = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
-        # self.se = SEBlock(channel=1024)
-        # self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
+        self.increase = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=1024)
+        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
 
 
 
@@ -1290,13 +1290,13 @@ class DATUNet(nn.Module):
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
         x4 = self.encoder4(x3)
-        # x_cnn, x_tff = self.encoder4(x3), self.norm(self.deformable_head(self.project(x3))[0])
+        x_cnn, x_tff = self.encoder4(x3), self.norm(self.deformable_head(self.project(x3))[0])
 
-        # x_tff = self.increase(x_tff)
+        x_tff = self.increase(x_tff)
 
-        # x_cat = torch.cat((x_cnn, x_tff), dim=1)
-        # x_cat = self.se(x_cat)
-        # x4 = self.conv2d(x_cat)
+        x_cat = torch.cat((x_cnn, x_tff), dim=1)
+        x_cat = self.se(x_cat)
+        x4 = self.conv2d(x_cat)
 
         # x1 = self.firstconv(x_input)
         # x1 = self.firstbn(x1)
