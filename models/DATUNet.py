@@ -594,13 +594,13 @@ class UpBlock(nn.Module):
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.MRFF = MRFF(in_channels=out_channels)
-        self.CPF = CFPModule(nIn=out_channels, d=8)
+        # self.CPF = CFPModule(nIn=out_channels, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         # x = self.MRFF(x)
-        x = self.CPF(x)
+        # x = self.CPF(x)
         return x
 
 
@@ -1141,6 +1141,13 @@ class DATUNet(nn.Module):
         self.encoder3 = resnet.layer3
         self.encoder4 = resnet.layer4
 
+        self.FAMBlock1 = FAMBlock(in_channels=64, out_channels=64)
+        self.FAMBlock2 = FAMBlock(in_channels=128, out_channels=128)
+        self.FAMBlock3 = FAMBlock(in_channels=256, out_channels=256)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+
         # resnet = resnet_model.resnet34(pretrained=True)
 
         # self.firstconv = resnet.conv1
@@ -1290,6 +1297,15 @@ class DATUNet(nn.Module):
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
         x4 = self.encoder4(x3)
+
+
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
+
         # x_cnn, x_tff = self.encoder4(x3), self.norm(self.deformable_head(self.project(x3))[0])
 
         # x_tff = self.increase(x_tff)
