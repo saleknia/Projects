@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
@@ -928,29 +928,30 @@ def make_fuse_layers():
 
 def make_deformable_head():
     deformable_layer = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2).stages[2]
+        img_size=224,
+        patch_size=4,
+        num_classes=1000,
+        expansion=4,
+        dim_stem=96,
+        dims=[96, 192, 384, 768],
+        depths=[2, 2, 6, 2],
+        stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        heads=[3, 6, 12, 24],
+        window_sizes=[7, 7, 7, 7] ,
+        groups=[-1, -1, 3, 6],
+        use_pes=[False, False, True, True],
+        dwc_pes=[False, False, False, False],
+        strides=[-1, -1, 1, 1],
+        sr_ratios=[-1, -1, -1, -1],
+        offset_range_factor=[-1, -1, 2, 2],
+        no_offs=[False, False, False, False],
+        fixed_pes=[False, False, False, False],
+        use_dwc_mlps=[False, False, False, False],
+        use_conv_patches=False,
+        drop_rate=0.0,
+        attn_drop_rate=0.0,
+        drop_path_rate=0.2,
+    ).stages[2]
     project = nn.Sequential(
                 nn.Conv2d(256, 384, 2, 2, 0, bias=False),
                 LayerNormProxy(384),
