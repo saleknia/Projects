@@ -186,48 +186,47 @@ class Block_ViT(nn.Module):
 
 
 
-    def forward(self, emb1,emb2,emb3,emb4):
+    def forward(self, emb1,emb2,emb3):
         embcat = []
         org1 = emb1
         org2 = emb2
         org3 = emb3
-        org4 = emb4
-        for i in range(4):
+
+        for i in range(3):
             var_name = "emb"+str(i+1)
             tmp_var = locals()[var_name]
             if tmp_var is not None:
                 embcat.append(tmp_var)
 
         emb_all = torch.cat(embcat,dim=2)
+
         cx1 = self.attn_norm1(emb1) if emb1 is not None else None
         cx2 = self.attn_norm2(emb2) if emb2 is not None else None
         cx3 = self.attn_norm3(emb3) if emb3 is not None else None
-        cx4 = self.attn_norm4(emb4) if emb4 is not None else None
+        
         emb_all = self.attn_norm(emb_all)
-        cx1,cx2,cx3,cx4, weights = self.channel_attn(cx1,cx2,cx3,cx4,emb_all)
+
+        cx1,cx2,cx3, weights = self.channel_attn(cx1,cx2,cx3,emb_all)
         cx1 = org1 + cx1 if emb1 is not None else None
         cx2 = org2 + cx2 if emb2 is not None else None
         cx3 = org3 + cx3 if emb3 is not None else None
-        cx4 = org4 + cx4 if emb4 is not None else None
+
 
         org1 = cx1
         org2 = cx2
         org3 = cx3
-        org4 = cx4
+
         x1 = self.ffn_norm1(cx1) if emb1 is not None else None
         x2 = self.ffn_norm2(cx2) if emb2 is not None else None
         x3 = self.ffn_norm3(cx3) if emb3 is not None else None
-        x4 = self.ffn_norm4(cx4) if emb4 is not None else None
         x1 = self.ffn1(x1) if emb1 is not None else None
         x2 = self.ffn2(x2) if emb2 is not None else None
         x3 = self.ffn3(x3) if emb3 is not None else None
-        x4 = self.ffn4(x4) if emb4 is not None else None
         x1 = x1 + org1 if emb1 is not None else None
         x2 = x2 + org2 if emb2 is not None else None
         x3 = x3 + org3 if emb3 is not None else None
-        x4 = x4 + org4 if emb4 is not None else None
 
-        return x1, x2, x3, x4, weights
+        return x1, x2, x3, weights
 
 
 class Encoder(nn.Module):
@@ -238,59 +237,51 @@ class Encoder(nn.Module):
         self.encoder_norm1 = LayerNorm(channel_num[0],eps=1e-6)
         self.encoder_norm2 = LayerNorm(channel_num[1],eps=1e-6)
         self.encoder_norm3 = LayerNorm(channel_num[2],eps=1e-6)
-        self.encoder_norm4 = LayerNorm(channel_num[3],eps=1e-6)
         for _ in range(config.transformer["num_layers"]):
             layer = Block_ViT(config, vis, channel_num)
             self.layer.append(copy.deepcopy(layer))
 
-    def forward(self, emb1,emb2,emb3,emb4):
+    def forward(self, emb1,emb2,emb3):
         attn_weights = []
         for layer_block in self.layer:
-            emb1,emb2,emb3,emb4, weights = layer_block(emb1,emb2,emb3,emb4)
+            emb1,emb2,emb3, weights = layer_block(emb1,emb2,emb3)
             if self.vis:
                 attn_weights.append(weights)
         emb1 = self.encoder_norm1(emb1) if emb1 is not None else None
         emb2 = self.encoder_norm2(emb2) if emb2 is not None else None
         emb3 = self.encoder_norm3(emb3) if emb3 is not None else None
-        emb4 = self.encoder_norm4(emb4) if emb4 is not None else None
-        return emb1,emb2,emb3,emb4, attn_weights
+        return emb1,emb2,emb3, attn_weights
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[48, 48, 48, 48], patchSize=[8, 4, 2, 1]):
+    def __init__(self, config, vis, img_size, channel_num=[96, 192, 384], patchSize=[4, 2, 1]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
-        self.patchSize_4 = patchSize[3]
         self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//2 , in_channels=channel_num[0])
         self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//4 , in_channels=channel_num[1])
         self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//8 , in_channels=channel_num[2])
-        self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//16, in_channels=channel_num[3])
         self.encoder = Encoder(config, vis, channel_num)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
         self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
         self.reconstruct_3 = Reconstruct(channel_num[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
-        self.reconstruct_4 = Reconstruct(channel_num[3], channel_num[3], kernel_size=1,scale_factor=(self.patchSize_4,self.patchSize_4))
 
-    def forward(self,en1,en2,en3,en4):
+    def forward(self,en1,en2,en3):
 
         emb1 = self.embeddings_1(en1)
         emb2 = self.embeddings_2(en2)
         emb3 = self.embeddings_3(en3)
-        emb4 = self.embeddings_4(en4)
 
-        encoded1, encoded2, encoded3, encoded4, attn_weights = self.encoder(emb1,emb2,emb3,emb4)  # (B, n_patch, hidden)
+        encoded1, encoded2, encoded3, attn_weights = self.encoder(emb1,emb2,emb3)  # (B, n_patch, hidden)
         x1 = self.reconstruct_1(encoded1) if en1 is not None else None
         x2 = self.reconstruct_2(encoded2) if en2 is not None else None
         x3 = self.reconstruct_3(encoded3) if en3 is not None else None
-        x4 = self.reconstruct_4(encoded4) if en4 is not None else None
 
         x1 = x1 + en1  if en1 is not None else None
         x2 = x2 + en2  if en2 is not None else None
         x3 = x3 + en3  if en3 is not None else None
-        x4 = x4 + en4  if en4 is not None else None
 
-        return x1, x2, x3, x4
+        return x1, x2, x3
