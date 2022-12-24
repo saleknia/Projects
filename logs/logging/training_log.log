@@ -35198,3 +35198,77 @@ Loading Checkpoint...
 No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2018_best.pth
 
 
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════╕
+│ Hyperparameter   │ Value            │
+╞══════════════════╪══════════════════╡
+│ Learning Rate    │ 0.0001           │
+├──────────────────┼──────────────────┤
+│ Num Classes      │ 1                │
+├──────────────────┼──────────────────┤
+│ Device           │ cuda             │
+├──────────────────┼──────────────────┤
+│ Batch Size       │ 16               │
+├──────────────────┼──────────────────┤
+│ COSINE LR        │ False            │
+├──────────────────┼──────────────────┤
+│ Num Epochs       │ 30               │
+├──────────────────┼──────────────────┤
+│ Num Workers      │ 4                │
+├──────────────────┼──────────────────┤
+│ Image Height     │ 224              │
+├──────────────────┼──────────────────┤
+│ Image Width      │ 224              │
+├──────────────────┼──────────────────┤
+│ Pin Memory       │ True             │
+├──────────────────┼──────────────────┤
+│ Early Stopping   │ 200              │
+├──────────────────┼──────────────────┤
+│ Load Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Save Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Download Dataset │ False            │
+├──────────────────┼──────────────────┤
+│ Model Name       │ DATUNet          │
+├──────────────────┼──────────────────┤
+│ Seed             │ 666              │
+├──────────────────┼──────────────────┤
+│ Task Name        │ ISIC2018         │
+├──────────────────┼──────────────────┤
+│ GPU              │ Tesla T4         │
+├──────────────────┼──────────────────┤
+│ Torch            │ 1.13.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Torchvision      │ 0.14.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Checkpoint Name  │ DATUNet_ISIC2018 │
+╘══════════════════╧══════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ DATUNet         │ 37.54 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2018_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 0.8469 , Dice = 65.81 , IoU = 55.27 , Pixel Accuracy = 89.10 , lr = 0.0001
+Epoch: 1 ---> Valid , Loss = 0.4939 , Dice = 86.15  , IoU = 78.18 , Pixel Accuracy = 95.12 , lr = 0.0001
+Epoch: 2 ---> Train , Loss = 0.2745 , Dice = 86.98 , IoU = 78.80 , Pixel Accuracy = 95.83 , lr = 0.0001
+Epoch: 2 ---> Valid , Loss = 0.2265 , Dice = 89.62  , IoU = 82.14 , Pixel Accuracy = 96.10 , lr = 0.0001
+Epoch: 3 ---> Train , Loss = 0.2147 , Dice = 88.19 , IoU = 80.37 , Pixel Accuracy = 96.31 , lr = 0.0001
+Epoch: 3 ---> Valid , Loss = 0.2160 , Dice = 88.16  , IoU = 79.72 , Pixel Accuracy = 95.98 , lr = 0.0001
+Epoch: 4 ---> Train , Loss = 0.2027 , Dice = 88.85 , IoU = 81.40 , Pixel Accuracy = 96.46 , lr = 0.0001
+Epoch: 4 ---> Valid , Loss = 0.2032 , Dice = 89.23  , IoU = 81.35 , Pixel Accuracy = 96.35 , lr = 0.0001
+Epoch: 5 ---> Train , Loss = 0.1805 , Dice = 89.76 , IoU = 82.64 , Pixel Accuracy = 96.82 , lr = 0.0001
+Epoch: 5 ---> Valid , Loss = 0.1904 , Dice = 89.61  , IoU = 82.17 , Pixel Accuracy = 96.67 , lr = 0.0001
+Epoch: 6 ---> Train , Loss = 0.1729 , Dice = 89.90 , IoU = 82.89 , Pixel Accuracy = 96.91 , lr = 0.0001
+Epoch: 6 ---> Valid , Loss = 0.2214 , Dice = 89.70  , IoU = 82.48 , Pixel Accuracy = 96.40 , lr = 0.0001
+Epoch: 7 ---> Train , Loss = 0.1708 , Dice = 90.23 , IoU = 83.33 , Pixel Accuracy = 96.96 , lr = 0.0001
+Epoch: 7 ---> Valid , Loss = 0.2227 , Dice = 89.20  , IoU = 81.75 , Pixel Accuracy = 96.11 , lr = 0.0001
+Epoch: 8 ---> Train , Loss = 0.1584 , Dice = 90.71 , IoU = 83.99 , Pixel Accuracy = 97.13 , lr = 0.0001
+Epoch: 8 ---> Valid , Loss = 0.1896 , Dice = 89.61  , IoU = 82.03 , Pixel Accuracy = 96.57 , lr = 0.0001
