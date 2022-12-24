@@ -777,10 +777,10 @@ class BasicBlock(nn.Module):
 
 def make_stage(multi_scale_output=True):
     num_modules = 1
-    num_branches = 4
-    num_blocks = (1, 1, 1, 1)
-    num_channels = [48, 96, 192, 384]
-    num_in_chs = [48, 96, 192, 384]
+    num_branches = 3
+    num_blocks = (1, 1, 1)
+    num_channels = [96, 192, 384]
+    num_in_chs = [96, 192, 384]
     block = BasicBlock
     fuse_method = 'SUM'
 
@@ -1236,8 +1236,10 @@ class DATUNet(nn.Module):
 
         # self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
+
+        self.skip = make_stage()
 
         # self.deformable_head = make_deformable_head()
         # self.project = nn.Sequential(
@@ -1314,21 +1316,21 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2]) 
 
         x = [x2, x3, x4]
+        x = self.skip(x)
+        # x_fuse = []
+        # num_branches = 3
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x_fuse = []
-        num_branches = 3
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
 
-
-        # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
-        x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2]
+        # # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+        x2, x3, x4 = x[0], x[1], x[2]
 
 
         x3 = self.up3(x4, x3) 
