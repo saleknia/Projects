@@ -952,16 +952,6 @@ def make_deformable_head():
         attn_drop_rate=0.0,
         drop_path_rate=0.2,
     ).stages[2]
-    project = nn.Sequential(
-                nn.Conv2d(256, 384, 2, 2, 0, bias=False),
-                LayerNormProxy(384),
-            )
-    norm = LayerNormProxy(384)
-    layer = nn.Sequential(
-        project,
-        deformable_layer,
-        norm
-    )
 
     return layer
 
@@ -1259,10 +1249,18 @@ class DATUNet(nn.Module):
         # self.fuse_act = nn.ReLU()
 
         self.deformable_head = make_deformable_head()
+        self.project = nn.Sequential(
+                    nn.Conv2d(256, 384, 2, 2, 0, bias=False),
+                    LayerNormProxy(384),
+                )
+        self.norm = LayerNormProxy(384)
 
         self.increase = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
         self.se = SEBlock(channel=1024)
         self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
+
+
+
 
         # self.MRFF_1 = MRFF(48)
         # self.MRFF_2 = MRFF(96)
@@ -1291,7 +1289,7 @@ class DATUNet(nn.Module):
         x1 = self.encoder1(x0)
         x2 = self.encoder2(x1)
         x3 = self.encoder3(x2)
-        x_cnn, x_tff = self.encoder4(x3), self.deformable_head(x3)
+        x_cnn, x_tff = self.encoder4(x3), self.norm(self.deformable_head(self.project(x3))[0])
 
         x_tff = self.increase(x_tff)
 
