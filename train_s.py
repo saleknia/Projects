@@ -214,10 +214,10 @@ def main(args):
 
     # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
  
-    if COSINE_LR is True:
-        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
-    else:
-        lr_scheduler =  None     
+    # if COSINE_LR is True:
+    #     lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
+    # else:
+    #     lr_scheduler =  None     
 
 
     initial_best_acc = 0
