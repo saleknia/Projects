@@ -47,7 +47,7 @@ if log:
 LEARNING_RATE = 1e-6
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 16
-NUM_EPOCHS = 60
+NUM_EPOCHS = 50
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
