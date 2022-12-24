@@ -189,6 +189,14 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             loss = loss_ce + loss_dice
 
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
+
+        iter_num = iter_num + 1   
+
+        
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -196,14 +204,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # iter_num = iter_num + 1 
         # if iter_num % (total_batchs*10)==0:
         #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = param_group['lr'] * 0.5
- 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
-
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
-
-        # iter_num = iter_num + 1        
+        #         param_group['lr'] = param_group['lr'] * 0.5     
         
         # optimizer.zero_grad()
         # loss.backward()

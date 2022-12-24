@@ -44,7 +44,7 @@ if log:
 ##########################################################################
 
 # Hyperparameters etc.
-LEARNING_RATE = 1e-6
+LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 16
 NUM_EPOCHS = 30
