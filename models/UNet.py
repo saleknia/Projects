@@ -579,162 +579,162 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-class UNet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
+# class UNet(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder_1.incre_modules = None
-        self.encoder_1.conv1.stride = (1, 1)
+#         self.encoder_1 = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+#         self.encoder_1.incre_modules = None
+#         self.encoder_1.conv1.stride = (1, 1)
 
-        # self.encoder_2 = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+#         # self.encoder_2 = CrossFormer(
+#         #                         img_size=224,
+#         #                         patch_size=[4, 8, 16, 32],
+#         #                         in_chans= 3,
+#         #                         num_classes=1000,
+#         #                         embed_dim=96,
+#         #                         depths=[2, 2, 6, 2],
+#         #                         num_heads=[3, 6, 12, 24],
+#         #                         group_size=[7, 7, 7, 7],
+#         #                         mlp_ratio=4.,
+#         #                         qkv_bias=True,
+#         #                         qk_scale=None,
+#         #                         drop_rate=0.0,
+#         #                         drop_path_rate=0.1,
+#         #                         ape=False,
+#         #                         patch_norm=True,
+#         #                         use_checkpoint=False,
+#         #                         merge_size=[[2, 4], [2,4], [2, 4]]
+#         #                         )
 
-        self.encoder_2 = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+#         self.encoder_2 = DAT(
+#             img_size=224,
+#             patch_size=4,
+#             num_classes=1000,
+#             expansion=4,
+#             dim_stem=96,
+#             dims=[96, 192, 384, 768],
+#             depths=[2, 2, 18, 2],
+#             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+#             heads=[3, 6, 12, 24],
+#             window_sizes=[7, 7, 7, 7] ,
+#             groups=[-1, -1, 3, 6],
+#             use_pes=[False, False, True, True],
+#             dwc_pes=[False, False, False, False],
+#             strides=[-1, -1, 1, 1],
+#             sr_ratios=[-1, -1, -1, -1],
+#             offset_range_factor=[-1, -1, 2, 2],
+#             no_offs=[False, False, False, False],
+#             fixed_pes=[False, False, False, False],
+#             use_dwc_mlps=[False, False, False, False],
+#             use_conv_patches=False,
+#             drop_rate=0.0,
+#             attn_drop_rate=0.0,
+#             drop_path_rate=0.2,
+#         )
 
-        self.combine_2 = ConvBatchNorm(in_channels=132, out_channels=36 , kernel_size=1, padding=0, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=264, out_channels=72 , kernel_size=1, padding=0, dilation=1)
-        self.combine_4 = ConvBatchNorm(in_channels=528, out_channels=144, kernel_size=1, padding=0, dilation=1)
+#         self.combine_2 = ConvBatchNorm(in_channels=132, out_channels=36 , kernel_size=1, padding=0, dilation=1)
+#         self.combine_3 = ConvBatchNorm(in_channels=264, out_channels=72 , kernel_size=1, padding=0, dilation=1)
+#         self.combine_4 = ConvBatchNorm(in_channels=528, out_channels=144, kernel_size=1, padding=0, dilation=1)
 
-        self.norm_4_2 = LayerNormProxy(dim=384)
-        self.norm_3_2 = LayerNormProxy(dim=192)
-        self.norm_2_2 = LayerNormProxy(dim=96 )
+#         self.norm_4_2 = LayerNormProxy(dim=384)
+#         self.norm_3_2 = LayerNormProxy(dim=192)
+#         self.norm_2_2 = LayerNormProxy(dim=96 )
 
-        self.norm_4_1 = LayerNormProxy(dim=144)
-        self.norm_3_1 = LayerNormProxy(dim=72)
-        self.norm_2_1 = LayerNormProxy(dim=36)
-        self.norm_1_1 = LayerNormProxy(dim=18)
+#         self.norm_4_1 = LayerNormProxy(dim=144)
+#         self.norm_3_1 = LayerNormProxy(dim=72)
+#         self.norm_2_1 = LayerNormProxy(dim=36)
+#         self.norm_1_1 = LayerNormProxy(dim=18)
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+#         # self.fuse_layers = make_fuse_layers()
+#         # self.fuse_act = nn.ReLU()
 
-        # torch.Size([8, 32 , 56 , 56])
-        # torch.Size([8, 64 , 28 , 28])
-        # torch.Size([8, 128, 14 , 14])
-        # torch.Size([8, 256, 7  , 7 ])
+#         # torch.Size([8, 32 , 56 , 56])
+#         # torch.Size([8, 64 , 28 , 28])
+#         # torch.Size([8, 128, 14 , 14])
+#         # torch.Size([8, 256, 7  , 7 ])
 
-        # self.CPF_31 = CFPModule(nIn=32, d=8)
-        # self.CPF_32 = CFPModule(nIn=64, d=8)
-        # self.CPF_33 = CFPModule(nIn=128, d=8)
+#         # self.CPF_31 = CFPModule(nIn=32, d=8)
+#         # self.CPF_32 = CFPModule(nIn=64, d=8)
+#         # self.CPF_33 = CFPModule(nIn=128, d=8)
 
-        # self.CPF_41 = CFPModule(nIn=32, d=8)
-        # self.CPF_42 = CFPModule(nIn=64, d=8)
-        # self.CPF_43 = CFPModule(nIn=128, d=8)
-        # self.CPF_44 = CFPModule(nIn=256, d=8)
+#         # self.CPF_41 = CFPModule(nIn=32, d=8)
+#         # self.CPF_42 = CFPModule(nIn=64, d=8)
+#         # self.CPF_43 = CFPModule(nIn=128, d=8)
+#         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+#         self.up3 = UpBlock(144, 72, nb_Conv=2)
+#         self.up2 = UpBlock(72 , 36, nb_Conv=2)
+#         self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
+#         self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+#         self.final_relu1 = nn.ReLU(inplace=True)
+#         self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+#         self.final_relu2 = nn.ReLU(inplace=True)
+#         self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
 
-    def forward(self, x):
-        # Question here
-        x0 = x.float()
-        b, c, h, w = x.shape
+#     def forward(self, x):
+#         # Question here
+#         x0 = x.float()
+#         b, c, h, w = x.shape
 
-        x = self.encoder_1.conv1(x0)
-        x = self.encoder_1.bn1(x)
-        x = self.encoder_1.act1(x)
-        x = self.encoder_1.conv2(x)
-        x = self.encoder_1.bn2(x)
-        x = self.encoder_1.act2(x)
-        x = self.encoder_1.layer1(x)
+#         x = self.encoder_1.conv1(x0)
+#         x = self.encoder_1.bn1(x)
+#         x = self.encoder_1.act1(x)
+#         x = self.encoder_1.conv2(x)
+#         x = self.encoder_1.bn2(x)
+#         x = self.encoder_1.act2(x)
+#         x = self.encoder_1.layer1(x)
 
-        xl = [t(x) for i, t in enumerate(self.encoder_1.transition1)]
-        yl = self.encoder_1.stage2(xl)
+#         xl = [t(x) for i, t in enumerate(self.encoder_1.transition1)]
+#         yl = self.encoder_1.stage2(xl)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
-        yl = self.encoder_1.stage3(xl)
+#         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
+#         yl = self.encoder_1.stage3(xl)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
-        yl = self.encoder_1.stage4(xl)    
+#         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
+#         yl = self.encoder_1.stage4(xl)    
 
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+#         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        x1 = self.norm_1_1(x1)
-        x2 = self.norm_2_1(x2)
-        x3 = self.norm_3_1(x3)
-        x4 = self.norm_4_1(x4)
+#         x1 = self.norm_1_1(x1)
+#         x2 = self.norm_2_1(x2)
+#         x3 = self.norm_3_1(x3)
+#         x4 = self.norm_4_1(x4)
 
-        y2, y3, y4 = self.encoder_2(x0)
+#         y2, y3, y4 = self.encoder_2(x0)
 
-        y2 = self.norm_2_2(y2)
-        y3 = self.norm_3_2(y3)
-        y4 = self.norm_4_2(y4)
+#         y2 = self.norm_2_2(y2)
+#         y3 = self.norm_3_2(y3)
+#         y4 = self.norm_4_2(y4)
 
-        x2 = torch.cat([x2, y2], dim=1)
-        x3 = torch.cat([x3, y3], dim=1)
-        x4 = torch.cat([x4, y4], dim=1)
+#         x2 = torch.cat([x2, y2], dim=1)
+#         x3 = torch.cat([x3, y3], dim=1)
+#         x4 = torch.cat([x4, y4], dim=1)
 
-        x2 = self.combine_2(x2)
-        x3 = self.combine_3(x3)        
-        x4 = self.combine_4(x4)
+#         x2 = self.combine_2(x2)
+#         x3 = self.combine_3(x3)        
+#         x4 = self.combine_4(x4)
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+#         x = self.up3(x4, x3)
+#         x = self.up2(x , x2) 
+#         x = self.up1(x , x1) 
 
-        x = self.final_conv1(x)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
-        out = self.final_conv3(x)
+#         x = self.final_conv1(x)
+#         x = self.final_relu1(x)
+#         x = self.final_conv2(x)
+#         x = self.final_relu2(x)
+#         out = self.final_conv3(x)
 
-        return out
+#         return out
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
@@ -800,89 +800,108 @@ class ASPP(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
-# class UNet(nn.Module):
-#     def __init__(self, n_channels=3, n_classes=1):
-#         super(UNet, self).__init__()
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
 
-#         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-#         resnet = resnet_model.resnet34(pretrained=True)
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
 
-#         self.firstconv = resnet.conv1
-#         self.firstbn = resnet.bn1
-#         self.firstrelu = resnet.relu
-#         self.encoder1 = resnet.layer1
-#         self.encoder2 = resnet.layer2
-#         self.encoder3 = resnet.layer3
-#         self.encoder4 = resnet.layer4
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
 
-#         self.patch_embed = transformer.patch_embed
-#         self.transformers = nn.ModuleList(
-#             [transformer.blocks[i] for i in range(12)]
-#         )
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
 
-#         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
-#         self.se = SEBlock(channel=1024)
-#         self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
+        return out
+        
+class UNet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        super(UNet, self).__init__()
 
-#         self.FAMBlock1 = FAMBlock(channels=64)
-#         self.FAMBlock2 = FAMBlock(channels=128)
-#         self.FAMBlock3 = FAMBlock(channels=256)
-#         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-#         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-#         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-#         filters = [64, 128, 256, 512]
-#         self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-#         self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-#         self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
-#         self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
 
-#         self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
-#         self.final_relu1 = nn.ReLU(inplace=True)
-#         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-#         self.final_relu2 = nn.ReLU(inplace=True)
-#         self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
 
-#     def forward(self, x):
-#         b, c, h, w = x.shape
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=1024)
+        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
 
-#         e0 = self.firstconv(x)
-#         e0 = self.firstbn(e0)
-#         e0 = self.firstrelu(e0)
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
-#         e1 = self.encoder1(e0)
-#         e2 = self.encoder2(e1)
-#         e3 = self.encoder3(e2)
-#         e4 = self.encoder4(e3)
+        filters = [64, 128, 256, 512]
+        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
+        self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
 
-#         emb = self.patch_embed(x)
-#         for i in range(12):
-#             emb = self.transformers[i](emb)
-#         feature_tf = emb.permute(0, 2, 1)
-#         feature_tf = feature_tf.view(b, 192, 14, 14)
-#         feature_tf = self.conv_seq_img(feature_tf)
+        self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
-#         feature_cat = torch.cat((e4, feature_tf), dim=1)
-#         feature_att = self.se(feature_cat)
-#         e4 = self.conv2d(feature_att)
+    def forward(self, x):
+        b, c, h, w = x.shape
 
-#         for i in range(2):
-#             e3 = self.FAM3[i](e3)
-#         for i in range(4):
-#             e2 = self.FAM2[i](e2)
-#         for i in range(6):
-#             e1 = self.FAM1[i](e1)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
 
-#         d4 = self.decoder4(e4) + e3
-#         d3 = self.decoder3(d4) + e2
-#         d2 = self.decoder2(d3) + e1
-#         out = self.final_conv1(d2)
-#         out = self.final_relu1(out)
-#         out = self.final_conv2(out)
-#         out = self.final_relu2(out)
-#         out = self.final_conv3(out)
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
-#         return out
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
+
+        feature_cat = torch.cat((e4, feature_tf), dim=1)
+        feature_att = self.se(feature_cat)
+        e4 = self.conv2d(feature_att)
+
+        for i in range(2):
+            e3 = self.FAM3[i](e3)
+        for i in range(4):
+            e2 = self.FAM2[i](e2)
+        for i in range(6):
+            e1 = self.FAM1[i](e1)
+
+        d4 = self.decoder4(e4) + e3
+        d3 = self.decoder3(d4) + e2
+        d2 = self.decoder2(d3) + e1
+        out = self.final_conv1(d2)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
+
+        return out
 
 from torch import nn
 import torch
