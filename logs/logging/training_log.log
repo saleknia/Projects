@@ -32755,3 +32755,75 @@ No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2018_best.pth
 **************************************************
 Training Phase
 **************************************************
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════╕
+│ Hyperparameter   │ Value            │
+╞══════════════════╪══════════════════╡
+│ Learning Rate    │ 5e-05            │
+├──────────────────┼──────────────────┤
+│ Num Classes      │ 1                │
+├──────────────────┼──────────────────┤
+│ Device           │ cuda             │
+├──────────────────┼──────────────────┤
+│ Batch Size       │ 16               │
+├──────────────────┼──────────────────┤
+│ COSINE LR        │ False            │
+├──────────────────┼──────────────────┤
+│ Num Epochs       │ 30               │
+├──────────────────┼──────────────────┤
+│ Num Workers      │ 4                │
+├──────────────────┼──────────────────┤
+│ Image Height     │ 224              │
+├──────────────────┼──────────────────┤
+│ Image Width      │ 224              │
+├──────────────────┼──────────────────┤
+│ Pin Memory       │ True             │
+├──────────────────┼──────────────────┤
+│ Early Stopping   │ 200              │
+├──────────────────┼──────────────────┤
+│ Load Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Save Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Download Dataset │ False            │
+├──────────────────┼──────────────────┤
+│ Model Name       │ DATUNet          │
+├──────────────────┼──────────────────┤
+│ Seed             │ 666              │
+├──────────────────┼──────────────────┤
+│ Task Name        │ ISIC2018         │
+├──────────────────┼──────────────────┤
+│ GPU              │ Tesla T4         │
+├──────────────────┼──────────────────┤
+│ Torch            │ 1.13.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Torchvision      │ 0.14.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Checkpoint Name  │ DATUNet_ISIC2018 │
+╘══════════════════╧══════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ DATUNet         │ 18.07 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2018_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 1.0742 , Dice = 0.15 , IoU = 0.08 , Pixel Accuracy = 78.96 , lr = 5e-05
+Epoch: 1 ---> Valid , Loss = 0.6993 , Dice = 0.00  , IoU = 0.00 , Pixel Accuracy = 79.71 , lr = 5e-05
+Epoch: 2 ---> Train , Loss = 0.6278 , Dice = 60.48 , IoU = 53.97 , Pixel Accuracy = 90.39 , lr = 5e-05
+Epoch: 2 ---> Valid , Loss = 0.5485 , Dice = 86.83  , IoU = 78.68 , Pixel Accuracy = 95.75 , lr = 5e-05
+Epoch: 3 ---> Train , Loss = 0.4403 , Dice = 86.59 , IoU = 78.37 , Pixel Accuracy = 95.77 , lr = 5e-05
+Epoch: 3 ---> Valid , Loss = 0.3333 , Dice = 87.39  , IoU = 79.10 , Pixel Accuracy = 96.07 , lr = 5e-05
+Epoch: 4 ---> Train , Loss = 0.2517 , Dice = 87.46 , IoU = 79.44 , Pixel Accuracy = 96.09 , lr = 5e-05
+Epoch: 4 ---> Valid , Loss = 0.2182 , Dice = 87.99  , IoU = 80.03 , Pixel Accuracy = 96.19 , lr = 5e-05
+Epoch: 5 ---> Train , Loss = 0.2197 , Dice = 87.97 , IoU = 80.27 , Pixel Accuracy = 96.19 , lr = 5e-05
+Epoch: 5 ---> Valid , Loss = 0.2104 , Dice = 88.99  , IoU = 81.24 , Pixel Accuracy = 96.36 , lr = 5e-05
+Epoch: 6 ---> Train , Loss = 0.1996 , Dice = 88.55 , IoU = 81.02 , Pixel Accuracy = 96.47 , lr = 5e-05
+Epoch: 6 ---> Valid , Loss = 0.2228 , Dice = 88.40  , IoU = 80.41 , Pixel Accuracy = 96.14 , lr = 5e-05
+Epoch: 7 ---> Train , Loss = 0.1852 , Dice = 89.46 , IoU = 82.18 , Pixel Accuracy = 96.74 , lr = 5e-05
+Epoch: 7 ---> Valid , Loss = 0.2059 , Dice = 89.24  , IoU = 81.73 , Pixel Accuracy = 96.38 , lr = 5e-05
