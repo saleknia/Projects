@@ -726,7 +726,7 @@ class BasicBlock(nn.Module):
 
     def __init__(
             self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
-            reduce_first=4, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
+            reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
             attn_layer=None, aa_layer=None, drop_block=None, drop_path=None):
         super(BasicBlock, self).__init__()
 
@@ -776,7 +776,7 @@ class BasicBlock(nn.Module):
         return x
 
 def make_stage(multi_scale_output=True):
-    num_modules = 4
+    num_modules = 1
     num_branches = 3
     num_blocks = (1, 1, 1)
     num_channels = [96, 192, 384]
@@ -1317,6 +1317,7 @@ class DATUNet(nn.Module):
 
         x = [x2, x3, x4]
         x = self.skip(x)
+
         # x_fuse = []
         # num_branches = 3
         # for i, fuse_outer in enumerate(self.fuse_layers):
@@ -1330,6 +1331,7 @@ class DATUNet(nn.Module):
 
 
         # # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+
         x2, x3, x4 = x[0], x[1], x[2]
 
 
