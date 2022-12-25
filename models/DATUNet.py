@@ -1111,10 +1111,10 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 672  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
+    config.transformer.num_layers = 2
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.0
-    config.transformer.attention_dropout_rate  = 0.0
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0.0
     config.patch_sizes = [4,2,1]
     config.base_channel = 96 # base channel of U-Net
