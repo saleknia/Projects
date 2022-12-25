@@ -82,7 +82,6 @@ class ISIC2018(Dataset):
                 A.ColorJitter (brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
                 A.HorizontalFlip(p=0.5),
                 A.VerticalFlip(p=0.5),
-                A.RandomSizedCrop ([112,224], 224, 224, w2h_ratio=1.0, interpolation=1, always_apply=False, p=1.0)
             ]
         )
 
