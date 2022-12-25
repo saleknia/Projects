@@ -1218,17 +1218,15 @@ class DATUNet(nn.Module):
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
+
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 192, 384], patchSize=[4, 2, 1])
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
 
-        self.PSA_3 = ParallelPolarizedSelfAttention(channel=384)
-        self.PSA_2 = ParallelPolarizedSelfAttention(channel=192)
-        self.PSA_1 = ParallelPolarizedSelfAttention(channel=96)
-
-        self.PSA = [self.PSA_1, self.PSA_2, self.PSA_3]
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1259,20 +1257,22 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
 
-        x = [x2, x3, x4]
-        x_fuse = []
-        num_branches = 3
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.PSA[i](self.fuse_act(y)))
+        # x = [x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 3
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.PSA[i](self.fuse_act(y)))
 
 
-        x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
+        # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
+
+        x2, x3, x4 = self.mtc(x2, x3, x4)
 
 
         x3 = self.up3(x4, x3) 
