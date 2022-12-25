@@ -856,15 +856,15 @@ class UNet(nn.Module):
         # self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
         # self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(512, 256, nb_Conv=2)
+        self.up2 = UpBlock(256, 128, nb_Conv=2)
+        self.up1 = UpBlock(128, 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         b, c, h, w = x.shape
