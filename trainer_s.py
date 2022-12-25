@@ -196,15 +196,16 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         # iter_num = iter_num + 1   
 
+        iter_num = iter_num + 1 
+        if iter_num % (total_batchs*3)==0:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = param_group['lr'] * 0.5   
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
-        # iter_num = iter_num + 1 
-        # if iter_num % (total_batchs*10)==0:
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = param_group['lr'] * 0.5     
+  
         
         # optimizer.zero_grad()
         # loss.backward()
