@@ -1239,7 +1239,7 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.skip = make_stage()
+        # self.skip = make_stage()
 
         # self.deformable_head = make_deformable_head()
         # self.project = nn.Sequential(
@@ -1251,9 +1251,6 @@ class DATUNet(nn.Module):
         # self.increase = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
         # self.se = SEBlock(channel=1024)
         # self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
-
-
-
 
         # self.MRFF_1 = MRFF(48)
         # self.MRFF_2 = MRFF(96)
@@ -1315,8 +1312,8 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1]) 
         x4 = self.norm_4(outputs[2]) 
 
-        x = [x2, x3, x4]
-        x = self.skip(x)
+        # x = [x2, x3, x4]
+        # x = self.skip(x)
 
         # x_fuse = []
         # num_branches = 3
@@ -1332,7 +1329,7 @@ class DATUNet(nn.Module):
 
         # # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        x2, x3, x4 = x[0], x[1], x[2]
+        # x2, x3, x4 = x[0], x[1], x[2]
 
 
         x3 = self.up3(x4, x3) 
