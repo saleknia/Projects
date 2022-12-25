@@ -173,7 +173,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     #     scaler.step(optimizer)
     #     scaler.update()
     #     optimizer.zero_grad()
-    alpha = 0.4
+    alpha = 0.6
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
