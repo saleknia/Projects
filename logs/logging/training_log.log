@@ -38257,3 +38257,133 @@ Epoch: 1 ---> Test , Loss = 0.2004 , Dice = 91.91 , IoU = 85.87 , Pixel Accuracy
 **************************************************
 
 
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════╕
+│ Hyperparameter   │ Value            │
+╞══════════════════╪══════════════════╡
+│ Learning Rate    │ 5e-05            │
+├──────────────────┼──────────────────┤
+│ Num Classes      │ 1                │
+├──────────────────┼──────────────────┤
+│ Device           │ cuda             │
+├──────────────────┼──────────────────┤
+│ Batch Size       │ 16               │
+├──────────────────┼──────────────────┤
+│ COSINE LR        │ False            │
+├──────────────────┼──────────────────┤
+│ Num Epochs       │ 30               │
+├──────────────────┼──────────────────┤
+│ Num Workers      │ 4                │
+├──────────────────┼──────────────────┤
+│ Image Height     │ 224              │
+├──────────────────┼──────────────────┤
+│ Image Width      │ 224              │
+├──────────────────┼──────────────────┤
+│ Pin Memory       │ True             │
+├──────────────────┼──────────────────┤
+│ Early Stopping   │ 200              │
+├──────────────────┼──────────────────┤
+│ Load Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Save Model       │ True             │
+├──────────────────┼──────────────────┤
+│ Download Dataset │ False            │
+├──────────────────┼──────────────────┤
+│ Model Name       │ DATUNet          │
+├──────────────────┼──────────────────┤
+│ Seed             │ 666              │
+├──────────────────┼──────────────────┤
+│ Task Name        │ ISIC2016         │
+├──────────────────┼──────────────────┤
+│ GPU              │ Tesla T4         │
+├──────────────────┼──────────────────┤
+│ Torch            │ 1.13.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Torchvision      │ 0.14.0+cu116     │
+├──────────────────┼──────────────────┤
+│ Checkpoint Name  │ DATUNet_ISIC2016 │
+╘══════════════════╧══════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ DATUNet         │ 19.49 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/DATUNet_ISIC2016_best.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss = 0.6459 , Dice = 61.62 , IoU = 49.84 , Pixel Accuracy = 68.16 , lr = 5e-05
+Epoch: 1 ---> Valid , Loss = 1.1227 , Dice = 79.84  , IoU = 67.91 , Pixel Accuracy = 90.64 , lr = 5e-05
+Epoch: 2 ---> Train , Loss = 0.4955 , Dice = 84.73 , IoU = 74.81 , Pixel Accuracy = 93.62 , lr = 5e-05
+Epoch: 2 ---> Valid , Loss = 0.6992 , Dice = 88.34  , IoU = 79.70 , Pixel Accuracy = 94.48 , lr = 5e-05
+Epoch: 3 ---> Train , Loss = 0.2831 , Dice = 86.45 , IoU = 77.36 , Pixel Accuracy = 94.22 , lr = 5e-05
+Epoch: 3 ---> Valid , Loss = 0.4112 , Dice = 88.13  , IoU = 79.50 , Pixel Accuracy = 94.21 , lr = 5e-05
+Epoch: 4 ---> Train , Loss = 0.1471 , Dice = 90.28 , IoU = 83.00 , Pixel Accuracy = 96.08 , lr = 5e-05
+Epoch: 4 ---> Valid , Loss = 0.2539 , Dice = 91.77  , IoU = 85.21 , Pixel Accuracy = 96.06 , lr = 5e-05
+Epoch: 5 ---> Train , Loss = 0.1052 , Dice = 91.59 , IoU = 85.04 , Pixel Accuracy = 96.35 , lr = 5e-05
+Epoch: 5 ---> Valid , Loss = 0.1955 , Dice = 92.08  , IoU = 85.70 , Pixel Accuracy = 96.24 , lr = 5e-05
+Epoch: 6 ---> Train , Loss = 0.0899 , Dice = 91.89 , IoU = 85.54 , Pixel Accuracy = 96.64 , lr = 5e-05
+Epoch: 6 ---> Valid , Loss = 0.1930 , Dice = 90.84  , IoU = 83.74 , Pixel Accuracy = 95.70 , lr = 5e-05
+Epoch: 7 ---> Train , Loss = 0.0847 , Dice = 91.97 , IoU = 85.68 , Pixel Accuracy = 96.67 , lr = 5e-05
+Epoch: 7 ---> Valid , Loss = 0.1642 , Dice = 92.52  , IoU = 86.40 , Pixel Accuracy = 96.58 , lr = 5e-05
+Epoch: 8 ---> Train , Loss = 0.0782 , Dice = 92.45 , IoU = 86.37 , Pixel Accuracy = 96.87 , lr = 5e-05
+Epoch: 8 ---> Valid , Loss = 0.1608 , Dice = 92.70  , IoU = 86.71 , Pixel Accuracy = 96.61 , lr = 5e-05
+Epoch: 9 ---> Train , Loss = 0.0744 , Dice = 92.67 , IoU = 86.77 , Pixel Accuracy = 96.95 , lr = 5e-05
+Epoch: 9 ---> Valid , Loss = 0.1664 , Dice = 92.56  , IoU = 86.45 , Pixel Accuracy = 96.48 , lr = 5e-05
+Epoch: 10 ---> Train , Loss = 0.0715 , Dice = 92.89 , IoU = 87.08 , Pixel Accuracy = 97.02 , lr = 5e-05
+Epoch: 10 ---> Valid , Loss = 0.1583 , Dice = 92.51  , IoU = 86.36 , Pixel Accuracy = 96.54 , lr = 5e-05
+Epoch: 11 ---> Train , Loss = 0.0676 , Dice = 92.95 , IoU = 87.22 , Pixel Accuracy = 97.19 , lr = 5e-05
+Epoch: 11 ---> Valid , Loss = 0.1577 , Dice = 92.74  , IoU = 86.76 , Pixel Accuracy = 96.60 , lr = 5e-05
+Epoch: 12 ---> Train , Loss = 0.0657 , Dice = 93.27 , IoU = 87.69 , Pixel Accuracy = 97.26 , lr = 5e-05
+Epoch: 12 ---> Valid , Loss = 0.1561 , Dice = 92.69  , IoU = 86.69 , Pixel Accuracy = 96.57 , lr = 5e-05
+Epoch: 13 ---> Train , Loss = 0.0673 , Dice = 93.10 , IoU = 87.47 , Pixel Accuracy = 97.19 , lr = 5e-05
+Epoch: 13 ---> Valid , Loss = 0.1577 , Dice = 92.27  , IoU = 85.99 , Pixel Accuracy = 96.35 , lr = 5e-05
+Epoch: 14 ---> Train , Loss = 0.0621 , Dice = 93.36 , IoU = 87.88 , Pixel Accuracy = 97.35 , lr = 5e-05
+Epoch: 14 ---> Valid , Loss = 0.1735 , Dice = 91.46  , IoU = 84.88 , Pixel Accuracy = 96.00 , lr = 5e-05
+Epoch: 15 ---> Train , Loss = 0.0612 , Dice = 93.53 , IoU = 88.16 , Pixel Accuracy = 97.43 , lr = 5e-05
+Epoch: 15 ---> Valid , Loss = 0.1547 , Dice = 92.47  , IoU = 86.37 , Pixel Accuracy = 96.60 , lr = 5e-05
+Epoch: 16 ---> Train , Loss = 0.0589 , Dice = 93.59 , IoU = 88.28 , Pixel Accuracy = 97.48 , lr = 5e-05
+Epoch: 16 ---> Valid , Loss = 0.1595 , Dice = 92.48  , IoU = 86.37 , Pixel Accuracy = 96.47 , lr = 5e-05
+Epoch: 17 ---> Train , Loss = 0.0570 , Dice = 93.85 , IoU = 88.72 , Pixel Accuracy = 97.56 , lr = 5e-05
+Epoch: 17 ---> Valid , Loss = 0.1649 , Dice = 92.37  , IoU = 86.20 , Pixel Accuracy = 96.28 , lr = 5e-05
+Epoch: 18 ---> Train , Loss = 0.0584 , Dice = 93.67 , IoU = 88.41 , Pixel Accuracy = 97.50 , lr = 5e-05
+Epoch: 18 ---> Valid , Loss = 0.1612 , Dice = 92.38  , IoU = 86.23 , Pixel Accuracy = 96.45 , lr = 5e-05
+Epoch: 19 ---> Train , Loss = 0.0628 , Dice = 93.33 , IoU = 87.86 , Pixel Accuracy = 97.28 , lr = 5e-05
+Epoch: 19 ---> Valid , Loss = 0.1663 , Dice = 92.14  , IoU = 85.82 , Pixel Accuracy = 96.29 , lr = 5e-05
+Epoch: 20 ---> Train , Loss = 0.0588 , Dice = 93.64 , IoU = 88.34 , Pixel Accuracy = 97.47 , lr = 5e-05
+Epoch: 20 ---> Valid , Loss = 0.1581 , Dice = 92.65  , IoU = 86.64 , Pixel Accuracy = 96.56 , lr = 5e-05
+Epoch: 21 ---> Train , Loss = 0.0565 , Dice = 93.82 , IoU = 88.64 , Pixel Accuracy = 97.57 , lr = 5e-05
+Epoch: 21 ---> Valid , Loss = 0.1835 , Dice = 92.45  , IoU = 86.36 , Pixel Accuracy = 96.37 , lr = 5e-05
+Epoch: 22 ---> Train , Loss = 0.0530 , Dice = 94.19 , IoU = 89.27 , Pixel Accuracy = 97.71 , lr = 5e-05
+Epoch: 22 ---> Valid , Loss = 0.1723 , Dice = 91.98  , IoU = 85.54 , Pixel Accuracy = 96.27 , lr = 5e-05
+Epoch: 23 ---> Train , Loss = 0.0554 , Dice = 93.95 , IoU = 88.86 , Pixel Accuracy = 97.58 , lr = 5e-05
+Epoch: 23 ---> Valid , Loss = 0.1601 , Dice = 92.40  , IoU = 86.23 , Pixel Accuracy = 96.40 , lr = 5e-05
+Epoch: 24 ---> Train , Loss = 0.0511 , Dice = 94.30 , IoU = 89.48 , Pixel Accuracy = 97.77 , lr = 5e-05
+Epoch: 24 ---> Valid , Loss = 0.1677 , Dice = 92.53  , IoU = 86.43 , Pixel Accuracy = 96.39 , lr = 5e-05
+Epoch: 25 ---> Train , Loss = 0.0534 , Dice = 94.00 , IoU = 88.99 , Pixel Accuracy = 97.69 , lr = 5e-05
+Epoch: 25 ---> Valid , Loss = 0.1811 , Dice = 91.42  , IoU = 84.63 , Pixel Accuracy = 95.91 , lr = 5e-05
+Epoch: 26 ---> Train , Loss = 0.0508 , Dice = 94.28 , IoU = 89.43 , Pixel Accuracy = 97.79 , lr = 5e-05
+Epoch: 26 ---> Valid , Loss = 0.1669 , Dice = 92.74  , IoU = 86.80 , Pixel Accuracy = 96.63 , lr = 5e-05
+Epoch: 27 ---> Train , Loss = 0.0495 , Dice = 94.39 , IoU = 89.65 , Pixel Accuracy = 97.83 , lr = 5e-05
+Epoch: 27 ---> Valid , Loss = 0.1707 , Dice = 92.50  , IoU = 86.40 , Pixel Accuracy = 96.51 , lr = 5e-05
+Epoch: 28 ---> Train , Loss = 0.0495 , Dice = 94.50 , IoU = 89.78 , Pixel Accuracy = 97.83 , lr = 5e-05
+Epoch: 28 ---> Valid , Loss = 0.1713 , Dice = 92.22  , IoU = 86.01 , Pixel Accuracy = 96.42 , lr = 5e-05
+Epoch: 29 ---> Train , Loss = 0.0455 , Dice = 94.80 , IoU = 90.32 , Pixel Accuracy = 97.99 , lr = 5e-05
+Epoch: 29 ---> Valid , Loss = 0.1641 , Dice = 92.69  , IoU = 86.70 , Pixel Accuracy = 96.56 , lr = 5e-05
+Epoch: 30 ---> Train , Loss = 0.0461 , Dice = 94.76 , IoU = 90.25 , Pixel Accuracy = 97.96 , lr = 5e-05
+Epoch: 30 ---> Valid , Loss = 0.1750 , Dice = 92.08  , IoU = 85.74 , Pixel Accuracy = 96.34 , lr = 5e-05
+**************************************************
+Best Accuracy over training: 92.74
+Best Accuracy Per Class over training: 92.74
+Epoch Number: 11
+**************************************************
+Inference Phase
+**************************************************
+Epoch: 1 ---> Test , Loss = 0.1901 , Dice = 91.99 , IoU = 85.95 , Pixel Accuracy = 96.29
+**************************************************
+**************************************************
+
+
