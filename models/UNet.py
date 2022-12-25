@@ -993,22 +993,23 @@ class HighResolutionModule(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         return x_fuse
-
+import torchvision
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(UNet, self).__init__()
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
-
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = resnet.layer2
+        # self.encoder3 = resnet.layer3
+        # self.encoder4 = resnet.layer4
+        self.model = torchvision.models.segmentation.deeplabv3_resnet50(weights=torchvision.models.segmentation.DeepLabV3_ResNet50_Weights)
+        self.model.classifier[4] = torch.nn.Conv2d(256, 1, kernel_size=(1, 1), stride=(1, 1))
         # self.extra_layer = DAT(
         #     img_size=224,
         #     patch_size=4,
@@ -1058,27 +1059,27 @@ class UNet(nn.Module):
 
         # self.skip = make_stage()
 
-        self.up3 = UpBlock(512, 256, nb_Conv=2)
-        self.up2 = UpBlock(256, 128, nb_Conv=2)
-        self.up1 = UpBlock(128, 64 , nb_Conv=2)
+        # self.up3 = UpBlock(512, 256, nb_Conv=2)
+        # self.up2 = UpBlock(256, 128, nb_Conv=2)
+        # self.up1 = UpBlock(128, 64 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # e4 = self.encoder4(e3)
 
         # e_tff = self.extra_project(e3)
         # e_tff = self.extra_layer(e_tff)[0]
@@ -1113,15 +1114,17 @@ class UNet(nn.Module):
         # e = self.skip(e)
         # e1, e2, e3 = e[0] + e1, e[1] + e2, e[2] + e3
 
-        e3 = self.up3(e4, e3) 
-        e2 = self.up2(e3, e2) 
-        e1 = self.up1(e2, e1) 
+        # e3 = self.up3(e4, e3) 
+        # e2 = self.up2(e3, e2) 
+        # e1 = self.up1(e2, e1) 
 
-        out = self.final_conv1(e1)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
+        # out = self.final_conv1(e1)
+        # out = self.final_relu1(out)
+        # out = self.final_conv2(out)
+        # out = self.final_relu2(out)
+        # out = self.final_conv3(out)
+
+        out = self.model(x)['out']
 
         return out
 
