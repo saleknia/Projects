@@ -818,7 +818,182 @@ class FAMBlock(nn.Module):
         out = x3 + x1
 
         return out
-        
+
+def create_aa(aa_layer, channels, stride=2, enable=True):
+    if not aa_layer or not enable:
+        return nn.Identity()
+    return aa_layer(stride) if issubclass(aa_layer, nn.AvgPool2d) else aa_layer(channels=channels, stride=stride)
+
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(
+            self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
+            reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
+            attn_layer=None, aa_layer=None, drop_block=None, drop_path=None):
+        super(BasicBlock, self).__init__()
+
+        assert cardinality == 1, 'BasicBlock only supports cardinality of 1'
+        assert base_width == 64, 'BasicBlock does not support changing base width'
+        first_planes = planes // reduce_first
+        outplanes = planes * self.expansion
+        first_dilation = first_dilation or dilation
+        use_aa = aa_layer is not None and (stride == 2 or first_dilation != dilation)
+
+        self.conv1 = nn.Conv2d(
+            inplanes, first_planes, kernel_size=3, stride=1 if use_aa else stride, padding=first_dilation,
+            dilation=first_dilation, bias=False)
+        self.bn1 = norm_layer(first_planes)
+        self.drop_block = drop_block() if drop_block is not None else nn.Identity()
+        self.act1 = act_layer(inplace=True)
+        self.aa = create_aa(aa_layer, channels=first_planes, stride=stride, enable=use_aa)
+
+        self.conv2 = nn.Conv2d(
+            first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
+        self.bn2 = norm_layer(outplanes)
+
+        self.se = None
+        self.act2 = act_layer(inplace=True)
+        self.downsample = downsample
+        self.stride = stride
+        self.dilation = dilation
+        self.drop_path = drop_path
+
+    def zero_init_last(self):
+        nn.init.zeros_(self.bn2.weight)
+
+    def forward(self, x):
+        shortcut = x
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.drop_block(x)
+        x = self.act1(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+
+        x += shortcut
+        x = self.act2(x)
+
+        return x
+
+def make_stage(multi_scale_output=True):
+    num_modules = 2
+    num_branches = 3
+    num_blocks = (1, 1, 1)
+    num_channels = [64, 128, 256]
+    num_in_chs = [64, 128, 256]
+    block = BasicBlock
+    fuse_method = 'SUM'
+
+    modules = []
+    for i in range(num_modules):
+        reset_multi_scale_output = multi_scale_output or i < num_modules - 1
+        modules.append(HighResolutionModule(
+            num_branches, block, num_blocks, num_in_chs, num_channels, fuse_method, reset_multi_scale_output)
+        )
+
+    return nn.Sequential(*modules)
+
+class HighResolutionModule(nn.Module):
+    def __init__(self, num_branches, blocks, num_blocks, num_in_chs,
+                 num_channels, fuse_method, multi_scale_output=True):
+        super(HighResolutionModule, self).__init__()
+
+        self.num_in_chs = num_in_chs
+        self.fuse_method = fuse_method
+        self.num_branches = num_branches
+
+        self.multi_scale_output = multi_scale_output
+
+        self.branches = self._make_branches(
+            num_branches, blocks, num_blocks, num_channels)
+        self.fuse_layers = self._make_fuse_layers()
+        self.fuse_act = nn.ReLU(False)
+
+    def _make_one_branch(self, branch_index, block, num_blocks, num_channels, stride=1):
+        downsample = None
+        if stride != 1 or self.num_in_chs[branch_index] != num_channels[branch_index] * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv2d(
+                    self.num_in_chs[branch_index], num_channels[branch_index] * block.expansion,
+                    kernel_size=1, stride=stride, bias=False),
+                nn.BatchNorm2d(num_channels[branch_index] * block.expansion),
+            )
+
+        layers = [block(self.num_in_chs[branch_index], num_channels[branch_index], stride, downsample)]
+        self.num_in_chs[branch_index] = num_channels[branch_index] * block.expansion
+        for i in range(1, num_blocks[branch_index]):
+            layers.append(block(self.num_in_chs[branch_index], num_channels[branch_index]))
+
+        return nn.Sequential(*layers)
+
+    def _make_branches(self, num_branches, block, num_blocks, num_channels):
+        branches = []
+        for i in range(num_branches):
+            branches.append(self._make_one_branch(i, block, num_blocks, num_channels))
+
+        return nn.ModuleList(branches)
+
+    def _make_fuse_layers(self):
+        if self.num_branches == 1:
+            return nn.Identity()
+
+        num_branches = self.num_branches
+        num_in_chs = self.num_in_chs
+        fuse_layers = []
+        for i in range(num_branches if self.multi_scale_output else 1):
+            fuse_layer = []
+            for j in range(num_branches):
+                if j > i:
+                    fuse_layer.append(nn.Sequential(
+                        nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                        nn.BatchNorm2d(num_in_chs[i]),
+                        nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+                elif j == i:
+                    fuse_layer.append(nn.Identity())
+                else:
+                    conv3x3s = []
+                    for k in range(i - j):
+                        if k == i - j - 1:
+                            num_outchannels_conv3x3 = num_in_chs[i]
+                            conv3x3s.append(nn.Sequential(
+                                nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                                nn.BatchNorm2d(num_outchannels_conv3x3)))
+                        else:
+                            num_outchannels_conv3x3 = num_in_chs[j]
+                            conv3x3s.append(nn.Sequential(
+                                nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                                nn.BatchNorm2d(num_outchannels_conv3x3),
+                                nn.ReLU(False)))
+                    fuse_layer.append(nn.Sequential(*conv3x3s))
+            fuse_layers.append(nn.ModuleList(fuse_layer))
+
+        return nn.ModuleList(fuse_layers)
+
+    def get_num_in_chs(self):
+        return self.num_in_chs
+
+    def forward(self, x):
+        if self.num_branches == 1:
+            return [self.branches[0](x[0])]
+
+        for i, branch in enumerate(self.branches):
+            x[i] = branch(x[i])
+
+        x_fuse = []
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, self.num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
+
+        return x_fuse
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(UNet, self).__init__()
@@ -855,6 +1030,8 @@ class UNet(nn.Module):
         # self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
         # self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
         # self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
+
+        self.skip = make_stage()
 
         self.up3 = UpBlock(512, 256, nb_Conv=2)
         self.up2 = UpBlock(256, 128, nb_Conv=2)
@@ -899,6 +1076,10 @@ class UNet(nn.Module):
         # d4 = self.decoder4(e4) + e3
         # d3 = self.decoder3(d4) + e2
         # d2 = self.decoder2(d3) + e1
+
+        e = [e1, e2, e3]
+        e = self.skip(e)
+        e1, e2, e3 = e
 
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
