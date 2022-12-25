@@ -824,7 +824,7 @@ class UNet(nn.Module):
         super(UNet, self).__init__()
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn = resnet.bn1
