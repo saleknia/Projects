@@ -1232,10 +1232,8 @@ class DATUNet(nn.Module):
         # self.CPF_3 = CFPModule(nIn=192, d=8)
         # self.CPF_4 = CFPModule(nIn=384, d=8)
 
-        # self.combine_1 = ConvBatchNorm(in_channels=48*4 , out_channels=48*1 , kernel_size=1, padding=0)
-        # self.combine_2 = ConvBatchNorm(in_channels=96*4 , out_channels=96*1 , kernel_size=1, padding=0)
-        # self.combine_3 = ConvBatchNorm(in_channels=192*4, out_channels=192*1, kernel_size=1, padding=0)
-        # self.combine_4 = ConvBatchNorm(in_channels=384*4, out_channels=384*1, kernel_size=1, padding=0)
+        self.combine_2 = ConvBatchNorm(in_channels=96*2 , out_channels=96 , kernel_size=3, padding=1)
+        self.combine_3 = ConvBatchNorm(in_channels=192*2, out_channels=192, kernel_size=3, padding=1)
 
         # self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
 
@@ -1311,9 +1309,12 @@ class DATUNet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
+        # x2 = self.norm_21(outputs_1[0]) + self.norm_21(outputs_2[0])
+        # x3 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
 
-        x2 = self.norm_21(outputs_1[0]) + self.norm_21(outputs_2[0])
-        x3 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
+        x2 = self.combine_2(torch.cat([self.norm_21(outputs_1[0]) , self.norm_21(outputs_2[0])], dim=1))
+        x3 = self.combine_3(torch.cat([self.norm_31(outputs_1[1]) , self.norm_32(outputs_2[1])], dim=1))
+
         x4 = torch.cat([self.norm_41(outputs_1[2]), self.norm_42(outputs_2[2])], dim=1)
         x4 = self.se(x4)
         x4 = self.conv2d(x4)
