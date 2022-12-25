@@ -776,7 +776,7 @@ class BasicBlock(nn.Module):
         return x
 
 def make_stage(multi_scale_output=True):
-    num_modules = 1
+    num_modules = 4
     num_branches = 3
     num_blocks = (1, 1, 1)
     num_channels = [96, 192, 384]
@@ -1330,7 +1330,7 @@ class DATUNet(nn.Module):
 
 
         # # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
-        x2, x3, x4 = x[0]+x2, x[1]+x3, x[2]+x4
+        x2, x3, x4 = x[0], x[1], x[2]
 
 
         x3 = self.up3(x4, x3) 
