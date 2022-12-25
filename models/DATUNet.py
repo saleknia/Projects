@@ -1145,31 +1145,31 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder_1 = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+        # self.encoder_1 = DAT(
+        #     img_size=224,
+        #     patch_size=4,
+        #     num_classes=1000,
+        #     expansion=4,
+        #     dim_stem=96,
+        #     dims=[96, 192, 384, 768],
+        #     depths=[2, 2, 6, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     heads=[3, 6, 12, 24],
+        #     window_sizes=[7, 7, 7, 7] ,
+        #     groups=[-1, -1, 3, 6],
+        #     use_pes=[False, False, True, True],
+        #     dwc_pes=[False, False, False, False],
+        #     strides=[-1, -1, 1, 1],
+        #     sr_ratios=[-1, -1, -1, -1],
+        #     offset_range_factor=[-1, -1, 2, 2],
+        #     no_offs=[False, False, False, False],
+        #     fixed_pes=[False, False, False, False],
+        #     use_dwc_mlps=[False, False, False, False],
+        #     use_conv_patches=False,
+        #     drop_rate=0.0,
+        #     attn_drop_rate=0.0,
+        #     drop_path_rate=0.2,
+        # )
 
         # self.encoder_1 = DAT(
         #     img_size=224,
@@ -1198,7 +1198,7 @@ class DATUNet(nn.Module):
         # )
 
 
-        self.encoder_2 = CrossFormer(
+        self.encoder = CrossFormer(
                                 img_size=224,
                                 patch_size=[4, 8, 16, 32],
                                 in_chans= 3,
@@ -1218,44 +1218,17 @@ class DATUNet(nn.Module):
                                 merge_size=[[2, 4], [2,4], [2, 4]]
                                 )
 
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
 
-        self.norm_41 = LayerNormProxy(dim=384)
-        self.norm_31 = LayerNormProxy(dim=192)
-        self.norm_21 = LayerNormProxy(dim=96)
+        self.PSA_3 = ParallelPolarizedSelfAttention(channel=384)
+        self.PSA_2 = ParallelPolarizedSelfAttention(channel=192)
+        self.PSA_1 = ParallelPolarizedSelfAttention(channel=96)
 
-        self.norm_42 = LayerNormProxy(dim=384)
-        self.norm_32 = LayerNormProxy(dim=192)
-        self.norm_22 = LayerNormProxy(dim=96)
-
-        # self.CPF_1 = CFPModule(nIn=48 , d=8)
-        # self.CPF_2 = CFPModule(nIn=96 , d=8)
-        # self.CPF_3 = CFPModule(nIn=192, d=8)
-        # self.CPF_4 = CFPModule(nIn=384, d=8)
-
-        self.combine_2 = ConvBatchNorm(in_channels=96*2 , out_channels=96 , kernel_size=3, padding=1)
-        self.combine_3 = ConvBatchNorm(in_channels=192*2, out_channels=192, kernel_size=3, padding=1)
-
-        # self.combine = [self.combine_1, self.combine_2, self.combine_3, self.combine_4]
-
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
-
-        # self.skip = make_stage()
-
-        # self.deformable_head = make_deformable_head()
-        # self.project = nn.Sequential(
-        #             nn.Conv2d(256, 384, 2, 2, 0, bias=False),
-        #             LayerNormProxy(384),
-        #         )
-        # self.norm = LayerNormProxy(384)
-
-        # self.increase = nn.Conv2d(in_channels=384, out_channels=512, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=768)
-        self.conv2d = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
-        # self.MRFF_1 = MRFF(48)
-        # self.MRFF_2 = MRFF(96)
-        # self.MRFF_3 = MRFF(192)
+        self.PSA = [self.PSA_1, self.PSA_2, self.PSA_3]
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1266,37 +1239,11 @@ class DATUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # Question here
         x_input = x.float()
         b, c, h, w = x.shape
-
-        # x0 = self.firstconv(x_input)
-        # x0 = self.firstbn(x0)
-        # x0 = self.firstrelu(x0)
-
-        # x1 = self.encoder1(x0)
-        # x2 = self.encoder2(x1)
-        # x3 = self.encoder3(x2)
-        # x4 = self.encoder4(x3)
-
-
-        # for i in range(2):
-        #     x3 = self.FAM3[i](x3)
-        # for i in range(4):
-        #     x2 = self.FAM2[i](x2)
-        # for i in range(6):
-        #     x1 = self.FAM1[i](x1)
-
-        # x_cnn, x_tff = self.encoder4(x3), self.norm(self.deformable_head(self.project(x3))[0])
-
-        # x_tff = self.increase(x_tff)
-
-        # x_cat = torch.cat((x_cnn, x_tff), dim=1)
-        # x_cat = self.se(x_cat)
-        # x4 = self.conv2d(x_cat)
 
         x1 = self.firstconv(x_input)
         x1 = self.firstbn(x1)
@@ -1306,37 +1253,26 @@ class DATUNet(nn.Module):
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
-        outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        outputs = self.encoder(x_input)
 
-        # x2 = self.norm_21(outputs_1[0]) + self.norm_21(outputs_2[0])
-        # x3 = self.norm_31(outputs_1[1]) + self.norm_32(outputs_2[1])
+        x4 = self.norm_4(x4)
+        x3 = self.norm_3(x3)
+        x2 = self.norm_2(x2)
 
-        x2 = self.combine_2(torch.cat([self.norm_21(outputs_1[0]) , self.norm_21(outputs_2[0])], dim=1))
-        x3 = self.combine_3(torch.cat([self.norm_31(outputs_1[1]) , self.norm_32(outputs_2[1])], dim=1))
-
-        x4 = torch.cat([self.norm_41(outputs_1[2]), self.norm_42(outputs_2[2])], dim=1)
-        x4 = self.se(x4)
-        x4 = self.conv2d(x4)
-
-        # x = [x2, x3, x4]
-        # x = self.skip(x)
-
-        # x_fuse = []
-        # num_branches = 3
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x = [x2, x3, x4]
+        x_fuse = []
+        num_branches = 3
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.PSA[i](self.fuse_act(y)))
 
 
-        # # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
-
-        # x2, x3, x4 = x2 + x[0], x3 + x[1], x4 + x[2]
+        x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
 
 
         x3 = self.up3(x4, x3) 
@@ -1351,31 +1287,6 @@ class DATUNet(nn.Module):
 
         return x
 
-class SequentialPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x + x
-
-        return channel_out
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels):
@@ -1391,6 +1302,48 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.up(x)
         return x
 
+from torch.nn import init
+
+class ParallelPolarizedSelfAttention(nn.Module):
+
+    def __init__(self, channel=512):
+        super().__init__()
+        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
+        self.softmax_channel=nn.Softmax(1)
+        self.softmax_spatial=nn.Softmax(-1)
+        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
+        self.ln=nn.LayerNorm(channel)
+        self.sigmoid=nn.Sigmoid()
+        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.agp=nn.AdaptiveAvgPool2d((1,1))
+
+    def forward(self, x):
+        b, c, h, w = x.size()
+
+        #Channel-only Self-Attention
+        channel_wv=self.ch_wv(x) #bs,c//2,h,w
+        channel_wq=self.ch_wq(x) #bs,1,h,w
+        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
+        channel_wq=self.softmax_channel(channel_wq)
+        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
+        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
+        channel_out=channel_weight*x
+
+        #Spatial-only Self-Attention
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
+        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
+        spatial_wq=self.softmax_spatial(spatial_wq)
+        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
+        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
+        spatial_out=spatial_weight*x
+        out=spatial_out+channel_out
+        return out
 
 class PSPModule(nn.Module):
     # In the original inmplementation they use precise RoI pooling 
