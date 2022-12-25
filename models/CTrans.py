@@ -246,7 +246,7 @@ class Block_ViT(nn.Module):
         cx2 = self.attn_norm2(emb2) if emb2 is not None else None
         cx3 = self.attn_norm3(emb3) if emb3 is not None else None
         emb_all = self.attn_norm(emb_all)
-        cx1,cx2,cx3,cx4, weights = self.channel_attn(cx1,cx2,cx3,cx4,emb_all)
+        cx1,cx2,cx3, weights = self.channel_attn(cx1,cx2,cx3,emb_all)
         cx1 = org1 + cx1 if emb1 is not None else None
         cx2 = org2 + cx2 if emb2 is not None else None
         cx3 = org3 + cx3 if emb3 is not None else None
