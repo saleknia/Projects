@@ -1079,7 +1079,7 @@ class UNet(nn.Module):
 
         e = [e1, e2, e3]
         e = self.skip(e)
-        e1, e2, e3 = e
+        e1, e2, e3 = e[0] + e1, e[1] + e2, e[2] + e3
 
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
