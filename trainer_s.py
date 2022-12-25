@@ -173,7 +173,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     #     scaler.step(optimizer)
     #     scaler.update()
     #     optimizer.zero_grad()
-        
+    alpha = 0.5
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
@@ -187,7 +187,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         else:
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
-            loss = loss_ce + loss_dice
+            loss = alpha * loss_ce + (1-alpha) * loss_dice
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
