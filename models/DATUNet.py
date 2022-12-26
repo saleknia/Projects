@@ -1277,8 +1277,8 @@ class DATUNet(nn.Module):
 
         # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
         # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
-        x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
-
+        # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
+        x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
 
         # x2, x3, x4 = self.mtc(x2, x3, x4)
