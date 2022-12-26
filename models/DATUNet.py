@@ -598,9 +598,10 @@ class UpBlock(nn.Module):
         )
         # self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.MRFF = MRFF(in_channels=out_channels)
-        # self.CPF = CFPModule(nIn=out_channels, d=8)
+        self.CPF = CFPModule(nIn=in_channels // 2, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
+        x = self.CPF(x)
         x = x + skip_x
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
