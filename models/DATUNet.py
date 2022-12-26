@@ -1110,8 +1110,8 @@ def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 672  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 2
+    config.transformer.num_heads  = 8
+    config.transformer.num_layers = 1
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
@@ -1221,10 +1221,10 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 192, 384], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 192, 384], patchSize=[4, 2, 1])
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -1260,22 +1260,22 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
 
-        # x = [x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 3
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.PSA[i](self.fuse_act(y)))
+        x = [x2, x3, x4]
+        x_fuse = []
+        num_branches = 3
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
 
         # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
 
-        x2, x3, x4 = self.mtc(x2, x3, x4)
+        # x2, x3, x4 = self.mtc(x2, x3, x4)
 
 
         x3 = self.up3(x4, x3) 
