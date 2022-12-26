@@ -591,14 +591,19 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.up = nn.Sequential(
+            nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2),
+            nn.BatchNorm2d(in_channels // 2),
+            nn.ReLU(inplace=True),
+        )
+        # self.conv = _make_nConv(in_channels=(in_channels//2)+out_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         # self.MRFF = MRFF(in_channels=out_channels)
         # self.CPF = CFPModule(nIn=out_channels, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        x = x + skip_x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
         # x = self.MRFF(x)
         # x = self.CPF(x)
         return x
