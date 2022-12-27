@@ -1227,12 +1227,30 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.CPF_2 = CFPModule(nIn=96 , d=8)
-        self.CPF_3 = CFPModule(nIn=192, d=8)
+        # self.CPF_2 = CFPModule(nIn=96 , d=8)
+        # self.CPF_3 = CFPModule(nIn=192, d=8)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.aux_decode_2 = nn.Sequential(
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(48, 24, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(24, n_classes, 3, padding=1),
+            nn.Upsample(scale_factor=4.0)
+            )
+
+        self.aux_decode_3 = nn.Sequential(
+            nn.ConvTranspose2d(192, 48, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(48, 24, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(24, n_classes, 3, padding=1),
+            nn.Upsample(scale_factor=4.0)
+            )
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1256,8 +1274,8 @@ class DATUNet(nn.Module):
         outputs = self.encoder(x_input)
 
         x4 = self.norm_4(outputs[2])
-        x3 = self.CPF_3(self.norm_3(outputs[1]))
-        x2 = self.CPF_2(self.norm_2(outputs[0]))
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1286,13 +1304,19 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
+        t2 = self.aux_decode_2(x2.clone().detach())
+        t3 = self.aux_decode_3(x3.clone().detach())
+
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
 
-        return x
+        if self.training:
+            return (x, t2, t3)
+        else:
+            return (x+t2+t3) / 3.0
 
 
 class DecoderBottleneckLayer(nn.Module):

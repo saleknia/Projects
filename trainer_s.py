@@ -181,8 +181,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs = inputs.float()
         outputs = model(inputs)
         if type(outputs)==tuple:
-            loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) 
-            loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets)
+            loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
+            loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
             loss = loss_ce + loss_dice         
         else:
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
@@ -218,7 +218,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.long()
 
         if type(outputs)==tuple:
-            predictions = torch.round((torch.sigmoid(torch.squeeze(outputs[0], dim=1)) + torch.sigmoid(torch.squeeze(outputs[1], dim=1))) / 2.0)  
+            predictions = torch.round((torch.sigmoid(torch.squeeze(outputs[0], dim=1))))
 
         else:
             predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
