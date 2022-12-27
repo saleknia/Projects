@@ -591,24 +591,12 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.Sequential(
-            nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2),
-            nn.BatchNorm2d(in_channels // 2),
-            nn.ReLU(inplace=True),
-        )
-        self.DRB = DilatedParllelResidualBlockB(nIn=in_channels//2, nOut=in_channels//2)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2),
         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        # self.MRFF = MRFF(in_channels=out_channels)
-        self.CPF = CFPModule(nIn=in_channels // 2, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.CPF(x)
-        x = x + skip_x
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        # x = self.MRFF(x)
-        # x = self.CPF(x)
         return x
 
 
@@ -1239,6 +1227,7 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
+        self.CPF = CFPModule(nIn=48, d=8)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1295,6 +1284,8 @@ class DATUNet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
+
+        x1 = self.CPF(x)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
