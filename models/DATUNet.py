@@ -1240,7 +1240,7 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
             nn.Conv2d(24, n_classes, 3, padding=1),
-            nn.Upsample(scale_factor=4.0)
+            nn.Upsample(scale_factor=2.0)
             )
 
         self.aux_decode_3 = nn.Sequential(
