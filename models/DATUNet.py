@@ -1304,8 +1304,8 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        t2 = self.aux_decode_2(x2.clone().detach())
-        t3 = self.aux_decode_3(x3.clone().detach())
+        t2 = self.aux_decode_2(x2)
+        t3 = self.aux_decode_3(x3)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
