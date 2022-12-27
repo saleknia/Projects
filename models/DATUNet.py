@@ -1316,7 +1316,7 @@ class DATUNet(nn.Module):
         if self.training:
             return (x, t2, t3)
         else:
-            return (x+t2+t3) / 3.0
+            return x
 
 
 class DecoderBottleneckLayer(nn.Module):
