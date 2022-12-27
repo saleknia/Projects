@@ -2452,7 +2452,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         add2 = add1 + d4
         add3 = add2 + d8
         # merge
-        combine = torch.cat([d1, add1, add2, add3, add4], 1)
+        combine = torch.cat([d1, add1, add2, add3], 1)
 
         # if residual version
         if self.add:
