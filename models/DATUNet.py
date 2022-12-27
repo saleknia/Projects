@@ -602,8 +602,8 @@ class UpBlock(nn.Module):
         self.CPF = CFPModule(nIn=in_channels // 2, d=8)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = x + skip_x
         x = self.CPF(x)
+        x = x + skip_x
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
         # x = self.MRFF(x)
