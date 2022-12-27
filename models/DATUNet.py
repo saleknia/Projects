@@ -2232,8 +2232,6 @@ class CrossFormer(nn.Module):
         return flops, excluded_flops
 
 
-
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -2421,15 +2419,16 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut / 4)  # K=4,
-        n1 = nOut - 3 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
+        n = int(nOut / 5)  # K=5,
+        n1 = nOut - 4 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
         self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
+        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
+        self.d16 = CDilated(n, n, 3, 1, 16)  # dilation rate of 2^4
         self.bn = BR(nOut)
         self.add = add
 
@@ -2445,14 +2444,17 @@ class DilatedParllelResidualBlockB(nn.Module):
         d2 = self.d2(output1)
         d4 = self.d4(output1)
         d8 = self.d8(output1)
+        d16 = self.d16(output1)
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
         add1 = d2
         add2 = add1 + d4
         add3 = add2 + d8
+        add4 = add3 + d16
+
         # merge
-        combine = torch.cat([d1, add1, add2, add3], 1)
+        combine = torch.cat([d1, add1, add2, add3, add4], 1)
 
         # if residual version
         if self.add:
