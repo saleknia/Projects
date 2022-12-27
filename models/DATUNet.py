@@ -1227,7 +1227,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.CPF = CFPModule(nIn=48, d=8)
+        self.CPF_2 = CFPModule(nIn=96 , d=8)
+        self.CPF_3 = CFPModule(nIn=192, d=8)
+        self.CPF_4 = CFPModule(nIn=384, d=8)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1254,9 +1256,9 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])
+        x4 = self.CPF_4(self.norm_4(outputs[2]))
+        x3 = self.CPF_3(self.norm_3(outputs[1]))
+        x2 = self.CPF_2(self.norm_2(outputs[0]))
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1284,8 +1286,6 @@ class DATUNet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
-
-        x1 = self.CPF(x1)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
