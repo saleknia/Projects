@@ -12,9 +12,11 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         self.features_1 = model.features[0:3]
+        self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
+        self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        self.att_3 = SequentialPolarizedSelfAttention(channel=112)
+        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
@@ -30,10 +32,14 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
+        x = self.att_1(x)
+
         x = self.features_2(x)
         x = self.att_2(x)
+
         x = self.features_3(x)
         x = self.att_3(x)
+
         x = self.features_4(x)
 
         x = self.avgpool(x)
@@ -85,6 +91,7 @@ class SequentialPolarizedSelfAttention(nn.Module):
 
 
 
+
 class ParallelPolarizedSelfAttention(nn.Module):
 
     def __init__(self, channel=512):
@@ -125,5 +132,4 @@ class ParallelPolarizedSelfAttention(nn.Module):
         spatial_out=spatial_weight*x
         out=spatial_out+channel_out
         return 
-
 
