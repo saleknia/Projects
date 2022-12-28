@@ -91,7 +91,6 @@ class SequentialPolarizedSelfAttention(nn.Module):
 
 
 
-
 class ParallelPolarizedSelfAttention(nn.Module):
 
     def __init__(self, channel=512):
@@ -131,5 +130,9 @@ class ParallelPolarizedSelfAttention(nn.Module):
         spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
         spatial_out=spatial_weight*x
         out=spatial_out+channel_out
-        return 
+        return out
+
+
+
+
 
