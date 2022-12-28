@@ -1234,15 +1234,15 @@ class DATUNet(nn.Module):
 
         # self.up13 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=96)
-        # self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=192)
+        self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=96)
+        self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=192)
 
-        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96)
-        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192)
 
-        self.CPF_2 = CFPModule(nIn=96 , d=8)
-        self.CPF_3 = CFPModule(nIn=192, d=8)
-        self.CPF_4 = CFPModule(nIn=384, d=8)
+        # self.CPF_2 = CFPModule(nIn=96 , d=8)
+        # self.CPF_3 = CFPModule(nIn=192, d=8)
+        # self.CPF_4 = CFPModule(nIn=384, d=8)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1268,14 +1268,10 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
-
-        x4 = self.CPF_4(x4) + x4
-        x3 = self.CPF_3(x3) + x3
-        x2 = self.CPF_2(x2) + x2
         x1 = self.norm_1(x1)
 
-        # x3 = self.combine_3(torch.cat([x3, self.conv_3(1/x3)],dim=1)) + x3
-        # x2 = self.combine_2(torch.cat([x2, self.conv_2(1/x2)],dim=1)) + x2
+        x3 = self.combine_3(torch.cat([x3, self.conv_3(1/x3)],dim=1)) + x3
+        x2 = self.combine_2(torch.cat([x2, self.conv_2(1/x2)],dim=1)) + x2
 
         x = [x1, x2, x3, x4]
         x_fuse = []
