@@ -1219,39 +1219,20 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[24, 24, 24], patchSize=[4, 2, 1])
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up31 = UpBlock(384, 192, nb_Conv=2)
+        self.up21 = UpBlock(192, 96 , nb_Conv=2)
+        self.up11 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.aux_decode_2 = nn.Sequential(
-            nn.ConvTranspose2d(96, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True))
+        self.up22 = UpBlock(192, 96 , nb_Conv=2)
+        self.up12 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.aux_out_2 = nn.Sequential(
-            nn.Conv2d(24, n_classes, 3, padding=1),
-            nn.Upsample(scale_factor=2.0),
-            )
-
-        self.aux_decode_3 = nn.Sequential(
-            nn.ConvTranspose2d(192, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True))
-
-        self.aux_out_3 = nn.Sequential(
-            nn.Conv2d(24, n_classes, 3, padding=1),
-            nn.Upsample(scale_factor=4.0)
-            )
+        self.up13 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1297,28 +1278,21 @@ class DATUNet(nn.Module):
         # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        x3 = self.up31(x4, x3) 
+        x2 = self.up21(x3, x2) 
+        x1 = self.up11(x2, x1) 
 
-        t2 = self.aux_decode_2(x2)
-        t3 = self.aux_decode_3(x3)
+        k2 = self.up22(x3, x2) 
+        k1 = self.up12(k2, x1)
 
-        t1 = self.final_conv1(x1)
-        t1 = self.final_relu1(t1)
-        t1 = self.final_conv2(t1)
-        t1 = self.final_relu2(t1)
+        g1 = self.up13(k2, k1) 
 
-        t1, t2, t3 = self.mtc(t1, t2, t3)
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv3(x)
 
-        t1 = self.final_conv3(t1)
-        t2 = self.aux_out_2(t2)
-        t3 = self.aux_out_3(t3)
-
-        if self.training:
-            return (t1, t2, t3)
-        else:
-            return t1
 
 
 # class DATUNet(nn.Module):
