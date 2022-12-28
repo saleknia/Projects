@@ -1105,18 +1105,17 @@ import ml_collections
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 672  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 8
-    config.transformer.num_layers = 1
+    config.KV_size = 72  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.embeddings_dropout_rate = 0.0
+    config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0.0
     config.patch_sizes = [4,2,1]
-    config.base_channel = 96 # base channel of U-Net
+    config.base_channel = 24 # base channel of U-Net
     config.n_classes = 1
     return config
-
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1220,15 +1219,13 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 192, 384], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[24, 24, 24], patchSize=[4, 2, 1])
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.CPF_2 = CFPModule(nIn=96 , d=8)
-        # self.CPF_3 = CFPModule(nIn=192, d=8)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1239,6 +1236,7 @@ class DATUNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True))
+
         self.aux_out_2 = nn.Sequential(
             nn.Conv2d(24, n_classes, 3, padding=1),
             nn.Upsample(scale_factor=2.0),
@@ -1249,25 +1247,11 @@ class DATUNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True))
+
         self.aux_out_3 = nn.Sequential(
             nn.Conv2d(24, n_classes, 3, padding=1),
             nn.Upsample(scale_factor=4.0)
             )
-
-        self.pooling = nn.AdaptiveAvgPool2d(1)
-        self.dc1 = nn.Conv2d(24, 12, 1)
-        self.dc2 = nn.Conv2d(24, 12, 1)
-        self.dc3 = nn.Conv2d(24, 12, 1)
-        self.bn_dc1 = nn.BatchNorm2d(12)
-        self.bn_dc2 = nn.BatchNorm2d(12)
-        self.bn_dc3 = nn.BatchNorm2d(12)
-        
-        self.fc1 = nn.Linear(12, 12)
-        self.fc2 = nn.Linear(12, 3)
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-        self.softmax = nn.Softmax(dim=1)
-
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1325,25 +1309,246 @@ class DATUNet(nn.Module):
         t1 = self.final_conv2(t1)
         t1 = self.final_relu2(t1)
 
-        y1 = self.pooling(self.bn_dc1(self.dc1(t1)))
-        y2 = self.pooling(self.bn_dc2(self.dc2(t2)))
-        y3 = self.pooling(self.bn_dc3(self.dc3(t3)))
-
-        y = y1 + y2 + y3 
-        coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(B, -1)))))
+        t1, t2, t3 = self.mtc(t1, t2, t3)
 
         t1 = self.final_conv3(t1)
         t2 = self.aux_out_2(t2)
         t3 = self.aux_out_3(t3)
 
-        prediction1 = t1 * coeff[:,0].reshape(B, 1, 1, 1)
-        prediction2 = t2 * coeff[:,1].reshape(B, 1, 1, 1)
-        prediction3 = t3 * coeff[:,2].reshape(B, 1, 1, 1)
-
         if self.training:
-            return (prediction1, prediction2, prediction3)
+            return (t1, t2, t3)
         else:
-            return prediction1+prediction2+prediction3
+            return t1
+
+
+# class DATUNet(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
+
+
+#         resnet = resnet_model.resnet34(pretrained=True)
+
+#         self.firstconv = resnet.conv1
+#         self.firstbn = resnet.bn1
+#         self.firstrelu = resnet.relu
+#         self.encoder1 = resnet.layer1
+#         self.encoder2 = None
+#         self.encoder3 = None
+#         self.encoder4 = None
+#         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+#         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+#         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+
+#         # self.encoder_1 = DAT(
+#         #     img_size=224,
+#         #     patch_size=4,
+#         #     num_classes=1000,
+#         #     expansion=4,
+#         #     dim_stem=96,
+#         #     dims=[96, 192, 384, 768],
+#         #     depths=[2, 2, 6, 2],
+#         #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+#         #     heads=[3, 6, 12, 24],
+#         #     window_sizes=[7, 7, 7, 7] ,
+#         #     groups=[-1, -1, 3, 6],
+#         #     use_pes=[False, False, True, True],
+#         #     dwc_pes=[False, False, False, False],
+#         #     strides=[-1, -1, 1, 1],
+#         #     sr_ratios=[-1, -1, -1, -1],
+#         #     offset_range_factor=[-1, -1, 2, 2],
+#         #     no_offs=[False, False, False, False],
+#         #     fixed_pes=[False, False, False, False],
+#         #     use_dwc_mlps=[False, False, False, False],
+#         #     use_conv_patches=False,
+#         #     drop_rate=0.0,
+#         #     attn_drop_rate=0.0,
+#         #     drop_path_rate=0.2,
+#         # )
+
+#         self.encoder = DAT(
+#             img_size=224,
+#             patch_size=4,
+#             num_classes=1000,
+#             expansion=4,
+#             dim_stem=96,
+#             dims=[96, 192, 384, 768],
+#             depths=[2, 2, 18, 2],
+#             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+#             heads=[3, 6, 12, 24],
+#             window_sizes=[7, 7, 7, 7] ,
+#             groups=[-1, -1, 3, 6],
+#             use_pes=[False, False, True, True],
+#             dwc_pes=[False, False, False, False],
+#             strides=[-1, -1, 1, 1],
+#             sr_ratios=[-1, -1, -1, -1],
+#             offset_range_factor=[-1, -1, 2, 2],
+#             no_offs=[False, False, False, False],
+#             fixed_pes=[False, False, False, False],
+#             use_dwc_mlps=[False, False, False, False],
+#             use_conv_patches=False,
+#             drop_rate=0.0,
+#             attn_drop_rate=0.0,
+#             drop_path_rate=0.2,
+#         )
+
+
+#         # self.encoder = CrossFormer(
+#         #                         img_size=224,
+#         #                         patch_size=[4, 8, 16, 32],
+#         #                         in_chans= 3,
+#         #                         num_classes=1000,
+#         #                         embed_dim=96,
+#         #                         depths=[2, 2, 6, 2],
+#         #                         num_heads=[3, 6, 12, 24],
+#         #                         group_size=[7, 7, 7, 7],
+#         #                         mlp_ratio=4.,
+#         #                         qkv_bias=True,
+#         #                         qk_scale=None,
+#         #                         drop_rate=0.0,
+#         #                         drop_path_rate=0.1,
+#         #                         ape=False,
+#         #                         patch_norm=True,
+#         #                         use_checkpoint=False,
+#         #                         merge_size=[[2, 4], [2,4], [2, 4]]
+#         #                         )
+
+#         self.fuse_layers = make_fuse_layers()
+#         self.fuse_act = nn.ReLU()
+
+#         self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[24, 24, 24], patchSize=[4, 2, 1])
+
+#         self.norm_4 = LayerNormProxy(dim=384)
+#         self.norm_3 = LayerNormProxy(dim=192)
+#         self.norm_2 = LayerNormProxy(dim=96)
+#         self.norm_1 = LayerNormProxy(dim=48)
+
+#         # self.CPF_2 = CFPModule(nIn=96 , d=8)
+#         # self.CPF_3 = CFPModule(nIn=192, d=8)
+
+#         self.up3 = UpBlock(384, 192, nb_Conv=2)
+#         self.up2 = UpBlock(192, 96 , nb_Conv=2)
+#         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+
+#         self.aux_decode_2 = nn.Sequential(
+#             nn.ConvTranspose2d(96, 48, 4, 2, 1),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(48, 24, 3, padding=1),
+#             nn.ReLU(inplace=True))
+#         self.aux_out_2 = nn.Sequential(
+#             nn.Conv2d(24, n_classes, 3, padding=1),
+#             nn.Upsample(scale_factor=2.0),
+#             )
+
+#         self.aux_decode_3 = nn.Sequential(
+#             nn.ConvTranspose2d(192, 48, 4, 2, 1),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(48, 24, 3, padding=1),
+#             nn.ReLU(inplace=True))
+#         self.aux_out_3 = nn.Sequential(
+#             nn.Conv2d(24, n_classes, 3, padding=1),
+#             nn.Upsample(scale_factor=4.0)
+#             )
+
+#         self.pooling = nn.AdaptiveAvgPool2d(1)
+#         self.dc1 = nn.Conv2d(24, 12, 1)
+#         self.dc2 = nn.Conv2d(24, 12, 1)
+#         self.dc3 = nn.Conv2d(24, 12, 1)
+#         self.bn_dc1 = nn.BatchNorm2d(12)
+#         self.bn_dc2 = nn.BatchNorm2d(12)
+#         self.bn_dc3 = nn.BatchNorm2d(12)
+        
+#         self.fc1 = nn.Linear(12, 12)
+#         self.fc2 = nn.Linear(12, 3)
+#         self.relu = nn.ReLU()
+#         self.sigmoid = nn.Sigmoid()
+#         self.softmax = nn.Softmax(dim=1)
+
+
+#         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+#         self.final_relu1 = nn.ReLU(inplace=True)
+#         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+#         self.final_relu2 = nn.ReLU(inplace=True)
+#         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+
+#     def forward(self, x):
+#         # Question here
+#         x_input = x.float()
+#         B, C, H, W = x.shape
+
+#         x1 = self.firstconv(x_input)
+#         x1 = self.firstbn(x1)
+#         x1 = self.firstrelu(x1)
+#         x1 = self.encoder1(x1)
+#         x1 = self.Reduce(x1)
+#         for i in range(6):
+#             x1 = self.FAM1[i](x1)
+
+#         outputs = self.encoder(x_input)
+
+#         x4 = self.norm_4(outputs[2])
+#         x3 = self.norm_3(outputs[1])
+#         x2 = self.norm_2(outputs[0])
+#         x1 = self.norm_1(x1)
+
+#         x = [x1, x2, x3, x4]
+#         x_fuse = []
+#         num_branches = 4
+#         for i, fuse_outer in enumerate(self.fuse_layers):
+#             y = x[0] if i == 0 else fuse_outer[0](x[0])
+#             for j in range(1, num_branches):
+#                 if i == j:
+#                     y = y + x[j]
+#                 else:
+#                     y = y + fuse_outer[j](x[j])
+#             x_fuse.append(self.fuse_act(y))
+
+
+#         # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
+#         # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
+#         # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
+#         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+
+#         x3 = self.up3(x4, x3) 
+#         x2 = self.up2(x3, x2) 
+#         x1 = self.up1(x2, x1) 
+
+#         t2 = self.aux_decode_2(x2)
+#         t3 = self.aux_decode_3(x3)
+
+#         t1 = self.final_conv1(x1)
+#         t1 = self.final_relu1(t1)
+#         t1 = self.final_conv2(t1)
+#         t1 = self.final_relu2(t1)
+
+#         y1 = self.pooling(self.bn_dc1(self.dc1(t1)))
+#         y2 = self.pooling(self.bn_dc2(self.dc2(t2)))
+#         y3 = self.pooling(self.bn_dc3(self.dc3(t3)))
+
+#         y = y1 + y2 + y3 
+#         coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(B, -1)))))
+
+#         t1, t2, t3 = self.mtc(t1, t2, t3)
+
+#         t1 = self.final_conv3(t1)
+#         t2 = self.aux_out_2(t2)
+#         t3 = self.aux_out_3(t3)
+
+#         prediction1 = t1 * coeff[:,0].reshape(B, 1, 1, 1)
+#         prediction2 = t2 * coeff[:,1].reshape(B, 1, 1, 1)
+#         prediction3 = t3 * coeff[:,2].reshape(B, 1, 1, 1)
+
+#         if self.training:
+#             return (prediction1, prediction2, prediction3)
+#         else:
+#             return prediction1+prediction2+prediction3
 
 
 class DecoderBottleneckLayer(nn.Module):
