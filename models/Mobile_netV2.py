@@ -13,7 +13,7 @@ class Mobile_netV2(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        # self.att_1 = ParallelPolarizedSelfAttention(channel=24)
+        self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
         self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
@@ -33,7 +33,7 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        # x = self.att_1(x)
+        x = self.att_1(x)
 
         x = self.features_2(x)
         x = self.att_2(x)
