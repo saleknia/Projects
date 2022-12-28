@@ -14,7 +14,7 @@ class Mobile_netV2(nn.Module):
         self.features_1 = model.features[0:3]
         self.features_2 = model.features[3:4]
         self.features_3 = model.features[4:6]
-        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
+        self.att_3 = SequentialPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
