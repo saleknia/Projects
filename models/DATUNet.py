@@ -1229,10 +1229,16 @@ class DATUNet(nn.Module):
         self.up21 = UpBlock(192, 96 , nb_Conv=2)
         self.up11 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up22 = UpBlock(192, 96 , nb_Conv=2)
-        self.up12 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up22 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up12 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up13 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up13 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=96)
+        self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=192)
+
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1260,6 +1266,9 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
+        x3 = self.combine_3(torch.cat([x3, self.conv_3(1/x3)],dim=1)) + x3
+        x2 = self.combine_2(torch.cat([x2, self.conv_2(1/x2)],dim=1)) + x2
+
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1282,12 +1291,12 @@ class DATUNet(nn.Module):
         x2 = self.up21(x3, x2) 
         x1 = self.up11(x2, x1) 
 
-        k2 = self.up22(x3, x2) + x2 
-        k1 = self.up12(k2, x1) + x1
+        # k2 = self.up22(x3, x2) + x2 
+        # k1 = self.up12(k2, x1) + x1
 
-        g1 = self.up13(k2, k1) + k1
+        # g1 = self.up13(k2, k1) + k1
 
-        x = self.final_conv1(g1)
+        x = self.final_conv1(x1)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
