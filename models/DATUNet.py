@@ -1238,19 +1238,35 @@ class DATUNet(nn.Module):
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True))
+        self.aux_out_2 = nn.Sequential(
             nn.Conv2d(24, n_classes, 3, padding=1),
-            nn.Upsample(scale_factor=2.0)
+            nn.Upsample(scale_factor=2.0),
             )
 
         self.aux_decode_3 = nn.Sequential(
             nn.ConvTranspose2d(192, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=True))
+        self.aux_out_3 = nn.Sequential(
             nn.Conv2d(24, n_classes, 3, padding=1),
             nn.Upsample(scale_factor=4.0)
             )
+
+        self.pooling = nn.AdaptiveAvgPool2d(1)
+        self.dc1 = nn.Conv2d(64, 64, 1)
+        self.dc2 = nn.Conv2d(128, 64, 1)
+        self.dc3 = nn.Conv2d(320, 64, 1)
+        self.bn_dc1 = nn.BatchNorm2d(64)
+        self.bn_dc2 = nn.BatchNorm2d(64)
+        self.bn_dc3 = nn.BatchNorm2d(64)
+        self.fc1 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(64, 4)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+        self.softmax = nn.Softmax(dim=1)
+
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1261,7 +1277,7 @@ class DATUNet(nn.Module):
     def forward(self, x):
         # Question here
         x_input = x.float()
-        b, c, h, w = x.shape
+        B, C, H, W = x.shape
 
         x1 = self.firstconv(x_input)
         x1 = self.firstbn(x1)
@@ -1296,10 +1312,6 @@ class DATUNet(nn.Module):
         # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-
-        # x2, x3, x4 = self.mtc(x2, x3, x4)
-
-
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
@@ -1307,16 +1319,30 @@ class DATUNet(nn.Module):
         t2 = self.aux_decode_2(x2)
         t3 = self.aux_decode_3(x3)
 
-        x = self.final_conv1(x1)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
-        x = self.final_conv3(x)
+        t1 = self.final_conv1(x1)
+        t1 = self.final_relu1(t1)
+        t1 = self.final_conv2(t1)
+        t1 = self.final_relu2(t1)
+
+        y1 = self.pooling(self.bn_dc1(self.dc1(t1)))
+        y2 = self.pooling(self.bn_dc2(self.dc2(t2)))
+        y3 = self.pooling(self.bn_dc3(self.dc3(t3)))
+
+        y = y1 + y2 + y3 
+        coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(B, -1)))))
+
+        t1 = self.final_conv3(t1)
+        t2 = self.aux_out_2(t2)
+        t3 = self.aux_out_3(t3)
+
+        prediction1 = t1 * coeff[:,0].reshape(B, 1, 1, 1)
+        prediction2 = t2 * coeff[:,1].reshape(B, 1, 1, 1)
+        prediction3 = t3 * coeff[:,2].reshape(B, 1, 1, 1)
 
         if self.training:
-            return (x, t2, t3)
+            return (prediction1, prediction2, prediction3)
         else:
-            return x
+            return prediction1+prediction2+prediction3
 
 
 class DecoderBottleneckLayer(nn.Module):
