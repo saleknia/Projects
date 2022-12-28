@@ -1265,9 +1265,13 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.CPF_4(self.norm_4(outputs[2])) + x4
-        x3 = self.CPF_3(self.norm_3(outputs[1])) + x3
-        x2 = self.CPF_2(self.norm_2(outputs[0])) + x2
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+
+        x4 = self.CPF_4(x4) + x4
+        x3 = self.CPF_3(x3) + x3
+        x2 = self.CPF_2(x2) + x2
         x1 = self.norm_1(x1)
 
         # x3 = self.combine_3(torch.cat([x3, self.conv_3(1/x3)],dim=1)) + x3
