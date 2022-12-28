@@ -13,11 +13,11 @@ class Mobile_netV2(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        self.CPF_1 = CFPModule(nIn=24 , d=8)
+        # self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
-        self.CPF_2 = CFPModule(nIn=40 , d=8)
+        self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        self.CPF_3 = CFPModule(nIn=112, d=8)
+        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
@@ -33,13 +33,13 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        x = self.CPF_1(x)
+        # x = self.att_1(x)
 
         x = self.features_2(x)
-        x = self.CPF_2(x)
+        x = self.att_2(x)
 
         x = self.features_3(x)
-        x = self.CPF_3(x)
+        x = self.att_3(x)
 
         x = self.features_4(x)
 
@@ -264,7 +264,6 @@ class CFPModule(nn.Module):
         output = self.conv1x1(output)
         
         return output+input
-
 
 
 
