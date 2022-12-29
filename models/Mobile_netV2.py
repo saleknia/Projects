@@ -11,7 +11,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
         self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
