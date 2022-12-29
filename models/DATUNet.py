@@ -1148,7 +1148,7 @@ class DATUNet(nn.Module):
         # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder_1 = DAT(
+        self.encoder = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
