@@ -1252,7 +1252,7 @@ class DATUNet(nn.Module):
         self.se = SEBlock(channel=768)
         self.conv = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
