@@ -128,7 +128,7 @@ def distillation(outputs, labels):
     for i, v in enumerate(unique):
         temp[i] = torch.mean(outputs[labels==v], dim=0)
     distances = torch.cdist(temp, temp, p=2.0)
-    loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))
+    loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
     loss = torch.mean(loss)
     return loss * 0.1
 
