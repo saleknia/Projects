@@ -47385,3 +47385,88 @@ Epoch: 1 ---> Test , Loss: 1.1992 , Accuracy: 82.07
 **************************************************
 
 
+Logging Directory: ./logs/logging
+╒══════════════════╤══════════════════════════╕
+│ Hyperparameter   │ Value                    │
+╞══════════════════╪══════════════════════════╡
+│ Learning Rate    │ 5e-05                    │
+├──────────────────┼──────────────────────────┤
+│ Num Classes      │ 40                       │
+├──────────────────┼──────────────────────────┤
+│ Device           │ cuda                     │
+├──────────────────┼──────────────────────────┤
+│ Batch Size       │ 40                       │
+├──────────────────┼──────────────────────────┤
+│ COSINE LR        │ False                    │
+├──────────────────┼──────────────────────────┤
+│ Num Epochs       │ 60                       │
+├──────────────────┼──────────────────────────┤
+│ Num Workers      │ 4                        │
+├──────────────────┼──────────────────────────┤
+│ Image Height     │ 224                      │
+├──────────────────┼──────────────────────────┤
+│ Image Width      │ 224                      │
+├──────────────────┼──────────────────────────┤
+│ Pin Memory       │ True                     │
+├──────────────────┼──────────────────────────┤
+│ Early Stopping   │ 200                      │
+├──────────────────┼──────────────────────────┤
+│ Load Model       │ True                     │
+├──────────────────┼──────────────────────────┤
+│ Save Model       │ True                     │
+├──────────────────┼──────────────────────────┤
+│ Download Dataset │ False                    │
+├──────────────────┼──────────────────────────┤
+│ Model Name       │ Mobile_NetV2             │
+├──────────────────┼──────────────────────────┤
+│ Seed             │ 666                      │
+├──────────────────┼──────────────────────────┤
+│ Task Name        │ Standford40              │
+├──────────────────┼──────────────────────────┤
+│ GPU              │ Tesla T4                 │
+├──────────────────┼──────────────────────────┤
+│ Torch            │ 1.13.0+cu116             │
+├──────────────────┼──────────────────────────┤
+│ Torchvision      │ 0.14.0+cu116             │
+├──────────────────┼──────────────────────────┤
+│ Checkpoint Name  │ Mobile_NetV2_Standford40 │
+╘══════════════════╧══════════════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ Mobile_NetV2    │ 4.84 M        │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/Mobile_NetV2_Standford40_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss_CE : 3.6982 , Loss_disparity : 0.0000 , Accuracy : 2.80 , lr: 0.009851376739812292
+Epoch: 2 ---> Train , Loss_CE : 3.6953 , Loss_disparity : 0.0000 , Accuracy : 3.83 , lr: 0.0097009988605709
+Epoch: 3 ---> Train , Loss_CE : 3.6930 , Loss_disparity : 0.0000 , Accuracy : 5.17 , lr: 0.009550361516750745
+Epoch: 4 ---> Train , Loss_CE : 3.6911 , Loss_disparity : 0.0000 , Accuracy : 6.70 , lr: 0.009399459697115616
+Epoch: 5 ---> Train , Loss_CE : 3.6897 , Loss_disparity : 0.0000 , Accuracy : 8.95 , lr: 0.009248288202344676
+Epoch: 6 ---> Train , Loss_CE : 3.6880 , Loss_disparity : 0.0000 , Accuracy : 10.72 , lr: 0.009096841634421383
+Epoch: 7 ---> Train , Loss_CE : 3.6865 , Loss_disparity : 0.0000 , Accuracy : 13.30 , lr: 0.008945114385215967
+Epoch: 8 ---> Train , Loss_CE : 3.6848 , Loss_disparity : 0.0000 , Accuracy : 15.62 , lr: 0.008793100624183727
+Epoch: 9 ---> Train , Loss_CE : 3.6838 , Loss_disparity : 0.0000 , Accuracy : 17.70 , lr: 0.008640794285092379
+Epoch: 10 ---> Train , Loss_CE : 3.6829 , Loss_disparity : 0.0000 , Accuracy : 19.45 , lr: 0.008488189051681218
+Epoch: 11 ---> Train , Loss_CE : 3.6813 , Loss_disparity : 0.0000 , Accuracy : 22.73 , lr: 0.00833527834214303
+Epoch: 12 ---> Train , Loss_CE : 3.6804 , Loss_disparity : 0.0000 , Accuracy : 23.75 , lr: 0.008182055292306069
+Epoch: 13 ---> Train , Loss_CE : 3.6797 , Loss_disparity : 0.0000 , Accuracy : 25.70 , lr: 0.0080285127373778
+Epoch: 14 ---> Train , Loss_CE : 3.6788 , Loss_disparity : 0.0000 , Accuracy : 26.25 , lr: 0.007874643192094185
+Epoch: 15 ---> Train , Loss_CE : 3.6778 , Loss_disparity : 0.0000 , Accuracy : 28.35 , lr: 0.007720438829097449
+Epoch: 16 ---> Train , Loss_CE : 3.6767 , Loss_disparity : 0.0000 , Accuracy : 30.23 , lr: 0.007565891455341336
+Epoch: 17 ---> Train , Loss_CE : 3.6758 , Loss_disparity : 0.0000 , Accuracy : 29.73 , lr: 0.007410992486294862
+Epoch: 18 ---> Train , Loss_CE : 3.6751 , Loss_disparity : 0.0000 , Accuracy : 32.28 , lr: 0.007255732917683122
+Epoch: 19 ---> Train , Loss_CE : 3.6744 , Loss_disparity : 0.0000 , Accuracy : 33.15 , lr: 0.007100103294465624
+Epoch: 20 ---> Train , Loss_CE : 3.6736 , Loss_disparity : 0.0000 , Accuracy : 33.40 , lr: 0.006944093676707979
+Epoch: 21 ---> Train , Loss_CE : 3.6731 , Loss_disparity : 0.0000 , Accuracy : 34.88 , lr: 0.006787693601950279
+Epoch: 22 ---> Train , Loss_CE : 3.6724 , Loss_disparity : 0.0000 , Accuracy : 36.70 , lr: 0.0066308920436132434
+Epoch: 23 ---> Train , Loss_CE : 3.6717 , Loss_disparity : 0.0000 , Accuracy : 37.23 , lr: 0.006473677364909496
+Epoch: 24 ---> Train , Loss_CE : 3.6718 , Loss_disparity : 0.0000 , Accuracy : 36.60 , lr: 0.006316037267639305
+Epoch: 25 ---> Train , Loss_CE : 3.6707 , Loss_disparity : 0.0000 , Accuracy : 38.20 , lr: 0.006157958735144797
+Epoch: 26 ---> Train , Loss_CE : 3.6702 , Loss_disparity : 0.0000 , Accuracy : 38.55 , lr: 0.005999427968569825
+Epoch: 27 ---> Train , Loss_CE : 3.6693 , Loss_disparity : 0.0000 , Accuracy : 39.50 , lr: 0.005840430315419381
