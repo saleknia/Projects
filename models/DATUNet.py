@@ -1249,7 +1249,7 @@ class DATUNet(nn.Module):
         self.up_2 = DecoderBottleneckLayer(in_channels=384)
         self.up_1 = DecoderBottleneckLayer(in_channels=192)
 
-        self.se = SEBlock(channel=784)
+        self.se = SEBlock(channel=768)
         self.conv = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
