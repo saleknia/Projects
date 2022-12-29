@@ -13,13 +13,10 @@ class Mobile_netV2(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        self.CPF_1 = CFPModule(nIn=24, d=8)
         self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
-        self.CPF_2 = CFPModule(nIn=40, d=8)
         self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        self.CPF_3 = CFPModule(nIn=112, d=8)
         self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
@@ -32,19 +29,28 @@ class Mobile_netV2(nn.Module):
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
         # self.se = SEAttention(channel=1280)
+        self.FAMBlock1 = FAMBlock(channels=24)
+        self.FAMBlock2 = FAMBlock(channels=40)
+        self.FAMBlock3 = FAMBlock(channels=112)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
     def forward(self, x):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        x = self.CPF_1(x)
+        for i in range(6):
+            x = self.FAM1[i](x)
         x = self.att_1(x)
 
         x = self.features_2(x)
-        x = self.CPF_2(x)
+        for i in range(4):
+            x = self.FAM2[i](x)
         x = self.att_2(x)
 
         x = self.features_3(x)
-        x = self.CPF_3(x)
+        for i in range(2):
+            x = self.FAM3[i](x)
         x = self.att_3(x)
 
         x = self.features_4(x)
@@ -56,6 +62,25 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         return x
+
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
 
 
 class SequentialPolarizedSelfAttention(nn.Module):
