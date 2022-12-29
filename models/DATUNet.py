@@ -483,7 +483,7 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -546,7 +546,7 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 3:
@@ -554,12 +554,7 @@ class DAT(nn.Module):
             positions.append(pos)
             references.append(ref)
         
-        x = self.cls_norm(x)
-        x = F.adaptive_avg_pool2d(x, 1)
-        x = torch.flatten(x, 1)
-        x = self.cls_head(x)
-        
-        return x
+        return outputs
 
 def get_activation(activation_type):
     activation_type = activation_type.lower()
@@ -1148,7 +1143,7 @@ class DATUNet(nn.Module):
         # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder = DAT(
+        self.encoder_1 = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -1199,37 +1194,38 @@ class DATUNet(nn.Module):
         #     attn_drop_rate=0.0,
         #     drop_path_rate=0.2,
         # )
-        self.encoder.cls_head = nn.Linear(768, 40)
 
 
-        # self.encoder = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.encoder_2 = CrossFormer(
+                                img_size=224,
+                                patch_size=[4, 8, 16, 32],
+                                in_chans= 3,
+                                num_classes=1000,
+                                embed_dim=96,
+                                depths=[2, 2, 6, 2],
+                                num_heads=[3, 6, 12, 24],
+                                group_size=[7, 7, 7, 7],
+                                mlp_ratio=4.,
+                                qkv_bias=True,
+                                qk_scale=None,
+                                drop_rate=0.0,
+                                drop_path_rate=0.1,
+                                ape=False,
+                                patch_norm=True,
+                                use_checkpoint=False,
+                                merge_size=[[2, 4], [2,4], [2, 4]]
+                                )
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        # self.norm_4 = LayerNormProxy(dim=384)
-        # self.norm_3 = LayerNormProxy(dim=192)
-        # self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.norm_41 = LayerNormProxy(dim=384)
+        self.norm_31 = LayerNormProxy(dim=192)
+        self.norm_21 = LayerNormProxy(dim=96)
 
+        self.norm_42 = LayerNormProxy(dim=384)
+        self.norm_32 = LayerNormProxy(dim=192)
+        self.norm_22 = LayerNormProxy(dim=96)
 
         # self.up31 = UpBlock(384, 192, nb_Conv=2)
         # self.up21 = UpBlock(192, 96 , nb_Conv=2)
@@ -1250,11 +1246,18 @@ class DATUNet(nn.Module):
         # # self.CPF_3 = CFPModule(nIn=192, d=8)
         # # self.CPF_4 = CFPModule(nIn=384, d=8)
 
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.up_2 = DecoderBottleneckLayer(in_channels=384)
+        self.up_1 = DecoderBottleneckLayer(in_channels=192)
+
+        self.se = SEBlock(channel=784)
+        self.conv = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
+
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # # Question here
@@ -1311,7 +1314,28 @@ class DATUNet(nn.Module):
         # x = self.final_conv2(x)
         # x = self.final_relu2(x)
         # x = self.final_conv3(x)
-        x = self.encoder(x)
+        outputs_1 = self.encoder_1(x)
+        x41 = self.norm_41(outputs_1[2])
+        x31 = self.norm_31(outputs_1[1])
+        x21 = self.norm_21(outputs_1[0])
+        outputs_2 = self.encoder_2(x)
+        x42 = self.norm_42(outputs_2[2])
+        x32 = self.norm_32(outputs_2[1])
+        x22 = self.norm_22(outputs_2[0])
+
+        x4 = self.se(torch.cat([x41, x42], dim=1))
+        x4 = self.conv(x4)
+        x3 = x31 + x32
+        x2 = x21 + x22
+
+        x = self.up_2(x4) + x3
+        x = self.up_1(x)  + x2
+        x = self.final_conv1(x)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv3(x)
+        x = self.final_up(x)
         return x
 
 
