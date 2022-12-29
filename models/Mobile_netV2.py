@@ -13,14 +13,14 @@ class Mobile_netV2(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        self.DPB_1 = DilatedParllelResidualBlockB(nIn=24, nOut=24)
-        self.att_1 = ParallelPolarizedSelfAttention(channel=24)
+        # self.DPB_1 = DilatedParllelResidualBlockB(nIn=24, nOut=24)
+        # self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
-        self.DPB_2 = DilatedParllelResidualBlockB(nIn=40, nOut=40)
-        self.att_2 = ParallelPolarizedSelfAttention(channel=40)
+        # self.DPB_2 = DilatedParllelResidualBlockB(nIn=40, nOut=40)
+        # self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        self.DPB_3 = DilatedParllelResidualBlockB(nIn=112, nOut=112)
-        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
+        # self.DPB_3 = DilatedParllelResidualBlockB(nIn=112, nOut=112)
+        # self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
@@ -36,16 +36,16 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        x = self.DPB_1(x)
-        x = self.att_1(x)
+        # x = self.DPB_1(x)
+        # x = self.att_1(x)
 
         x = self.features_2(x)
-        x = self.DPB_2(x)
-        x = self.att_2(x)
+        # x = self.DPB_2(x)
+        # x = self.att_2(x)
 
         x = self.features_3(x)
-        x = self.DPB_3(x)
-        x = self.att_3(x)
+        # x = self.DPB_3(x)
+        # x = self.att_3(x)
 
         x = self.features_4(x)
 
