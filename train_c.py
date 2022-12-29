@@ -354,6 +354,7 @@ def main(args):
 
         transform_train = transforms.Compose([
             transforms.Resize((224, 224)),
+            transforms.RandomRotation(25),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
