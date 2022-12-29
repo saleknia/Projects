@@ -44,6 +44,7 @@ from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
+from models.DATUNet import DATUNet
 from torchvision import datasets, transforms 
 import utils
 from utils import color
@@ -173,6 +174,9 @@ def main(args):
     elif MODEL_NAME == 'ESPNet_loss':
         model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
+    elif MODEL_NAME == 'DATUNet':
+        model = DATUNet().to(DEVICE)
+        
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
