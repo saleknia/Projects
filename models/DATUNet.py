@@ -574,7 +574,7 @@ class DeformableConv2d(nn.Module):
                  kernel_size=3,
                  stride=1,
                  padding=1,
-                 bias=False):
+                 bias=True):
 
         super(DeformableConv2d, self).__init__()
         
