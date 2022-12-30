@@ -1224,7 +1224,7 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-
+        self.norm_1 = LayerNormProxy(dim=48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
