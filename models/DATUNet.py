@@ -483,11 +483,6 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        self.CPF_1 = CFPModule(nIn=96 , d=8)
-        self.CPF_2 = CFPModule(nIn=192, d=8)
-
-        self.CPF = [self.CPF_1, self.CPF_2]
-
         self.stages[3] = None
     
     def reset_parameters(self):
@@ -555,7 +550,6 @@ class DAT(nn.Module):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 2:
-                x = self.CPF[i](x)
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
