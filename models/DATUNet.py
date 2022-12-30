@@ -483,6 +483,11 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
+        self.CPF_1 = CFPModule(nIn=96 , d=8)
+        self.CPF_2 = CFPModule(nIn=192, d=8)
+
+        self.CPF = [self.CPF_1, self.CPF_2]
+
         self.stages[3] = None
     
     def reset_parameters(self):
@@ -549,7 +554,8 @@ class DAT(nn.Module):
         for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
+                x = self.CPF[i](x)
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -624,9 +630,8 @@ class UpBlock(nn.Module):
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         up = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = torch.cat([up, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = x + up + skip_x 
         return x
 
 
