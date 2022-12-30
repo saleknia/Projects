@@ -5,19 +5,66 @@ from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet
 import torchvision
 import random
 
+# class Mobile_netV2(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(Mobile_netV2, self).__init__()
+
+#         model = resnet50(weights=torchvision.models.ResNet50_Weights.DEFAULT)
+#         self.conv1 = model.conv1
+#         self.bn1 = model.bn1
+#         self.relu = model.relu
+#         self.maxpool = model.maxpool
+#         self.layer1 = model.layer1
+#         self.layer2 = model.layer2
+#         self.layer3 = model.layer3
+#         self.layer4 = model.layer4
+#         self.avgpool = model.avgpool
+#         self.classifier = nn.Sequential(
+#             nn.Dropout(p=0.4, inplace=True),
+#             nn.Linear(in_features=2048, out_features=512, bias=True),
+#             nn.Dropout(p=0.4, inplace=True),
+#             nn.Linear(in_features=512, out_features=256, bias=True),
+#             nn.Dropout(p=0.4, inplace=True),
+#             nn.Linear(in_features=256, out_features=40, bias=True),
+#         )
+#         self.attention_1 = ParallelPolarizedSelfAttention(channel=256)
+#         self.attention_2 = ParallelPolarizedSelfAttention(channel=512)
+#         self.attention_3 = ParallelPolarizedSelfAttention(channel=1024)
+#         # self.se = SEAttention(channel=1280)
+#     def forward(self, x):
+#         b, c, w, h = x.shape
+
+#         x = self.conv1(x)
+#         x = self.bn1(x)
+#         x = self.relu(x)
+#         x = self.maxpool(x)
+
+#         x = self.layer1(x)
+#         x = self.attention_1(x)
+#         x = self.layer2(x)
+#         x = self.attention_2(x)
+#         x = self.layer3(x)
+#         x = self.attention_3(x)
+#         x = self.layer4(x)
+
+#         x = self.avgpool(x)
+#         x = x.view(x.size(0), -1)
+#         x = self.classifier(x)
+        
+#         return x
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         # model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        # self.att_1 = ParallelPolarizedSelfAttention(channel=24)
+        self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
-        # self.att_2 = ParallelPolarizedSelfAttention(channel=40)
+        self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        # self.att_3 = ParallelPolarizedSelfAttention(channel=112)
+        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
@@ -33,13 +80,13 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        # x = self.att_1(x)
+        x = self.att_1(x)
 
         x = self.features_2(x)
-        # x = self.att_2(x)
+        x = self.att_2(x)
 
         x = self.features_3(x)
-        # x = self.att_3(x)
+        x = self.att_3(x)
 
         x = self.features_4(x)
 
@@ -50,26 +97,6 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         return x
-
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
-
 
 class SequentialPolarizedSelfAttention(nn.Module):
 
@@ -152,6 +179,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
         spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
         spatial_out=spatial_weight*x
         out=spatial_out+channel_out
+        # out = spatial_out
         return out
 
 import numpy as np
