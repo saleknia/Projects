@@ -669,19 +669,63 @@ class CCA(nn.Module):
         out = self.relu(x_after_channel)
         return out
 
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        # self.II = _make_nConv(in_channels=3, out_channels=48, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels+48, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.II = _make_nConv(in_channels=3, out_channels=48, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.Attention = AttentionBlock(F_g=in_channels, F_l=48, n_coefficients=48)
     def forward(self, x_input, x, skip_x):
         up = self.up(x)
-        # II = self.II(x_input)
-        # II = F.interpolate(II, up.size()[2:], mode='bilinear', align_corners=False)
-        x = torch.cat([up, skip_x], dim=1)  # dim 1 is the channel dimension
+        II = self.II(x_input)
+        II = F.interpolate(II, up.size()[2:], mode='bilinear', align_corners=False)
+        II = self.Attention(gate=up, skip_connection=II)
+        x = torch.cat([II, up, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
 
