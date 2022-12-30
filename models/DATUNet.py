@@ -563,7 +563,6 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
-
 def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
     layers = []
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
@@ -586,6 +585,36 @@ class SpatialAttention(nn.Module):
         output=self.sigmoid(output)
         return output
 
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+        
+class CCA(nn.Module):
+    """
+    CCA Block
+    """
+    def __init__(self, F_g, F_x):
+        super().__init__()
+        self.mlp_x = nn.Sequential(
+            Flatten(),
+            nn.Linear(F_x, F_x))
+        self.mlp_g = nn.Sequential(
+            Flatten(),
+            nn.Linear(F_g, F_x))
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, g, x):
+        # channel-wise attention
+        avg_pool_x = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
+        channel_att_x = self.mlp_x(avg_pool_x)
+        avg_pool_g = F.avg_pool2d( g, (g.size(2), g.size(3)), stride=(g.size(2), g.size(3)))
+        channel_att_g = self.mlp_g(avg_pool_g)
+        channel_att_sum = (channel_att_x + channel_att_g)/2.0
+        scale = torch.sigmoid(channel_att_sum).unsqueeze(2).unsqueeze(3).expand_as(x)
+        x_after_channel = x * scale
+        out = self.relu(x_after_channel)
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -593,14 +622,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.att = ParallelPolarizedSelfAttention(in_channels//2)
+        self.coatt = CCA(F_g=in_channels//2, F_x=in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = self.att(x)
-        # x = self.conv(x)
-        # x = x + skip_x
+        skip_x = self.coatt(g=x, x=skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        x = self.conv(x) 
         return x
 
 
