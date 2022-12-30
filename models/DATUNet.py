@@ -632,8 +632,11 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
     layers = []
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    for i in range(nb_Conv - 1):
+        if i==0:
+            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+        else:
+            layers.append(DConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
 class Flatten(nn.Module):
@@ -1031,11 +1034,11 @@ def make_deformable_head():
 
     return deformable_layer
 
-class ConvBatchNorm(nn.Module):
+class DConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
-        super(ConvBatchNorm, self).__init__()
+        super(DConvBatchNorm, self).__init__()
         self.conv = DeformableConv2d(in_channels, out_channels) 
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
@@ -1045,19 +1048,19 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
-# class ConvBatchNorm(nn.Module):
-#     """(convolution => [BN] => ReLU)"""
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
 
-#     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
-#         super(ConvBatchNorm, self).__init__()
-#         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
-#         self.norm = nn.BatchNorm2d(out_channels)
-#         self.activation = get_activation(activation)
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
 
-#     def forward(self, x):
-#         out = self.conv(x)
-#         out = self.norm(out)
-#         return self.activation(out)
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
 
 
 class FAMBlock(nn.Module):
