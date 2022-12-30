@@ -680,6 +680,7 @@ class UpBlock(nn.Module):
     def forward(self, x_input, x, skip_x):
         up = self.up(x)
         II = self.II(x_input)
+        II = F.interpolate(II, up.size()[2:], mode='bilinear', align_corners=False)
         x = torch.cat([II, up, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
