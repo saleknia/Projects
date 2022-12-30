@@ -563,6 +563,71 @@ def get_activation(activation_type):
     else:
         return nn.ReLU()
 
+import torch
+import torchvision.ops
+from torch import nn
+
+class DeformableConv2d(nn.Module):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride=1,
+                 padding=1,
+                 bias=False):
+
+        super(DeformableConv2d, self).__init__()
+        
+        assert type(kernel_size) == tuple or type(kernel_size) == int
+
+        kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
+        self.stride = stride if type(stride) == tuple else (stride, stride)
+        self.padding = padding
+        
+        self.offset_conv = nn.Conv2d(in_channels, 
+                                     2 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
+
+        nn.init.constant_(self.offset_conv.weight, 0.)
+        nn.init.constant_(self.offset_conv.bias, 0.)
+        
+        self.modulator_conv = nn.Conv2d(in_channels, 
+                                     1 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
+
+        nn.init.constant_(self.modulator_conv.weight, 0.)
+        nn.init.constant_(self.modulator_conv.bias, 0.)
+        
+        self.regular_conv = nn.Conv2d(in_channels=in_channels,
+                                      out_channels=out_channels,
+                                      kernel_size=kernel_size,
+                                      stride=stride,
+                                      padding=self.padding,
+                                      bias=bias)
+
+    def forward(self, x):
+        #h, w = x.shape[2:]
+        #max_offset = max(h, w)/4.
+
+        offset = self.offset_conv(x)#.clamp(-max_offset, max_offset)
+        modulator = 2. * torch.sigmoid(self.modulator_conv(x))
+        
+        x = torchvision.ops.deform_conv2d(input=x, 
+                                          offset=offset, 
+                                          weight=self.regular_conv.weight, 
+                                          bias=self.regular_conv.bias, 
+                                          padding=self.padding,
+                                          mask=modulator,
+                                          stride=self.stride,
+                                          )
+        return x
+
 def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
     layers = []
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
@@ -570,20 +635,6 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
     for _ in range(nb_Conv - 1):
         layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
-
-class SpatialAttention(nn.Module):
-    def __init__(self,kernel_size=7):
-        super().__init__()
-        self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
-        self.sigmoid=nn.Sigmoid()
-    
-    def forward(self, x) :
-        max_result,_=torch.max(x,dim=1,keepdim=True)
-        avg_result=torch.mean(x,dim=1,keepdim=True)
-        result=torch.cat([max_result,avg_result],1)
-        output=self.conv(result)
-        output=self.sigmoid(output)
-        return output
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -985,7 +1036,7 @@ class ConvBatchNorm(nn.Module):
 
     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+        self.conv = DeformableConv2d(in_channels, out_channels) 
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -993,6 +1044,21 @@ class ConvBatchNorm(nn.Module):
         out = self.conv(x)
         out = self.norm(out)
         return self.activation(out)
+
+# class ConvBatchNorm(nn.Module):
+#     """(convolution => [BN] => ReLU)"""
+
+#     def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+#         super(ConvBatchNorm, self).__init__()
+#         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+#         self.norm = nn.BatchNorm2d(out_channels)
+#         self.activation = get_activation(activation)
+
+#     def forward(self, x):
+#         out = self.conv(x)
+#         out = self.norm(out)
+#         return self.activation(out)
+
 
 class FAMBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
