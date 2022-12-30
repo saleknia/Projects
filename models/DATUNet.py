@@ -719,7 +719,7 @@ class UpBlock(nn.Module):
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels+48, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         self.II = _make_nConv(in_channels=3, out_channels=48, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.Attention = AttentionBlock(F_g=in_channels, F_l=48, n_coefficients=48)
+        self.Attention = AttentionBlock(F_g=in_channels//2, F_l=48, n_coefficients=48)
     def forward(self, x_input, x, skip_x):
         up = self.up(x)
         II = self.II(x_input)
