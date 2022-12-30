@@ -595,8 +595,10 @@ class UpBlock(nn.Module):
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        x = x + skip_x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
         return x
 
 
@@ -1130,54 +1132,28 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.encoder2 = None
-        # self.encoder3 = None
-        # self.encoder4 = None
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder_1 = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
-
-        # self.encoder = DAT(
+        # self.encoder_1 = DAT(
         #     img_size=224,
         #     patch_size=4,
         #     num_classes=1000,
         #     expansion=4,
         #     dim_stem=96,
         #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     depths=[2, 2, 6, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
         #     heads=[3, 6, 12, 24],
         #     window_sizes=[7, 7, 7, 7] ,
         #     groups=[-1, -1, 3, 6],
@@ -1195,147 +1171,116 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
+        self.encoder = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
 
-        self.encoder_2 = CrossFormer(
-                                img_size=224,
-                                patch_size=[4, 8, 16, 32],
-                                in_chans= 3,
-                                num_classes=1000,
-                                embed_dim=96,
-                                depths=[2, 2, 6, 2],
-                                num_heads=[3, 6, 12, 24],
-                                group_size=[7, 7, 7, 7],
-                                mlp_ratio=4.,
-                                qkv_bias=True,
-                                qk_scale=None,
-                                drop_rate=0.0,
-                                drop_path_rate=0.1,
-                                ape=False,
-                                patch_norm=True,
-                                use_checkpoint=False,
-                                merge_size=[[2, 4], [2,4], [2, 4]]
-                                )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        # self.encoder_2 = CrossFormer(
+        #                         img_size=224,
+        #                         patch_size=[4, 8, 16, 32],
+        #                         in_chans= 3,
+        #                         num_classes=1000,
+        #                         embed_dim=96,
+        #                         depths=[2, 2, 6, 2],
+        #                         num_heads=[3, 6, 12, 24],
+        #                         group_size=[7, 7, 7, 7],
+        #                         mlp_ratio=4.,
+        #                         qkv_bias=True,
+        #                         qk_scale=None,
+        #                         drop_rate=0.0,
+        #                         drop_path_rate=0.1,
+        #                         ape=False,
+        #                         patch_norm=True,
+        #                         use_checkpoint=False,
+        #                         merge_size=[[2, 4], [2,4], [2, 4]]
+        #                         )
 
-        self.norm_41 = LayerNormProxy(dim=384)
-        self.norm_31 = LayerNormProxy(dim=192)
-        self.norm_21 = LayerNormProxy(dim=96)
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.norm_42 = LayerNormProxy(dim=384)
-        self.norm_32 = LayerNormProxy(dim=192)
-        self.norm_22 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
 
-        # self.up31 = UpBlock(384, 192, nb_Conv=2)
-        # self.up21 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up11 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # # self.up22 = UpBlock(192, 96 , nb_Conv=2)
-        # # self.up12 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # # self.up13 = UpBlock(96 , 48 , nb_Conv=2)
-
-        # self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=96)
-        # self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=192)
-
-        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96)
-        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192)
-
-        # # self.CPF_2 = CFPModule(nIn=96 , d=8)
-        # # self.CPF_3 = CFPModule(nIn=192, d=8)
-        # # self.CPF_4 = CFPModule(nIn=384, d=8)
-
-        self.up_2 = DecoderBottleneckLayer(in_channels=384)
-        self.up_1 = DecoderBottleneckLayer(in_channels=192)
-
-        self.se = SEBlock(channel=768)
-        self.conv = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         # # Question here
-        # x_input = x.float()
-        # B, C, H, W = x.shape
+        x_input = x.float()
+        B, C, H, W = x.shape
 
-        # x1 = self.firstconv(x_input)
-        # x1 = self.firstbn(x1)
-        # x1 = self.firstrelu(x1)
-        # x1 = self.encoder1(x1)
-        # x1 = self.Reduce(x1)
-        # for i in range(6):
-        #     x1 = self.FAM1[i](x1)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
-        # outputs = self.encoder(x_input)
+        outputs = self.encoder(x_input)
 
-        # x4 = self.norm_4(outputs[2])
-        # x3 = self.norm_3(outputs[1])
-        # x2 = self.norm_2(outputs[0])
-        # x1 = self.norm_1(x1)
-
-        # x3 = self.combine_3(torch.cat([x3, self.conv_3(1/x3)],dim=1)) + x3
-        # x2 = self.combine_2(torch.cat([x2, self.conv_2(1/x2)],dim=1)) + x2
-
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
 
 
-        # # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
-        # # x2, x3, x4 = x2 + x_fuse[0], x3 + x_fuse[1], x4 + x_fuse[2]
-        # # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
-        # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x3 = self.up31(x4, x3) 
-        # x2 = self.up21(x3, x2) 
-        # x1 = self.up11(x2, x1) 
+        x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        # # k2 = self.up22(x3, x2) + x2 
-        # # k1 = self.up12(k2, x1) + x1
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
-        # # g1 = self.up13(k2, k1) + k1
-
-        # x = self.final_conv1(x1)
-        # x = self.final_relu1(x)
-        # x = self.final_conv2(x)
-        # x = self.final_relu2(x)
-        # x = self.final_conv3(x)
-        outputs_1 = self.encoder_1(x)
-        x41 = self.norm_41(outputs_1[2])
-        x31 = self.norm_31(outputs_1[1])
-        x21 = self.norm_21(outputs_1[0])
-        outputs_2 = self.encoder_2(x)
-        x42 = self.norm_42(outputs_2[2])
-        x32 = self.norm_32(outputs_2[1])
-        x22 = self.norm_22(outputs_2[0])
-
-        x4 = self.se(torch.cat([x41, x42], dim=1))
-        x4 = self.conv(x4)
-        x3 = x31 + x32
-        x2 = x21 + x22
-
-        x = self.up_2(x4) + x3
-        x = self.up_1(x)  + x2
-        x = self.final_conv1(x)
+        x = self.final_conv1(x1)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv3(x)
-        x = self.final_up(x)
+
         return x
 
 
