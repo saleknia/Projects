@@ -1377,7 +1377,7 @@ class DATUNet(nn.Module):
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv = nn.Sequential(
-            CFPModule(nIn=48, d=8),
+            DilatedParllelResidualBlockB(nIn=48, nOut=48),
             nn.Conv2d(48, 1, 1, padding=0),
             nn.Upsample(scale_factor=2))
 
