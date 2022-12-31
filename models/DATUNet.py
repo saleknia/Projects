@@ -1377,9 +1377,11 @@ class DATUNet(nn.Module):
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv = nn.Sequential(
+            CFPModule(nIn=48, d=8),
             nn.Conv2d(48, 1, 1, padding=0),
             nn.Upsample(scale_factor=2))
 
+        # self.CPF = CFPModule(nIn=48, d=8)
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
         # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
