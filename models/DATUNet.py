@@ -633,10 +633,7 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
     layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
     for i in range(nb_Conv - 1):
-        if i==0:
-            layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-        else:
-            layers.append(DConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
 class Flatten(nn.Module):
