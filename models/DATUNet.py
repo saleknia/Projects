@@ -1376,7 +1376,7 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv = nn.Sequential(
+        self.final_block = nn.Sequential(
             CFPModule(nIn=48, d=8),
             nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -1447,7 +1447,7 @@ class DATUNet(nn.Module):
         # x = self.final_relu2(x)
         # x = self.final_conv3(x)
 
-        x = self.final_conv(x1)
+        x = self.final_block(x1)
 
         return x
 
