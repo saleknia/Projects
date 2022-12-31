@@ -1310,31 +1310,31 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        self.encoder = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+        # self.encoder = DAT(
+        #     img_size=224,
+        #     patch_size=4,
+        #     num_classes=1000,
+        #     expansion=4,
+        #     dim_stem=96,
+        #     dims=[96, 192, 384, 768],
+        #     depths=[2, 2, 18, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     heads=[3, 6, 12, 24],
+        #     window_sizes=[7, 7, 7, 7] ,
+        #     groups=[-1, -1, 3, 6],
+        #     use_pes=[False, False, True, True],
+        #     dwc_pes=[False, False, False, False],
+        #     strides=[-1, -1, 1, 1],
+        #     sr_ratios=[-1, -1, -1, -1],
+        #     offset_range_factor=[-1, -1, 2, 2],
+        #     no_offs=[False, False, False, False],
+        #     fixed_pes=[False, False, False, False],
+        #     use_dwc_mlps=[False, False, False, False],
+        #     use_conv_patches=False,
+        #     drop_rate=0.0,
+        #     attn_drop_rate=0.0,
+        #     drop_path_rate=0.2,
+        # )
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -1344,25 +1344,25 @@ class DATUNet(nn.Module):
         # self.norm_0 = LayerNormProxy(dim=192)
         # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0)
 
-        # self.encoder = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.encoder = CrossFormer(
+                                img_size=224,
+                                patch_size=[4, 8, 16, 32],
+                                in_chans= 3,
+                                num_classes=1000,
+                                embed_dim=96,
+                                depths=[2, 2, 6, 2],
+                                num_heads=[3, 6, 12, 24],
+                                group_size=[7, 7, 7, 7],
+                                mlp_ratio=4.,
+                                qkv_bias=True,
+                                qk_scale=None,
+                                drop_rate=0.0,
+                                drop_path_rate=0.1,
+                                ape=False,
+                                patch_norm=True,
+                                use_checkpoint=False,
+                                merge_size=[[2, 4], [2,4], [2, 4]]
+                                )
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -1414,19 +1414,19 @@ class DATUNet(nn.Module):
         # x4 = x4 + feature_tf
 
 
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+        # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
