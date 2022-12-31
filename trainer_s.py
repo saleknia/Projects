@@ -188,7 +188,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             # loss_dice = dice_loss(inputs=outputs, targets=targets)
             # loss = loss_ce + loss_dice
-            loss = structure_loss(pred=outputs,mask=targets)
+            loss = structure_loss(pred=outputs,mask=targets.unsqueeze(dim=1))
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
