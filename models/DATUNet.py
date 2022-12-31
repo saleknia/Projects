@@ -1342,11 +1342,7 @@ class DATUNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
         self.norm_0 = LayerNormProxy(dim=192)
-
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0)
-        self.se = SEBlock(channel=768)
-        self.conv2d = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
 
         # self.encoder_2 = CrossFormer(
         #                         img_size=224,
@@ -1414,9 +1410,7 @@ class DATUNet(nn.Module):
         feature_tf = self.norm_0(feature_tf)
         feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((x4, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x4 = self.conv2d(feature_att)
+        x4 = x4 + feature_tf
 
 
         x = [x1, x2, x3, x4]
