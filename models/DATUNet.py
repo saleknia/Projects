@@ -1363,7 +1363,7 @@ class DATUNet(nn.Module):
         x = self.DilatedParllelResidualBlockB(x1)
         x = self.final_conv1(x)
         x = self.final_relu1(x)
-        # x = self.final_conv2(x)
+        x = self.final_conv2(x)
         # x = self.final_relu2(x)
         # x = self.final_conv3(x)
 
