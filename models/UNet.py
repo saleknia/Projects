@@ -579,6 +579,82 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 32, 64, 128, 256
+
+        embedding_dim = 32
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.up4 = nn.Upsample(scale_factor=8)
+        self.up3 = nn.Upsample(scale_factor=4)
+        self.up2 = nn.Upsample(scale_factor=2)
+
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+    def forward(self, x1, x2, x3, x4):
+        c1, c2, c3, c4 = x1, x2, x3, x4
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up4(_c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up3(_c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up2(_c2)
+
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        return _c
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -593,7 +669,7 @@ class UNet(nn.Module):
 
         self.encoder_1 = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
-        self.encoder_1.conv1.stride = (1, 1)
+        # self.encoder_1.conv1.stride = (1, 1)
 
         # self.encoder_2 = CrossFormer(
         #                         img_size=224,
@@ -671,15 +747,22 @@ class UNet(nn.Module):
         # self.CPF_43 = CFPModule(nIn=128, d=8)
         # self.CPF_44 = CFPModule(nIn=256, d=8)
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        # self.up3 = UpBlock(144, 72, nb_Conv=2)
+        # self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        # self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.head = SegFormerHead()
+
+        self.final_conv1 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(18, n_classes, 3, padding=1)
+
+        self.final_conv3 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
+        self.final_relu3 = nn.ReLU(inplace=True)
+
+        self.final_conv4 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -705,6 +788,8 @@ class UNet(nn.Module):
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
+        x = self.head(x1, x2, x3, x4)
+
         # x1 = self.norm_1_1(x1)
         # x2 = self.norm_2_1(x2)
         # x3 = self.norm_3_1(x3)
@@ -724,17 +809,22 @@ class UNet(nn.Module):
         # x3 = self.combine_3(x3)        
         # x4 = self.combine_4(x4)
 
-        x = self.up3(x4, x3)
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+        # x = self.up3(x4, x3)
+        # x = self.up2(x , x2) 
+        # x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
+
         x = self.final_conv2(x)
         x = self.final_relu2(x)
-        out = self.final_conv3(x)
 
-        return out
+        x = self.final_conv3(x)
+        x = self.final_relu3(x)
+
+        x = self.final_conv4(x)
+
+        return x
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
