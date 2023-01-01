@@ -107,7 +107,7 @@ class Evaluator(object):
 def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer):
     model=model.to(device)
     model.eval()
-    model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
+    # model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
     loss_total = utils.AverageMeter()
     Eval = Evaluator()
     mIOU = 0.0
