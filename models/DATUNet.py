@@ -1321,17 +1321,6 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        # emb = self.patch_embed(x_input)
-        # for i in range(12):
-        #     emb = self.transformers[i](emb)
-        # feature_tf = emb.permute(0, 2, 1)
-        # feature_tf = feature_tf.view(B, 192, 14, 14)
-        # feature_tf = self.norm_0(feature_tf)
-        # feature_tf = self.conv_seq_img(feature_tf)
-
-        # x4 = x4 + feature_tf
-
-
         # x = [x1, x2, x3, x4]
         # x_fuse = []
         # num_branches = 4
