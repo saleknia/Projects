@@ -1191,14 +1191,14 @@ class MLP(nn.Module):
         return x
 
 
-class SegFormerHead():
+class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
     """
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 4384
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
 
         embedding_dim = 48
 
