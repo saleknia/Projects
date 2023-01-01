@@ -483,7 +483,7 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        self.stages[3] = None
+        # self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -546,10 +546,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 2:
+            if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -1198,7 +1198,7 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
 
         embedding_dim = 48
 
@@ -1210,6 +1210,8 @@ class SegFormerHead(nn.Module):
         self.up4 = nn.Upsample(scale_factor=8)
         self.up3 = nn.Upsample(scale_factor=4)
         self.up2 = nn.Upsample(scale_factor=2)
+
+        self.final_up = nn.ConvTranspose2d(embedding_dim, embedding_dim, kernel_size=2, stride=2)
 
 
         self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
@@ -1232,6 +1234,8 @@ class SegFormerHead(nn.Module):
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        _c = self.final_up(_c)
 
         return _c
 
@@ -1364,6 +1368,7 @@ class DATUNet(nn.Module):
 
         self.head = SegFormerHead()
 
+        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1394,6 +1399,7 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
+        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
@@ -1413,7 +1419,7 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        y = self.head(x1, x2, x3, x4)
+        y = self.head(x2, x3, x4, x5)
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
