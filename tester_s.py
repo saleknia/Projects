@@ -11,6 +11,8 @@ import medpy
 import numpy as np
 import torch.nn.functional as F
 from sklearn.metrics import confusion_matrix
+import ttach as tta
+
 
 warnings.filterwarnings("ignore")
 
@@ -107,6 +109,7 @@ class Evaluator(object):
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
     model.eval()
+    model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
     loss_total = utils.AverageMeter()
     Eval = Evaluator()
     mIOU = 0.0
