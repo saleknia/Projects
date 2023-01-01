@@ -1159,6 +1159,81 @@ class SEBlock(nn.Module):
         y = torch.mul(x, y)
         return y
 
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+
+class SegFormerHead():
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 4384
+
+        embedding_dim = 48
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.up4 = nn.Upsample(scale_factor=8)
+        self.up3 = nn.Upsample(scale_factor=4)
+        self.up2 = nn.Upsample(scale_factor=2)
+
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+    def forward(self, x1, x2, x3, x4):
+        c1, c2, c3, c4 = x1, x2, x3, x4
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up4(_c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up3(_c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up2(_c2)
+
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        return _c
 
 import ml_collections
 
@@ -1286,6 +1361,9 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+
+        self.head = SegFormerHead()
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1335,12 +1413,15 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        y = self.head(x1, x2, x3, x4)
 
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
-        x = self.final_conv1(x1)
+        x = x + y
+
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
