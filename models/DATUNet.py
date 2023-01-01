@@ -1235,6 +1235,8 @@ class SegFormerHead(nn.Module):
 
         return _c
 
+
+
 import ml_collections
 
 def get_CTranS_config():
@@ -1362,7 +1364,7 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
 
-        self.head = SegFormerHead()
+        # self.head = SegFormerHead()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -1413,13 +1415,13 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        y = self.head(x1, x2, x3, x4)
+        # y = self.head(x1, x2, x3, x4)
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
 
-        x = x + y
+        # x = x + y
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
