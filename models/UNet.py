@@ -738,9 +738,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
-        # self.CPF_31 = CFPModule(nIn=32, d=8)
-        # self.CPF_32 = CFPModule(nIn=64, d=8)
-        # self.CPF_33 = CFPModule(nIn=128, d=8)
+        self.CPF_31 = CFPModule(nIn=32, d=8)
+        self.CPF_32 = CFPModule(nIn=64, d=8)
+        self.CPF_33 = CFPModule(nIn=128, d=8)
 
         # self.CPF_41 = CFPModule(nIn=32, d=8)
         # self.CPF_42 = CFPModule(nIn=64, d=8)
@@ -782,6 +782,10 @@ class UNet(nn.Module):
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
         yl = self.encoder_1.stage3(xl)
+
+        yl[0] = self.CPF_31(yl[0])
+        yl[1] = self.CPF_32(yl[1])
+        yl[2] = self.CPF_33(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
         yl = self.encoder_1.stage4(xl)    
