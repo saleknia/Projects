@@ -160,7 +160,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
-        boundary = (dilate(targets.unsqueeze(dim=1)) - erosion(targets.unsqueeze(dim=1))).Squeeze(dim=1)
+        boundary = (dilate(targets.unsqueeze(dim=1).cpu()) - erosion(targets.unsqueeze(dim=1).cpu())).Squeeze(dim=1).cuda()
         inputs = inputs.float()
         with torch.autocast(device_type=device, dtype=torch.float16):
             outputs = model(inputs)
