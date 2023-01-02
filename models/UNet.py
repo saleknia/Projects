@@ -665,7 +665,7 @@ class UNet(nn.Module):
         self.encoder_1.incre_modules = None
         self.encoder_1.stage4 = None
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
