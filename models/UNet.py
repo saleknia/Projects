@@ -714,7 +714,7 @@ class UNet(nn.Module):
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        emb = self.patch_embed(x)
+        emb = self.patch_embed(x0)
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
