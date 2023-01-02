@@ -666,6 +666,10 @@ class UNet(nn.Module):
         self.encoder_1.stage4 = None
 
         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
         self.norm = LayerNormProxy(192)
         self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=1, padding=0)
         self.se = SEBlock(channel=256)
