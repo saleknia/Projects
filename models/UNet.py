@@ -664,87 +664,12 @@ class UNet(nn.Module):
         self.encoder_1 = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.stage4 = None
-        # self.encoder_1.conv1.stride = (1, 1)
 
-        # self.encoder_2 = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
-
-        # self.encoder_2 = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
-
-        # self.combine_2 = ConvBatchNorm(in_channels=132, out_channels=36 , kernel_size=1, padding=0, dilation=1)
-        # self.combine_3 = ConvBatchNorm(in_channels=264, out_channels=72 , kernel_size=1, padding=0, dilation=1)
-        # self.combine_4 = ConvBatchNorm(in_channels=528, out_channels=144, kernel_size=1, padding=0, dilation=1)
-
-        # self.norm_4_2 = LayerNormProxy(dim=384)
-        # self.norm_3_2 = LayerNormProxy(dim=192)
-        # self.norm_2_2 = LayerNormProxy(dim=96 )
-
-        # self.norm_4_1 = LayerNormProxy(dim=144)
-        # self.norm_3_1 = LayerNormProxy(dim=72)
-        # self.norm_2_1 = LayerNormProxy(dim=36)
-        # self.norm_1_1 = LayerNormProxy(dim=18)
-
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
-
-        # torch.Size([8, 32 , 56 , 56])
-        # torch.Size([8, 64 , 28 , 28])
-        # torch.Size([8, 128, 14 , 14])
-        # torch.Size([8, 256, 7  , 7 ])
-
-        # self.CPF_31 = CFPModule(nIn=32, d=8)
-        # self.CPF_32 = CFPModule(nIn=64, d=8)
-        # self.CPF_33 = CFPModule(nIn=128, d=8)
-
-        # self.CPF_41 = CFPModule(nIn=32, d=8)
-        # self.CPF_42 = CFPModule(nIn=64, d=8)
-        # self.CPF_43 = CFPModule(nIn=128, d=8)
-        # self.CPF_44 = CFPModule(nIn=256, d=8)
-
-        # self.up3 = UpBlock(144, 72, nb_Conv=2)
-        # self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        # self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.norm = LayerNormProxy(192)
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=256)
+        self.conv2d = nn.Conv2d(in_channels=256, out_channels=128, kernel_size=1, padding=0)
 
         self.head = SegFormerHead()
 
@@ -785,26 +710,19 @@ class UNet(nn.Module):
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = self.norm(feature_tf)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
+
+        feature_cat = torch.cat((x3, feature_tf), dim=1)
+        feature_att = self.se(feature_cat)
+        x3 = self.conv2d(feature_att)
+
         x = self.head(x1, x2, x3)
-
-        # x1 = self.norm_1_1(x1)
-        # x2 = self.norm_2_1(x2)
-        # x3 = self.norm_3_1(x3)
-        # x4 = self.norm_4_1(x4)
-
-        # y2, y3, y4 = self.encoder_2(x0)
-
-        # y2 = self.norm_2_2(y2)
-        # y3 = self.norm_3_2(y3)
-        # y4 = self.norm_4_2(y4)
-
-        # x2 = torch.cat([x2, y2], dim=1)
-        # x3 = torch.cat([x3, y3], dim=1)
-        # x4 = torch.cat([x4, y4], dim=1)
-
-        # x2 = self.combine_2(x2)
-        # x3 = self.combine_3(x3)        
-        # x4 = self.combine_4(x4)
 
         # x = self.up3(x4, x3)
         # x = self.up2(x , x2) 
