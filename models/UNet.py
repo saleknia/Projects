@@ -618,30 +618,24 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 32, 64, 128, 256
+        c1_in_channels, c2_in_channels, c3_in_channels = 32, 64, 128
 
         embedding_dim = 32
 
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up4 = nn.Upsample(scale_factor=8)
         self.up3 = nn.Upsample(scale_factor=4)
         self.up2 = nn.Upsample(scale_factor=2)
 
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+    def forward(self, x1, x2, x3):
+        c1, c2, c3 = x1, x2, x3
 
-    def forward(self, x1, x2, x3, x4):
-        c1, c2, c3, c4 = x1, x2, x3, x4
-
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
-
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up4(_c4)
+        ############## MLP decoder on C1-C3 ###########
+        n, _, h, w = c3.shape
 
         _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         _c3 = self.up3(_c3)
@@ -651,7 +645,7 @@ class SegFormerHead(nn.Module):
 
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+        _c = self.linear_fuse(torch.cat([_c3, _c2, _c1], dim=1))
 
         return _c
 
@@ -669,6 +663,7 @@ class UNet(nn.Module):
 
         self.encoder_1 = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
+        self.encoder_1.stage4 = None
         # self.encoder_1.conv1.stride = (1, 1)
 
         # self.encoder_2 = CrossFormer(
@@ -738,9 +733,9 @@ class UNet(nn.Module):
         # torch.Size([8, 128, 14 , 14])
         # torch.Size([8, 256, 7  , 7 ])
 
-        self.CPF_31 = CFPModule(nIn=32, d=8)
-        self.CPF_32 = CFPModule(nIn=64, d=8)
-        self.CPF_33 = CFPModule(nIn=128, d=8)
+        # self.CPF_31 = CFPModule(nIn=32, d=8)
+        # self.CPF_32 = CFPModule(nIn=64, d=8)
+        # self.CPF_33 = CFPModule(nIn=128, d=8)
 
         # self.CPF_41 = CFPModule(nIn=32, d=8)
         # self.CPF_42 = CFPModule(nIn=64, d=8)
@@ -783,16 +778,14 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
         yl = self.encoder_1.stage3(xl)
 
-        yl[0] = self.CPF_31(yl[0])
-        yl[1] = self.CPF_32(yl[1])
-        yl[2] = self.CPF_33(yl[2])
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
-        yl = self.encoder_1.stage4(xl)    
+        x1, x2, x3 = yl[0], yl[1], yl[2]
+        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
+        # yl = self.encoder_1.stage4(xl)    
 
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        x = self.head(x1, x2, x3, x4)
+        x = self.head(x1, x2, x3)
 
         # x1 = self.norm_1_1(x1)
         # x2 = self.norm_2_1(x2)
