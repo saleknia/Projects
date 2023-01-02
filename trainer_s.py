@@ -9,13 +9,16 @@ from tqdm import tqdm
 from utils import print_progress
 import torch.nn.functional as F
 import warnings
-from utils import focal_loss
+from utils import focal_loss, Dilation2d, Erosion2d
 from torch.autograd import Variable
 from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 from sklearn.metrics import confusion_matrix
 warnings.filterwarnings("ignore")
+
+erosion = Erosion2d(1, 1, 5, soft_max=False)
+dilate = Dilation2d(1, 1, 5, soft_max=False)
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
