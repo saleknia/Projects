@@ -17,8 +17,8 @@ from valid_s import valid_s
 from sklearn.metrics import confusion_matrix
 warnings.filterwarnings("ignore")
 
-erosion = Erosion2d(1, 1, 5, soft_max=False)
-dilate = Dilation2d(1, 1, 5, soft_max=False)
+erosion = Erosion2d(1, 1, 7, soft_max=False)
+dilate = Dilation2d(1, 1, 7, soft_max=False)
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
