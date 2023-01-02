@@ -670,8 +670,8 @@ class UNet(nn.Module):
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
-        self.norm = LayerNormProxy(192)
-        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=128, kernel_size=1, padding=0)
+        self.norm = LayerNormProxy(384)
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=128, kernel_size=1, padding=0)
         self.se = SEBlock(channel=256)
         self.conv2d = nn.Conv2d(in_channels=256, out_channels=128, kernel_size=1, padding=0)
 
@@ -718,7 +718,7 @@ class UNet(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.norm(feature_tf)
         feature_tf = self.conv_seq_img(feature_tf)
 
