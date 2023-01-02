@@ -160,12 +160,13 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
+        boundary = (dilate(targets.unsqueeze(dim=1)) - erosion(targets.unsqueeze(dim=1))).Squeeze(dim=1)
         inputs = inputs.float()
         with torch.autocast(device_type=device, dtype=torch.float16):
             outputs = model(inputs)
             if type(outputs)==tuple:
-                loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) 
-                loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets)
+                loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], boundary.unsqueeze(dim=1)) 
+                loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], boundary=targets)
                 loss = loss_ce + loss_dice         
             else:
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
