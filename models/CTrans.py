@@ -236,7 +236,7 @@ class Block_ViT(nn.Module):
         org1 = emb1
         org2 = emb2
         org3 = emb3
-        for i in range(4):
+        for i in range(3):
             var_name = "emb"+str(i+1)
             tmp_var = locals()[var_name]
             if tmp_var is not None:
