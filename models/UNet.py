@@ -705,7 +705,7 @@ class UNet(nn.Module):
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        x1, x2, x3 = self.mtc(x1, x2, x3)
+        x1, x2, x3, _ = self.mtc(x1, x2, x3)
 
         x = self.head(x1, x2, x3)
 
