@@ -1362,11 +1362,6 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , kernel_size=3, padding=1)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96 , kernel_size=3, padding=1)
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=3, padding=1)
-        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=3, padding=1)
-
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
@@ -1421,11 +1416,6 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
-
-        x1 = self.combine_1(torch.cat([x1, x_fuse[0]], dim=1))
-        x2 = self.combine_2(torch.cat([x2, x_fuse[1]], dim=1)) 
-        x3 = self.combine_3(torch.cat([x3, x_fuse[2]], dim=1)) 
-        x4 = self.combine_4(torch.cat([x4, x_fuse[3]], dim=1)) 
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
