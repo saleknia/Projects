@@ -719,7 +719,6 @@ class UNet(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.norm(feature_tf)
         feature_tf = self.conv_seq_img(feature_tf)
 
         # x3 = feature_tf
