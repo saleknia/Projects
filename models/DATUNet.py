@@ -1380,19 +1380,19 @@ class DATUNet(nn.Module):
         self.final_relu21 = nn.ReLU(inplace=True)
         self.final_conv31 = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        # self.final_conv12 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu12 = nn.ReLU(inplace=True)
-        # self.final_conv22 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu22 = nn.ReLU(inplace=True)
-        # self.final_conv32 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up_2 = nn.Upsample(scale_factor=2)
+        self.final_conv12 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu12 = nn.ReLU(inplace=True)
+        self.final_conv22 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu22 = nn.ReLU(inplace=True)
+        self.final_conv32 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up_2 = nn.Upsample(scale_factor=2)
 
-        # self.final_conv13 = nn.ConvTranspose2d(192, 48, 4, 2, 1)
-        # self.final_relu13 = nn.ReLU(inplace=True)
-        # self.final_conv23 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu23 = nn.ReLU(inplace=True)
-        # self.final_conv33 = nn.Conv2d(24, n_classes, 3, padding=1)
-        # self.final_up_3 = nn.Upsample(scale_factor=4)
+        self.final_conv13 = nn.ConvTranspose2d(192, 48, 4, 2, 1)
+        self.final_relu13 = nn.ReLU(inplace=True)
+        self.final_conv23 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu23 = nn.ReLU(inplace=True)
+        self.final_conv33 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up_3 = nn.Upsample(scale_factor=4)
 
     def forward(self, x):
         # # Question here
@@ -1443,26 +1443,26 @@ class DATUNet(nn.Module):
         x = self.final_relu21(x)
         x = self.final_conv31(x)
 
-        # y = self.final_conv12(x2)
-        # y = self.final_relu12(y)
-        # y = self.final_conv22(y)
-        # y = self.final_relu22(y)
-        # y = self.final_conv32(y)
-        # y = self.final_up_2(y)
+        y = self.final_conv12(x2)
+        y = self.final_relu12(y)
+        y = self.final_conv22(y)
+        y = self.final_relu22(y)
+        y = self.final_conv32(y)
+        y = self.final_up_2(y)
 
-        # z = self.final_conv13(x3)
-        # z = self.final_relu13(z)
-        # z = self.final_conv23(z)
-        # z = self.final_relu23(z)
-        # z = self.final_conv33(z)
-        # z = self.final_up_3(z)
+        z = self.final_conv13(x3)
+        z = self.final_relu13(z)
+        z = self.final_conv23(z)
+        z = self.final_relu23(z)
+        z = self.final_conv33(z)
+        z = self.final_up_3(z)
 
 
-        return x
-        # if self.training:
-        #     return (x+y+z) / 3.0
-        # else:
-        #     return (x+y+z) / 3.0
+        # return x
+        if self.training:
+            return (x+y+z) / 3.0
+        else:
+            return (x+y+z) / 3.0
 
 
 
