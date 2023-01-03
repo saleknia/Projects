@@ -1459,7 +1459,7 @@ class DATUNet(nn.Module):
 
 
         if self.training:
-            return (x,y,z)
+            return (x+y+z) / 3.0
         else:
             return (x+y+z) / 3.0
 
