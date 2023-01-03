@@ -124,6 +124,7 @@ class Attention_org(nn.Module):
             for query3 in self.query3:
                 Q3 = query3(emb3)
                 multi_head_Q3_list.append(Q3)
+
         for key in self.key:
             K = key(emb_all)
             multi_head_K_list.append(K)
@@ -228,6 +229,7 @@ class Block_ViT(nn.Module):
         self.ffn1 = Mlp(config,channel_num[0],channel_num[0]*expand_ratio)
         self.ffn2 = Mlp(config,channel_num[1],channel_num[1]*expand_ratio)
         self.ffn3 = Mlp(config,channel_num[2],channel_num[2]*expand_ratio)
+        self.ffn4 = Mlp(config,channel_num[3],channel_num[3]*expand_ratio)
 
 
     def forward(self, emb1,emb2,emb3):
@@ -235,7 +237,7 @@ class Block_ViT(nn.Module):
         org1 = emb1
         org2 = emb2
         org3 = emb3
-        for i in range(3):
+        for i in range(4):
             var_name = "emb"+str(i+1)
             tmp_var = locals()[var_name]
             if tmp_var is not None:
@@ -254,15 +256,19 @@ class Block_ViT(nn.Module):
         org1 = cx1
         org2 = cx2
         org3 = cx3
+
         x1 = self.ffn_norm1(cx1) if emb1 is not None else None
         x2 = self.ffn_norm2(cx2) if emb2 is not None else None
         x3 = self.ffn_norm3(cx3) if emb3 is not None else None
+
         x1 = self.ffn1(x1) if emb1 is not None else None
         x2 = self.ffn2(x2) if emb2 is not None else None
         x3 = self.ffn3(x3) if emb3 is not None else None
+
         x1 = x1 + org1 if emb1 is not None else None
         x2 = x2 + org2 if emb2 is not None else None
         x3 = x3 + org3 if emb3 is not None else None
+
 
         return x1, x2, x3, weights
 
@@ -275,11 +281,12 @@ class Encoder(nn.Module):
         self.encoder_norm1 = LayerNorm(channel_num[0],eps=1e-6)
         self.encoder_norm2 = LayerNorm(channel_num[1],eps=1e-6)
         self.encoder_norm3 = LayerNorm(channel_num[2],eps=1e-6)
+
         for _ in range(config.transformer["num_layers"]):
             layer = Block_ViT(config, vis, channel_num)
             self.layer.append(copy.deepcopy(layer))
 
-    def forward(self, emb1,emb2,emb3,):
+    def forward(self, emb1,emb2,emb3):
         attn_weights = []
         for layer_block in self.layer:
             emb1,emb2,emb3, weights = layer_block(emb1,emb2,emb3)
@@ -292,15 +299,17 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[24, 24, 24], patchSize=[4, 2, 1]):
+    def __init__(self, config, vis, img_size, channel_num=[32, 64, 128], patchSize=[4, 2, 1]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//1, in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//2, in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//4, in_channels=channel_num[2])
+
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//4 , in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//8 , in_channels=channel_num[1])
+        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2])
+
         self.encoder = Encoder(config, vis, channel_num)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
@@ -322,5 +331,10 @@ class ChannelTransformer(nn.Module):
         x2 = x2 + en2  if en2 is not None else None
         x3 = x3 + en3  if en3 is not None else None
 
-        return x1, x2, x3
+        return x1, x2, x3, attn_weights
+
+
+
+
+
 

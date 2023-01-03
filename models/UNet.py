@@ -530,18 +530,14 @@ class GCM(nn.Module):
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    # config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.KV_size = 480  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 224  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    # config.transformer.embeddings_dropout_rate = 0.3
-    # config.transformer.attention_dropout_rate  = 0.3
     config.transformer.embeddings_dropout_rate = 0.0
     config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0
-    # config.patch_sizes = [16,8,4,2]
-    config.patch_sizes = [8,4,2,1]
+    config.patch_sizes = [4,2,1]
     config.base_channel = 32 # base channel of U-Net
     config.n_classes = 1
     return config
@@ -667,6 +663,11 @@ class UNet(nn.Module):
 
         self.head = SegFormerHead()
 
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[32, 64, 128], patchSize=[4, 2, 1])
+
+        # self.up2 = UpBlock(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU')
+        # self.up1 = UpBlock(in_channels=64 , out_channels=32, nb_Conv=2, activation='ReLU')
+
         self.final_conv1 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
 
@@ -704,10 +705,12 @@ class UNet(nn.Module):
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
+        x1, x2, x3 = self.mtc(x1, x2, x3)
+
         x = self.head(x1, x2, x3)
 
         # x = self.up3(x4, x3)
-        # x = self.up2(x , x2) 
+        # x = self.up2(x3, x2) 
         # x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
