@@ -713,16 +713,16 @@ class UNet(nn.Module):
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.conv_seq_img(feature_tf)
+        # emb = self.patch_embed(x0)
+        # for i in range(12):
+        #     emb = self.transformers[i](emb)
+        # feature_tf = emb.permute(0, 2, 1)
+        # feature_tf = feature_tf.view(b, 384, 14, 14)
+        # feature_tf = self.conv_seq_img(feature_tf)
 
-        feature_cat = torch.cat((x3, feature_tf), dim=1)
-        feature_att = self.se(feature_cat)
-        x3 = self.conv2d(feature_att)
+        # feature_cat = torch.cat((x3, feature_tf), dim=1)
+        # feature_att = self.se(feature_cat)
+        # x3 = self.conv2d(feature_att)
 
         x = self.head(x1, x2, x3)
 
