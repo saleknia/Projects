@@ -1362,6 +1362,11 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
+        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , kernel_size=1, padding=0)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96 , kernel_size=1, padding=0)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
+        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
+
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
@@ -1374,25 +1379,11 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv11 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu11 = nn.ReLU(inplace=True)
-        self.final_conv21 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu21 = nn.ReLU(inplace=True)
-        self.final_conv31 = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.final_conv12 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu12 = nn.ReLU(inplace=True)
-        self.final_conv22 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu22 = nn.ReLU(inplace=True)
-        self.final_conv32 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up_2 = nn.Upsample(scale_factor=2)
-
-        self.final_conv13 = nn.ConvTranspose2d(192, 48, 4, 2, 1)
-        self.final_relu13 = nn.ReLU(inplace=True)
-        self.final_conv23 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu23 = nn.ReLU(inplace=True)
-        self.final_conv33 = nn.Conv2d(24, n_classes, 3, padding=1)
-        self.final_up_3 = nn.Upsample(scale_factor=4)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1429,40 +1420,24 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
+        # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
+        x1 = self.combine_1(torch.cat([x1, x_fuse[0]], dim=1))
+        x2 = self.combine_2(torch.cat([x2, x_fuse[1]], dim=1))
+        x3 = self.combine_3(torch.cat([x3, x_fuse[2]], dim=1))
+        x4 = self.combine_4(torch.cat([x4, x_fuse[3]], dim=1))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv3(x)
 
-        x = self.final_conv11(x1)
-        x = self.final_relu11(x)
-        x = self.final_conv21(x)
-        x = self.final_relu21(x)
-        x = self.final_conv31(x)
-
-        y = self.final_conv12(x2)
-        y = self.final_relu12(y)
-        y = self.final_conv22(y)
-        y = self.final_relu22(y)
-        y = self.final_conv32(y)
-        y = self.final_up_2(y)
-
-        z = self.final_conv13(x3)
-        z = self.final_relu13(z)
-        z = self.final_conv23(z)
-        z = self.final_relu23(z)
-        z = self.final_conv33(z)
-        z = self.final_up_3(z)
-
-
-        # return x
-        if self.training:
-            return (x+y+z) / 3.0
-        else:
-            return (x+y+z) / 3.0
+        return x
 
 
 
