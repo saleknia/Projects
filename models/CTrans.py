@@ -229,7 +229,6 @@ class Block_ViT(nn.Module):
         self.ffn1 = Mlp(config,channel_num[0],channel_num[0]*expand_ratio)
         self.ffn2 = Mlp(config,channel_num[1],channel_num[1]*expand_ratio)
         self.ffn3 = Mlp(config,channel_num[2],channel_num[2]*expand_ratio)
-        self.ffn4 = Mlp(config,channel_num[3],channel_num[3]*expand_ratio)
 
 
     def forward(self, emb1,emb2,emb3):
