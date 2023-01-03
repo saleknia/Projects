@@ -1362,10 +1362,10 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , kernel_size=1, padding=0)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96 , kernel_size=1, padding=0)
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
-        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
+        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , kernel_size=3, padding=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=96 , kernel_size=3, padding=1)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=3, padding=1)
+        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=3, padding=1)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
