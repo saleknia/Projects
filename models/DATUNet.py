@@ -1253,36 +1253,6 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-from torch.nn import Softmax
-
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-        self.softmax  = Softmax(dim=-1)
-
-    def forward(self,x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
-
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
-
-        # out = self.gamma*out + x
-        return out
-
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1397,11 +1367,6 @@ class DATUNet(nn.Module):
         self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=192, kernel_size=1, padding=0)
         self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
-        self.CAM_Module_1 = CAM_Module()
-        self.CAM_Module_2 = CAM_Module()
-        self.CAM_Module_3 = CAM_Module()
-        self.CAM_Module_4 = CAM_Module()
-
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
@@ -1457,10 +1422,10 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        x1 = self.combine_1(self.CAM_Module_1(torch.cat([x1, x_fuse[0]], dim=1))) + x1
-        x2 = self.combine_2(self.CAM_Module_2(torch.cat([x2, x_fuse[1]], dim=1))) + x2
-        x3 = self.combine_3(self.CAM_Module_3(torch.cat([x3, x_fuse[2]], dim=1))) + x3
-        x4 = self.combine_4(self.CAM_Module_4(torch.cat([x4, x_fuse[3]], dim=1))) + x4
+        x1 = self.combine_1(torch.cat([x1, x_fuse[0]], dim=1)) + x1
+        x2 = self.combine_2(torch.cat([x2, x_fuse[1]], dim=1)) + x2
+        x3 = self.combine_3(torch.cat([x3, x_fuse[2]], dim=1)) + x3
+        x4 = self.combine_4(torch.cat([x4, x_fuse[3]], dim=1)) + x4
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
