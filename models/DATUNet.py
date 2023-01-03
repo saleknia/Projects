@@ -1365,23 +1365,34 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-
-        self.head = SegFormerHead()
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv11 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu11 = nn.ReLU(inplace=True)
+        self.final_conv21 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu21 = nn.ReLU(inplace=True)
+        self.final_conv31 = nn.Conv2d(24, n_classes, 3, padding=1)
+
+        self.final_conv12 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu12 = nn.ReLU(inplace=True)
+        self.final_conv22 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu22 = nn.ReLU(inplace=True)
+        self.final_conv32 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up_2 = nn.Upsample(scale_factor=2)
+
+        self.final_conv13 = nn.ConvTranspose2d(192, 48, 4, 2, 1)
+        self.final_relu13 = nn.ReLU(inplace=True)
+        self.final_conv23 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu23 = nn.ReLU(inplace=True)
+        self.final_conv33 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_up_3 = nn.Upsample(scale_factor=4)
 
     def forward(self, x):
         # # Question here
@@ -1420,25 +1431,37 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        x = self.head(x1, x2, x3, x4)
 
-        # x = self.up3(x4, x3) 
-        # x = self.up2(x , x2) 
-        # x = self.up1(x , x1) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
-        # x = x + y
 
-        x = self.final_conv1(x)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
-        x = self.final_conv3(x)
+        x = self.final_conv11(x1)
+        x = self.final_relu11(x)
+        x = self.final_conv21(x)
+        x = self.final_relu21(x)
+        x = self.final_conv31(x)
 
-        # if self.training:
-        #     return (x, x_boundary)
-        # else:
-        #     return x
-        return x
+        y = self.final_conv12(x2)
+        y = self.final_relu12(y)
+        y = self.final_conv22(y)
+        y = self.final_relu22(y)
+        y = self.final_conv32(y)
+        y = self.final_up_2(y)
+
+        z = self.final_conv13(x3)
+        z = self.final_relu13(z)
+        z = self.final_conv23(z)
+        z = self.final_relu23(z)
+        z = self.final_conv33(z)
+        z = self.final_up_3(z)
+
+
+        if self.training:
+            return (x,y,z)
+        else:
+            return (x+y+z) / 3.0
 
 
 
