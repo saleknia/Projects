@@ -1280,8 +1280,8 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.boundary_up = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.boundary_conv = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.boundary_up = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        # self.boundary_conv = nn.Conv2d(48, n_classes, 3, padding=1)
 
         # self.encoder = DAT(
         #     img_size=224,
@@ -1367,16 +1367,16 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
 
-        # self.head = SegFormerHead()
+        self.head = SegFormerHead()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1397,8 +1397,8 @@ class DATUNet(nn.Module):
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
-        x_boundary = self.boundary_up(x1)
-        x_boundary = self.boundary_conv(x_boundary)
+        # x_boundary = self.boundary_up(x1)
+        # x_boundary = self.boundary_conv(x_boundary)
 
         outputs = self.encoder(x_input)
 
@@ -1421,11 +1421,11 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + x_fuse[0], x2 + x_fuse[1], x3 + x_fuse[2], x4 + x_fuse[3]
 
-        # y = self.head(x1, x2, x3, x4)
+        x = self.head(x1, x2, x3, x4)
 
-        x = self.up3(x4, x3) 
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+        # x = self.up3(x4, x3) 
+        # x = self.up2(x , x2) 
+        # x = self.up1(x , x1) 
 
         # x = x + y
 
@@ -1435,10 +1435,11 @@ class DATUNet(nn.Module):
         x = self.final_relu2(x)
         x = self.final_conv3(x)
 
-        if self.training:
-            return (x, x_boundary)
-        else:
-            return x
+        # if self.training:
+        #     return (x, x_boundary)
+        # else:
+        #     return x
+        return x
 
 
 
