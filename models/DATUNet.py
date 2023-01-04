@@ -761,6 +761,55 @@ class SAP(nn.Module):
 
         return fusion
 
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+class Linear_Eca_block(nn.Module):
+    """docstring for Eca_block"""
+    def __init__(self):
+        super(Linear_Eca_block, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.sigmoid = nn.Sigmoid()
+    def forward(self, x, gamma=2, b=1):
+        #N, C, H, W = x.size()
+        y = self.avgpool(x)
+        y = self.conv1d(y.squeeze(-1).transpose(-1, -2))
+        y = y.transpose(-1, -2).unsqueeze(-1)
+        y = self.sigmoid(y)
+        return y.expand_as(x)
+
+class HybridAttention(nn.Module):
+    def __init__(self, in_planes, out_planes):
+        super(HybridAttention, self).__init__()
+        self.eca = Linear_Eca_block()
+        self.conv = BasicConv2d(in_planes // 2, out_planes // 2, 3, 1, 1)
+        self.down_c = BasicConv2d(out_planes//2, 1, 3, 1, padding=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x, skip_x):
+        c = x.shape[1]
+        x_t, x_c = x, skip_x
+        sa = self.sigmoid(self.down_c(x_c))
+        gc = self.eca(x_t)
+        x_c = self.conv(x_c)
+        x_c = x_c * gc
+        x_t = x_t * sa
+        x = torch.cat((x_t, x_c), 1)
+        return x
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -768,12 +817,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.SAPblock = SAP(in_channels=in_channels//2)
+        self.HA = HybridAttention(in_planes=in_channels//2, out_planes=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x)
-        skip_x = self.SAPblock(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.HA(x)
         x = self.conv(x)
         return x
 
