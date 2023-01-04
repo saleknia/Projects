@@ -471,7 +471,7 @@ class DAT(nn.Module):
                     LayerNormProxy(dims[i + 1])
                 ) if use_conv_patches else nn.Sequential(
                     nn.Conv2d(dims[i], dims[i + 1], 2, 2, 0, bias=False),
-                    HybridAttention(in_planes=dim[i + 1], out_planes=dim[i + 1]),
+                    HybridAttention(in_planes=dims[i + 1], out_planes=dims[i + 1]),
                     LayerNormProxy(dims[i + 1])
                 )
             )
