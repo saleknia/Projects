@@ -173,8 +173,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             else:
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
-                loss_scl = scl_loss(logits=torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1))), labels=targets)
-                loss = loss_ce + loss_dice + loss_scl
+                if 5 < epoch_num: 
+                    loss_scl = scl_loss(logits=torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1))), labels=targets)
+                    loss = loss_ce + loss_dice + loss_scl
+                else:
+                    loss_scl = 0.0
+                    loss = loss_ce + loss_dice + loss_scl
 
 
         scaler.scale(loss).backward()
