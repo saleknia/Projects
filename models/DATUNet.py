@@ -821,8 +821,8 @@ class UpBlock(nn.Module):
     
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.HA(x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.HA(x, skip_x)
         x = self.conv(x)
         return x
 
