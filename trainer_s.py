@@ -15,7 +15,7 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 from sklearn.metrics import confusion_matrix
-from .SemanticConnectivityLoss
+from .SCL import SemanticConnectivityLoss
 warnings.filterwarnings("ignore")
 
 erosion = Erosion2d(1, 1, 7, soft_max=False)
@@ -139,6 +139,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
+    loss_scl_total = utils.AverageMeter()
 
     Eval = Evaluator()
 
@@ -149,8 +150,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loader = dataloader['train'] 
     pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
-
     ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    scl_loss = SemanticConnectivityLoss()
     # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     base_iter = (epoch_num-1) * total_batchs
@@ -168,7 +169,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             if type(outputs)==tuple:
                 loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) #+ ce_loss(outputs[1], boundary.unsqueeze(dim=1))
                 loss_dice = dice_loss(inputs=outputs[0], targets=targets) + 0.1 * dice_loss(inputs=outputs[1], targets=boundary)
-                loss = loss_ce + loss_dice         
+                loss_scl = scl_loss(logits=torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1))), labels=targets)
+                loss = loss_ce + loss_dice + loss_scl
             else:
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
@@ -218,6 +220,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
+        loss_scl_total.update(loss_scl)
 
         targets = targets.long()
 
@@ -236,7 +239,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'loss = {loss_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
+            suffix=f'loss = {loss_total.avg:.4f} , loss_ce = {loss_ce_total.avg:.4f} , loss_dice = {loss_dice_total.avg:.4f} , loss_scl = {loss_scl_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
             bar_length=45
         )  
   
