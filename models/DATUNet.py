@@ -483,18 +483,6 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
-        self.HA_1 = nn.Sequential(
-            HybridAttention(in_planes=dims[1], out_planes=dims[1]),
-            LayerNormProxy(dims[1])
-        )
-
-        self.HA_2 = nn.Sequential(
-            HybridAttention(in_planes=dims[2], out_planes=dims[2]),
-            LayerNormProxy(dims[2])
-        )
-
-        self.HA = [self.HA_1, self.HA_2]
-
         self.stages[3] = None
     
     def reset_parameters(self):
@@ -1401,21 +1389,16 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up4 = nn.Upsample(scale_factor=8)
         self.up3 = nn.Upsample(scale_factor=4)
         self.up2 = nn.Upsample(scale_factor=2)
 
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
-
-    def forward(self, x1, x2, x3, x4):
-        c1, c2, c3, c4 = x1, x2, x3, x4
+    def forward(self, x1, x2, x3):
+        c1, c2, c3 = x1, x2, x3
 
         ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
-
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up4(_c4)
+        n, _, h, w = c3.shape
 
         _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         _c3 = self.up3(_c3)
@@ -1425,7 +1408,7 @@ class SegFormerHead(nn.Module):
 
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+        _c = self.linear_fuse(torch.cat([_c3, _c2, _c1], dim=1))
 
         return _c
 
@@ -1582,6 +1565,8 @@ class DATUNet(nn.Module):
         # self.combine_3 = nn.Identity()
         # self.combine_4 = nn.Identity()
 
+        self.head = SegFormerHead()
+
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
         # self.transformers = nn.ModuleList(
@@ -1670,6 +1655,8 @@ class DATUNet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
+
+        x1 = x1 + self.head(x1, x2, x3)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
