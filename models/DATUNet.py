@@ -721,7 +721,8 @@ class SAPblock(nn.Module):
         att_1_2=att1[:,0,:,:].unsqueeze(1)
         att_3=att1[:,1,:,:].unsqueeze(1)
 
-        ax=self.relu(self.gamma*(att_1_2*fusion_1_2+att_3*branches_3)+(1-self.gamma)*x)
+        # ax=self.relu(self.gamma*(att_1_2*fusion_1_2+att_3*branches_3)+(1-self.gamma)*x)
+        ax=self.relu(att_1_2*fusion_1_2+att_3*branches_3)
         ax=self.conv_last(ax)
 
         return ax
@@ -732,13 +733,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
         self.SAPblock = SAPblock(in_channels=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
+        x = self.conv(x)
         x = self.SAPblock(x)
         return x
 
