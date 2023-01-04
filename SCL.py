@@ -138,7 +138,7 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
     label_conn = F.one_hot(label_conn.long(), label_num_conn).to('cuda')
 
     ious = torch.zeros((real_label_num, real_pred_num))
-    pair_conn_sum = torch.tensor([0.], requires_grad=False)
+    pair_conn_sum = torch.tensor([0.], requires_grad=False).to('cuda')
 
     for i in range(1, label_num_conn):
         label_i = label_conn[:, :, i]
