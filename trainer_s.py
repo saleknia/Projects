@@ -15,7 +15,7 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 from valid_s import valid_s
 from sklearn.metrics import confusion_matrix
-from .SCL import SemanticConnectivityLoss
+from SCL import SemanticConnectivityLoss
 warnings.filterwarnings("ignore")
 
 erosion = Erosion2d(1, 1, 7, soft_max=False)
@@ -246,7 +246,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     acc =  Eval.Pixel_Accuracy() * 100.0
     mIOU = Eval.Mean_Intersection_over_Union() * 100.0
 
-    Dice = Eval.Dice() * 100.0
+    Dice = Eval.Dice() * 100.
     Dice_per_class = Dice * 100.0
 
     if lr_scheduler is not None:
