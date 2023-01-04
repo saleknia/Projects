@@ -144,8 +144,7 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
         label_i = label_conn[:, :, i]
 
         pair_conn = torch.tensor([0.], device='cuda', requires_grad=False)
-        pair_conn_num = 0
-        pair_conn_num = pair_conn_num.to('cuda')
+        pair_conn_num = torch.tensor([0.], device='cuda', requires_grad=False)
 
         for j in range(1, pred_num_conn):
             pred_j_mask = pred_conn[:, :, j]
@@ -155,17 +154,18 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
             ious[i - 1, j - 1] = iou
             if iou != 0:
                 pair_conn += iou
-                pair_conn_num += 1
+                pair_conn_num[0] += 1
 
-        if pair_conn_num != 0:
-            pair_conn_sum += pair_conn / pair_conn_num
-    lone_pred_num = 0
+        if pair_conn_num[0] != 0:
+            pair_conn_sum += pair_conn / pair_conn_num[0]
+
+    lone_pred_num = torch.tensor([0.], device='cuda', requires_grad=False)
 
     pred_sum = torch.sum(ious, dim=0)
     for m in range(0, real_pred_num):
         if pred_sum[m] == 0:
-            lone_pred_num += 1
-    img_connectivity = pair_conn_sum / (real_label_num + lone_pred_num)
+            lone_pred_num[0] += 1
+    img_connectivity = pair_conn_sum / (real_label_num + lone_pred_num[0])
     return img_connectivity
 
 
