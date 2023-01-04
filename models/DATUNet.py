@@ -796,6 +796,7 @@ class Linear_Eca_block(nn.Module):
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
         self.sigmoid = nn.Sigmoid()
+
     def forward(self, x, gamma=2, b=1):
         #N, C, H, W = x.size()
         y = self.avgpool(x)
@@ -807,14 +808,15 @@ class Linear_Eca_block(nn.Module):
 class HybridAttention(nn.Module):
     def __init__(self, in_planes, out_planes):
         super(HybridAttention, self).__init__()
+
         self.eca = Linear_Eca_block()
         self.conv = BasicConv2d(in_planes // 2, out_planes // 2, 3, 1, 1)
         self.down_c = BasicConv2d(out_planes//2, 1, 3, 1, padding=1)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x, skip_x):
+    def forward(self, x):
         c = x.shape[1]
-        x_t, x_c = x, skip_x
+        x_t, x_c = torch.split(x, c // 2, dim=1)
         sa = self.sigmoid(self.down_c(x_c))
         gc = self.eca(x_t)
         x_c = self.conv(x_c)
