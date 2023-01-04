@@ -25,6 +25,10 @@ os.system('pip install wget')
 os.system('pip install tensorboardX==2.4')
 os.system('pip install SimpleITK==2.1.1')
 os.system('pip install MedPy==0.4.0')
+os.system('pip install paddle')
+os.system('pip install opencv-python')
+os.system('pip install paddleseg')
+
 # os.system('pip install --upgrade --force-reinstall --no-deps albumentations')
 
 
