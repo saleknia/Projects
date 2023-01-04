@@ -70,8 +70,8 @@ class SemanticConnectivityLoss(nn.Layer):
             lables (Tensor): [N, H, W]
         '''
 
-        preds_np = logits.astype('uint8').numpy()
-        labels_np = labels.astype('uint8').numpy()
+        preds_np = logits.numpy().astype('uint8')
+        labels_np = labels.numpy().astype('uint8')
         preds = paddle.to_tensor(preds, 'float32', stop_gradient=False)
         multi_class_sc_loss = paddle.zeros([preds.shape[0]])
         zero = paddle.to_tensor([0.])  # for accelerating
