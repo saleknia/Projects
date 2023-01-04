@@ -749,9 +749,9 @@ class SAP(nn.Module):
         branches_2 = skip_x
 
         feat = torch.cat([branches_1,branches_2],dim=1)
-        feat = self.relu(self.conv1x1[0](feat))
-        feat = self.relu(self.conv3x3_1[0](feat))
-        att = self.conv3x3_2[0](feat)
+        feat = self.relu(self.conv1x1(feat))
+        feat = self.relu(self.conv3x3_1(feat))
+        att = self.conv3x3_2(feat)
         att = F.softmax(att, dim=1)
         
         att_1 = att[:,0,:,:].unsqueeze(1)
