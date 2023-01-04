@@ -551,7 +551,6 @@ class DAT(nn.Module):
             outputs.append(x)
             if i < 2:
                 x = self.down_projs[i](x)
-                x = self.HA[i](x)
             positions.append(pos)
             references.append(ref)
         
