@@ -145,6 +145,7 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
 
         pair_conn = torch.tensor([0.], device='cuda', requires_grad=False)
         pair_conn_num = 0
+        pair_conn_num = pair_conn_num.to('cuda')
 
         for j in range(1, pred_num_conn):
             pred_j_mask = pred_conn[:, :, j]
