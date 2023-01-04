@@ -727,20 +727,54 @@ class SAPblock(nn.Module):
 
         return ax
 
+class SAP(nn.Module):
+    def __init__(self, in_channels):
+        super(SAP, self).__init__()
+
+        self.conv3x3=nn.Conv2d(in_channels=in_channels, out_channels=in_channels,dilation=1,kernel_size=3, padding=1)
+        
+        self.bn=nn.ModuleList([nn.BatchNorm2d(in_channels),nn.BatchNorm2d(in_channels),nn.BatchNorm2d(in_channels)]) 
+        self.conv1x1   = nn.Conv2d(in_channels=2*in_channels, out_channels=in_channels,dilation=1,kernel_size=1, padding=0)                         
+        self.conv3x3_1 = nn.Conv2d(in_channels=in_channels//1, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1)
+        self.conv3x3_2 = nn.Conv2d(in_channels=in_channels//2, out_channels=2             ,dilation=1,kernel_size=3, padding=1)
+        self.conv_last=ConvBnRelu(in_planes=in_channels,out_planes=in_channels,ksize=1,stride=1,pad=0,dilation=1)
+    
+        self.relu=nn.ReLU(inplace=True)
+
+    def forward(self, x, skip_x):
+
+        x_size= x.size()
+
+        branches_1 = x
+        branches_2 = skip_x
+
+        feat = torch.cat([branches_1,branches_2],dim=1)
+        feat = self.relu(self.conv1x1[0](feat))
+        feat = self.relu(self.conv3x3_1[0](feat))
+        att = self.conv3x3_2[0](feat)
+        att = F.softmax(att, dim=1)
+        
+        att_1 = att[:,0,:,:].unsqueeze(1)
+        att_2 = att[:,1,:,:].unsqueeze(1)
+
+        fusion = att_1*branches_1 + att_2*branches_2
+
+        return fusion
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.SAPblock = SAPblock(in_channels=in_channels//2)
+        # self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.SAPblock = SAP(in_channels=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        x = self.SAPblock(x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        x = self.SAPblock(x, skip_x)
         return x
 
 # class UpBlock(nn.Module):
