@@ -1320,8 +1320,10 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        # self.boundary_up = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.boundary_conv = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.boundary = nn.Sequential(
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.Conv2d(48, n_classes, 3, padding=1),
+        ) 
 
         # self.encoder = DAT(
         #     img_size=224,
@@ -1406,11 +1408,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.PSA_1 = ParallelPolarizedSelfAttention(48)
-        self.PSA_2 = ParallelPolarizedSelfAttention(96)
-        self.PSA_3 = ParallelPolarizedSelfAttention(192)
-        self.PSA_4 = ParallelPolarizedSelfAttention(384)
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1461,7 +1458,9 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x1 + self.PSA_1(x_fuse[0]), x2 + self.PSA_2(x_fuse[1]), x3 + self.PSA_3(x_fuse[2]), x4 + self.PSA_4(x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]), x3 + (x_fuse[2]), x4 + (x_fuse[3])
+
+        boundary = self.boundary(x1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
@@ -1473,7 +1472,10 @@ class DATUNet(nn.Module):
         x = self.final_relu2(x)
         x = self.final_conv3(x)
 
-        return x
+        if self.training:
+            return (x, boundary)
+        else:
+            return x
 
 
 
