@@ -13,16 +13,14 @@
 # limitations under the License.
 
 import cv2
+import torch
 import numpy as np
 import paddle
-from paddle import nn
-import paddle.nn.functional as F
-
-from paddleseg.cvlibs import manager
+import torch.nn as nn
+import torch.nn.functional as F
 
 
-@manager.LOSSES.add_component
-class SemanticConnectivityLoss(nn.Layer):
+class SemanticConnectivityLoss(nn.Module):
     '''
     SCL (Semantic Connectivity-aware Learning) framework, which introduces a SC Loss (Semantic Connectivity-aware Loss)
     to improve the quality of segmentation results from the perspective of connectivity. Support multi-class segmentation.
@@ -72,9 +70,9 @@ class SemanticConnectivityLoss(nn.Layer):
         preds = logits
         preds_np = logits.detach().cpu().numpy().astype('uint8')
         labels_np = labels.detach().cpu().numpy().astype('uint8')
-        preds = paddle.to_tensor(preds, 'float32', stop_gradient=False)
-        multi_class_sc_loss = paddle.zeros([preds.shape[0]])
-        zero = paddle.to_tensor([0.])  # for accelerating
+        # preds = paddle.to_tensor(preds, 'float32', stop_gradient=False)
+        multi_class_sc_loss = torch.zeros([preds.shape[0]])
+        zero = torch.tensor([0.])  # for accelerating
 
         # Traverse each image
         for i in range(preds.shape[0]):
@@ -117,35 +115,35 @@ class SemanticConnectivityLoss(nn.Layer):
                     pass
                 else:
                     preds_class = pred_i == int(class_)
-                    not_preds_class = paddle.bitwise_not(preds_class)
-                    labels_class = paddle.to_tensor(labels_np_class)
+                    not_preds_class = torch.bitwise_not(preds_class)
+                    labels_class = torch.tensor(labels_np_class)
                     missed_detect = labels_class * not_preds_class
-                    missed_detect_area = paddle.sum(missed_detect).astype(
-                        'float32')
+                    missed_detect_area = torch.sum(missed_detect).to('float32')
                     sc_loss += missed_detect_area / missed_detect.numel() + 1
 
             multi_class_sc_loss[
                 i] = sc_loss / class_num if class_num != 0 else 0
-        multi_class_sc_loss = paddle.mean(multi_class_sc_loss)
+        multi_class_sc_loss = torch.mean(multi_class_sc_loss)
         return multi_class_sc_loss
 
+# paddle
 
 def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
                                 origin_pred_num_conn, label_num_conn, pred,
                                 real_label_num, real_pred_num, zero):
 
-    pred_conn = paddle.to_tensor(pred_conn)
-    label_conn = paddle.to_tensor(label_conn)
+    pred_conn = torch.tensor(pred_conn)
+    label_conn = torch.tensor(label_conn)
     pred_conn = F.one_hot(pred_conn, origin_pred_num_conn)
     label_conn = F.one_hot(label_conn, label_num_conn)
 
-    ious = paddle.zeros((real_label_num, real_pred_num))
-    pair_conn_sum = paddle.to_tensor([0.], stop_gradient=False)
+    ious = torch.zeros((real_label_num, real_pred_num))
+    pair_conn_sum = torch.tensor([0.], requires_grad=False)
 
     for i in range(1, label_num_conn):
         label_i = label_conn[:, :, i]
 
-        pair_conn = paddle.to_tensor([0.], stop_gradient=False)
+        pair_conn = torch.tensor([0.], requires_grad=False)
         pair_conn_num = 0
 
         for j in range(1, pred_num_conn):
@@ -162,7 +160,7 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
             pair_conn_sum += pair_conn / pair_conn_num
     lone_pred_num = 0
 
-    pred_sum = paddle.sum(ious, axis=0)
+    pred_sum = torch.sum(ious, dim=0)
     for m in range(0, real_pred_num):
         if pred_sum[m] == 0:
             lone_pred_num += 1
@@ -171,14 +169,16 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
 
 
 def compute_iou(pred_i, label_i, zero):
-    intersect_area_i = paddle.sum(pred_i * label_i)
-    if paddle.equal(intersect_area_i, zero):
+    intersect_area_i = torch.sum(pred_i * label_i)
+    if torch.equal(intersect_area_i, zero):
         return 0
 
-    pred_area_i = paddle.sum(pred_i)
-    label_area_i = paddle.sum(label_i)
+    pred_area_i = torch.sum(pred_i)
+    label_area_i = torch.sum(label_i)
     union_area_i = pred_area_i + label_area_i - intersect_area_i
-    if paddle.equal(union_area_i, zero):
+    if torch.equal(union_area_i, zero):
         return 1
     else:
         return intersect_area_i / union_area_i
+
+        
