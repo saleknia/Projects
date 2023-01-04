@@ -67,7 +67,7 @@ class SemanticConnectivityLoss(nn.Module):
             logits (Tensor): [N, H, W]
             lables (Tensor): [N, H, W]
         '''
-        preds = logits
+        preds = logits.cpu()
         preds_np = logits.detach().cpu().numpy().astype('uint8')
         labels_np = labels.detach().cpu().numpy().astype('uint8')
         # preds = paddle.to_tensor(preds, 'float32', stop_gradient=False)
