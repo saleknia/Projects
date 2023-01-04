@@ -485,12 +485,12 @@ class DAT(nn.Module):
 
         self.HA_1 = nn.Sequential(
             HybridAttention(in_planes=dims[1], out_planes=dims[1]),
-            LayerNormProxy(dims[i + 1])
+            LayerNormProxy(dims[1])
         )
 
         self.HA_2 = nn.Sequential(
             HybridAttention(in_planes=dims[2], out_planes=dims[2]),
-            LayerNormProxy(dims[i + 1])
+            LayerNormProxy(dims[2])
         )
 
         self.HA = [self.HA_1, self.HA_2]
