@@ -67,7 +67,7 @@ class SemanticConnectivityLoss(nn.Module):
             logits (Tensor): [N, H, W]
             lables (Tensor): [N, H, W]
         '''
-        preds = logits.cpu()
+        preds = logits
         preds_np = logits.detach().cpu().numpy().astype('uint8')
         labels_np = labels.detach().cpu().numpy().astype('uint8')
         # preds = paddle.to_tensor(preds, 'float32', stop_gradient=False)
@@ -134,8 +134,8 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
 
     pred_conn = torch.tensor(pred_conn)
     label_conn = torch.tensor(label_conn)
-    pred_conn = F.one_hot(pred_conn.long(), origin_pred_num_conn)
-    label_conn = F.one_hot(label_conn.long(), label_num_conn)
+    pred_conn = F.one_hot(pred_conn.long(), origin_pred_num_conn).to('cuda')
+    label_conn = F.one_hot(label_conn.long(), label_num_conn).to('cuda')
 
     ious = torch.zeros((real_label_num, real_pred_num))
     pair_conn_sum = torch.tensor([0.], requires_grad=False)
@@ -150,7 +150,7 @@ def compute_class_connectiveity(pred_conn, label_conn, pred_num_conn,
             pred_j_mask = pred_conn[:, :, j]
             pred_j = pred_j_mask * pred
 
-            iou = compute_iou(pred_j, label_i, zero)
+            iou = compute_iou(pred_j, label_i, zero.to('cuda'))
             ious[i - 1, j - 1] = iou
             if iou != 0:
                 pair_conn += iou
