@@ -1320,10 +1320,10 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        # self.boundary = nn.Sequential(
-        #     nn.ConvTranspose2d(48, 48, 4, 2, 1),
-        #     nn.Conv2d(48, n_classes, 3, padding=1),
-        # ) 
+        self.boundary = nn.Sequential(
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.Conv2d(48, n_classes, 3, padding=1),
+        ) 
 
         # self.encoder = DAT(
         #     img_size=224,
@@ -1460,6 +1460,8 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]), x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
+        boundary = self.boundary(x1)
+
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
@@ -1470,7 +1472,10 @@ class DATUNet(nn.Module):
         x = self.final_relu2(x)
         x = self.final_conv3(x)
 
-        return x
+        if self.training:
+            return (x, boundary)
+        else:
+            return x
 
 
 
