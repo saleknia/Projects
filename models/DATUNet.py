@@ -1543,7 +1543,34 @@ class CoTAttention(nn.Module):
         return k1+k2
 
 
+class InputProjectionA(nn.Module):
+    '''
+    This class projects the input image to the same spatial dimensions as the feature map.
+    For example, if the input image is 512 x512 x3 and spatial dimensions of feature map size are 56x56xF, then
+    this class will generate an output of 56x56x3, for input reinforcement, which establishes a direct link between
+    the input image and encoding stage, improving the flow of information.
+    '''
 
+    def __init__(self, samplingTimes, channels):
+        '''
+        :param samplingTimes: The rate at which you want to down-sample the image
+        '''
+        super().__init__()
+        self.pool = nn.ModuleList()
+        for i in range(0, samplingTimes):
+            # pyramid-based approach for down-sampling
+            self.pool.append(nn.AvgPool2d(3, stride=2, padding=1))
+        self.conv = ConvBatchNorm(in_channels=3, out_channels=channels)
+
+    def forward(self, input):
+        '''
+        :param input: Input RGB Image
+        :return: down-sampled image (pyramid-based approach)
+        '''
+        for pool in self.pool:
+            input = pool(input)
+        output = self.conv(input)
+        return output
 
 
 class DATUNet(nn.Module):
