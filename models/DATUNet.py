@@ -1509,51 +1509,59 @@ class PAM_Module(Module):
         out = self.gamma*out + x
         return out
 
+
+import numpy as np
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Softmax
+from torch import flatten, nn
+from torch.nn import init
+from torch.nn.modules.activation import ReLU
+from torch.nn.modules.batchnorm import BatchNorm2d
+from torch.nn import functional as F
 
 
-def INF(B,H,W):
-     return -torch.diag(torch.tensor(float("inf")).repeat(H),0).unsqueeze(0).repeat(B*W,1,1).to('cuda')
 
+class CoTAttention(nn.Module):
 
-class CrissCrossAttention(nn.Module):
-    """ Criss-Cross Attention Module"""
-    def __init__(self, in_dim):
-        super(CrissCrossAttention,self).__init__()
-        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.softmax = Softmax(dim=3)
-        self.INF = INF
-        self.gamma = nn.Parameter(torch.zeros(1))
+    def __init__(self, dim=512,kernel_size=3):
+        super().__init__()
+        self.dim=dim
+        self.kernel_size=kernel_size
+
+        self.key_embed=nn.Sequential(
+            nn.Conv2d(dim,dim,kernel_size=kernel_size,padding=kernel_size//2,groups=4,bias=False),
+            nn.BatchNorm2d(dim),
+            nn.ReLU()
+        )
+        self.value_embed=nn.Sequential(
+            nn.Conv2d(dim,dim,1,bias=False),
+            nn.BatchNorm2d(dim)
+        )
+
+        factor=4
+        self.attention_embed=nn.Sequential(
+            nn.Conv2d(2*dim,2*dim//factor,1,bias=False),
+            nn.BatchNorm2d(2*dim//factor),
+            nn.ReLU(),
+            nn.Conv2d(2*dim//factor,kernel_size*kernel_size*dim,1)
+        )
 
 
     def forward(self, x):
-        m_batchsize, _, height, width = x.size()
-        proj_query = self.query_conv(x)
-        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
-        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
-        proj_key = self.key_conv(x)
-        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        proj_value = self.value_conv(x)
-        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
-        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
-        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
+        bs,c,h,w=x.shape
+        k1=self.key_embed(x) #bs,c,h,w
+        v=self.value_embed(x).view(bs,c,-1) #bs,c,h,w
 
-        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
-        #print(concate)
-        #print(att_H) 
-        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
-        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
-        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
-        #print(out_H.size(),out_W.size())
-        return self.gamma*(out_H + out_W) + x
+        y=torch.cat([k1,x],dim=1) #bs,2c,h,w
+        att=self.attention_embed(y) #bs,c*k*k,h,w
+        att=att.reshape(bs,c,self.kernel_size*self.kernel_size,h,w)
+        att=att.mean(2,keepdim=False).view(bs,c,-1) #bs,c,h*w
+        k2=F.softmax(att,dim=-1)*v
+        k2=k2.view(bs,c,h,w)
+
+
+        return k1+k2
+
+
 
 
 
@@ -1683,10 +1691,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.ATT_1 = CrissCrossAttention(in_dim=48)
-        self.ATT_2 = CrissCrossAttention(in_dim=96)
-        self.ATT_3 = CrissCrossAttention(in_dim=192)
-        self.ATT_4 = CrissCrossAttention(in_dim=384)
+        self.ATT_1 = CoTAttention(dim=48)
+        self.ATT_2 = CoTAttention(dim=96)
+        self.ATT_3 = CoTAttention(dim=192)
+        self.ATT_4 = CoTAttention(dim=384)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
