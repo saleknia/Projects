@@ -702,6 +702,12 @@ class UNet(nn.Module):
 
         x1, x2, x3 = yl[0], yl[1], yl[2]
 
+        emb = self.patch_embed(x0)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        x4 = self.conv_seq_img(feature_tf)
 
         x = self.up3(x4, x3)
         x = self.up2(x3, x2) 
