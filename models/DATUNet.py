@@ -1649,9 +1649,6 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.DilatedParllelResidualBlockB_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
-        self.DilatedParllelResidualBlockB_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96 )
-
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1691,8 +1688,6 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
-
-        x1, x2, x3, x4 = self.PAM_1(x1), self.PAM_2(x2), self.PAM_3(x3), self.PAM_4(x4) 
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
