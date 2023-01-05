@@ -1541,34 +1541,6 @@ class CoTAttention(nn.Module):
         return k1+k2
 
 
-class InputProjection(nn.Module):
-    '''
-    This class projects the input image to the same spatial dimensions as the feature map.
-    For example, if the input image is 512 x512 x3 and spatial dimensions of feature map size are 56x56xF, then
-    this class will generate an output of 56x56x3, for input reinforcement, which establishes a direct link between
-    the input image and encoding stage, improving the flow of information.
-    '''
-
-    def __init__(self, samplingTimes, channels):
-        '''
-        :param samplingTimes: The rate at which you want to down-sample the image
-        '''
-        super().__init__()
-        self.pool = nn.ModuleList()
-        for i in range(0, samplingTimes):
-            # pyramid-based approach for down-sampling
-            self.pool.append(nn.AvgPool2d(3, stride=2, padding=1))
-
-    def forward(self, input):
-        '''
-        :param input: Input RGB Image
-        :return: down-sampled image (pyramid-based approach)
-        '''
-        for pool in self.pool:
-            input = pool(input)
-        return input
-
-
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1695,6 +1667,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        self.CoTAttention_2 = CoTAttention(96)
+        self.CoTAttention_3 = CoTAttention(192)
+        self.CoTAttention_4 = CoTAttention(384)
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1731,6 +1707,10 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
+
+        x2 = self.CoTAttention_2(x2)
+        x3 = self.CoTAttention_3(x3)
+        x4 = self.CoTAttention_4(x4)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
