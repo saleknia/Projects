@@ -18,8 +18,8 @@ from sklearn.metrics import confusion_matrix
 from SCL import SemanticConnectivityLoss
 warnings.filterwarnings("ignore")
 
-erosion = Erosion2d(1, 1, 7, soft_max=False)
-dilate = Dilation2d(1, 1, 7, soft_max=False)
+erosion = Erosion2d(1, 1, 9, soft_max=False)
+dilate = Dilation2d(1, 1, 9, soft_max=False)
 
 class DiceLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
