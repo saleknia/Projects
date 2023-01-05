@@ -1768,7 +1768,7 @@ class DATUNet(nn.Module):
         if self.training:
             return out, boundary
         else:
-            return out
+            return out + boundary
 
 
 
