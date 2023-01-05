@@ -821,9 +821,9 @@ class UpBlock(nn.Module):
     
     def forward(self, x, skip_x, II):
         x = self.up(x)
+        x = x + self.att(x, II)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = x + self.att(x, II)
         return x
 
 # class UpBlock(nn.Module):
@@ -1543,7 +1543,7 @@ class CoTAttention(nn.Module):
         return k1+k2
 
 
-class InputProjectionA(nn.Module):
+class InputProjection(nn.Module):
     '''
     This class projects the input image to the same spatial dimensions as the feature map.
     For example, if the input image is 512 x512 x3 and spatial dimensions of feature map size are 56x56xF, then
@@ -1704,6 +1704,10 @@ class DATUNet(nn.Module):
         # self.ATT_3 = CoTAttention(dim=192)
         # self.ATT_4 = CoTAttention(dim=384)
 
+        self.II_3 = InputProjection(samplingTimes=3, channels=192)
+        self.II_2 = InputProjection(samplingTimes=2, channels=96)
+        self.II_1 = InputProjection(samplingTimes=1, channels=48)
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1724,6 +1728,10 @@ class DATUNet(nn.Module):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
+
+        II_3 = self.II_3(x_input)
+        II_2 = self.II_2(x_input)
+        II_1 = self.II_1(x_input)
 
         x1 = self.firstconv(x_input)
         x1 = self.firstbn(x1)
@@ -1759,9 +1767,9 @@ class DATUNet(nn.Module):
         # x3 = self.ATT_3(x3)
         # x4 = self.ATT_4(x4)
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        x3 = self.up3(x4, x3, II_3) 
+        x2 = self.up2(x3, x2, II_2) 
+        x1 = self.up1(x2, x1, II_1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
