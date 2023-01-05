@@ -658,26 +658,19 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         self.encoder_1 = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        self.encoder_1.conv1.stride = (1, 1)
         self.encoder_1.incre_modules = None
         self.encoder_1.stage4 = None
 
-        self.head = SegFormerHead()
-
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[32, 64, 128], patchSize=[4, 2, 1])
-
-        # self.up2 = UpBlock(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU')
-        # self.up1 = UpBlock(in_channels=64 , out_channels=32, nb_Conv=2, activation='ReLU')
+        self.up3 = UpBlock(256, 128, nb_Conv=2)
+        self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-
-        self.final_conv3 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
-        self.final_relu3 = nn.ReLU(inplace=True)
-
-        self.final_conv4 = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv_out = nn.Conv2d(16, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -700,31 +693,20 @@ class UNet(nn.Module):
 
 
         x1, x2, x3 = yl[0], yl[1], yl[2]
-        # xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
-        # yl = self.encoder_1.stage4(xl)    
 
-        # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        x1, x2, x3, _ = self.mtc(x1, x2, x3)
+        x = self.up3(x4, x3)
+        x = self.up2(x3, x2) 
+        x = self.up1(x , x1) 
 
-        x = self.head(x1, x2, x3)
-
-        # x = self.up3(x4, x3)
-        # x = self.up2(x3, x2) 
-        # x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
-
         x = self.final_conv2(x)
         x = self.final_relu2(x)
+        out = self.final_conv_out(x)
 
-        x = self.final_conv3(x)
-        x = self.final_relu3(x)
-
-        x = self.final_conv4(x)
-
-        return x
+        return out
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
