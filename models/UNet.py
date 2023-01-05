@@ -662,6 +662,14 @@ class UNet(nn.Module):
         self.encoder_1.incre_modules = None
         self.encoder_1.stage4 = None
 
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+
+        self.conv_seq_img = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=1, padding=0)
+
         self.up3 = UpBlock(256, 128, nb_Conv=2)
         self.up2 = UpBlock(128, 64 , nb_Conv=2)
         self.up1 = UpBlock(64 , 32 , nb_Conv=2)
