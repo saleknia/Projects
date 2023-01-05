@@ -896,7 +896,58 @@ class Residual(nn.Module):
         out += residual
         return out 
 
+class BiFusion_block(nn.Module):
+    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0): # ch_2 ---> transformer
+        super(BiFusion_block, self).__init__()
 
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+
+        # bi-linear modelling for both
+        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+
+        self.relu = nn.ReLU(inplace=True)
+
+        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
+
+        self.dropout = nn.Dropout2d(drop_rate)
+        self.drop_rate = drop_rate
+
+        
+    def forward(self, g, x): # x ---> transformer
+        # bilinear pooling
+        W_g = self.W_g(g)
+        W_x = self.W_x(x)
+        bp = self.W(W_g*W_x)
+
+        # spatial attention for cnn branch
+        g_in = g
+        g = self.compress(g)
+        g = self.spatial(g)
+        g = self.sigmoid(g) * g_in
+
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+        fuse = self.residual(torch.cat([g, x, bp], 1))
+
+        if self.drop_rate > 0:
+            return self.dropout(fuse)
+        else:
+            return fuse
 
 # se
 
@@ -1174,6 +1225,177 @@ class FAMBlock(nn.Module):
         return out
 
 
+import torchvision
+from collections import OrderedDict
+from torch.nn import init
+
+class SEAttention(nn.Module):
+
+    def __init__(self, channel=512,reduction=16):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // reduction, channel, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+class FAM(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super(FAM, self).__init__()
+
+        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.relu(x)
+        return x
+
+class MRFF(nn.Module):
+
+    def __init__(self, in_channels=512):
+        super().__init__()
+
+        self.FAMBlock_1 = FAM(in_channels=in_channels, out_channels=in_channels)
+        self.FAM1 = nn.ModuleList([self.FAMBlock_1 for i in range(1)])
+
+        self.FAMBlock_2 = FAM(in_channels=in_channels, out_channels=in_channels)
+        self.FAM2 = nn.ModuleList([self.FAMBlock_2 for i in range(2)])
+
+        self.FAMBlock_3 = FAM(in_channels=in_channels, out_channels=in_channels)
+        self.FAM3 = nn.ModuleList([self.FAMBlock_3 for i in range(4)])
+
+        self.FAMBlock_4 = FAM(in_channels=in_channels, out_channels=in_channels)
+        self.FAM4 = nn.ModuleList([self.FAMBlock_4 for i in range(8)])
+
+        self.fuse = ConvBatchNorm(in_channels=in_channels*4, out_channels=in_channels, kernel_size=1, padding=0)
+
+
+    def forward(self, x):
+
+        for i in range(1):
+            x1 = self.FAM1[i](x)
+
+        for i in range(2):
+            x2 = self.FAM2[i](x)
+
+        for i in range(4):
+            x3 = self.FAM3[i](x)
+
+        for i in range(8):
+            x4 = self.FAM4[i](x)
+
+        x2 = x2 + x1
+        x3 = x3 + x2
+        x4 = x4 + x3
+
+        x = torch.cat([x1, x2, x3, x4], dim=1)
+        x = self.fuse(x)
+
+        return x
+
+
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
+
+        embedding_dim = 48
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.up4 = nn.Upsample(scale_factor=8)
+        self.up3 = nn.Upsample(scale_factor=4)
+        self.up2 = nn.Upsample(scale_factor=2)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+    def forward(self, x1, x2, x3, x4):
+        c1, c2, c3, c4 = x1, x2, x3, x4
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up4(_c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up3(_c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up2(_c2)
+
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        return _c
+
+
 
 import ml_collections
 
@@ -1192,58 +1414,47 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class BiFusion_block(nn.Module):
-    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0): # ch_2 ---> transformer
-        super(BiFusion_block, self).__init__()
+class ParallelPolarizedSelfAttention(nn.Module):
 
-        # channel attention for F_g, use SE Block
-        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
-        self.sigmoid = nn.Sigmoid()
+    def __init__(self, channel=512):
+        super().__init__()
+        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
+        self.softmax_channel=nn.Softmax(1)
+        self.softmax_spatial=nn.Softmax(-1)
+        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
+        self.ln=nn.LayerNorm(channel)
+        self.sigmoid=nn.Sigmoid()
+        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.agp=nn.AdaptiveAvgPool2d((1,1))
 
-        # spatial attention for F_l
-        self.compress = ChannelPool()
-        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+    def forward(self, x):
+        b, c, h, w = x.size()
 
-        # bi-linear modelling for both
-        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
-        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
-        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+        #Channel-only Self-Attention
+        channel_wv=self.ch_wv(x) #bs,c//2,h,w
+        channel_wq=self.ch_wq(x) #bs,1,h,w
+        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
+        channel_wq=self.softmax_channel(channel_wq)
+        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
+        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
+        channel_out=channel_weight*x
 
-        self.relu = nn.ReLU(inplace=True)
+        #Spatial-only Self-Attention
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
+        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
+        spatial_wq=self.softmax_spatial(spatial_wq)
+        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
+        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
+        spatial_out=spatial_weight*x
+        out=spatial_out+channel_out
+        return out
 
-        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
-
-        self.dropout = nn.Dropout2d(drop_rate)
-        self.drop_rate = drop_rate
-
-        
-    def forward(self, g, x): # x ---> transformer
-        # bilinear pooling
-        W_g = self.W_g(g)
-        W_x = self.W_x(x)
-        bp = self.W(W_g*W_x)
-
-        # spatial attention for cnn branch
-        g_in = g
-        g = self.compress(g)
-        g = self.spatial(g)
-        g = self.sigmoid(g) * g_in
-
-        # channel attetion for transformer branch
-        x_in = x
-        x = x.mean((2, 3), keepdim=True)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.sigmoid(x) * x_in
-        fuse = self.residual(torch.cat([g, x, bp], 1))
-
-        if self.drop_rate > 0:
-            return self.dropout(fuse)
-        else:
-            return fuse
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1258,18 +1469,18 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.encoder2 = None
-        # self.encoder3 = None
-        # self.encoder4 = None
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.boundary = nn.Sequential(
         #     nn.ConvTranspose2d(48, 48, 4, 2, 1),
@@ -1302,16 +1513,7 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder_cnn.conv1.stride = (1, 1)
-        self.encoder_cnn.incre_modules = None
-        self.encoder_cnn.stage4 = None
-
-        self.conv_1 = _make_nConv(in_channels=18, out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=36, out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=72, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        
-        self.encoder_tff = DAT(
+        self.encoder = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -1337,6 +1539,25 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
+        # self.combine_1 = ConvBatchNorm(in_channels=48 , out_channels=48 , kernel_size=1, padding=0)
+        # self.combine_2 = ConvBatchNorm(in_channels=96 , out_channels=96 , kernel_size=1, padding=0)
+        # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
+        # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
+
+        # self.combine_1 = nn.Identity()
+        # self.combine_2 = nn.Identity()
+        # self.combine_3 = nn.Identity()
+        # self.combine_4 = nn.Identity()
+
+        self.head = SegFormerHead()
+
+        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        # self.patch_embed = transformer.patch_embed
+        # self.transformers = nn.ModuleList(
+        #     [transformer.blocks[i] for i in range(12)]
+        # )
+        # self.norm_0 = LayerNormProxy(dim=192)
+        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0)
 
         # self.encoder = CrossFormer(
         #                         img_size=224,
@@ -1358,13 +1579,13 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.norm_1 = LayerNormProxy(dim=48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1382,52 +1603,34 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x = self.encoder_cnn.conv1(x_input)
-        x = self.encoder_cnn.bn1(x)
-        x = self.encoder_cnn.act1(x)
-        x = self.encoder_cnn.conv2(x)
-        x = self.encoder_cnn.bn2(x)
-        x = self.encoder_cnn.act2(x)
-        x = self.encoder_cnn.layer1(x)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
-        xl = [t(x) for i, t in enumerate(self.encoder_cnn.transition1)]
-        yl = self.encoder_cnn.stage2(xl)
+        outputs = self.encoder(x_input)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
-        yl = self.encoder_cnn.stage3(xl)
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
 
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        x1_cnn, x2_cnn, x3_cnn = yl[0], yl[1], yl[2]
-
-        x1_cnn = self.conv_1(x1_cnn)
-        x2_cnn = self.conv_2(x2_cnn)        
-        x3_cnn = self.conv_3(x3_cnn)
-
-        outputs_tff = self.encoder_tff(x_input)
-
-        x4_tff = self.norm_4(outputs_tff[2])
-        x3_tff = self.norm_3(outputs_tff[1])
-        x2_tff = self.norm_2(outputs_tff[0])
-
-        x1 = x1_cnn
-        x2 = x2_cnn + x2_tff
-        x3 = x3_cnn + x3_tff
-        x4 = x4_tff
-
-
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
-
-        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
