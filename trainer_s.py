@@ -169,16 +169,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             if type(outputs)==tuple:
                 loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) #+ ce_loss(outputs[1], boundary.unsqueeze(dim=1))
                 loss_dice = dice_loss(inputs=outputs[0], targets=targets) + 0.1 * dice_loss(inputs=outputs[1], targets=boundary)
-                loss = loss_ce + loss_dice + loss_scl
+                loss = loss_ce + loss_dice 
             else:
-                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-                loss_dice = dice_loss(inputs=outputs, targets=targets)
-                if False:#5 < epoch_num: 
-                    loss_scl = scl_loss(logits=torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1))), labels=targets)
-                    loss = loss_ce + loss_dice + loss_scl
-                else:
-                    loss_scl = 0.0
-                    loss = loss_ce + loss_dice + loss_scl
+                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) + ce_loss(outputs, boundary.unsqueeze(dim=1))
+                loss_dice = dice_loss(inputs=outputs, targets=targets) + dice_loss(inputs=outputs, targets=boundary)
+                loss = loss_ce + loss_dice 
+
 
 
         scaler.scale(loss).backward()
