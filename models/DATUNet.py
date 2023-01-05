@@ -576,73 +576,7 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
         
-class CCA(nn.Module):
-    """
-    CCA Block
-    """
-    def __init__(self, F_g, F_x):
-        super().__init__()
-        self.mlp_x = nn.Sequential(
-            Flatten(),
-            nn.Linear(F_x, F_x))
-        self.mlp_g = nn.Sequential(
-            Flatten(),
-            nn.Linear(F_g, F_x))
-        self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, g, x):
-        # channel-wise attention
-        avg_pool_x = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
-        channel_att_x = self.mlp_x(avg_pool_x)
-        avg_pool_g = F.avg_pool2d( g, (g.size(2), g.size(3)), stride=(g.size(2), g.size(3)))
-        channel_att_g = self.mlp_g(avg_pool_g)
-        channel_att_sum = (channel_att_x + channel_att_g)/2.0
-        scale = torch.sigmoid(channel_att_sum).unsqueeze(2).unsqueeze(3).expand_as(x)
-        x_after_channel = x * scale
-        out = self.relu(x_after_channel)
-        return out
-
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out
 
 class ConvBnRelu(nn.Module):
     def __init__(self, in_planes, out_planes, ksize, stride, pad, dilation=1,
@@ -833,6 +767,49 @@ class SEBlock(nn.Module):
         y = torch.mul(skip_x, y)
         return y
 
+
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, x):
+        """
+        :param gate: gating signal from previous layer
+        :param x: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(x)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = x * psi
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -840,11 +817,13 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.att = AttentionBlock(F_g=out_channels, F_l=out_channels, n_coefficients=out_channels)
     
-    def forward(self, x, skip_x):
+    def forward(self, x, skip_x, II):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        x = x + self.att(x, II)
         return x
 
 # class UpBlock(nn.Module):
