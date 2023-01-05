@@ -1471,6 +1471,44 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
+from torch.nn import Module, Conv2d, Parameter, Softmax
+from torch.nn import functional as F
+from torch.autograd import Variable
+
+class PAM_Module(Module):
+    """ Position attention module"""
+    #Ref from SAGAN
+    def __init__(self, in_dim):
+        super(PAM_Module, self).__init__()
+        self.chanel_in = in_dim
+
+        self.query_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.key_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.value_conv = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        self.gamma = Parameter(torch.zeros(1))
+
+        self.softmax = Softmax(dim=-1)
+    def forward(self, x):
+        """
+            inputs :
+                x : input feature maps( B X C X H X W)
+            returns :
+                out : attention value + input feature
+                attention: B X (HxW) X (HxW)
+        """
+        m_batchsize, C, height, width = x.size()
+        proj_query = self.query_conv(x).view(m_batchsize, -1, width*height).permute(0, 2, 1)
+        proj_key = self.key_conv(x).view(m_batchsize, -1, width*height)
+        energy = torch.bmm(proj_query, proj_key)
+        attention = self.softmax(energy)
+        proj_value = self.value_conv(x).view(m_batchsize, -1, width*height)
+
+        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
+        out = out.view(m_batchsize, C, height, width)
+
+        out = self.gamma*out + x
+        return out
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1597,6 +1635,11 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        self.PAM_1 = PAM_Module(48)
+        self.PAM_2 = PAM_Module(96)
+        self.PAM_3 = PAM_Module(192)
+        self.PAM_4 = PAM_Module(384)
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1649,11 +1692,10 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
+        x1, x2, x3, x4 = self.PAM_1(x1), self.PAM_2(x2), self.PAM_3(x3), self.PAM_4(x4) 
 
         x3 = self.up3(x4, x3) 
-        x3 = self.DilatedParllelResidualBlockB_3(x3)
         x2 = self.up2(x3, x2) 
-        x2 = self.DilatedParllelResidualBlockB_2(x2)
         x1 = self.up1(x2, x1) 
 
 
