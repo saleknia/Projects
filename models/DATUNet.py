@@ -816,11 +816,11 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv_out = _make_nConv(in_channels=in_channels+3, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv_out = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     
-    def forward(self, x, skip_x, II):
+    def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x, II], dim=1)  # dim 1 is the channel dimension
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv_out(x)
         return x
 
@@ -1695,15 +1695,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.ATT_1 = CoTAttention(dim=48)
-        # self.ATT_2 = CoTAttention(dim=96)
-        # self.ATT_3 = CoTAttention(dim=192)
-        # self.ATT_4 = CoTAttention(dim=384)
-
-        self.II_3 = InputProjection(samplingTimes=3, channels=192)
-        self.II_2 = InputProjection(samplingTimes=2, channels=96)
-        self.II_1 = InputProjection(samplingTimes=1, channels=48)
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1725,9 +1716,6 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        II_3 = self.II_3(x_input)
-        II_2 = self.II_2(x_input)
-        II_1 = self.II_1(x_input)
 
         x1 = self.firstconv(x_input)
         x1 = self.firstbn(x1)
@@ -1758,14 +1746,9 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        # x1 = self.ATT_1(x1)
-        # x2 = self.ATT_2(x2)
-        # x3 = self.ATT_3(x3)
-        # x4 = self.ATT_4(x4)
-
-        x3 = self.up3(x4, x3, II_3) 
-        x2 = self.up2(x3, x2, II_2) 
-        x1 = self.up1(x2, x1, II_1) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
