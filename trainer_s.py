@@ -173,7 +173,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss_dice = dice_loss(inputs=outputs[0], targets=targets) + (alpha * dice_loss(inputs=outputs[1], targets=boundary))
                 loss = loss_ce + loss_dice 
             else:
-                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) + F.mse_loss(outputs, targets)))
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
                 loss = loss_ce + loss_dice 
 
