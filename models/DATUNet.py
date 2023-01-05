@@ -1225,101 +1225,6 @@ class FAMBlock(nn.Module):
         return out
 
 
-import torchvision
-from collections import OrderedDict
-from torch.nn import init
-
-class SEAttention(nn.Module):
-
-    def __init__(self, channel=512,reduction=16):
-        super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // reduction, channel, bias=False),
-            nn.Sigmoid()
-        )
-
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-
-class FAM(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(FAM, self).__init__()
-
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.relu(x)
-        return x
-
-class MRFF(nn.Module):
-
-    def __init__(self, in_channels=512):
-        super().__init__()
-
-        self.FAMBlock_1 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM1 = nn.ModuleList([self.FAMBlock_1 for i in range(1)])
-
-        self.FAMBlock_2 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM2 = nn.ModuleList([self.FAMBlock_2 for i in range(2)])
-
-        self.FAMBlock_3 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM3 = nn.ModuleList([self.FAMBlock_3 for i in range(4)])
-
-        self.FAMBlock_4 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM4 = nn.ModuleList([self.FAMBlock_4 for i in range(8)])
-
-        self.fuse = ConvBatchNorm(in_channels=in_channels*4, out_channels=in_channels, kernel_size=1, padding=0)
-
-
-    def forward(self, x):
-
-        for i in range(1):
-            x1 = self.FAM1[i](x)
-
-        for i in range(2):
-            x2 = self.FAM2[i](x)
-
-        for i in range(4):
-            x3 = self.FAM3[i](x)
-
-        for i in range(8):
-            x4 = self.FAM4[i](x)
-
-        x2 = x2 + x1
-        x3 = x3 + x2
-        x4 = x4 + x3
-
-        x = torch.cat([x1, x2, x3, x4], dim=1)
-        x = self.fuse(x)
-
-        return x
-
-
-
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
         super(BasicConv2d, self).__init__()
@@ -1409,137 +1314,6 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class ParallelPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
-
-from torch.nn import Module, Conv2d, Parameter, Softmax
-from torch.nn import functional as F
-from torch.autograd import Variable
-
-class PAM_Module(Module):
-    """ Position attention module"""
-    #Ref from SAGAN
-    def __init__(self, in_dim):
-        super(PAM_Module, self).__init__()
-        self.chanel_in = in_dim
-
-        self.query_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.gamma = Parameter(torch.zeros(1))
-
-        self.softmax = Softmax(dim=-1)
-    def forward(self, x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X (HxW) X (HxW)
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = self.query_conv(x).view(m_batchsize, -1, width*height).permute(0, 2, 1)
-        proj_key = self.key_conv(x).view(m_batchsize, -1, width*height)
-        energy = torch.bmm(proj_query, proj_key)
-        attention = self.softmax(energy)
-        proj_value = self.value_conv(x).view(m_batchsize, -1, width*height)
-
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
-        out = out.view(m_batchsize, C, height, width)
-
-        out = self.gamma*out + x
-        return out
-
-
-import numpy as np
-import torch
-from torch import flatten, nn
-from torch.nn import init
-from torch.nn.modules.activation import ReLU
-from torch.nn.modules.batchnorm import BatchNorm2d
-from torch.nn import functional as F
-
-
-
-class CoTAttention(nn.Module):
-
-    def __init__(self, dim=512,kernel_size=3):
-        super().__init__()
-        self.dim=dim
-        self.kernel_size=kernel_size
-
-        self.key_embed=nn.Sequential(
-            nn.Conv2d(dim,dim,kernel_size=kernel_size,padding=kernel_size//2,groups=4,bias=False),
-            nn.BatchNorm2d(dim),
-            nn.ReLU()
-        )
-        self.value_embed=nn.Sequential(
-            nn.Conv2d(dim,dim,1,bias=False),
-            nn.BatchNorm2d(dim)
-        )
-
-        factor=4
-        self.attention_embed=nn.Sequential(
-            nn.Conv2d(2*dim,2*dim//factor,1,bias=False),
-            nn.BatchNorm2d(2*dim//factor),
-            nn.ReLU(),
-            nn.Conv2d(2*dim//factor,kernel_size*kernel_size*dim,1)
-        )
-
-
-    def forward(self, x):
-        bs,c,h,w=x.shape
-        k1=self.key_embed(x) #bs,c,h,w
-        v=self.value_embed(x).view(bs,c,-1) #bs,c,h,w
-
-        y=torch.cat([k1,x],dim=1) #bs,2c,h,w
-        att=self.attention_embed(y) #bs,c*k*k,h,w
-        att=att.reshape(bs,c,self.kernel_size*self.kernel_size,h,w)
-        att=att.mean(2,keepdim=False).view(bs,c,-1) #bs,c,h*w
-        k2=F.softmax(att,dim=-1)*v
-        k2=k2.view(bs,c,h,w)
-
-
-        return k1+k2
-
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1554,18 +1328,18 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        # self.firstconv = resnet.conv1
+        # self.firstbn = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.encoder1 = resnet.layer1
+        # self.encoder2 = None
+        # self.encoder3 = None
+        # self.encoder4 = None
+        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.boundary = nn.Sequential(
         #     nn.ConvTranspose2d(48, 48, 4, 2, 1),
@@ -1598,7 +1372,16 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
-        self.encoder = DAT(
+        self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder_cnn.conv1.stride = (1, 1)
+        self.encoder_cnn.incre_modules = None
+        self.encoder_cnn.stage4 = None
+
+        self.conv_1 = _make_nConv(in_channels=18, out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=36, out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=72, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        
+        self.encoder_tff = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -1664,17 +1447,13 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
-
-        self.CoTAttention_2 = CoTAttention(96)
-        self.CoTAttention_3 = CoTAttention(192)
-        self.CoTAttention_4 = CoTAttention(384)
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-        self.norm_1 = LayerNormProxy(dim=48)
+        # self.norm_1 = LayerNormProxy(dim=48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1692,39 +1471,27 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
+        outputs_cnn = self.encoder_cnn(x_input)
+        outputs_tff = self.encoder_tff(x_input)
 
-        x1 = self.firstconv(x_input)
-        x1 = self.firstbn(x1)
-        x1 = self.firstrelu(x1)
-        x1 = self.encoder1(x1)
-        x1 = self.Reduce(x1)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
+        x4_tff = self.norm_4(outputs_tff[2])
+        x3_tff = self.norm_3(outputs_tff[1])
+        x2_tff = self.norm_2(outputs_tff[0])
 
-        outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])
-        x1 = self.norm_1(x1)
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        x2 = self.CoTAttention_2(x2)
-        x3 = self.CoTAttention_3(x3)
-        x4 = self.CoTAttention_4(x4)
-
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
-
-        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
