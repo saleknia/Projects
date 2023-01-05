@@ -896,58 +896,7 @@ class Residual(nn.Module):
         out += residual
         return out 
 
-class BiFusion_block(nn.Module):
-    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0): # ch_2 ---> transformer
-        super(BiFusion_block, self).__init__()
 
-        # channel attention for F_g, use SE Block
-        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
-        self.sigmoid = nn.Sigmoid()
-
-        # spatial attention for F_l
-        self.compress = ChannelPool()
-        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
-
-        # bi-linear modelling for both
-        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
-        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
-        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
-
-        self.relu = nn.ReLU(inplace=True)
-
-        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
-
-        self.dropout = nn.Dropout2d(drop_rate)
-        self.drop_rate = drop_rate
-
-        
-    def forward(self, g, x): # x ---> transformer
-        # bilinear pooling
-        W_g = self.W_g(g)
-        W_x = self.W_x(x)
-        bp = self.W(W_g*W_x)
-
-        # spatial attention for cnn branch
-        g_in = g
-        g = self.compress(g)
-        g = self.spatial(g)
-        g = self.sigmoid(g) * g_in
-
-        # channel attetion for transformer branch
-        x_in = x
-        x = x.mean((2, 3), keepdim=True)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.sigmoid(x) * x_in
-        fuse = self.residual(torch.cat([g, x, bp], 1))
-
-        if self.drop_rate > 0:
-            return self.dropout(fuse)
-        else:
-            return fuse
 
 # se
 
@@ -1225,77 +1174,6 @@ class FAMBlock(nn.Module):
         return out
 
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        return x
-
-class MLP(nn.Module):
-    """
-    Linear Embedding
-    """
-    def __init__(self, input_dim=2048, embed_dim=768):
-        super().__init__()
-        self.proj = nn.Linear(input_dim, embed_dim)
-
-    def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
-        return x
-
-
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
-
-        c1_in_channels, c2_in_channels, c3_in_channels = 48, 96, 192
-
-        embedding_dim = 48
-
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
-
-        self.up3 = nn.Upsample(scale_factor=4)
-        self.up2 = nn.Upsample(scale_factor=2)
-
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
-
-    def forward(self, x1, x2, x3):
-        c1, c2, c3 = x1, x2, x3
-
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c3.shape
-
-        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up3(_c3)
-
-        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up2(_c2)
-
-        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-
-        _c = self.linear_fuse(torch.cat([_c3, _c2, _c1], dim=1))
-
-        return _c
-
-
 
 import ml_collections
 
@@ -1314,6 +1192,58 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class BiFusion_block(nn.Module):
+    def __init__(self, ch_1, ch_2, r_2, ch_int, ch_out, drop_rate=0.0): # ch_2 ---> transformer
+        super(BiFusion_block, self).__init__()
+
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+
+        # bi-linear modelling for both
+        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+
+        self.relu = nn.ReLU(inplace=True)
+
+        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
+
+        self.dropout = nn.Dropout2d(drop_rate)
+        self.drop_rate = drop_rate
+
+        
+    def forward(self, g, x): # x ---> transformer
+        # bilinear pooling
+        W_g = self.W_g(g)
+        W_x = self.W_x(x)
+        bp = self.W(W_g*W_x)
+
+        # spatial attention for cnn branch
+        g_in = g
+        g = self.compress(g)
+        g = self.spatial(g)
+        g = self.sigmoid(g) * g_in
+
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+        fuse = self.residual(torch.cat([g, x, bp], 1))
+
+        if self.drop_rate > 0:
+            return self.dropout(fuse)
+        else:
+            return fuse
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
