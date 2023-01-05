@@ -1711,7 +1711,9 @@ class DATUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv_out = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv_boundary = nn.Conv2d(24, n_classes, 3, padding=1)
+
 
     def forward(self, x):
         # # Question here
@@ -1760,9 +1762,13 @@ class DATUNet(nn.Module):
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
-        x = self.final_conv3(x)
+        x = self.final_conv_out(x)
+        boundary = self.final_conv_boundary(x)
 
-        return x
+        if self.training:
+            return x, boundary
+        else:
+            return x
 
 
 
