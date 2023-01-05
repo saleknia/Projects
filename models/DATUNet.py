@@ -1399,6 +1399,10 @@ class DATUNet(nn.Module):
 
         x1_cnn, x2_cnn, x3_cnn = yl[0], yl[1], yl[2]
 
+        x1_cnn = self.conv_1(x1_cnn)
+        x2_cnn = self.conv_2(x2_cnn)        
+        x3_cnn = self.conv_3(x3_cnn)
+
         outputs_tff = self.encoder_tff(x_input)
 
         x4_tff = self.norm_4(outputs_tff[2])
