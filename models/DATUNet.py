@@ -1618,6 +1618,8 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
+        z = self.head(x1, x2, x3, x4)
+
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1636,7 +1638,9 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = self.final_conv1(x1)
+        x = x1 + z
+
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
