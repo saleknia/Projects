@@ -139,7 +139,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
-    loss_scl_total = utils.AverageMeter()
 
     Eval = Evaluator()
 
@@ -220,7 +219,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
-        loss_scl_total.update(loss_scl)
 
         targets = targets.long()
 
