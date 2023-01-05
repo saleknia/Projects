@@ -1409,6 +1409,11 @@ class DATUNet(nn.Module):
         x3_tff = self.norm_3(outputs_tff[1])
         x2_tff = self.norm_2(outputs_tff[0])
 
+        x1 = x1_cnn
+        x2 = x2_cnn + x2_tff
+        x3 = x3_cnn + x3_tff
+        x4 = x4_tff
+
 
         # x = [x1, x2, x3, x4]
         # x_fuse = []
