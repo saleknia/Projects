@@ -812,6 +812,27 @@ class HybridAttention(nn.Module):
         x = torch.cat((x_t, x_c), 1)
         return x
 
+class SEBlock(nn.Module):
+    def __init__(self, channel, r=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x, skip_x):
+        b, c, _, _ = x.size()
+        # Squeeze
+        y = self.avg_pool(x).view(b, c)
+        # Excitation
+        y = self.fc(y).view(b, c, 1, 1)
+        # Fusion
+        y = torch.mul(skip_x, y)
+        return y
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -819,9 +840,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.se = SEBlock(channel=in_channels//2,r=8)
     
     def forward(self, x, skip_x):
         x = self.up(x)
+        skip_x = self.se(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -1320,26 +1343,7 @@ class MRFF(nn.Module):
 
         return x
 
-class SEBlock(nn.Module):
-    def __init__(self, channel, r=16):
-        super(SEBlock, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
 
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        # Squeeze
-        y = self.avg_pool(x).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        y = torch.mul(x, y)
-        return y
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
@@ -1691,10 +1695,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.ATT_1 = CoTAttention(dim=48)
-        self.ATT_2 = CoTAttention(dim=96)
-        self.ATT_3 = CoTAttention(dim=192)
-        self.ATT_4 = CoTAttention(dim=384)
+        # self.ATT_1 = CoTAttention(dim=48)
+        # self.ATT_2 = CoTAttention(dim=96)
+        # self.ATT_3 = CoTAttention(dim=192)
+        # self.ATT_4 = CoTAttention(dim=384)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -1745,10 +1749,10 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x1 = self.ATT_1(x1)
-        x2 = self.ATT_2(x2)
-        x3 = self.ATT_3(x3)
-        x4 = self.ATT_4(x4)
+        # x1 = self.ATT_1(x1)
+        # x2 = self.ATT_2(x2)
+        # x3 = self.ATT_3(x3)
+        # x4 = self.ATT_4(x4)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
