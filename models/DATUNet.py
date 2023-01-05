@@ -1407,25 +1407,6 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        # self.combine_1 = ConvBatchNorm(in_channels=48 , out_channels=48 , kernel_size=1, padding=0)
-        # self.combine_2 = ConvBatchNorm(in_channels=96 , out_channels=96 , kernel_size=1, padding=0)
-        # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
-        # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
-
-        # self.combine_1 = nn.Identity()
-        # self.combine_2 = nn.Identity()
-        # self.combine_3 = nn.Identity()
-        # self.combine_4 = nn.Identity()
-
-        # self.head = SegFormerHead()
-
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
-        # self.norm_0 = LayerNormProxy(dim=192)
-        # self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0)
 
         # self.encoder = CrossFormer(
         #                         img_size=224,
@@ -1471,7 +1452,23 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs_cnn = self.encoder_cnn(x_input)
+        x = self.encoder_cnn.conv1(x_input)
+        x = self.encoder_cnn.bn1(x)
+        x = self.encoder_cnn.act1(x)
+        x = self.encoder_cnn.conv2(x)
+        x = self.encoder_cnn.bn2(x)
+        x = self.encoder_cnn.act2(x)
+        x = self.encoder_cnn.layer1(x)
+
+        xl = [t(x) for i, t in enumerate(self.encoder_cnn.transition1)]
+        yl = self.encoder_cnn.stage2(xl)
+
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
+        yl = self.encoder_cnn.stage3(xl)
+
+
+        x1_cnn, x2_cnn, x3_cnn = yl[0], yl[1], yl[2]
+
         outputs_tff = self.encoder_tff(x_input)
 
         x4_tff = self.norm_4(outputs_tff[2])
