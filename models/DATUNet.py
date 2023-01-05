@@ -1564,7 +1564,7 @@ class DATUNet(nn.Module):
         # self.combine_3 = nn.Identity()
         # self.combine_4 = nn.Identity()
 
-        self.head = SegFormerHead()
+        # self.head = SegFormerHead()
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -1606,6 +1606,9 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
+        self.DilatedParllelResidualBlockB_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
+        self.DilatedParllelResidualBlockB_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96 )
+
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1624,9 +1627,6 @@ class DATUNet(nn.Module):
         x1 = self.Reduce(x1)
         for i in range(6):
             x1 = self.FAM1[i](x1)
-
-        # x_boundary = self.boundary_up(x1)
-        # x_boundary = self.boundary_conv(x_boundary)
 
         outputs = self.encoder(x_input)
 
@@ -1649,13 +1649,13 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        # boundary = self.boundary(x1)
 
         x3 = self.up3(x4, x3) 
+        x3 = self.DilatedParllelResidualBlockB_3(x3)
         x2 = self.up2(x3, x2) 
+        x2 = self.DilatedParllelResidualBlockB_2(x2)
         x1 = self.up1(x2, x1) 
 
-        x1 = x1 + self.head(x1, x2, x3)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
@@ -3003,7 +3003,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         Reduce ---> Split ---> Transform --> Merge
     '''
 
-    def __init__(self, nIn, nOut, add=False):
+    def __init__(self, nIn, nOut, add=True):
         '''
         :param nIn: number of input channels
         :param nOut: number of output channels
