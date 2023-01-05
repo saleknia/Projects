@@ -815,15 +815,13 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        # self.att = AttentionBlock(F_g=out_channels, F_l=out_channels, n_coefficients=out_channels)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv_out = _make_nConv(in_channels=in_channels+3, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x, II):
-        x = self.up(x) + skip_x + II
-        # x = x + self.att(x, II)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        x = self.up(x) 
+        x = torch.cat([x, skip_x, II], dim=1)  # dim 1 is the channel dimension
+        x = self.conv_out(x)
         return x
 
 # class UpBlock(nn.Module):
@@ -1560,7 +1558,6 @@ class InputProjection(nn.Module):
         for i in range(0, samplingTimes):
             # pyramid-based approach for down-sampling
             self.pool.append(nn.AvgPool2d(3, stride=2, padding=1))
-        self.conv = ConvBatchNorm(in_channels=3, out_channels=channels)
 
     def forward(self, input):
         '''
@@ -1569,8 +1566,7 @@ class InputProjection(nn.Module):
         '''
         for pool in self.pool:
             input = pool(input)
-        output = self.conv(input)
-        return output
+        return input
 
 
 class DATUNet(nn.Module):
