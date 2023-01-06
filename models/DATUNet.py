@@ -1423,7 +1423,7 @@ def stages():
             drop_rate=0.0,
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
-        ).stage[0],
+        ).stages[0],
         LayerNormProxy(dim=96)
         )
 
@@ -1453,7 +1453,7 @@ def stages():
             drop_rate=0.0,
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
-        ).stage[1],
+        ).stages[1],
         LayerNormProxy(dim=192)
         )
 
