@@ -1395,6 +1395,33 @@ class SegFormerHead(nn.Module):
 
         return _c
 
+# def stage_3()
+
+#     self.encoder = DAT(
+#     img_size=224,
+#     patch_size=4,
+#     num_classes=1000,
+#     expansion=4,
+#     dim_stem=96,
+#     dims=[96, 192, 384, 768],
+#     depths=[2, 2, 6, 2],
+#     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+#     heads=[3, 6, 12, 24],
+#     window_sizes=[7, 7, 7, 7] ,
+#     groups=[-1, -1, 3, 6],
+#     use_pes=[False, False, True, True],
+#     dwc_pes=[False, False, False, False],
+#     strides=[-1, -1, 1, 1],
+#     sr_ratios=[-1, -1, -1, -1],
+#     offset_range_factor=[-1, -1, 2, 2],
+#     no_offs=[False, False, False, False],
+#     fixed_pes=[False, False, False, False],
+#     use_dwc_mlps=[False, False, False, False],
+#     use_conv_patches=False,
+#     drop_rate=0.0,
+#     attn_drop_rate=0.0,
+#     drop_path_rate=0.2,
+# )
 
 
 import ml_collections
@@ -1534,10 +1561,15 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.norm_4 = LayerNormProxy(dim=384)
-        self.norm_3 = LayerNormProxy(dim=192)
-        self.norm_2 = LayerNormProxy(dim=96)
-        self.norm_1 = LayerNormProxy(dim=48)
+        # self.norm_4 = LayerNormProxy(dim=384)
+        # self.norm_3 = LayerNormProxy(dim=192)
+        # self.norm_2 = LayerNormProxy(dim=96)
+        # self.norm_1 = LayerNormProxy(dim=48)
+
+        self.norm_4 = nn.BatchNorm2d(384)
+        self.norm_3 = nn.BatchNorm2d(192)
+        self.norm_2 = nn.BatchNorm2d(96)
+        self.norm_1 = nn.BatchNorm2d(48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1554,7 +1586,7 @@ class DATUNet(nn.Module):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
-        
+
         x1 = self.local_net(x_input)
         for i in range(6):
             x1 = self.FAM1[i](x1)
@@ -2683,35 +2715,6 @@ class CrossFormer(nn.Module):
 
         self.layers = self.layers[0:3]
 
-        # self.extra_layer = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 6, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # ).stages[2]
-        # self.extra_project = nn.Sequential(
-        #             nn.Conv2d(192, 384, 2, 2, 0, bias=False),
-        #             LayerNormProxy(384),
-        #         )
         
 
     def _init_weights(self, m):
