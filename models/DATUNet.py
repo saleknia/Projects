@@ -1424,7 +1424,6 @@ def stages():
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
         ).stages[0],
-        LayerNormProxy(dim=96)
         )
 
     stage_1 = nn.Sequential(
@@ -1454,7 +1453,6 @@ def stages():
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
         ).stages[1],
-        LayerNormProxy(dim=192)
         )
 
     return stage_0, stage_1
@@ -1601,6 +1599,10 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
+        self.norm_stage_1 = LayerNormProxy(dim=192)
+        self.norm_stage_0 = LayerNormProxy(dim=96)
+
+
         self.stage_0, self.stage_1 = stages()
 
         # self.norm_4 = nn.BatchNorm2d(384)
@@ -1655,9 +1657,11 @@ class DATUNet(nn.Module):
 
         x3 = self.up3(x4, x3)
         x3,_,_ = self.stage_1(x3) 
+        x3 = self.norm_stage_1
 
         x2 = self.up2(x3, x2) 
         x2,_,_ = self.stage_0(x2) 
+        x2 = self.norm_stage_0
 
         x1 = self.up1(x2, x1) 
 
