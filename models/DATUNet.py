@@ -1480,9 +1480,9 @@ class DATUNet(nn.Module):
         self.encoder4 = None
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
 
-        self.FAMBlock1 = FAMBlock(channels=64)
-        self.FAMBlock2 = FAMBlock(channels=128)
-        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAMBlock1 = FAMBlock(channels=48)
+        self.FAMBlock2 = FAMBlock(channels=96)
+        self.FAMBlock3 = FAMBlock(channels=192)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
         self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
         self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
@@ -1611,11 +1611,19 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])
-        x1 = self.norm_1(outputs[0])
+        x4 = outputs[2]
+        x3 = outputs[1]
+        x2 = outputs[0]
 
+        x4 = self.norm_4(x4)
+        x3 = self.norm_3(x3)
+        x2 = self.norm_2(x2)
+        x1 = self.norm_1(x1)
+
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
