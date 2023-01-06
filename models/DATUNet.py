@@ -1429,21 +1429,15 @@ class DATUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
-        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-
+        self.local_net = nn.Sequential(
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu,
+            resnet.layer1,
+            ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1),
+        )
         self.FAMBlock1 = FAMBlock(channels=48)
-        self.FAMBlock2 = FAMBlock(channels=96)
-        self.FAMBlock3 = FAMBlock(channels=192)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         # self.boundary = nn.Sequential(
         #     nn.ConvTranspose2d(48, 48, 4, 2, 1),
@@ -1560,12 +1554,10 @@ class DATUNet(nn.Module):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
-
-        x1 = self.firstconv(x_input)
-        x1 = self.firstbn(x1)
-        x1 = self.firstrelu(x1)
-        x1 = self.encoder1(x1)
-        x1 = self.Reduce(x1)
+        
+        x1 = self.local_net(x_input)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
@@ -1577,13 +1569,6 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(x3)
         x2 = self.norm_2(x2)
         x1 = self.norm_1(x1)
-
-        for i in range(2):
-            x3 = self.FAM3[i](x3)
-        for i in range(4):
-            x2 = self.FAM2[i](x2)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
