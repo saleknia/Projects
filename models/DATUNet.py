@@ -1549,7 +1549,7 @@ class DATUNet(nn.Module):
         # self.combine_3 = nn.Identity()
         # self.combine_4 = nn.Identity()
 
-        self.head = SegFormerHead()
+        # self.head = SegFormerHead()
 
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
@@ -1618,7 +1618,7 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        z = self.head(x1, x2, x3, x4)
+        # z = self.head(x1, x2, x3, x4)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
