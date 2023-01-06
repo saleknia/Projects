@@ -1599,12 +1599,6 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.norm_stage_1 = LayerNormProxy(dim=192)
-        self.norm_stage_0 = LayerNormProxy(dim=96)
-
-
-        self.stage_0, self.stage_1 = stages()
-
         # self.norm_4 = nn.BatchNorm2d(384)
         # self.norm_3 = nn.BatchNorm2d(192)
         # self.norm_2 = nn.BatchNorm2d(96)
@@ -1656,13 +1650,7 @@ class DATUNet(nn.Module):
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
         x3 = self.up3(x4, x3)
-        x3,_,_ = self.stage_1(x3) 
-        x3 = self.norm_stage_1(x3)
-
         x2 = self.up2(x3, x2) 
-        x2,_,_ = self.stage_0(x2) 
-        x2 = self.norm_stage_0(x2)
-
         x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
