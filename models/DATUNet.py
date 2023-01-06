@@ -1206,11 +1206,11 @@ class ConvBatchNorm(nn.Module):
 
 
 class FAMBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels, out_channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
@@ -1223,101 +1223,6 @@ class FAMBlock(nn.Module):
         out = x3 + x1
 
         return out
-
-
-import torchvision
-from collections import OrderedDict
-from torch.nn import init
-
-class SEAttention(nn.Module):
-
-    def __init__(self, channel=512,reduction=16):
-        super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // reduction, channel, bias=False),
-            nn.Sigmoid()
-        )
-
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-
-class FAM(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(FAM, self).__init__()
-
-        self.conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
-        self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.relu(x)
-        return x
-
-class MRFF(nn.Module):
-
-    def __init__(self, in_channels=512):
-        super().__init__()
-
-        self.FAMBlock_1 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM1 = nn.ModuleList([self.FAMBlock_1 for i in range(1)])
-
-        self.FAMBlock_2 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM2 = nn.ModuleList([self.FAMBlock_2 for i in range(2)])
-
-        self.FAMBlock_3 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM3 = nn.ModuleList([self.FAMBlock_3 for i in range(4)])
-
-        self.FAMBlock_4 = FAM(in_channels=in_channels, out_channels=in_channels)
-        self.FAM4 = nn.ModuleList([self.FAMBlock_4 for i in range(8)])
-
-        self.fuse = ConvBatchNorm(in_channels=in_channels*4, out_channels=in_channels, kernel_size=1, padding=0)
-
-
-    def forward(self, x):
-
-        for i in range(1):
-            x1 = self.FAM1[i](x)
-
-        for i in range(2):
-            x2 = self.FAM2[i](x)
-
-        for i in range(4):
-            x3 = self.FAM3[i](x)
-
-        for i in range(8):
-            x4 = self.FAM4[i](x)
-
-        x2 = x2 + x1
-        x3 = x3 + x2
-        x4 = x4 + x3
-
-        x = torch.cat([x1, x2, x3, x4], dim=1)
-        x = self.fuse(x)
-
-        return x
-
 
 
 class BasicConv2d(nn.Module):
@@ -1359,29 +1264,24 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
+        c1_in_channels, c2_in_channels, c3_in_channels = 48, 96, 192
 
         embedding_dim = 48
 
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up4 = nn.Upsample(scale_factor=8)
         self.up3 = nn.Upsample(scale_factor=4)
         self.up2 = nn.Upsample(scale_factor=2)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-    def forward(self, x1, x2, x3, x4):
-        c1, c2, c3, c4 = x1, x2, x3, x4
+    def forward(self, x1, x2, x3):
+        c1, c2, c3 = x1, x2, x3
 
         ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
-
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up4(_c4)
+        n, _, h, w = c3.shape
 
         _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         _c3 = self.up3(_c3)
@@ -1391,71 +1291,11 @@ class SegFormerHead(nn.Module):
 
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+        _c = self.linear_fuse(torch.cat([_c3, _c2, _c1], dim=1))
 
         return _c
 
-def stages():
 
-    stage_0 = nn.Sequential(
-        LayerNormProxy(dim=96),
-        DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        ).stages[0],
-        )
-
-    stage_1 = nn.Sequential(
-        LayerNormProxy(dim=192),
-        DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        ).stages[1],
-        )
-
-    return stage_0, stage_1
 
 import ml_collections
 
@@ -1474,6 +1314,7 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1489,14 +1330,15 @@ class DATUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
-        self.local_net = nn.Sequential(
-            resnet.conv1,
-            resnet.bn1,
-            resnet.relu,
-            resnet.layer1,
-            ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1),
-        )
-        self.FAMBlock1 = FAMBlock(channels=48)
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.boundary = nn.Sequential(
@@ -1530,6 +1372,7 @@ class DATUNet(nn.Module):
         #     drop_path_rate=0.2,
         # )
 
+        
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -1560,6 +1403,11 @@ class DATUNet(nn.Module):
         # self.combine_2 = ConvBatchNorm(in_channels=96 , out_channels=96 , kernel_size=1, padding=0)
         # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
         # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
+
+        # self.combine_1 = nn.Identity()
+        # self.combine_2 = nn.Identity()
+        # self.combine_3 = nn.Identity()
+        # self.combine_4 = nn.Identity()
 
         # self.head = SegFormerHead()
 
@@ -1599,11 +1447,6 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.norm_4 = nn.BatchNorm2d(384)
-        # self.norm_3 = nn.BatchNorm2d(192)
-        # self.norm_2 = nn.BatchNorm2d(96)
-        # self.norm_1 = nn.BatchNorm2d(48)
-
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1612,7 +1455,7 @@ class DATUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv = nn.Conv2d(24, n_classes, 3, padding=1)
 
 
     def forward(self, x):
@@ -1620,19 +1463,20 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x1 = self.local_net(x_input)
+
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
-        x4 = outputs[2]
-        x3 = outputs[1]
-        x2 = outputs[0]
-
-        x4 = self.norm_4(x4)
-        x3 = self.norm_3(x3)
-        x2 = self.norm_2(x2)
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1649,7 +1493,7 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x3 = self.up3(x4, x3)
+        x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
@@ -1657,10 +1501,10 @@ class DATUNet(nn.Module):
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
-        out = self.final_conv_out(x)
+        x = self.final_conv(x)
 
 
-        return out 
+        return x 
 
 
 
@@ -2748,6 +2592,35 @@ class CrossFormer(nn.Module):
 
         self.layers = self.layers[0:3]
 
+        # self.extra_layer = DAT(
+        #     img_size=224,
+        #     patch_size=4,
+        #     num_classes=1000,
+        #     expansion=4,
+        #     dim_stem=96,
+        #     dims=[96, 192, 384, 768],
+        #     depths=[2, 2, 6, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     heads=[3, 6, 12, 24],
+        #     window_sizes=[7, 7, 7, 7] ,
+        #     groups=[-1, -1, 3, 6],
+        #     use_pes=[False, False, True, True],
+        #     dwc_pes=[False, False, False, False],
+        #     strides=[-1, -1, 1, 1],
+        #     sr_ratios=[-1, -1, -1, -1],
+        #     offset_range_factor=[-1, -1, 2, 2],
+        #     no_offs=[False, False, False, False],
+        #     fixed_pes=[False, False, False, False],
+        #     use_dwc_mlps=[False, False, False, False],
+        #     use_conv_patches=False,
+        #     drop_rate=0.0,
+        #     attn_drop_rate=0.0,
+        #     drop_path_rate=0.2,
+        # ).stages[2]
+        # self.extra_project = nn.Sequential(
+        #             nn.Conv2d(192, 384, 2, 2, 0, bias=False),
+        #             LayerNormProxy(384),
+        #         )
         
 
     def _init_weights(self, m):
