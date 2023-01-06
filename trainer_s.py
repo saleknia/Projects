@@ -18,6 +18,29 @@ from sklearn.metrics import confusion_matrix
 from SCL import SemanticConnectivityLoss
 warnings.filterwarnings("ignore")
 
+ALPHA = 0.8
+GAMMA = 2
+
+class FocalLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(FocalLoss, self).__init__()
+
+    def forward(self, inputs, targets, alpha=ALPHA, gamma=GAMMA, smooth=1):
+        
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = F.sigmoid(inputs)       
+        
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
+        
+        #first compute binary cross-entropy 
+        BCE = F.binary_cross_entropy(inputs, targets, reduction='mean')
+        BCE_EXP = torch.exp(-BCE)
+        focal_loss = alpha * (1-BCE_EXP)**gamma * BCE
+                       
+        return focal_loss
+
 erosion = Erosion2d(1, 1, 9, soft_max=False)
 dilate = Dilation2d(1, 1, 9, soft_max=False)
 
@@ -150,8 +173,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
     # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
-    scl_loss = SemanticConnectivityLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    ce_loss = FocalLoss()
 
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
