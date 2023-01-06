@@ -1544,7 +1544,7 @@ class DATUNet(nn.Module):
         # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
         # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
 
-        self.local_1 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.local_1 = _make_nConv(in_channels=48 , out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_2 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
