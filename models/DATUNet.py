@@ -1657,11 +1657,11 @@ class DATUNet(nn.Module):
 
         x3 = self.up3(x4, x3)
         x3,_,_ = self.stage_1(x3) 
-        x3 = self.norm_stage_1
+        x3 = self.norm_stage_1(x3)
 
         x2 = self.up2(x3, x2) 
         x2,_,_ = self.stage_0(x2) 
-        x2 = self.norm_stage_0
+        x2 = self.norm_stage_0(x2)
 
         x1 = self.up1(x2, x1) 
 
