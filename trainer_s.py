@@ -149,9 +149,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loader = dataloader['train'] 
     pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
     scl_loss = SemanticConnectivityLoss()
-    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
     base_iter = (epoch_num-1) * total_batchs
     iter_num = base_iter
@@ -173,7 +173,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss_dice = dice_loss(inputs=outputs[0], targets=targets) + (alpha * dice_loss(inputs=outputs[1], targets=boundary))
                 loss = loss_ce + loss_dice 
             else:
-                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) + 0.01 * F.mse_loss(outputs, targets)
+                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
                 loss = loss_ce + loss_dice 
 
