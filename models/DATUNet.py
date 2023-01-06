@@ -1577,10 +1577,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.norm_4 = LayerNormProxy(dim=384)
-        # self.norm_3 = LayerNormProxy(dim=192)
-        # self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_1 = LayerNormProxy(dim=48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1603,16 +1603,17 @@ class DATUNet(nn.Module):
         x1 = self.firstrelu(x1)
         x1 = self.encoder1(x1)
         x1 = self.Reduce(x1)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
-        # x4 = self.norm_4(outputs[2])
-        # x3 = self.norm_3(outputs[1])
-        # x2 = self.norm_2(outputs[0])
-        # x1 = self.norm_1(outputs[0])
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(outputs[0])
 
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
+            
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
