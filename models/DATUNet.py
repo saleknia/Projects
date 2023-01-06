@@ -1544,6 +1544,7 @@ class DATUNet(nn.Module):
         # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
         # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
 
+        self.local_1 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_2 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.local_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
@@ -1617,10 +1618,6 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x2 = x2 + self.local_2(x2)
-        x3 = x3 + self.local_3(x3)        
-        x4 = x4 + self.local_4(x4)
-
         # z = self.head(x1, x2, x3, x4)
 
         x = [x1, x2, x3, x4]
@@ -1636,6 +1633,11 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+
+        x1 = x1 + self.local_1(x1)
+        x2 = x2 + self.local_2(x2)
+        x3 = x3 + self.local_3(x3)        
+        x4 = x4 + self.local_4(x4)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
