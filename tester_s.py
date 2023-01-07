@@ -108,7 +108,7 @@ class Evaluator(object):
 transforms = tta.Compose(
                         [
                             tta.HorizontalFlip(),
-                            tta.Rotate90(angles=[0, 90, 180, 270]),
+                            tta.VerticalFlip(),
                             tta.Scale(scales=[0.5]),
                             tta.Scale(scales=[1.0]),        
                             tta.Scale(scales=[2.0]),
