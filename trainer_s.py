@@ -97,7 +97,7 @@ def importance_maps_distillation(s, t, exp=4):
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 def attention_loss(x4, x3, x2):
-    loss = importance_maps_distillation(x3, x4) + importance_maps_distillation(x2, x3) 
+    loss = importance_maps_distillation(x4, x3) + importance_maps_distillation(x3, x2) 
     return loss
 
 class CriterionPixelWise(nn.Module):
