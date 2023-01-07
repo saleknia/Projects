@@ -109,9 +109,9 @@ transforms = tta.Compose(
                         [
                             tta.HorizontalFlip(),
                             tta.VerticalFlip(),
-                            tta.Scale(scales=[0.5]),
-                            tta.Scale(scales=[1.0]),        
-                            tta.Scale(scales=[2.0]),
+                            # tta.Scale(scales=[0.5]),
+                            # tta.Scale(scales=[1.0]),        
+                            # tta.Scale(scales=[2.0]),
                         ])
 
 
