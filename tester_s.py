@@ -105,20 +105,12 @@ class Evaluator(object):
 #         self.fn = 0
 #         self.tp = 0
 
-def transform():
-    return tta.Compose(
-        [
-            tta.HorizontalFlip(),
-            tta.Rotate90(angles=[0, 45, 90, 135, 180, 225, 270, 315]),
-        ]
-    )
-
 
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
     model.eval()
-    # model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
-    # model = tta.SegmentationTTAWrapper(model, transform(), merge_mode='mean')
+
+    model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
 
     loss_total = utils.AverageMeter()
     Eval = Evaluator()
