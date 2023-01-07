@@ -82,7 +82,7 @@ def at(x, exp):
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
 
-def importance_maps_distillation(s, t, exp=2):
+def importance_maps_distillation(s, t, exp=4):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -93,14 +93,11 @@ def importance_maps_distillation(s, t, exp=2):
     :return: imd loss value
     """
     if s.shape[2] != t.shape[2]:
-        t = F.interpolate(t, s.size()[-2:], mode='bilinear')
+        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def attention_loss(up4, up3, up2, up1):
-    loss = 0.0
-    loss = loss + importance_maps_distillation(s=up3, t=up4.detach().clone())
-    loss = loss + importance_maps_distillation(s=up2, t=up3.detach().clone())
-    loss = loss + importance_maps_distillation(s=up1, t=up2.detach().clone())
+def attention_loss(x4, x3, x2):
+    loss = importance_maps_distillation(x3, x4) + importance_maps_distillation(x2, x3) 
     return loss
 
 class CriterionPixelWise(nn.Module):
@@ -162,6 +159,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loss_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
+    loss_att_total = utils.AverageMeter()
 
     Eval = Evaluator()
 
@@ -190,7 +188,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs = inputs.float()
         with torch.autocast(device_type=device, dtype=torch.float16):
-            outputs = model(inputs)
+            outputs, x4, x3, x2 = model(inputs)
             if type(outputs)==tuple:
                 loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + (alpha * (ce_loss(outputs[1], boundary.unsqueeze(dim=1)) + F.mse_loss(outputs[1], boundary)))
                 loss_dice = dice_loss(inputs=outputs[0], targets=targets) + (alpha * dice_loss(inputs=outputs[1], targets=boundary))
@@ -198,7 +196,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             else:
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
-                loss = loss_ce + loss_dice 
+                loss_att = attention_loss(x4, x3, x2)
+                loss = loss_ce + loss_dice + loss_att
 
 
 
@@ -245,6 +244,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
+        loss_att_total.update(loss_att)
 
         targets = targets.long()
 
@@ -264,7 +264,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
             # suffix=f'loss = {loss_total.avg:.4f} , loss_ce = {loss_ce_total.avg:.4f} , loss_dice = {loss_dice_total.avg:.4f} , loss_scl = {loss_scl_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
-            suffix=f'loss = {loss_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
+            suffix=f'loss = {loss_total.avg:.4f} , loss_att = {loss_att_total.avg:.4f} , Dice = {Eval.Dice()*100.0:.2f} , IoU = {Eval.Mean_Intersection_over_Union()*100.0:.2f} , Pixel Accuracy = {Eval.Pixel_Accuracy()*100.0:.2f}',          
 
             bar_length=45
         )  
