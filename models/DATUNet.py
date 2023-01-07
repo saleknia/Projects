@@ -1479,11 +1479,6 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
-
-        y4 = x4
-        y3 = x3
-        y2 = x2
-
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1510,10 +1505,8 @@ class DATUNet(nn.Module):
         x = self.final_relu2(x)
         x = self.final_conv(x)
 
-        if self.training:
-            return x, y4, y3, y2
-        else:
-            return x
+
+        return x
 
 
 
