@@ -817,12 +817,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//2)
     
-    def forward(self, x, skip_x, IP):
+    def forward(self, x, skip_x):
         x = self.up(x) 
-        IP = self.att(x=IP, gate=x)
-        skip_x = skip_x + IP
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -1444,10 +1441,6 @@ class DATUNet(nn.Module):
 
         # self.head = SegFormerHead()
 
-        self.InputProjectionA_1 = InputProjectionA(samplingTimes=1, channels=48)
-        self.InputProjectionA_2 = InputProjectionA(samplingTimes=2, channels=96)
-        self.InputProjectionA_3 = InputProjectionA(samplingTimes=3, channels=192)
-
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
         # self.transformers = nn.ModuleList(
@@ -1533,9 +1526,9 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x3 = self.up3(x4, x3, IP_3) 
-        x2 = self.up2(x3, x2, IP_2) 
-        x1 = self.up1(x2, x1, IP_1) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
