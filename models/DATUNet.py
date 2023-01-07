@@ -771,7 +771,7 @@ class SEBlock(nn.Module):
 class AttentionBlock(nn.Module):
     """Attention block with learnable parameters"""
 
-    def __init__(self, F_g, F_l, n_coefficients):
+    def __init__(self, F_g):
         """
         :param F_g: number of feature maps (channels) in previous layer
         :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
@@ -780,22 +780,11 @@ class AttentionBlock(nn.Module):
         super(AttentionBlock, self).__init__()
 
         self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.Conv2d(F_g, 1, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
-        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, gate, x):
         """
@@ -803,12 +792,10 @@ class AttentionBlock(nn.Module):
         :param x: activation from corresponding encoder layer
         :return: output activations
         """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(x)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = x * psi
+        g = self.W_gate(gate)
+        out = x * g
         return out
+
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -817,10 +804,19 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.att_1 = AttentionBlock(F_g=in_channels)
+        self.att_2 = AttentionBlock(F_g=in_channels)
     
-    def forward(self, x, skip_x):
+    def forward(self, x, skip_x, IP):
         x = self.up(x) 
+
+        skip_x = self.att_1(torch.cat([x, skip_x], dim=1), skip_x)
+        IP = self.att_2(torch.cat([x, skip_x], dim=1), IP)
+
+        skip_x = skip_x + IP
+
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        
         x = self.conv(x)
         return x
 
@@ -1441,6 +1437,10 @@ class DATUNet(nn.Module):
 
         # self.head = SegFormerHead()
 
+        self.InputProjectionA_1 = InputProjectionA(samplingTimes=1, channels=48)
+        self.InputProjectionA_2 = InputProjectionA(samplingTimes=2, channels=96)
+        self.InputProjectionA_3 = InputProjectionA(samplingTimes=3, channels=192)
+
         # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         # self.patch_embed = transformer.patch_embed
         # self.transformers = nn.ModuleList(
@@ -1526,9 +1526,9 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        x3 = self.up3(x4, x3, IP_3) 
+        x2 = self.up2(x3, x2, IP_2) 
+        x1 = self.up1(x2, x1, IP_1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
