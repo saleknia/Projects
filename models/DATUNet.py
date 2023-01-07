@@ -780,17 +780,17 @@ class AttentionBlock(nn.Module):
         super(AttentionBlock, self).__init__()
 
         self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(n_coefficients)
         )
 
         self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(n_coefficients)
         )
 
         self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
             nn.BatchNorm2d(1),
             nn.Sigmoid()
         )
