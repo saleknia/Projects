@@ -850,10 +850,10 @@ class UpBlock(nn.Module):
         x = self.up(x)
 
         # spatial attention for cnn branch
-        g_in = skip_x
+        g = skip_x
         g = self.compress(g)
         g = self.spatial(g)
-        skip_x = self.sigmoid(g) * g_in
+        skip_x = self.sigmoid(g) * skip_x
 
         # channel attetion for transformer branch
         x_in = x
