@@ -1549,10 +1549,16 @@ class DATUNet(nn.Module):
         # x2 = self.up2(x3, x2) 
         # x1 = self.up1(x2, x1) 
 
-        x1 = self.conv_1(self.up_1(x1))
-        x2 = self.conv_2(self.up_2(x2))        
-        x3 = self.conv_3(self.up_3(x3))
-        x4 = self.conv_4(self.up_4(x4))
+        # x1 = self.conv_1(self.up_1(x1))
+        # x2 = self.conv_2(self.up_2(x2))        
+        # x3 = self.conv_3(self.up_3(x3))
+        # x4 = self.conv_4(self.up_4(x4))
+
+        x1 = self.up_1(self.conv_1(x1))
+        x2 = self.up_2(self.conv_2(x2))
+        x3 = self.up_3(self.conv_3(x3))
+        x4 = self.up_4(self.conv_4(x4))
+
 
         x1 = self.final_conv1_1(x1)
         x1 = self.final_relu1_1(x1)
