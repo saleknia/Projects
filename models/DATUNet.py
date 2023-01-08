@@ -832,13 +832,39 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.BiFusion_block = BiFusion_block(ch_1=in_channels // 2, ch_2=in_channels // 2, r_2=4, ch_int=in_channels // 2, ch_out=in_channels // 2)
-        # self.conv = _make_nConv(in_channels=in_channels //2, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+
+        reduction = 4
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(in_channels // 2, (in_channels // 2) // reduction, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d((in_channels // 2) // reduction, in_channels // 2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv_B(2, 1, 7, bn=True, relu=False, bias=False)   
+
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = self.BiFusion_block(x=x, g=skip_x)
-        # x = self.conv(x)
+
+        # spatial attention for cnn branch
+        g_in = skip_x
+        g = self.compress(g)
+        g = self.spatial(g)
+        skip_x = self.sigmoid(g) * g_in
+
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
 
 
