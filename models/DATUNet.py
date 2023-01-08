@@ -844,7 +844,7 @@ class AAM(nn.Module):
         weight = self.conv3(weight_low + weight_high)
         low = self.conv4(input_low)
         return input_high + low.mul(weight)
-        
+
 class DecoderBlockLinkNet(nn.Module):
     def __init__(self, in_channels, n_filters):
         super().__init__()
@@ -879,15 +879,28 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.CAM = CAM_Module()
+        self.up = DecoderBlockLinkNet(in_channels, in_channels//2)
+        self.gau = AAM(in_channels//2, in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        x = self.gau(input_high=x, input_low=skip_x)
         return x
+
+
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+#         super(UpBlock, self).__init__()
+#         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+#         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+    
+#     def forward(self, x, skip_x):
+#         x = self.up(x) 
+#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+#         x = self.conv(x)
+#         return x
 
 # class UpBlock(nn.Module):
 #     """Upscaling then conv"""
