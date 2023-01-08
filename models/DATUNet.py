@@ -1484,12 +1484,6 @@ class DATUNet(nn.Module):
         # self.up2 = UpBlock(192, 96 , nb_Conv=2)
         # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.pooling = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(48, 48)
-        self.fc2 = nn.Linear(48, 4)
-        self.relu = nn.ReLU()
-        self.softmax = nn.Softmax(dim=1)
-
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_1 = nn.ReLU(inplace=True)
         self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1550,6 +1544,7 @@ class DATUNet(nn.Module):
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
         # x1, x2, x3, x4 = (x_fuse[0]), (x_fuse[1]), (x_fuse[2]), (x_fuse[3])
 
+
         # x3 = self.up3(x4, x3) 
         # x2 = self.up2(x3, x2) 
         # x1 = self.up1(x2, x1) 
@@ -1559,54 +1554,34 @@ class DATUNet(nn.Module):
         x3 = self.conv_3(self.up_3(x3))
         x4 = self.conv_4(self.up_4(x4))
 
-        y1 = self.pooling(x1)
-        y2 = self.pooling(x2)
-        y3 = self.pooling(x3)
-        y4 = self.pooling(x4)
-        y = y1 + y2 + y3 + y4
-        coeff = self.softmax(self.fc2(self.relu(self.fc1(y.reshape(B, -1)))))
-
-        coeff_1 = coeff[:,0].reshape(B, 1, 1, 1)
-        coeff_2 = coeff[:,1].reshape(B, 1, 1, 1)
-        coeff_3 = coeff[:,2].reshape(B, 1, 1, 1)
-        coeff_4 = coeff[:,3].reshape(B, 1, 1, 1)
-
-        # x1 = self.up_1(self.conv_1(x1))
-        # x2 = self.up_2(self.conv_2(x2))
-        # x3 = self.up_3(self.conv_3(x3))
-        # x4 = self.up_4(self.conv_4(x4))
-
-
         x1 = self.final_conv1_1(x1)
         x1 = self.final_relu1_1(x1)
         x1 = self.final_conv2_1(x1)
         x1 = self.final_relu2_1(x1)
-        x1 = self.final_conv_1(x1)
+        y1 = self.final_conv_1(x1)
 
         x2 = self.final_conv1_2(x2)
         x2 = self.final_relu1_2(x2)
         x2 = self.final_conv2_2(x2)
         x2 = self.final_relu2_2(x2)
-        x2 = self.final_conv_2(x2)
+        y2 = self.final_conv_2(x2)
 
         x3 = self.final_conv1_3(x3)
         x3 = self.final_relu1_3(x3)
         x3 = self.final_conv2_3(x3)
         x3 = self.final_relu2_3(x3)
-        x3 = self.final_conv_3(x3)
+        y3 = self.final_conv_3(x3)
 
         x4 = self.final_conv1_4(x4)
         x4 = self.final_relu1_4(x4)
         x4 = self.final_conv2_4(x4)
         x4 = self.final_relu2_4(x4)
-        x4 = self.final_conv_4(x4)
-
-        x5 = coeff_1 * x1 + coeff_2 * x2 + coeff_3 * x3 + coeff_4 * x4
+        y4 = self.final_conv_4(x4)
 
         if self.training:
-            return x1, x2, x3, x4, x5
+            return y1, y2, y3, y4
         else:
-            return x5
+            return (y1 + y2 + y3 + y4) / 4.0
 
 
 
