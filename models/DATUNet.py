@@ -1485,8 +1485,8 @@ class DATUNet(nn.Module):
         # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.pooling = nn.AdaptiveAvgPool2d(1)
-        self.fc1 = nn.Linear(64, 64)
-        self.fc2 = nn.Linear(64, 4)
+        self.fc1 = nn.Linear(48, 48)
+        self.fc2 = nn.Linear(48, 4)
         self.relu = nn.ReLU()
         self.softmax = nn.Softmax(dim=1)
 
