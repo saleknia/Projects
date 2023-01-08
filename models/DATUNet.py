@@ -1427,10 +1427,10 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_4 = _make_nConv(in_channels=384, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48, nb_Conv=4, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=4, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=4, activation='ReLU', dilation=1, padding=1)
+        self.conv_4 = _make_nConv(in_channels=384, out_channels=48, nb_Conv=4, activation='ReLU', dilation=1, padding=1)
 
         self.up_1 = nn.Upsample(scale_factor=1.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
