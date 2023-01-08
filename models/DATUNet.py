@@ -810,97 +810,20 @@ class AttentionBlock(nn.Module):
         out = x * psi
         return out
 
-class AAM(nn.Module):
-    def __init__(self, in_ch, out_ch):
-        super(AAM, self).__init__()
-        self.global_pooling = nn.AdaptiveAvgPool2d(1)
-
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 1, padding=0),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True))
-
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 1, padding=0),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True))
-
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(out_ch, out_ch, 1, padding=0),
-            nn.Softmax(dim=1))
-
-        self.conv4 = nn.Sequential(
-            nn.Conv2d(in_ch, out_ch, 1, padding=0),
-            nn.BatchNorm2d(out_ch),
-            nn.ReLU(inplace=True))
-
-    def forward(self, input_high, input_low):
-        mid_high = self.global_pooling(input_high)
-        weight_high = self.conv1(mid_high)
-
-        mid_low = self.global_pooling(input_low)
-        weight_low = self.conv2(mid_low)
-
-        weight = self.conv3(weight_low + weight_high)
-        low = self.conv4(input_low)
-        return input_high + low.mul(weight)
-
-class DecoderBlockLinkNet(nn.Module):
-    def __init__(self, in_channels, n_filters):
-        super().__init__()
-
-        self.relu = nn.ReLU(inplace=True)
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-
-        # B, C/4, H, W -> B, C/4, 2 * H, 2 * W
-        self.deconv2 = nn.ConvTranspose2d(in_channels // 4, in_channels // 4, kernel_size=4,
-                                          stride=2, padding=1, output_padding=0)
-        self.norm2 = nn.BatchNorm2d(in_channels // 4)
-
-        # B, C/4, H, W -> B, C, H, W
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu(x)
-        x = self.deconv2(x)
-        x = self.norm2(x)
-        x = self.relu(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu(x)
-        return x
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = DecoderBlockLinkNet(in_channels, in_channels//2)
-        self.gau = AAM(in_channels//2, in_channels//2)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = self.gau(input_high=x, input_low=skip_x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
-
-
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-#         super(UpBlock, self).__init__()
-#         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-#         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-    
-#     def forward(self, x, skip_x):
-#         x = self.up(x) 
-#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-#         x = self.conv(x)
-#         return x
 
 # class UpBlock(nn.Module):
 #     """Upscaling then conv"""
@@ -1504,10 +1427,15 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        # self.combine_1 = ConvBatchNorm(in_channels=48 , out_channels=48 , kernel_size=1, padding=0)
-        # self.combine_2 = ConvBatchNorm(in_channels=96 , out_channels=96 , kernel_size=1, padding=0)
-        # self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, kernel_size=1, padding=0)
-        # self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, kernel_size=1, padding=0)
+        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_4 = _make_nConv(in_channels=384, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.up_1 = nn.Upsample(scale_factor=1.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=3.0)
+        self.up_4 = nn.Upsample(scale_factor=4.0)
 
         # self.combine_1 = nn.Identity()
         # self.combine_2 = nn.Identity()
@@ -1552,16 +1480,33 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1_1 = nn.ReLU(inplace=True)
+        self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2_1 = nn.ReLU(inplace=True)
+        self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
 
+        self.final_conv1_2 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1_2 = nn.ReLU(inplace=True)
+        self.final_conv2_2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2_2 = nn.ReLU(inplace=True)
+        self.final_conv_2  = nn.Conv2d(24, n_classes, 3, padding=1)
+
+        self.final_conv1_3 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1_3 = nn.ReLU(inplace=True)
+        self.final_conv2_3 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2_3 = nn.ReLU(inplace=True)
+        self.final_conv_3  = nn.Conv2d(24, n_classes, 3, padding=1)
+
+        self.final_conv1_4 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1_4 = nn.ReLU(inplace=True)
+        self.final_conv2_4 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2_4 = nn.ReLU(inplace=True)
+        self.final_conv_4  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1600,9 +1545,14 @@ class DATUNet(nn.Module):
         # x1, x2, x3, x4 = (x_fuse[0]), (x_fuse[1]), (x_fuse[2]), (x_fuse[3])
 
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        # x3 = self.up3(x4, x3) 
+        # x2 = self.up2(x3, x2) 
+        # x1 = self.up1(x2, x1) 
+
+        x1 = self.conv_1(self.up_1(x1))
+        x2 = self.conv_2(self.up_2(x2))        
+        x3 = self.conv_3(self.up_3(x3))
+        x4 = self.conv_4(self.up_4(x4))
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
