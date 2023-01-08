@@ -842,9 +842,9 @@ class UpBlock(nn.Module):
         return x
 
 
-class Conv(nn.Module):
+class Conv_B(nn.Module):
     def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
-        super(Conv, self).__init__()
+        super(Conv_B, self).__init__()
         self.inp_dim = inp_dim
         self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
         self.relu = None
@@ -871,12 +871,12 @@ class Residual(nn.Module):
         super(Residual, self).__init__()
         self.relu = nn.ReLU(inplace=True)
         self.bn1 = nn.BatchNorm2d(inp_dim)
-        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
+        self.conv1 = Conv_B(inp_dim, int(out_dim/2), 1, relu=False)
         self.bn2 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
+        self.conv2 = Conv_B(int(out_dim/2), int(out_dim/2), 3, relu=False)
         self.bn3 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
-        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
+        self.conv3 = Conv_B(int(out_dim/2), out_dim, 1, relu=False)
+        self.skip_layer = Conv_B(inp_dim, out_dim, 1, relu=False)
         if inp_dim == out_dim:
             self.need_skip = False
         else:
@@ -911,12 +911,12 @@ class BiFusion_block(nn.Module):
 
         # spatial attention for F_l
         self.compress = ChannelPool()
-        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+        self.spatial = Conv_B(2, 1, 7, bn=True, relu=False, bias=False)
 
         # bi-linear modelling for both
-        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
-        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
-        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+        self.W_g = Conv_B(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv_B(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv_B(ch_int, ch_int, 3, bn=True, relu=True)
 
         self.relu = nn.ReLU(inplace=True)
 
