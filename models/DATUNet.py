@@ -1513,6 +1513,7 @@ class DATUNet(nn.Module):
         self.final_relu2_4 = nn.ReLU(inplace=True)
         self.final_conv_4  = nn.Conv2d(24, n_classes, 3, padding=1)
 
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
