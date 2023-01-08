@@ -1554,13 +1554,34 @@ class DATUNet(nn.Module):
         x3 = self.conv_3(self.up_3(x3))
         x4 = self.conv_4(self.up_4(x4))
 
-        x = self.final_conv1(x1)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
-        x = self.final_conv(x)
+        x1 = self.final_conv1_1(x1)
+        x1 = self.final_relu1_1(x1)
+        x1 = self.final_conv2_1(x1)
+        x1 = self.final_relu2_1(x1)
+        x1 = self.final_conv_1(x1)
 
-        return x
+        x2 = self.final_conv2_2(x2)
+        x2 = self.final_relu2_2(x2)
+        x2 = self.final_conv2_2(x2)
+        x2 = self.final_relu2_2(x2)
+        x2 = self.final_conv_2(x2)
+
+        x3 = self.final_conv3_3(x3)
+        x3 = self.final_relu3_3(x3)
+        x3 = self.final_conv2_3(x3)
+        x3 = self.final_relu2_3(x3)
+        x3 = self.final_conv_3(x3)
+
+        x4 = self.final_conv4_4(x4)
+        x4 = self.final_relu4_4(x4)
+        x4 = self.final_conv2_4(x4)
+        x4 = self.final_relu2_4(x4)
+        x4 = self.final_conv_4(x4)
+
+        if self.training:
+            return x1, x2, x3, x4
+        else:
+            return (x1 + x2 + x3 + x4) / 4.0
 
 
 
