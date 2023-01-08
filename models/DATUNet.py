@@ -810,35 +810,69 @@ class AttentionBlock(nn.Module):
         out = x * psi
         return out
 
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-        # self.chanel_in = in_dim
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.softmax  = nn.Softmax(dim=-1)
+class AAM(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super(AAM, self).__init__()
+        self.global_pooling = nn.AdaptiveAvgPool2d(1)
 
-    def forward(self,x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 1, padding=0),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True))
 
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 1, padding=0),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True))
 
-        out = self.gamma*out + x
-        return out
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(out_ch, out_ch, 1, padding=0),
+            nn.Softmax(dim=1))
+
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(in_ch, out_ch, 1, padding=0),
+            nn.BatchNorm2d(out_ch),
+            nn.ReLU(inplace=True))
+
+    def forward(self, input_high, input_low):
+        mid_high = self.global_pooling(input_high)
+        weight_high = self.conv1(mid_high)
+
+        mid_low = self.global_pooling(input_low)
+        weight_low = self.conv2(mid_low)
+
+        weight = self.conv3(weight_low + weight_high)
+        low = self.conv4(input_low)
+        return input_high + low.mul(weight)
+        
+class DecoderBlockLinkNet(nn.Module):
+    def __init__(self, in_channels, n_filters):
+        super().__init__()
+
+        self.relu = nn.ReLU(inplace=True)
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+
+        # B, C/4, H, W -> B, C/4, 2 * H, 2 * W
+        self.deconv2 = nn.ConvTranspose2d(in_channels // 4, in_channels // 4, kernel_size=4,
+                                          stride=2, padding=1, output_padding=0)
+        self.norm2 = nn.BatchNorm2d(in_channels // 4)
+
+        # B, C/4, H, W -> B, C, H, W
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu(x)
+        x = self.deconv2(x)
+        x = self.norm2(x)
+        x = self.relu(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu(x)
+        return x
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -847,6 +881,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.CAM = CAM_Module()
     
     def forward(self, x, skip_x):
         x = self.up(x) 
