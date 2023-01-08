@@ -810,6 +810,36 @@ class AttentionBlock(nn.Module):
         out = x * psi
         return out
 
+class CAM_Module(nn.Module):
+    """ Channel attention module"""
+    def __init__(self):
+        super(CAM_Module, self).__init__()
+        # self.chanel_in = in_dim
+        self.gamma = nn.parameter.Parameter(torch.zeros(1))
+        self.softmax  = nn.Softmax(dim=-1)
+
+    def forward(self,x):
+        """
+            inputs :
+                x : input feature maps( B X C X H X W)
+            returns :
+                out : attention value + input feature
+                attention: B X C X C
+        """
+        m_batchsize, C, height, width = x.size()
+        proj_query = x.view(m_batchsize, C, -1)
+        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
+        energy = torch.bmm(proj_query, proj_key)
+        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
+        attention = self.softmax(energy_new)
+        proj_value = x.view(m_batchsize, C, -1)
+
+        out = torch.bmm(attention, proj_value)
+        out = out.view(m_batchsize, C, height, width)
+
+        out = self.gamma*out + x
+        return out
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -817,11 +847,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-        self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.att(x=skip_x, gate=x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
