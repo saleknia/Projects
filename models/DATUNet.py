@@ -1433,9 +1433,9 @@ class DATUNet(nn.Module):
         self.CPF_4 = CFPModule(nIn=48, d=8)
 
         self.conv_1 = _make_nConv(in_channels=48 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_4 = _make_nConv(in_channels=384, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.up_1 = nn.Upsample(scale_factor=1.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
@@ -1495,19 +1495,19 @@ class DATUNet(nn.Module):
         self.final_relu2_1 = nn.ReLU(inplace=True)
         self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1_2 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_conv1_2 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_2 = nn.ReLU(inplace=True)
         self.final_conv2_2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2_2 = nn.ReLU(inplace=True)
         self.final_conv_2  = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1_3 = nn.ConvTranspose2d(192, 48, 4, 2, 1)
+        self.final_conv1_3 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_3 = nn.ReLU(inplace=True)
         self.final_conv2_3 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2_3 = nn.ReLU(inplace=True)
         self.final_conv_3  = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1_4 = nn.ConvTranspose2d(384, 48, 4, 2, 1)
+        self.final_conv1_4 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_4 = nn.ReLU(inplace=True)
         self.final_conv2_4 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2_4 = nn.ReLU(inplace=True)
