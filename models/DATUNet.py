@@ -1434,8 +1434,8 @@ class DATUNet(nn.Module):
 
         self.up_1 = nn.Upsample(scale_factor=1.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_3 = nn.Upsample(scale_factor=3.0)
-        self.up_4 = nn.Upsample(scale_factor=4.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+        self.up_4 = nn.Upsample(scale_factor=8.0)
 
         # self.combine_1 = nn.Identity()
         # self.combine_2 = nn.Identity()
