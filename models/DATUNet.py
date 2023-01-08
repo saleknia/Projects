@@ -810,62 +810,62 @@ class AttentionBlock(nn.Module):
         out = x * psi
         return out
 
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-#         super(UpBlock, self).__init__()
-#         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-#         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-#         self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//2)
-    
-#     def forward(self, x, skip_x):
-#         x = self.up(x) 
-#         skip_x = self.att(x=skip_x, gate=x)
-#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-#         x = self.conv(x)
-#         return x
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-
-        reduction = 4
-        # channel attention for F_g, use SE Block
-        self.fc1 = nn.Conv2d(in_channels // 2, (in_channels // 2) // reduction, kernel_size=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Conv2d((in_channels // 2) // reduction, in_channels // 2, kernel_size=1)
-        self.sigmoid = nn.Sigmoid()
-
-        # spatial attention for F_l
-        self.compress = ChannelPool()
-        self.spatial = Conv_B(2, 1, 7, bn=True, relu=False, bias=False)   
-
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//2)
     
     def forward(self, x, skip_x):
-        x = self.up(x)
-
-        # spatial attention for cnn branch
-        g = skip_x
-        g = self.compress(g)
-        g = self.spatial(g)
-        skip_x = self.sigmoid(g) * skip_x
-
-        # channel attetion for transformer branch
-        x_in = x
-        x = x.mean((2, 3), keepdim=True)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.sigmoid(x) * x_in
-
+        x = self.up(x) 
+        skip_x = self.att(x=skip_x, gate=x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
+
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+#         super(UpBlock, self).__init__()
+#         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+
+#         reduction = 4
+#         # channel attention for F_g, use SE Block
+#         self.fc1 = nn.Conv2d(in_channels // 2, (in_channels // 2) // reduction, kernel_size=1)
+#         self.relu = nn.ReLU(inplace=True)
+#         self.fc2 = nn.Conv2d((in_channels // 2) // reduction, in_channels // 2, kernel_size=1)
+#         self.sigmoid = nn.Sigmoid()
+
+#         # spatial attention for F_l
+#         self.compress = ChannelPool()
+#         self.spatial = Conv_B(2, 1, 7, bn=True, relu=False, bias=False)   
+
+#         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+    
+#     def forward(self, x, skip_x):
+#         x = self.up(x)
+
+#         # spatial attention for cnn branch
+#         g = skip_x
+#         g = self.compress(g)
+#         g = self.spatial(g)
+#         skip_x = self.sigmoid(g) * skip_x
+
+#         # channel attetion for transformer branch
+#         x_in = x
+#         x = x.mean((2, 3), keepdim=True)
+#         x = self.fc1(x)
+#         x = self.relu(x)
+#         x = self.fc2(x)
+#         x = self.sigmoid(x) * x_in
+
+#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+#         x = self.conv(x)
+#         return x
 
 
 class Conv_B(nn.Module):
