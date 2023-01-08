@@ -1427,6 +1427,11 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
+        self.CPF_1 = CFPModule(nIn=48, d=8)
+        self.CPF_2 = CFPModule(nIn=48, d=8)
+        self.CPF_3 = CFPModule(nIn=48, d=8)
+        self.CPF_4 = CFPModule(nIn=48, d=8)
+
         self.conv_1 = _make_nConv(in_channels=48 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
@@ -1549,10 +1554,10 @@ class DATUNet(nn.Module):
         # x2 = self.up2(x3, x2) 
         # x1 = self.up1(x2, x1) 
 
-        x1 = self.conv_1(self.up_1(x1))
-        x2 = self.conv_2(self.up_2(x2))        
-        x3 = self.conv_3(self.up_3(x3))
-        x4 = self.conv_4(self.up_4(x4))
+        x1 = self.CPF_1(self.conv_1(self.up_1(x1)))
+        x2 = self.CPF_2(self.conv_2(self.up_2(x2)))        
+        x3 = self.CPF_3(self.conv_3(self.up_3(x3)))
+        x4 = self.CPF_4(self.conv_4(self.up_4(x4)))
 
         x1 = self.final_conv1_1(x1)
         x1 = self.final_relu1_1(x1)
