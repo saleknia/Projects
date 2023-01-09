@@ -1465,7 +1465,7 @@ class DATUNet(nn.Module):
         #                         )
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
-        # self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
+        self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
@@ -1506,8 +1506,9 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        # x = [x1, x2, x3, x4]
-        # x = self.combine(x)
+        x = [x1, x2, x3, x4]
+        x = self.combine(x)
+
         # x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
 
         # x = [x1, x2, x3, x4]
