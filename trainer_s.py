@@ -25,7 +25,7 @@ class IoULoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(IoULoss, self).__init__()
 
-    def forward(self, inputs, targets, smooth=1):
+    def forward(self, inputs, targets, smooth=1e-5):
         
         #comment out if your model contains a sigmoid or equivalent activation layer
         inputs = F.sigmoid(inputs)       
@@ -43,7 +43,7 @@ class IoULoss(nn.Module):
         IoU = (intersection + smooth)/(union + smooth)
                 
         return 1 - IoU
-        
+
 class FocalLoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(FocalLoss, self).__init__()
@@ -192,7 +192,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     total_batchs = len(dataloader['train'])
     loader = dataloader['train'] 
     pos_weight = dataloader['pos_weight']
-    dice_loss = DiceLoss()
+    # dice_loss = DiceLoss()
+    dice_loss = IoULoss()
     ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
     # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # ce_loss = FocalLoss()
