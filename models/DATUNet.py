@@ -578,7 +578,7 @@ class Flatten(nn.Module):
 
 
 class SEBlock(nn.Module):
-    def __init__(self, channel, r=8):
+    def __init__(self, channel, r=16):
         super(SEBlock, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -588,15 +588,16 @@ class SEBlock(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, x, skip_x):
+    def forward(self, x):
         b, c, _, _ = x.size()
         # Squeeze
         y = self.avg_pool(x).view(b, c)
         # Excitation
         y = self.fc(y).view(b, c, 1, 1)
         # Fusion
-        y = torch.mul(skip_x, y)
+        y = torch.mul(x, y)
         return y
+
 
 
 class UpBlock(nn.Module):
@@ -605,14 +606,14 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv_1 = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//4, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=in_channels//4, out_channels=in_channels//2, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.att = SEBlock(in_channels//2)
+        self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        x = x + self.att(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv_1(x)
-        x = self.conv_2(x)
+        x = self.conv(x)
         return x
 
 # class UpBlock(nn.Module):
