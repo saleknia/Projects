@@ -1286,6 +1286,7 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        self.PEE_2 = PEE(48)
         self.PEE_2 = PEE(96)
         self.PEE_3 = PEE(192)
         self.PEE_4 = PEE(384)
@@ -1326,10 +1327,6 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x2 = self.PEE_2(x2)
-        x3 = self.PEE_3(x3)
-        x4 = self.PEE_4(x4)
-
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1344,6 +1341,11 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
+        x1 = self.PEE_1(x1)
+        x2 = self.PEE_2(x2)
+        x3 = self.PEE_3(x3)
+        x4 = self.PEE_4(x4)
+        
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
