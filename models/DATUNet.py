@@ -1149,6 +1149,20 @@ def get_CTranS_config():
     return config
 
 
+class PEE(nn.Module):
+
+    def __init__(self, in_channels):
+        super(PEE, self).__init__()
+        self.conv = ConvBatchNorm(in_channels=in_channels*4, out_channels=in_channels, kernel_size=1, padding=0)
+        self.pool_3 = torch.nn.AvgPool2d(3, stride=1, padding=1, ceil_mode=False, count_include_pad=True, divisor_override=None)
+        self.pool_5 = torch.nn.AvgPool2d(5, stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
+    def forward(self, x):
+        pool_3 = x - self.pool_3(x)
+        pool_5 = x - self.pool_5(x)
+        x = torch.cat([x, pool_3, pool_5], dim=1)
+        x = self.conv(x)
+        return x
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -1274,6 +1288,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        self.PEE_2 = PEE(96)
+        self.PEE_3 = PEE(192)
+        self.PEE_4 = PEE(384)
+
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1309,6 +1327,10 @@ class DATUNet(nn.Module):
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
+
+        x2 = self.PEE_2(x2)
+        x3 = self.PEE_3(x3)
+        x4 = self.PEE_4(x4)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
