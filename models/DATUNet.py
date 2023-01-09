@@ -483,6 +483,17 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
 
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.patch_proj = nn.Sequential(
+            resnet.conv1,
+            resnet.bn1,
+            resnet.relu,
+            resnet.layer1,
+            nn.Conv2d(64, dim_stem, patch_size//2, patch_size//2, 0),
+            LayerNormProxy(dim_stem)
+        ) 
+
         self.stages[3] = None
     
     def reset_parameters(self):
