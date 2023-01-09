@@ -1521,14 +1521,14 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x1 = self.final_conv1(x1)
-        x1 = self.final_relu1(x1)
-        x1 = self.final_conv2(x1)
-        x1 = self.final_relu2(x1)
-        x1 = self.final_conv(x1)
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv(x)
 
 
-        return x1
+        return x
 
 
 
