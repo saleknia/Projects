@@ -822,7 +822,7 @@ class UpBlock(nn.Module):
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.att(gatex, x=skip_x)
+        skip_x = self.att(gate=x, x=skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
