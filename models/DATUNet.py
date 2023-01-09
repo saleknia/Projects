@@ -598,6 +598,19 @@ class SEBlock(nn.Module):
         y = torch.mul(x, y)
         return y
 
+class SpatialAttention(nn.Module):
+    def __init__(self,kernel_size=7):
+        super().__init__()
+        self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
+        self.sigmoid=nn.Sigmoid()
+    
+    def forward(self, x) :
+        max_result,_=torch.max(x,dim=1,keepdim=True)
+        avg_result=torch.mean(x,dim=1,keepdim=True)
+        result=torch.cat([max_result,avg_result],1)
+        output=self.conv(result)
+        output=self.sigmoid(output)
+        return output
 
 
 class UpBlock(nn.Module):
@@ -606,12 +619,15 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.att = SEBlock(in_channels//2)
+        self.channel_att = SEBlock(in_channels//2)
+        self.spatial_att = SpatialAttention()
+
         self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = x + self.att(x)
+        x = x + self.channel_att(x)
+        skip_x = skip_x + self.spatial_att(skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
