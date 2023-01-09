@@ -1153,14 +1153,12 @@ class PEE(nn.Module):
 
     def __init__(self, in_channels):
         super(PEE, self).__init__()
-        self.conv = ConvBatchNorm(in_channels=in_channels*3, out_channels=in_channels, kernel_size=1, padding=0)
         self.pool_3 = torch.nn.AvgPool2d(3, stride=1, padding=1, ceil_mode=False, count_include_pad=True, divisor_override=None)
         self.pool_5 = torch.nn.AvgPool2d(5, stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
     def forward(self, x):
         pool_3 = x - self.pool_3(x)
         pool_5 = x - self.pool_5(x)
-        x = torch.cat([x, pool_3, pool_5], dim=1)
-        x = self.conv(x)
+        x = x + pool_3 + pool_5
         return x
 
 class DATUNet(nn.Module):
