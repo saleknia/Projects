@@ -1427,12 +1427,6 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.conv_2 = _make_nConv(in_channels=96 , out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_3 = nn.Upsample(scale_factor=4.0)
-
         # self.combine_1 = nn.Identity()
         # self.combine_2 = nn.Identity()
         # self.combine_3 = nn.Identity()
@@ -1480,23 +1474,11 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_1 = nn.ReLU(inplace=True)
-        self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_1 = nn.ReLU(inplace=True)
-        self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.final_conv1_2 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_2 = nn.ReLU(inplace=True)
-        self.final_conv2_2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_2 = nn.ReLU(inplace=True)
-        self.final_conv_2  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.final_conv1_3 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_3 = nn.ReLU(inplace=True)
-        self.final_conv2_3 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_3 = nn.ReLU(inplace=True)
-        self.final_conv_3  = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1539,32 +1521,14 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x2 = self.conv_2(self.up_2(x2))        
-        x3 = self.conv_3(self.up_3(x3))
-
-        x1 = self.final_conv1_1(x1)
-        x1 = self.final_relu1_1(x1)
-        x1 = self.final_conv2_1(x1)
-        x1 = self.final_relu2_1(x1)
-        x1 = self.final_conv_1(x1)
-
-        x2 = self.final_conv1_2(x2)
-        x2 = self.final_relu1_2(x2)
-        x2 = self.final_conv2_2(x2)
-        x2 = self.final_relu2_2(x2)
-        x2 = self.final_conv_2(x2)
-
-        x3 = self.final_conv1_3(x3)
-        x3 = self.final_relu1_3(x3)
-        x3 = self.final_conv2_3(x3)
-        x3 = self.final_relu2_3(x3)
-        x3 = self.final_conv_3(x3)
+        x1 = self.final_conv1(x1)
+        x1 = self.final_relu1(x1)
+        x1 = self.final_conv2(x1)
+        x1 = self.final_relu2(x1)
+        x1 = self.final_conv(x1)
 
 
-        if self.training:
-            return x1, x2, x3
-        else:
-            return (x1 + x2 + x3) / 3.0
+        return x1
 
 
 
