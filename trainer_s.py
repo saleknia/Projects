@@ -170,8 +170,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     loader = dataloader['train'] 
     pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
-    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
-    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+    # ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
     # ce_loss = FocalLoss()
 
     base_iter = (epoch_num-1) * total_batchs
