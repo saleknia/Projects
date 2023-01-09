@@ -1437,11 +1437,10 @@ class DATUNet(nn.Module):
         self.up_3 = nn.Upsample(scale_factor=4.0)
         self.up_4 = nn.Upsample(scale_factor=8.0)
 
-        self.combine_1 = ConvBatchNorm(in_channels=48 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0)
-        self.combine_2 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
-        self.combine_3 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
-        self.combine_4 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
-
+        # self.combine_1 = nn.Identity()
+        # self.combine_2 = nn.Identity()
+        # self.combine_3 = nn.Identity()
+        # self.combine_4 = nn.Identity()
 
         # self.head = SegFormerHead()
 
@@ -1542,7 +1541,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1, x2, x3, x4 = x1 + self.combine_1(x_fuse[0]), x2 + self.combine_2(x_fuse[1]) , x3 + self.combine_3(x_fuse[2]), x4 + self.combine_4(x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
         # x1, x2, x3, x4 = (x_fuse[0]), (x_fuse[1]), (x_fuse[2]), (x_fuse[3])
 
 
