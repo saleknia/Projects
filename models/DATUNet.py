@@ -818,9 +818,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=in_channels//2, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.att = AttentionBlock(out_channels,out_channels,out_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        skip_x = self.att(gatex, x=skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -1463,7 +1465,7 @@ class DATUNet(nn.Module):
         #                         )
 
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
-        self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
+        # self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
@@ -1504,9 +1506,9 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x = [x1, x2, x3, x4]
-        x = self.combine(x)
-        x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
+        # x = [x1, x2, x3, x4]
+        # x = self.combine(x)
+        # x1, x2, x3, x4 = x[0], x[1], x[2], x[3]
 
         # x = [x1, x2, x3, x4]
         # x_fuse = []
