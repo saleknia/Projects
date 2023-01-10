@@ -109,6 +109,8 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
     model.eval()
     # model = tta.SegmentationTTAWrapper(model, tta.aliases.d4_transform(), merge_mode='mean')
     loss_total = utils.AverageMeter()
+    loss_ce_total = utils.AverageMeter()
+    loss_dice_total = utils.AverageMeter()
     Eval = Evaluator()
     mIOU = 0.0
 
@@ -146,7 +148,9 @@ def valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,lo
             # loss = 0.5 * loss_ce + 0.5 * loss_dice
 
             loss_total.update(loss)
-
+            loss_ce_total.update(loss_ce)
+            loss_dice_total.update(loss_dice)
+            
             targets = targets.long()
 
             if type(outputs)==tuple:
