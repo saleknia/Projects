@@ -1148,12 +1148,9 @@ class PEE(nn.Module):
 
     def __init__(self, in_channels):
         super(PEE, self).__init__()
-        self.pool_3 = torch.nn.AvgPool2d(3, stride=1, padding=1, ceil_mode=False, count_include_pad=True, divisor_override=None)
         self.pool_5 = torch.nn.AvgPool2d(5, stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
     def forward(self, x):
-        pool_3 = x - self.pool_3(x)
         pool_5 = x - self.pool_5(x)
-        x = x + pool_3 + pool_5
         return x
 
 class DATUNet(nn.Module):
@@ -1281,10 +1278,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.PEE_1 = PEE(48)
-        self.PEE_2 = PEE(96)
-        self.PEE_3 = PEE(192)
-        self.PEE_4 = PEE(384)
+        self.PEE = PEE(384)
+        self.up_1 = nn.UPsample(scale_factor=8.0)
+        self.up_2 = nn.UPsample(scale_factor=4.0)
+        self.up_3 = nn.UPsample(scale_factor=2.0)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -1322,6 +1319,16 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
+        E4 = self.PEE(x4)
+        E3 = self.up_3(E4)
+        E2 = self.up_2(E4)
+        E1 = self.up_1(E4)
+
+        x4 = x4 + E4
+        x3 = x3 + E3
+        x2 = x2 + E2
+        x1 = x1 + E1
+
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1335,11 +1342,6 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
-
-        x1 = self.PEE_1(x1)
-        x2 = self.PEE_2(x2)
-        x3 = self.PEE_3(x3)
-        x4 = self.PEE_4(x4)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
