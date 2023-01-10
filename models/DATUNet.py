@@ -1296,9 +1296,14 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.conv_1 = ConvBatchNorm(in_channels=48 , out_channels=48, kernel_szie=1, padding=0)
+        self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_szie=1, padding=0)
+        self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_szie=1, padding=0)
+        self.conv_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_szie=1, padding=0)
+
+        self.up3 = UpBlock(48, 48, nb_Conv=2)
+        self.up2 = UpBlock(48, 48, nb_Conv=2)
+        self.up1 = UpBlock(48, 48, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1340,6 +1345,11 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+
+        x1 = self.conv_1(x1)
+        x2 = self.conv_2(x2)
+        x3 = self.conv_3(x3)
+        x4 = self.conv_4(x4)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
