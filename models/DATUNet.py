@@ -1234,7 +1234,7 @@ class DATUNet(nn.Module):
         # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder = DAT(
+        self.encoder_1 = DAT(
             img_size=224,
             patch_size=4,
             num_classes=1000,
@@ -1260,39 +1260,50 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        # self.encoder = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.encoder_2 = CrossFormer(
+                                img_size=224,
+                                patch_size=[4, 8, 16, 32],
+                                in_chans= 3,
+                                num_classes=1000,
+                                embed_dim=96,
+                                depths=[2, 2, 6, 2],
+                                num_heads=[3, 6, 12, 24],
+                                group_size=[7, 7, 7, 7],
+                                mlp_ratio=4.,
+                                qkv_bias=True,
+                                qk_scale=None,
+                                drop_rate=0.0,
+                                drop_path_rate=0.1,
+                                ape=False,
+                                patch_norm=True,
+                                use_checkpoint=False,
+                                merge_size=[[2, 4], [2,4], [2, 4]]
+                                )
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.norm_1 = LayerNormProxy(dim=96)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.norm_2_1 = LayerNormProxy(dim=192)
+        self.norm_3_1 = LayerNormProxy(dim=384)
 
-        self.conv_1 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
-        self.conv_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        self.conv_3 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+        self.norm_1_2 = LayerNormProxy(dim=96)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_3_2 = LayerNormProxy(dim=384)
 
-        self.up2 = UpBlock(48, 48, nb_Conv=2)
-        self.up1 = UpBlock(48, 48, nb_Conv=2)
+        self.conv_1_1 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
+        self.conv_2_1 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        self.conv_3_1 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+
+        self.conv_1_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
+        self.conv_2_2 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        self.conv_3_2 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+
+        self.up2_1 = UpBlock(48, 48, nb_Conv=2)
+        self.up1_1 = UpBlock(48, 48, nb_Conv=2)
+
+        self.up2_2 = UpBlock(48, 48, nb_Conv=2)
+        self.up1_2 = UpBlock(48, 48, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1306,12 +1317,17 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs = self.encoder(x_input)
+        outputs_1 = self.encoder_1(x_input)
+        outputs_2 = self.encoder_2(x_input)
 
-        x1 = self.norm_1(outputs[0])
-        x2 = self.norm_2(outputs[1])
-        x3 = self.norm_3(outputs[2])
+        x1_1 = self.norm_1_1(outputs_1[0])
+        x2_1 = self.norm_2_1(outputs_1[1])
+        x3_1 = self.norm_3_1(outputs_1[2])
 
+        x1_2 = self.norm_1_2(outputs_2[0])
+        x2_2 = self.norm_2_2(outputs_2[1])
+        x3_2 = self.norm_3_2(outputs_2[2])
+        
         x1 = self.conv_1(x1)
         x2 = self.conv_2(x2)
         x3 = self.conv_3(x3)
