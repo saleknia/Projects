@@ -1151,7 +1151,7 @@ class PEE(nn.Module):
         self.pool_5 = torch.nn.AvgPool2d(5, stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
     def forward(self, x):
         pool_5 = x - self.pool_5(x)
-        return x
+        return pool_5
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
