@@ -1225,24 +1225,14 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-
         resnet = resnet_model.resnet34(pretrained=True)
-
         self.firstconv = resnet.conv1
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-
-        # self.boundary = nn.Sequential(
-        #     nn.ConvTranspose2d(48, 48, 4, 2, 1),
-        #     nn.Conv2d(48, n_classes, 3, padding=1),
-        # ) 
 
         self.encoder = DAT(
             img_size=224,
@@ -1343,6 +1333,7 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
+        self.conv_1 = ConvBatchNorm(in_channels=48 , out_channels=48, kernel_size=1, padding=0)
         self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
         self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
         self.conv_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)\
@@ -1378,6 +1369,7 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
+        x1 = self.conv_1(x1)
         x2 = self.conv_2(x2)
         x3 = self.conv_3(x3)
         x4 = self.conv_4(x4)
