@@ -1298,7 +1298,7 @@ class DATUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(24, n_classes, 1, padding=1)
+        self.final_conv  = nn.Conv2d(24, n_classes, 1, padding=0)
         self.final_up_sample = nn.Upsample(scale_factor=2.0, mode='bilinear')
 
     def forward(self, x):
