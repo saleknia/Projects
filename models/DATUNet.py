@@ -1341,7 +1341,7 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.norm_1 = LayerNormProxy(dim=48)
 
         self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
         self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
@@ -1376,7 +1376,7 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
-        # x1 = self.norm_1(x1)
+        x1 = self.norm_1(x1)
 
         x2 = self.conv_2(x2)
         x3 = self.conv_3(x3)
