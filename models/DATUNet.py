@@ -1232,9 +1232,6 @@ class DATUNet(nn.Module):
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.encoder1 = resnet.layer1
-        self.encoder2 = None
-        self.encoder3 = None
-        self.encoder4 = None
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
@@ -1266,51 +1263,51 @@ class DATUNet(nn.Module):
         # )
 
         
-        self.encoder = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+        # self.encoder = DAT(
+        #     img_size=224,
+        #     patch_size=4,
+        #     num_classes=1000,
+        #     expansion=4,
+        #     dim_stem=96,
+        #     dims=[96, 192, 384, 768],
+        #     depths=[2, 2, 18, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     heads=[3, 6, 12, 24],
+        #     window_sizes=[7, 7, 7, 7] ,
+        #     groups=[-1, -1, 3, 6],
+        #     use_pes=[False, False, True, True],
+        #     dwc_pes=[False, False, False, False],
+        #     strides=[-1, -1, 1, 1],
+        #     sr_ratios=[-1, -1, -1, -1],
+        #     offset_range_factor=[-1, -1, 2, 2],
+        #     no_offs=[False, False, False, False],
+        #     fixed_pes=[False, False, False, False],
+        #     use_dwc_mlps=[False, False, False, False],
+        #     use_conv_patches=False,
+        #     drop_rate=0.0,
+        #     attn_drop_rate=0.0,
+        #     drop_path_rate=0.2,
+        # )
 
-        # self.encoder = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.encoder = CrossFormer(
+                                img_size=224,
+                                patch_size=[4, 8, 16, 32],
+                                in_chans= 3,
+                                num_classes=1000,
+                                embed_dim=96,
+                                depths=[2, 2, 6, 2],
+                                num_heads=[3, 6, 12, 24],
+                                group_size=[7, 7, 7, 7],
+                                mlp_ratio=4.,
+                                qkv_bias=True,
+                                qk_scale=None,
+                                drop_rate=0.0,
+                                drop_path_rate=0.1,
+                                ape=False,
+                                patch_norm=True,
+                                use_checkpoint=False,
+                                merge_size=[[2, 4], [2,4], [2, 4]]
+                                )
 
         # # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
         # self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
@@ -1337,7 +1334,6 @@ class DATUNet(nn.Module):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
-
 
         x1 = self.firstconv(x_input)
         x1 = self.firstbn(x1)
