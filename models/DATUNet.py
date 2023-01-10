@@ -1279,9 +1279,9 @@ class DATUNet(nn.Module):
         self.fuse_act = nn.ReLU()
 
         self.PEE = PEE(384)
-        self.up_1 = nn.UPsample(scale_factor=8.0)
-        self.up_2 = nn.UPsample(scale_factor=4.0)
-        self.up_3 = nn.UPsample(scale_factor=2.0)
+        self.up_1 = nn.Upsample(scale_factor=8.0)
+        self.up_2 = nn.Upsample(scale_factor=4.0)
+        self.up_3 = nn.Upsample(scale_factor=2.0)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
