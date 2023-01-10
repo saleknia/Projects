@@ -1347,7 +1347,10 @@ class DATUNet(nn.Module):
         self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
         self.conv_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)\
 
-        # self.PSA_1 = ParallelPolarizedSelfAttention(48)
+        self.CPF_2 = CFPModule(nIn=48, d=8)        
+        self.CPF_3 = CFPModule(nIn=48, d=8)        
+        self.CPF_4 = CFPModule(nIn=48, d=8)
+        
         self.PSA_2 = ParallelPolarizedSelfAttention(48)        
         self.PSA_3 = ParallelPolarizedSelfAttention(48)        
         self.PSA_4 = ParallelPolarizedSelfAttention(48)
@@ -1387,9 +1390,13 @@ class DATUNet(nn.Module):
         # x3 = self.conv_3(x3)
         # x4 = self.conv_4(x4)
 
-        x2 = self.PSA_2(self.conv_2(x2))
-        x3 = self.PSA_3(self.conv_3(x3))
-        x4 = self.PSA_4(self.conv_4(x4))
+        # x2 = self.PSA_2(self.conv_2(x2))
+        # x3 = self.PSA_3(self.conv_3(x3))
+        # x4 = self.PSA_4(self.conv_4(x4))
+
+        x2 = self.PSA_2(self.CPF_2(self.conv_2(x2)))
+        x3 = self.PSA_3(self.CPF_3(self.conv_3(x3)))
+        x4 = self.PSA_4(self.CPF_4(self.conv_4(x4)))
 
         x = [x1, x2, x3, x4]
         x_fuse = []
