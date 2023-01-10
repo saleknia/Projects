@@ -200,64 +200,64 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-    # scaler = torch.cuda.amp.GradScaler()
-    # for batch_idx, (inputs, targets) in enumerate(loader):
-
-    #     inputs, targets = inputs.to(device), targets.to(device)
-    #     targets = targets.float()
-
-    #     inputs = inputs.float()
-    #     with torch.autocast(device_type=device, dtype=torch.float16):
-    #         outputs = model(inputs)
-    #         if type(outputs)==tuple:
-    #             loss_ce = (ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1))) / 3.0
-    #             loss_dice = (dice_loss(inputs=outputs[0], targets=targets) +  dice_loss(inputs=outputs[1], targets=targets) +  dice_loss(inputs=outputs[2], targets=targets)) / 3.0  
-    #             loss_att = 0.0
-    #             loss = loss_ce + loss_dice 
-    #         else:
-    #             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
-    #             loss_dice = dice_loss(inputs=outputs, targets=targets)
-    #             loss_att = 0.0
-    #             loss = loss_ce + loss_dice + loss_att
-
-    #     scaler.scale(loss).backward()
-    #     scaler.step(optimizer)
-    #     scaler.update()
-    #     optimizer.zero_grad()
-
-
-
+    scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
+
         inputs = inputs.float()
-        outputs = model(inputs)
-        if type(outputs)==tuple:
-            loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
-            loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
-            loss = loss_ce + loss_dice         
-        else:
-            loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-            loss_dice = dice_loss(inputs=outputs, targets=targets)
-            loss_att = 0.0
-            loss = loss_ce + loss_dice
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
+            if type(outputs)==tuple:
+                loss_ce = (ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1))) / 3.0
+                loss_dice = (dice_loss(inputs=outputs[0], targets=targets) +  dice_loss(inputs=outputs[1], targets=targets) +  dice_loss(inputs=outputs[2], targets=targets)) / 3.0  
+                loss_att = 0.0
+                loss = loss_ce + loss_dice 
+            else:
+                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
+                loss_dice = dice_loss(inputs=outputs, targets=targets)
+                loss_att = 0.0
+                loss = loss_ce + loss_dice + loss_att
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
-
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
-
-        # iter_num = iter_num + 1   
-
-        # iter_num = iter_num + 1 
-        # if iter_num % (total_batchs*3)==0:
-        #     for param_group in optimizer.param_groups:
-        #         param_group['lr'] = param_group['lr'] * 0.5   
-
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+
+
+
+    # for batch_idx, (inputs, targets) in enumerate(loader):
+
+    #     inputs, targets = inputs.to(device), targets.to(device)
+    #     targets = targets.float()
+    #     inputs = inputs.float()
+    #     outputs = model(inputs)
+    #     if type(outputs)==tuple:
+    #         loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
+    #         loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
+    #         loss = loss_ce + loss_dice         
+    #     else:
+    #         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+    #         loss_dice = dice_loss(inputs=outputs, targets=targets)
+    #         loss_att = 0.0
+    #         loss = loss_ce + loss_dice
+
+    #     # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+
+    #     # for param_group in optimizer.param_groups:
+    #     #     param_group['lr'] = lr_
+
+    #     # iter_num = iter_num + 1   
+
+    #     # iter_num = iter_num + 1 
+    #     # if iter_num % (total_batchs*3)==0:
+    #     #     for param_group in optimizer.param_groups:
+    #     #         param_group['lr'] = param_group['lr'] * 0.5   
+
+    #     optimizer.zero_grad()
+    #     loss.backward()
+    #     optimizer.step()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
