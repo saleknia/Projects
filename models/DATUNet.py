@@ -1341,15 +1341,11 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-        self.norm_1 = LayerNormProxy(dim=48)
+        # self.norm_1 = LayerNormProxy(dim=48)
 
         self.conv_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
         self.conv_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
         self.conv_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)\
-        
-        self.PSA_2 = ParallelPolarizedSelfAttention(48)        
-        self.PSA_3 = ParallelPolarizedSelfAttention(48)        
-        self.PSA_4 = ParallelPolarizedSelfAttention(48)
 
         self.up3 = UpBlock(48, 48, nb_Conv=2)
         self.up2 = UpBlock(48, 48, nb_Conv=2)
@@ -1380,15 +1376,11 @@ class DATUNet(nn.Module):
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
-        x1 = self.norm_1(x1)
+        # x1 = self.norm_1(x1)
 
-        # x2 = self.conv_2(x2)
-        # x3 = self.conv_3(x3)
-        # x4 = self.conv_4(x4)
-
-        x2 = self.PSA_2(self.conv_2(x2))
-        x3 = self.PSA_3(self.conv_3(x3))
-        x4 = self.PSA_4(self.conv_4(x4))
+        x2 = self.conv_2(x2)
+        x3 = self.conv_3(x3)
+        x4 = self.conv_4(x4)
 
         # x2 = self.PSA_2(self.conv_2(x2))
         # x3 = self.PSA_3(self.conv_3(x3))
