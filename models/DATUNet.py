@@ -611,20 +611,33 @@ class SpatialAttention(nn.Module):
         output=self.sigmoid(output)
         return output
 
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
+
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+#         super(UpBlock, self).__init__()
+#         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+#         self.conv = _make_nConv(in_channels=in_channels//1, out_channels=in_channels//2, nb_Conv=2, activation=activation, dilation=1, padding=1)
+    
+#     def forward(self, x, skip_x):
+#         x = self.up(x) 
+#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+#         x = self.conv(x)
+#         return x
 
 # class UpBlock(nn.Module):
 #     """Upscaling then conv"""
@@ -1278,15 +1291,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.PEE = PEE(384)
-        self.up_1 = nn.Upsample(scale_factor=8.0)
-        self.up_2 = nn.Upsample(scale_factor=4.0)
-        self.up_3 = nn.Upsample(scale_factor=2.0)
-        self.sigmoid = nn.Sequential(
-            ConvBatchNorm(in_channels=384, out_channels=1, kernel_size=1, padding=0),
-            nn.Sigmoid()
-        )
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1323,16 +1327,6 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        E4 = self.sigmoid(self.PEE(x4))
-        E3 = self.up_3(E4)
-        E2 = self.up_2(E4)
-        E1 = self.up_1(E4)
-
-        x4 = x4 + (E4 * x4)
-        x3 = x3 + (E3 * x3)
-        x2 = x2 + (E2 * x2)
-        x1 = x1 + (E1 * x1)
-
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1356,7 +1350,6 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv(x)
-
 
         return x
 
