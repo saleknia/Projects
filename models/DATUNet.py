@@ -1384,7 +1384,7 @@ class DATUNet(nn.Module):
         # x = self.final_conv2(x)
         # x = self.final_relu2(x)
         # x = self.final_conv(x)
-        x = self.final_conv(x)
+        x = self.final_conv(x1)
         x = self.final_up(x)
         
         return x
