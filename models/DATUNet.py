@@ -1381,6 +1381,7 @@ class DATUNet(nn.Module):
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
+        x = self.final_conv(x)
 
         return x
 
