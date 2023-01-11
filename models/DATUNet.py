@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         self.stages[3] = None
@@ -617,7 +617,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -1202,6 +1202,8 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
+
+
 class PEE(nn.Module):
 
     def __init__(self, in_channels):
@@ -1230,6 +1232,9 @@ class DATUNet(nn.Module):
         self.firstbn = resnet.bn1
         self.firstrelu = resnet.relu
         self.encoder1 = resnet.layer1
+        self.encoder2 = None
+        self.encoder3 = None
+        self.encoder4 = None
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
@@ -1259,73 +1264,72 @@ class DATUNet(nn.Module):
         #     attn_drop_rate=0.0,
         #     drop_path_rate=0.2,
         # )
+
         
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
+        self.encoder = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
 
-        self.encoder = CrossFormer(
-                                img_size=224,
-                                patch_size=[4, 8, 16, 32],
-                                in_chans= 3,
-                                num_classes=1000,
-                                embed_dim=96,
-                                depths=[2, 2, 6, 2],
-                                num_heads=[3, 6, 12, 24],
-                                group_size=[7, 7, 7, 7],
-                                mlp_ratio=4.,
-                                qkv_bias=True,
-                                qk_scale=None,
-                                drop_rate=0.0,
-                                drop_path_rate=0.1,
-                                ape=False,
-                                patch_norm=True,
-                                use_checkpoint=False,
-                                merge_size=[[2, 4], [2,4], [2, 4]]
-                                )
 
-        # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
+        # self.encoder = CrossFormer(
+        #                         img_size=224,
+        #                         patch_size=[4, 8, 16, 32],
+        #                         in_chans= 3,
+        #                         num_classes=1000,
+        #                         embed_dim=96,
+        #                         depths=[2, 2, 6, 2],
+        #                         num_heads=[3, 6, 12, 24],
+        #                         group_size=[7, 7, 7, 7],
+        #                         mlp_ratio=4.,
+        #                         qkv_bias=True,
+        #                         qk_scale=None,
+        #                         drop_rate=0.0,
+        #                         drop_path_rate=0.1,
+        #                         ape=False,
+        #                         patch_norm=True,
+        #                         use_checkpoint=False,
+        #                         merge_size=[[2, 4], [2,4], [2, 4]]
+        #                         )
+
+        # # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
         # self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.norm_0 = LayerNormProxy(dim=48)
-        self.norm_1 = LayerNormProxy(dim=96)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_1 = LayerNormProxy(dim=48)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48, nb_Conv=2)
 
-        # self.up2 = UpBlock(384, 192, nb_Conv=2)
-        # self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
-        self.final_conv = nn.Conv2d(48, n_classes, 1, padding=0)
-        self.final_up = nn.Upsample(scale_factor=2.0) 
+        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_up = nn.Upsample(scale_factor=2)
 
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1338,43 +1342,46 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x0 = self.firstconv(x_input)
-        x0 = self.firstbn(x0)
-        x0 = self.firstrelu(x0)
-        x0 = self.encoder1(x0)
-        x0 = self.Reduce(x0)
+
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
         for i in range(6):
-            x0 = self.FAM1[i](x0)
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
-        x0 = self.norm_0(x0)
-        x1 = self.norm_1(outputs[0])
-        x2 = self.norm_2(outputs[1])
-        x3 = self.norm_3(outputs[2])
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
 
-        # x = [x0, x1, x2, x3]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x0, x1, x2, x3 = x0 + (x_fuse[0]), x1 + (x_fuse[1]) , x2 + (x_fuse[2]), x3 + (x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
         # x1, x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2], x_fuse[3]
 
-        # x3 = self.up3(x4, x3) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
-        x = self.up3(x3, x2)
-        x = self.up2(x , x1) 
-        x = self.up1(x , x0) 
-
+        # x = self.final_conv1(x1)
+        # x = self.final_relu1(x)
+        # x = self.final_conv2(x)
+        # x = self.final_relu2(x)
         x = self.final_conv(x)
         x = self.final_up(x)
 
