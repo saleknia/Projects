@@ -1202,6 +1202,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
+from .GT_UNet import _make_bot_layer
 
 
 class PEE(nn.Module):
@@ -1328,6 +1329,8 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48, nb_Conv=2)
 
+        self.GT = _make_bot_layer(ch_in=48,ch_out=48)
+
         self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
         self.final_up = nn.Upsample(scale_factor=2)
 
@@ -1378,11 +1381,13 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
+        x = self.GT(x1)
+
         # x = self.final_conv1(x1)
         # x = self.final_relu1(x)
         # x = self.final_conv2(x)
         # x = self.final_relu2(x)
-        x = self.final_conv(x1)
+        x = self.final_conv(x)
         x = self.final_up(x)
 
         return x

@@ -1,74 +1,8 @@
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import init
-
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
-    else:
-        return nn.ReLU()
-
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
-
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
-    return nn.Sequential(*layers)
-
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU',kernel_size=3, padding=1, stride=1, dilation=1):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding, stride=stride, dilation=dilation)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
-
-class BatchNorm(nn.Module):
-    """([BN] => ReLU)"""
-
-    def __init__(self, in_channels, activation='ReLU'):
-        super(BatchNorm, self).__init__()
-        self.norm = nn.BatchNorm2d(in_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.norm(x)
-        return self.activation(out)
-
-class Conv(nn.Module):
-    """(convolution)"""
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, stride=1, dilation=1):
-        super(Conv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding, stride=stride, dilation=dilation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        return out
-
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        # self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-
-    def forward(self, x):
-        # out = self.maxpool(x)
-        out = x
-        return self.nConvs(out)
-
-
 
 
 BATCH_NORM_DECAY = 1 - 0.9  # pytorch batch norm `momentum = 1 - counterpart` of tensorflow
@@ -218,7 +152,9 @@ class GroupPointWise(nn.Module):
             proj_channels = target_dimension // proj_factor
         else:
             proj_channels = in_channels // proj_factor
-        self.w = nn.Parameter(torch.Tensor(in_channels, heads, proj_channels // heads))
+        self.w = nn.Parameter(
+            torch.Tensor(in_channels, heads, proj_channels // heads)
+        )
 
         nn.init.normal_(self.w, std=0.01)
 
@@ -266,32 +202,13 @@ class BotBlock(nn.Module):
                  stride=1, target_dimension=None):
         super(BotBlock, self).__init__()
         if stride != 1 or in_dimension != target_dimension:
-            if target_dimension != 64:
-                self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                    nn.Conv2d(target_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                )
-            else:
-                self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                )
+            self.shortcut = nn.Sequential(
+                nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
+                BNReLU(target_dimension, activation=activation, nonlinearity=True),
+            )
         else:
-            # self.shortcut = None
-            if target_dimension != 64:
-                self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                    nn.Conv2d(target_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                )
-            else:
-                self.shortcut = nn.Sequential(
-                    nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-                    BNReLU(target_dimension, activation=activation, nonlinearity=True),
-                )
+            self.shortcut = None
+
         bottleneck_dimension = target_dimension // proj_factor
         self.conv1 = nn.Sequential(
             nn.Conv2d(in_dimension, bottleneck_dimension, kernel_size=3,padding=1, stride=1),
@@ -313,10 +230,9 @@ class BotBlock(nn.Module):
         )
         self.last_act = get_act(activation)
 
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
-
         self.curr_h = curr_h
         self.curr_w = curr_w
+
 
     def forward(self, x):
         if self.shortcut is not None:
@@ -339,113 +255,10 @@ class BotBlock(nn.Module):
         N1, C1, H1, W1 = out.shape
         out = out.reshape(N, C1, int(H), int(W))
 
-        out = out * self.gamma + shortcut
-
-        # out += shortcut
+        out += shortcut
         out = self.last_act(out)
 
         return out
-
-# class BotBlock(nn.Module):
-
-#     def __init__(self, in_dimension, curr_h=8, curr_w=8, proj_factor=4, activation='relu', pos_enc_type='relative',
-#                  stride=1, target_dimension=None):
-#         super(BotBlock, self).__init__()
-#         # if stride != 1 or in_dimension != target_dimension:
-#             # self.shortcut = nn.Sequential(
-#             #     nn.Conv2d(in_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-#             #     BNReLU(target_dimension, activation=activation, nonlinearity=True),
-#             #     nn.Conv2d(target_dimension, target_dimension, kernel_size=3,padding=1, stride=stride),
-#             #     BNReLU(target_dimension, activation=activation, nonlinearity=True)
-#             # )
-#         #     self.shortcut = DownBlock(in_dimension, target_dimension, nb_Conv=2)
-#         # else:
-#         #     self.shortcut = None
-#         self.shortcut = DownBlock(in_dimension, target_dimension, nb_Conv=2)
-
-#         bottleneck_dimension = target_dimension // 3
-
-#         # self.conv1 = nn.Sequential(
-#         #     nn.Conv2d(in_dimension, bottleneck_dimension, kernel_size=3,padding=1, stride=1, dilation=1),
-#         #     BNReLU(bottleneck_dimension, activation=activation, nonlinearity=True)
-#         # )
-
-#         # self.conv2 = nn.Sequential(
-#         #     nn.Conv2d(in_dimension, bottleneck_dimension, kernel_size=3,padding=2, stride=1, dilation=2),
-#         #     BNReLU(bottleneck_dimension, activation=activation, nonlinearity=True)
-#         # )
-
-#         # self.conv3 = nn.Sequential(
-#         #     nn.Conv2d(in_dimension, bottleneck_dimension, kernel_size=3,padding=3, stride=1, dilation=3),
-#         #     BNReLU(bottleneck_dimension, activation=activation, nonlinearity=True)
-#         # )
-
-#         # self.conv4 = nn.Sequential(
-#         #     nn.Conv2d(in_dimension, bottleneck_dimension, kernel_size=3,padding=4, stride=1, dilation=4),
-#         #     BNReLU(bottleneck_dimension, activation=activation, nonlinearity=True)
-#         # )
-
-#         self.conv1 = Conv(in_dimension, bottleneck_dimension ,kernel_size=3, padding=1, stride=1, dilation=1)
-#         self.conv2 = Conv(in_dimension, bottleneck_dimension ,kernel_size=3, padding=2, stride=1, dilation=2)
-#         self.conv3 = Conv(in_dimension, bottleneck_dimension ,kernel_size=3, padding=3, stride=1, dilation=3)
-
-#         self.conv4 = Conv(bottleneck_dimension*3, target_dimension, kernel_size=1, padding=0, stride=1)
-#         self.conv5 = Conv(target_dimension*2 ,target_dimension , kernel_size=1, padding=0, stride=1)
-#         self.BN_1 = BatchNorm(in_channels=target_dimension, activation='ReLU')
-#         self.BN_2 = BatchNorm(in_channels=target_dimension, activation='ReLU')
-
-#         # self.mhsa = MHSA(in_channels=target_dimension, heads=4, curr_h=curr_h, curr_w=curr_w,pos_enc_type=pos_enc_type)
-
-#         # conv2_list = []
-#         # if stride != 1:
-#         #     assert stride == 2, stride
-#         #     conv2_list.append(nn.AvgPool2d(kernel_size=(2, 2), stride=(2, 2)))  # TODO: 'same' in tf.pooling
-#         # conv2_list.append(BNReLU(bottleneck_dimension, activation=activation, nonlinearity=True))
-#         # self.conv2 = nn.Sequential(*conv2_list)
-
-#         # self.conv3 = nn.Sequential(
-#         #     nn.Conv2d(bottleneck_dimension, target_dimension, kernel_size=3,padding=1, stride=1),
-#         #     BNReLU(target_dimension, nonlinearity=False, init_zero=True),
-#         # )
-
-#         # self.last_act = get_act(activation)
-
-
-#     def forward(self, x):
-#         # if self.shortcut is not None:
-#         #     shortcut = self.shortcut(x)
-#         # else:
-#         #     shortcut = x
-
-#         shortcut = self.shortcut(x)
-
-#         out = torch.cat((self.conv1(x),self.conv2(x),self.conv3(x)),dim=1)
-#         out = self.conv4(out)
-#         out = self.BN_1(out)
-
-#         out = torch.cat((out,shortcut),dim=1)
-#         out = self.conv5(out)
-#         out = self.BN_2(out)
-        
-#         # Q_h = Q_w = 8
-#         # N, C, H, W = out.shape
-#         # P_h, P_w = H // Q_h, W // Q_w
-
-#         # out = out.reshape(N * P_h * P_w, C, Q_h, Q_w)
-
-#         # out = self.mhsa(out).permute(0, 3, 1, 2) + out
-#         # out = out.permute(0, 3, 1, 2)  # back to pytorch dim order
-#         # N1, C1, H1, W1 = out.shape
-#         # out = out.reshape(N, C1, int(H), int(W))
-
-#         # out = torch.cat((out,shortcut),dim=1)
-#         # out = self.conv4(out)
-#         # out = self.BN_2(out)
-
-#         # out = out + shortcut
-#         # out = self.last_act(out)
-
-#         return out
 
 def init_weights(net, init_type='normal', gain=0.02):
     def init_func(m):
@@ -501,11 +314,87 @@ class up_conv(nn.Module):
         x = self.up(x)
         return x
 
+class Recurrent_block(nn.Module):
+    def __init__(self,ch_out,t=2):
+        super(Recurrent_block,self).__init__()
+        self.t = t
+        self.ch_out = ch_out
+        self.conv = nn.Sequential(
+            nn.Conv2d(ch_out,ch_out,kernel_size=3,stride=1,padding=1,bias=True),
+		    nn.BatchNorm2d(ch_out),
+			nn.ReLU(inplace=True)
+        )
+
+    def forward(self,x):
+        for i in range(self.t):
+
+            if i==0:
+                x1 = self.conv(x)
+            
+            x1 = self.conv(x+x1)
+        return x1
+        
+class RRCNN_block(nn.Module):
+    def __init__(self,ch_in,ch_out,t=2):
+        super(RRCNN_block,self).__init__()
+        self.RCNN = nn.Sequential(
+            Recurrent_block(ch_out,t=t),
+            Recurrent_block(ch_out,t=t)
+        )
+        self.Conv_1x1 = nn.Conv2d(ch_in,ch_out,kernel_size=1,stride=1,padding=0)
+
+    def forward(self,x):
+        x = self.Conv_1x1(x)
+        x1 = self.RCNN(x)
+        return x+x1
 
 
-def _make_bot_layer(ch_in, ch_out, w=8, h=8):
-    W = w
-    H = h
+class single_conv(nn.Module):
+    def __init__(self,ch_in,ch_out):
+        super(single_conv,self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(ch_in, ch_out, kernel_size=3,stride=1,padding=1,bias=True),
+            nn.BatchNorm2d(ch_out),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self,x):
+        x = self.conv(x)
+        return x
+
+class Attention_block(nn.Module):
+    def __init__(self,F_g,F_l,F_int):
+        super(Attention_block,self).__init__()
+        self.W_g = nn.Sequential(
+            nn.Conv2d(F_g, F_int, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(F_int)
+            )
+        
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, F_int, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(F_int)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(F_int, 1, kernel_size=1,stride=1,padding=0,bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+        
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self,g,x):
+        g1 = self.W_g(g)
+        x1 = self.W_x(x)
+        psi = self.relu(g1+x1)
+        psi = self.psi(psi)
+
+        return x*psi
+
+
+def _make_bot_layer(ch_in, ch_out):
+
+    W = H = 8
     dim_in = ch_in
     dim_out = ch_out
 
@@ -520,7 +409,7 @@ def _make_bot_layer(ch_in, ch_out, w=8, h=8):
 
 class GT_U_Net(nn.Module):
     def __init__(self,img_ch=3,output_ch=1):
-        super(U_Net,self).__init__()
+        super(GT_U_Net,self).__init__()
         
         self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
 
