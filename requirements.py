@@ -33,5 +33,5 @@ os.system('pip install paddleseg')
 
 # os.system('pip install --upgrade --force-reinstall --no-deps albumentations')
 
-os.system('pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116')
+os.system('conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia')
 
