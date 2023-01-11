@@ -1333,7 +1333,6 @@ class DATUNet(nn.Module):
         self.pool_5  = torch.nn.AvgPool2d(5 , stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
         self.pool_7  = torch.nn.AvgPool2d(7 , stride=1, padding=3, ceil_mode=False, count_include_pad=True, divisor_override=None)
         self.pool_9  = torch.nn.AvgPool2d(9 , stride=1, padding=4, ceil_mode=False, count_include_pad=True, divisor_override=None)
-        self.pool_11 = torch.nn.AvgPool2d(11, stride=1, padding=5, ceil_mode=False, count_include_pad=True, divisor_override=None)
 
         self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
         self.final_up = nn.Upsample(scale_factor=2)
@@ -1385,7 +1384,7 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = x1 + self.pool_3(x1) + self.pool_5(x1) + self.pool_7(x1) + self.pool_9(x1) + self.pool_11(x1)
+        x = x1 + self.pool_3(x1) + self.pool_5(x1) + self.pool_7(x1) + self.pool_9(x1)
 
         # x = self.final_conv1(x1)
         # x = self.final_relu1(x)
