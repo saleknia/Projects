@@ -1224,15 +1224,15 @@ class DATUNet(nn.Module):
         self.n_classes = n_classes
 
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.encoder1 = resnet.layer1
-        # self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
-        # self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
+        self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
         # self.encoder = DAT(
         #     img_size=224,
@@ -1312,20 +1312,20 @@ class DATUNet(nn.Module):
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
+        self.norm_0 = LayerNormProxy(dim=48)
         self.norm_1 = LayerNormProxy(dim=96)
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_3 = LayerNormProxy(dim=384)
-        # self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up2 = UpBlock(384, 192, nb_Conv=2)
+        # self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.final_conv = nn.Conv2d(96, n_classes, 1, padding=0)
-        self.final_up = nn.Upsample(scale_factor=4.0) 
+        self.final_conv = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_up = nn.Upsample(scale_factor=2.0) 
 
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1338,16 +1338,17 @@ class DATUNet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        # x1 = self.firstconv(x_input)
-        # x1 = self.firstbn(x1)
-        # x1 = self.firstrelu(x1)
-        # x1 = self.encoder1(x1)
-        # x1 = self.Reduce(x1)
-        # for i in range(6):
-        #     x1 = self.FAM1[i](x1)
+        x0 = self.firstconv(x_input)
+        x0 = self.firstbn(x0)
+        x0 = self.firstrelu(x0)
+        x0 = self.encoder1(x0)
+        x0 = self.Reduce(x0)
+        for i in range(6):
+            x0 = self.FAM1[i](x0)
 
         outputs = self.encoder(x_input)
 
+        x0 = self.norm_0(x0)
         x1 = self.norm_1(outputs[0])
         x2 = self.norm_2(outputs[1])
         x3 = self.norm_3(outputs[2])
@@ -1370,8 +1371,9 @@ class DATUNet(nn.Module):
 
         # x3 = self.up3(x4, x3) 
 
-        x = self.up2(x3, x2) 
-        x = self.up1(x , x1) 
+        x = self.up3(x3, x2)
+        x = self.up2(x , x1) 
+        x = self.up1(x , x0) 
 
         x = self.final_conv(x)
         x = self.final_up(x)
