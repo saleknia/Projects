@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         self.stages[3] = None
