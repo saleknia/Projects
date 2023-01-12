@@ -1265,19 +1265,17 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        # # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[8, 4, 2])
-        # self.combine = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4[0]
-
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
+
+        self.CSA_2 = HybridAttention(96, 96)
+        self.CSA_3 = HybridAttention(192, 192)
+        self.CSA_4 = HybridAttention(384, 384)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
-
-        # self.ESP_3 = DilatedParllelResidualBlockB(192, 192)
-        # self.ESP_2 = DilatedParllelResidualBlockB(96 , 96 )
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1305,9 +1303,9 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])
+        x4 = self.CSA_4(self.norm_4(outputs[2]))
+        x3 = self.CSA_3(self.norm_3(outputs[1]))
+        x2 = self.CSA_2(self.norm_2(outputs[0]))
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1324,14 +1322,8 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        # x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2]
-
         x3 = self.up3(x4, x3) 
-        # x3 = self.ESP_3(x3)
-
-        x2 = self.up2(x3, x2)
-        # x2 = self.ESP_2(x2)
-         
+        x2 = self.up2(x3, x2)         
         x1 = self.up1(x2, x1)
 
         x = self.final_conv1(x1)
@@ -1342,235 +1334,56 @@ class DATUNet(nn.Module):
         
         return x
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
 
-class CBR(nn.Module):
-    '''
-    This class defines the convolution layer with batch normalization and PReLU activation
-    '''
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
 
-    def __init__(self, nIn, nOut, kSize, stride=1):
-        '''
-        :param nIn: number of input channels
-        :param nOut: number of output channels
-        :param kSize: kernel size
-        :param stride: stride rate for down-sampling. Default is 1
-        '''
-        super().__init__()
-        padding = int((kSize - 1) / 2)
-        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
-        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
-        self.act = nn.PReLU(nOut)
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
 
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: transformed feature map
-        '''
-        output = self.conv(input)
-        output = self.bn(output)
-        output = self.act(output)
-        return output
+class Linear_Eca_block(nn.Module):
+    """docstring for Eca_block"""
+    def __init__(self):
+        super(Linear_Eca_block, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.sigmoid = nn.Sigmoid()
 
+    def forward(self, x, gamma=2, b=1):
+        #N, C, H, W = x.size()
+        y = self.avgpool(x)
+        y = self.conv1d(y.squeeze(-1).transpose(-1, -2))
+        y = y.transpose(-1, -2).unsqueeze(-1)
+        y = self.sigmoid(y)
+        return y.expand_as(x)
 
-class BR(nn.Module):
-    '''
-        This class groups the batch normalization and PReLU activation
-    '''
+class HybridAttention(nn.Module):
+    def __init__(self, in_planes, out_planes):
+        super(HybridAttention, self).__init__()
 
-    def __init__(self, nOut):
-        '''
-        :param nOut: output feature maps
-        '''
-        super().__init__()
-        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
-        self.act = nn.PReLU(nOut)
+        self.eca = Linear_Eca_block()
+        self.conv = BasicConv2d(in_planes // 2, out_planes // 2, 3, 1, 1)
+        self.down_c = BasicConv2d(out_planes//2, 1, 3, 1, padding=1)
+        self.sigmoid = nn.Sigmoid()
 
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: normalized and thresholded feature map
-        '''
-        output = self.bn(input)
-        output = self.act(output)
-        return output
-
-
-class CB(nn.Module):
-    '''
-       This class groups the convolution and batch normalization
-    '''
-
-    def __init__(self, nIn, nOut, kSize, stride=1):
-        '''
-        :param nIn: number of input channels
-        :param nOut: number of output channels
-        :param kSize: kernel size
-        :param stride: optinal stide for down-sampling
-        '''
-        super().__init__()
-        padding = int((kSize - 1) / 2)
-        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
-        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
-
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: transformed feature map
-        '''
-        output = self.conv(input)
-        output = self.bn(output)
-        return output
-
-
-class C(nn.Module):
-    '''
-    This class is for a convolutional layer.
-    '''
-
-    def __init__(self, nIn, nOut, kSize, stride=1):
-        '''
-        :param nIn: number of input channels
-        :param nOut: number of output channels
-        :param kSize: kernel size
-        :param stride: optional stride rate for down-sampling
-        '''
-        super().__init__()
-        padding = int((kSize - 1) / 2)
-        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
-
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: transformed feature map
-        '''
-        output = self.conv(input)
-        return output
-
-
-class CDilated(nn.Module):
-    '''
-    This class defines the dilated convolution, which can maintain feature map size
-    '''
-
-    def __init__(self, nIn, nOut, kSize, stride=1, d=1):
-        '''
-        :param nIn: number of input channels
-        :param nOut: number of output channels
-        :param kSize: kernel size
-        :param stride: optional stride rate for down-sampling
-        :param d: optional dilation rate
-        '''
-        super().__init__()
-        padding = int((kSize - 1) / 2) * d
-        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False,
-                              dilation=d)
-
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: transformed feature map
-        '''
-        output = self.conv(input)
-        return output
-
-
-class DownSamplerB(nn.Module):
-    def __init__(self, nIn, nOut):
-        super().__init__()
-        n = int(nOut / 5)
-        n1 = nOut - 4 * n
-        self.c1 = C(nIn, n, 3, 2)
-        self.d1 = CDilated(n, n1, 3, 1, 1)
-        self.d2 = CDilated(n, n, 3, 1, 2)
-        self.d4 = CDilated(n, n, 3, 1, 4)
-        self.d8 = CDilated(n, n, 3, 1, 8)
-        self.d16 = CDilated(n, n, 3, 1, 16)
-        self.bn = nn.BatchNorm2d(nOut, eps=1e-3)
-        self.act = nn.PReLU(nOut)
-
-    def forward(self, input):
-        output1 = self.c1(input)
-        d1 = self.d1(output1)
-        d2 = self.d2(output1)
-        d4 = self.d4(output1)
-        d8 = self.d8(output1)
-        d16 = self.d16(output1)
-
-        # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
-        # by the large effective receptive filed of the ESP module
-        add1 = d2
-        add2 = add1 + d4
-        add3 = add2 + d8
-        add4 = add3 + d16
-
-        combine = torch.cat([d1, add1, add2, add3, add4], 1)
-        # combine_in_out = input + combine  #shotcut path
-        output = self.bn(combine)
-        output = self.act(output)
-        return output
-
-
-# ESP block
-class DilatedParllelResidualBlockB(nn.Module):
-    '''
-    This class defines the ESP block, which is based on the following principle
-        Reduce ---> Split ---> Transform --> Merge
-    '''
-
-    def __init__(self, nIn, nOut, add=True):
-        '''
-        :param nIn: number of input channels
-        :param nOut: number of output channels
-        :param add: if true, add a residual connection through identity operation. You can use projection too as
-                in ResNet paper, but we avoid to use it if the dimensions are not the same because we do not want to
-                increase the module complexity
-        '''
-        super().__init__()
-        n = int(nOut / 5)  # K=5,
-        n1 = nOut - 4 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
-        self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
-
-        # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
-        self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
-        self.d16 = CDilated(n, n, 3, 1, 16)  # dilation rate of 2^4
-        self.bn = BR(nOut)
-        self.add = add
-
-    def forward(self, input):
-        '''
-        :param input: input feature map
-        :return: transformed feature map
-        '''
-        # reduce
-        output1 = self.c1(input)
-        # split and transform
-        d1 = self.d1(output1)
-        d2 = self.d2(output1)
-        d4 = self.d4(output1)
-        d8 = self.d8(output1)
-        d16 = self.d16(output1)
-
-        # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
-        # by the large effective receptive filed of the ESP module
-        add1 = d2
-        add2 = add1 + d4
-        add3 = add2 + d8
-        add4 = add3 + d16
-
-        # merge
-        combine = torch.cat([d1, add1, add2, add3, add4], 1)
-
-        # if residual version
-        if self.add:
-            combine = input + combine
-        output = self.bn(combine)
-        return output
+    def forward(self, x):
+        c = x.shape[1]
+        x_t, x_c = torch.split(x, c // 2, dim=1)
+        sa = self.sigmoid(self.down_c(x_c))
+        gc = self.eca(x_t)
+        x_c = self.conv(x_c)
+        x_c = x_c * gc
+        x_t = x_t * sa
+        x = torch.cat((x_t, x_c), 1)
+        return x
 
 
 # class DATUNet(nn.Module):
