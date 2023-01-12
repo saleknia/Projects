@@ -57,9 +57,21 @@ class Evaluator(object):
         pre_image=pre_image.int().detach().cpu().numpy()
         for i in range(gt_image.shape[0]):
             tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
-            Acc = (tp + tn) / (tp + tn + fp + fn)
-            IoU = (tp) / (tp + fp + fn)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            Acc_F = (tp + tn) / (tp + tn + fp + fn)
+            IoU_F = (tp) / (tp + fp + fn)
+            Dice_F =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            tn, fp, fn, tp = confusion_matrix(np.invert(gt_image[i]).reshape(-1), np.invert(pre_image[i]).reshape(-1)).ravel()
+
+            Acc_B = (tp + tn) / (tp + tn + fp + fn)
+            IoU_B = (tp) / (tp + fp + fn)
+            Dice_B =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            Acc = 0.5 * (Acc_F+Acc_B)
+            IoU = 0.5 * (IoU_B+IoU_F)
+            Dice = 0.5 * (Dice_B+Dice_F)
+
             self.acc.append(Acc)
             self.iou.append(IoU)
             self.dice.append(Dice)
