@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         self.stages[3] = None
@@ -971,8 +971,8 @@ class HighResolutionModule(nn.Module):
 # HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [96, 192, 384]
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1240,33 +1240,6 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        self.encoder = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
-
-        
         # self.encoder = DAT(
         #     img_size=224,
         #     patch_size=4,
@@ -1274,8 +1247,8 @@ class DATUNet(nn.Module):
         #     expansion=4,
         #     dim_stem=96,
         #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 18, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #     depths=[2, 2, 6, 2],
+        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
         #     heads=[3, 6, 12, 24],
         #     window_sizes=[7, 7, 7, 7] ,
         #     groups=[-1, -1, 3, 6],
@@ -1292,6 +1265,33 @@ class DATUNet(nn.Module):
         #     attn_drop_rate=0.0,
         #     drop_path_rate=0.2,
         # )
+
+        
+        self.encoder = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        )
 
 
         # self.encoder = CrossFormer(
@@ -1358,9 +1358,9 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x = [x2, x3, x4]
+        x = [x1, x2, x3, x4]
         x_fuse = []
-        num_branches = 3
+        num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
@@ -1370,9 +1370,9 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2]
+        # x2, x3, x4 = x_fuse[0], x_fuse[1], x_fuse[2]
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
