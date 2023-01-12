@@ -1268,10 +1268,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.CSA_2 = HybridAttention(96, 96)
-        self.CSA_3 = HybridAttention(192, 192)
-        self.CSA_4 = HybridAttention(384, 384)
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1303,9 +1299,9 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.CSA_4(self.norm_4(outputs[2]))
-        x3 = self.CSA_3(self.norm_3(outputs[1]))
-        x2 = self.CSA_2(self.norm_2(outputs[0]))
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1334,56 +1330,8 @@ class DATUNet(nn.Module):
         
         return x
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
 
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
 
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.bn(x)
-        return x
-
-class Linear_Eca_block(nn.Module):
-    """docstring for Eca_block"""
-    def __init__(self):
-        super(Linear_Eca_block, self).__init__()
-        self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x, gamma=2, b=1):
-        #N, C, H, W = x.size()
-        y = self.avgpool(x)
-        y = self.conv1d(y.squeeze(-1).transpose(-1, -2))
-        y = y.transpose(-1, -2).unsqueeze(-1)
-        y = self.sigmoid(y)
-        return y.expand_as(x)
-
-class HybridAttention(nn.Module):
-    def __init__(self, in_planes, out_planes):
-        super(HybridAttention, self).__init__()
-
-        self.eca = Linear_Eca_block()
-        self.conv = BasicConv2d(in_planes // 2, out_planes // 2, 3, 1, 1)
-        self.down_c = BasicConv2d(out_planes//2, 1, 3, 1, padding=1)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x):
-        c = x.shape[1]
-        x_t, x_c = torch.split(x, c // 2, dim=1)
-        sa = self.sigmoid(self.down_c(x_c))
-        gc = self.eca(x_t)
-        x_c = self.conv(x_c)
-        x_c = x_c * gc
-        x_t = x_t * sa
-        x = torch.cat((x_t, x_c), 1)
-        return x
 
 
 # class DATUNet(nn.Module):
