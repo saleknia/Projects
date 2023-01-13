@@ -1300,10 +1300,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        # self.sigmoid_1 = nn.Sigmoid()
-        # self.sigmoid_2 = nn.Sigmoid()
-        # self.sigmoid_3 = nn.Sigmoid()
-        # self.sigmoid_4 = nn.Sigmoid()
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
