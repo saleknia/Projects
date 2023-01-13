@@ -1300,10 +1300,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.AttentionBlock_1 = AttentionBlock(F_g=48 , F_l=48 , n_coefficients=48)
-        self.AttentionBlock_2 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=96)
-        self.AttentionBlock_3 = AttentionBlock(F_g=192, F_l=192, n_coefficients=192)
-        self.AttentionBlock_4 = AttentionBlock(F_g=384, F_l=384, n_coefficients=384)
+        self.AttentionBlock_1 = AttentionBlock(F_g=48 , F_l=48 , n_coefficients=24)
+        self.AttentionBlock_2 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48)
+        self.AttentionBlock_3 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96)
+        self.AttentionBlock_4 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
