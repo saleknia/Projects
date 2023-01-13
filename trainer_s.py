@@ -218,7 +218,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss_att = 0.0
                 loss = loss_ce + loss_dice 
             else:
-                loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1), weight=weight)
+                # loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1), weight=weight)
+                loss_ce = nn.functional.binary_cross_entropy_with_logits(outputs, targets.unsqueeze(dim=1), weight=weight, reduction='mean')
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
                 loss_att = 0.0
                 loss = loss_ce + loss_dice + loss_att
