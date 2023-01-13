@@ -2723,7 +2723,7 @@ class Morphology(nn.Module):
         self.beta = beta
         self.type = type
 
-        self.weight = nn.Parameter(torch.zeros(out_channels, in_channels, kernel_size, kernel_size), requires_grad=True)
+        self.weight = nn.Parameter(torch.zeros(out_channels, in_channels, kernel_size, kernel_size), requires_grad=False, device='cuda')
         self.unfold = nn.Unfold(kernel_size, dilation=1, padding=0, stride=1)
 
     def forward(self, x):
