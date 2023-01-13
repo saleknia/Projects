@@ -1155,47 +1155,15 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
 
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
+class PEE(nn.Module):
 
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out
+    def __init__(self, in_channels):
+        super(PEE, self).__init__()
+        self.pool_5 = torch.nn.AvgPool2d(5, stride=1, padding=2, ceil_mode=False, count_include_pad=True, divisor_override=None)
+    def forward(self, x):
+        pool_5 = x - self.pool_5(x)
+        return pool_5
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1300,11 +1268,6 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.AttentionBlock_1 = AttentionBlock(F_g=48 , F_l=48 , n_coefficients=48)
-        self.AttentionBlock_2 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=96)
-        self.AttentionBlock_3 = AttentionBlock(F_g=192, F_l=192, n_coefficients=192)
-        self.AttentionBlock_4 = AttentionBlock(F_g=384, F_l=384, n_coefficients=384)
-
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1353,12 +1316,7 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
-
-        x1 = self.AttentionBlock_1(gate=x_fuse[0], skip_connection=x1) + (x_fuse[0])
-        x2 = self.AttentionBlock_2(gate=x_fuse[1], skip_connection=x2) + (x_fuse[1])
-        x3 = self.AttentionBlock_3(gate=x_fuse[2], skip_connection=x3) + (x_fuse[2])
-        x4 = self.AttentionBlock_4(gate=x_fuse[3], skip_connection=x4) + (x_fuse[3])
+        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)         
