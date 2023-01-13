@@ -1300,10 +1300,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.AttentionBlock_1 = AttentionBlock(F_g=48 , F_l=48 , n_coefficients=24)
-        self.AttentionBlock_2 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48)
-        self.AttentionBlock_3 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96)
-        self.AttentionBlock_4 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -1355,10 +1355,10 @@ class DATUNet(nn.Module):
 
         # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x1 = self.AttentionBlock_1(gate=x_fuse[0], skip_connection=x1) + (x_fuse[0])
-        x2 = self.AttentionBlock_2(gate=x_fuse[1], skip_connection=x2) + (x_fuse[1])
-        x3 = self.AttentionBlock_3(gate=x_fuse[2], skip_connection=x3) + (x_fuse[2])
-        x4 = self.AttentionBlock_4(gate=x_fuse[3], skip_connection=x4) + (x_fuse[3])
+        x1 = ((1-self.sigmoid_1(x_fuse[0]))*x1) + (x_fuse[0])
+        x2 = ((1-self.sigmoid_2(x_fuse[1]))*x2) + (x_fuse[1])
+        x3 = ((1-self.sigmoid_3(x_fuse[2]))*x3) + (x_fuse[2])
+        x4 = ((1-self.sigmoid_4(x_fuse[3]))*x4) + (x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)         
