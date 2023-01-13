@@ -1355,10 +1355,10 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        # x1 = ((1-self.sigmoid_1(x_fuse[0]))*x1) + (x_fuse[0])
-        # x2 = ((1-self.sigmoid_2(x_fuse[1]))*x2) + (x_fuse[1])
-        # x3 = ((1-self.sigmoid_3(x_fuse[2]))*x3) + (x_fuse[2])
-        # x4 = ((1-self.sigmoid_4(x_fuse[3]))*x4) + (x_fuse[3])
+        x1 = ((1-self.sigmoid_1(x_fuse[0]))*x1) + (x_fuse[0]) + x1
+        x2 = ((1-self.sigmoid_2(x_fuse[1]))*x2) + (x_fuse[1]) + x2
+        x3 = ((1-self.sigmoid_3(x_fuse[2]))*x3) + (x_fuse[2]) + x3
+        x4 = ((1-self.sigmoid_4(x_fuse[3]))*x4) + (x_fuse[3]) + x4
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)         
