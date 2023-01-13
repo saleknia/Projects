@@ -205,7 +205,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
-        boundary = (targets.cpu() - erosion(targets.cpu())).cuda()
+        boundary = targets.unsqueeze(dim=1)
+        boundary = boundary-erosion(boundary)
         weight = boundary + 1
 
         inputs = inputs.float()
