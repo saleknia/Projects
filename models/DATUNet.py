@@ -479,10 +479,10 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        self.stages[3] = None
+        # self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -545,10 +545,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 2:
+            if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -1000,33 +1000,6 @@ class DATUNet(nn.Module):
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
 
-        # self.encoder = DAT(
-        #     img_size=224,
-        #     patch_size=4,
-        #     num_classes=1000,
-        #     expansion=4,
-        #     dim_stem=96,
-        #     dims=[96, 192, 384, 768],
-        #     depths=[2, 2, 6, 2],
-        #     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #     heads=[3, 6, 12, 24],
-        #     window_sizes=[7, 7, 7, 7] ,
-        #     groups=[-1, -1, 3, 6],
-        #     use_pes=[False, False, True, True],
-        #     dwc_pes=[False, False, False, False],
-        #     strides=[-1, -1, 1, 1],
-        #     sr_ratios=[-1, -1, -1, -1],
-        #     offset_range_factor=[-1, -1, 2, 2],
-        #     no_offs=[False, False, False, False],
-        #     fixed_pes=[False, False, False, False],
-        #     use_dwc_mlps=[False, False, False, False],
-        #     use_conv_patches=False,
-        #     drop_rate=0.0,
-        #     attn_drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        # )
-
-        
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -1034,8 +1007,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 6, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -1050,8 +1023,7 @@ class DATUNet(nn.Module):
             use_conv_patches=False,
             drop_rate=0.0,
             attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        )
+            drop_path_rate=0.2)
 
 
         # self.encoder = CrossFormer(
@@ -1074,24 +1046,16 @@ class DATUNet(nn.Module):
         #                         merge_size=[[2, 4], [2,4], [2, 4]]
         #                         )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
-        self.norm_4_1 = LayerNormProxy(dim=384)
-        self.norm_3_1 = LayerNormProxy(dim=192)
-        self.norm_2_1 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
+        self.norm_0 = LayerNormProxy(dim=48)
 
-        self.ASPP_4 = ASPP(384)
-        self.ASPP_3 = ASPP(192)
-        self.ASPP_2 = ASPP(96)
-
-        self.norm_4_2 = LayerNormProxy(dim=384)
-        self.norm_3_2 = LayerNormProxy(dim=192)
-        self.norm_2_2 = LayerNormProxy(dim=96)
-
-        self.norm_1 = LayerNormProxy(dim=48)
-
-        
+        self.up4 = UpBlock(768, 384, nb_Conv=2)      
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1108,45 +1072,42 @@ class DATUNet(nn.Module):
         B, C, H, W = x.shape
 
 
-        x1 = self.firstconv(x_input)
-        x1 = self.firstbn(x1)
-        x1 = self.firstrelu(x1)
-        x1 = self.encoder1(x1)
-        x1 = self.Reduce(x1)
+        x0 = self.firstconv(x_input)
+        x0 = self.firstbn(x0)
+        x0 = self.firstrelu(x0)
+        x0 = self.encoder1(x0)
+        x0 = self.Reduce(x0)
         for i in range(6):
-            x1 = self.FAM1[i](x1)
+            x0 = self.FAM1[i](x0)
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4_1(outputs[2])
-        x3 = self.norm_3_1(outputs[1])
-        x2 = self.norm_2_1(outputs[0])  
+        x4 = self.norm_4(outputs[3])
+        x3 = self.norm_3(outputs[2])
+        x2 = self.norm_2(outputs[1])     
+        x1 = self.norm_1(outputs[0])
+        x0 = self.norm_0(x0)
 
-        x4 = self.norm_4_2(self.ASPP_4(x4))
-        x3 = self.norm_3_2(self.ASPP_3(x3))        
-        x2 = self.norm_2_2(self.ASPP_2(x2))        
+        #x = [x1, x2, x3, x4]
+        #x_fuse = []
+        #num_branches = 4
+        #for i, fuse_outer in enumerate(self.fuse_layers):
+        #    y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #    for j in range(1, num_branches):
+        #        if i == j:
+        #            y = y + x[j]
+        #        else:
+        #            y = y + fuse_outer[j](x[j])
+        #    x_fuse.append(self.fuse_act(y))
 
-        x1 = self.norm_1(x1)
+        #x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        x3 = self.up4(x4, x3) 
+        x3 = self.up3(x2, x3) 
+        x2 = self.up2(x1, x2)         
+        x0 = self.up1(x0, x1)
 
-        x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
-
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2)         
-        x1 = self.up1(x2, x1)
-
-        x = self.final_conv1(x1)
+        x = self.final_conv1(x0)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
