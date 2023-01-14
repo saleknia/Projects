@@ -950,10 +950,10 @@ class ASPP(nn.Module):
     def __init__(self, inplanes):
         super(ASPP, self).__init__()
 
-        self.aspp1 = _ASPPModule(inplanes, inplanes, 1, padding=0, 1)
-        self.aspp2 = _ASPPModule(inplanes, inplanes, 3, padding=3, 3)
-        self.aspp3 = _ASPPModule(inplanes, inplanes, 3, padding=5, 5)
-        self.aspp4 = _ASPPModule(inplanes, inplanes, 3, padding=7, 7)
+        self.aspp1 = _ASPPModule(inplanes, inplanes, 1, padding=0, dilation=1)
+        self.aspp2 = _ASPPModule(inplanes, inplanes, 3, padding=3, dilation=3)
+        self.aspp3 = _ASPPModule(inplanes, inplanes, 3, padding=5, dilation=5)
+        self.aspp4 = _ASPPModule(inplanes, inplanes, 3, padding=7, dilation=7)
 
         self.conv1 = nn.Conv2d(inplanes*4, inplanes, 1, bias=False)
         self.bn1 = nn.BatchNorm2dBatchNorm(inplanes)
