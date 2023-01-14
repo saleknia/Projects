@@ -1291,8 +1291,8 @@ class DATUNet(nn.Module):
         x1 = self.firstrelu(x1)
         x1 = self.encoder1(x1)
         x1 = self.Reduce(x1)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
+        # for i in range(6):
+        #     x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
