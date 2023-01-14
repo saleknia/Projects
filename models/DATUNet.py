@@ -1228,7 +1228,7 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.conv3(x)
         x = self.norm3(x)
         x = self.relu3(x)
-        return 
+        return x
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
