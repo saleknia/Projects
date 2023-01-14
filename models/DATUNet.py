@@ -973,6 +973,85 @@ class ASPP(nn.Module):
 
         return x
 
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+        
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
+        
+        embedding_dim = 48
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+        
+        self.up_4 = nn.Upsample(16)
+        self.up_3 = nn.Upsample(8)
+        self.up_2 = nn.Upsample(4)
+        self.up_1 = nn.Upsample(2)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+    def forward(self, c1, c2, c3, c4):
+        c1, c2, c3, c4 = x
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up_4(c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up_3(c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up_2(c2)
+        
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+        _c1 = self.up_1(c1)
+        
+        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        return x
+
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1055,10 +1134,12 @@ class DATUNet(nn.Module):
         self.norm_1 = LayerNormProxy(dim=96)
         self.norm_0 = LayerNormProxy(dim=48)
 
-        self.up4 = UpBlock(768, 384, nb_Conv=2)      
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.decode = SegFormerHead()
+
+        # self.up4 = UpBlock(768, 384, nb_Conv=2)      
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1088,26 +1169,28 @@ class DATUNet(nn.Module):
         x1 = self.norm_1(outputs[0])
         x0 = self.norm_0(x0)
 
-        #x = [x1, x2, x3, x4]
-        #x_fuse = []
-        #num_branches = 4
-        #for i, fuse_outer in enumerate(self.fuse_layers):
-        #    y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #    for j in range(1, num_branches):
-        #        if i == j:
-        #            y = y + x[j]
-        #        else:
-        #            y = y + fuse_outer[j](x[j])
-        #    x_fuse.append(self.fuse_act(y))
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
-        #x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
 
-        x3 = self.up4(x4, x3) 
-        x2 = self.up3(x3, x2) 
-        x1 = self.up2(x2, x1)         
-        x0 = self.up1(x1, x0)
+        # x3 = self.up4(x4, x3) 
+        # x2 = self.up3(x3, x2) 
+        # x1 = self.up2(x2, x1)         
+        # x0 = self.up1(x1, x0)
 
-        x = self.final_conv1(x0)
+        x = self.decode(x0, x1, x2, x3, x4)
+
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
