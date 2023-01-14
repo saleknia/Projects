@@ -937,7 +937,7 @@ class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
         super(_ASPPModule, self).__init__()
         self.atrous_conv = nn.Conv2d(inplanes, planes, kernel_size=kernel_size, stride=1, padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm(planes)
+        self.bn = nn.BatchNorm2d(planes)
         self.relu = nn.ReLU()
 
     def forward(self, x):
@@ -956,7 +956,7 @@ class ASPP(nn.Module):
         self.aspp4 = _ASPPModule(inplanes, inplanes, 3, padding=7, dilation=7)
 
         self.conv1 = nn.Conv2d(inplanes*4, inplanes, 1, bias=False)
-        self.bn1 = nn.BatchNorm2dBatchNorm(inplanes)
+        self.bn1 = nn.BatchNorm2d(inplanes)
         self.relu = nn.ReLU()
 
     def forward(self, x):
