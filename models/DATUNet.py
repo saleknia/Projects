@@ -1038,19 +1038,25 @@ class SegFormerHead(nn.Module):
         n, _, h, w = c4.shape
 
         _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up_4(c4)
+        _c4 = self.up_4(_c4)
 
         _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up_3(c3)
+        _c3 = self.up_3(_c3)
 
         _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up_2(c2)
+        _c2 = self.up_2(_c2)
         
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-        _c1 = self.up_1(c1)
+        _c1 = self.up_1(_c1)
         
         _c0 = self.linear_c0(c0).permute(0,2,1).reshape(n, -1, c0.shape[2], c0.shape[3])
-        _c0 = self.up_0(c0)
+        _c0 = self.up_0(_c0)
+
+        print(_c4.shape)
+        print(_c3.shape)
+        print(_c2.shape)
+        print(_c1.shape)
+        print(_c0.shape)
 
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1, _c0], dim=1))
 
