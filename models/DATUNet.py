@@ -1391,9 +1391,9 @@ class DATUNet(nn.Module):
         # x2 = self.up2(x3, x2)         
         # x1 = self.up1(x2, x1)
 
-        x3 = self.decoder_3(x4) + x3
-        x2 = self.decoder_2(x3) + x2
-        x1 = self.decoder_1(x2) + x1
+        x3 = self.decoder3(x4) + x3
+        x2 = self.decoder2(x3) + x2
+        x1 = self.decoder1(x2) + x1
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
