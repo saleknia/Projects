@@ -146,18 +146,18 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w64', pretrained=True, features_only=True)
+        self.encoder_1 = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder_1.incre_modules = None
         self.encoder_1.stage4 = None
 
-        self.up2 = UpBlock(256, 128, nb_Conv=2)
-        self.up1 = UpBlock(128, 64 , nb_Conv=2)
+        self.up2 = UpBlock(128, 64, nb_Conv=2)
+        self.up1 = UpBlock(64 , 32, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(64, 64, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(64, 32, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(32, n_classes, 3, padding=1)
+        self.final_conv_out = nn.Conv2d(16, n_classes, 3, padding=1)
         self.final_up_sample = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
