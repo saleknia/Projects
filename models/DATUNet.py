@@ -1143,10 +1143,10 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.conv_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2)
-        self.conv_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2)
-        self.conv_2 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2)
-        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48 , nb_Conv=2)
+        self.conv_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, padding=1)
+        self.conv_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, padding=1)
+        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48 , nb_Conv=2, padding=1)
 
         self.PSA_4 = ParallelPolarizedSelfAttention(384)
         self.PSA_3 = ParallelPolarizedSelfAttention(192)
