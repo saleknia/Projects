@@ -1353,7 +1353,7 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4, x5 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3]), x5 + (x_fuse[4])
 
-        x4 = self.up3(x5, x4)      
+        x4 = self.up4(x5, x4)      
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)         
         x1 = self.up1(x2, x1)
