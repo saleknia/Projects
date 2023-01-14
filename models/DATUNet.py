@@ -972,7 +972,8 @@ class HighResolutionModule(nn.Module):
 
 def make_fuse_layers():
     num_branches = 4
-    num_in_chs = [48, 96, 192, 384]
+    # num_in_chs = [48, 96, 192, 384]
+    num_in_chs = [48, 48, 48, 48]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1333,18 +1334,27 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.norm_4 = LayerNormProxy(dim=384)
-        self.norm_3 = LayerNormProxy(dim=192)
-        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_4_1 = LayerNormProxy(dim=384)
+        self.norm_3_1 = LayerNormProxy(dim=192)
+        self.norm_2_1 = LayerNormProxy(dim=96)
+
+        self.reduce_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
+
+        self.norm_4_2 = LayerNormProxy(dim=48)
+        self.norm_3_2 = LayerNormProxy(dim=48)
+        self.norm_2_2 = LayerNormProxy(dim=48)
+
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.decoder3 = DecoderBottleneckLayer(384, 192)
-        self.decoder2 = DecoderBottleneckLayer(192, 96 )
-        self.decoder1 = DecoderBottleneckLayer(96 , 48 )
+        # self.decoder3 = DecoderBottleneckLayer(384, 192)
+        # self.decoder2 = DecoderBottleneckLayer(192, 96 )
+        # self.decoder1 = DecoderBottleneckLayer(96 , 48 )
         
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48, nb_Conv=2)
+        self.up3 = UpBlock(48, 48, nb_Conv=2)
+        self.up2 = UpBlock(48, 48, nb_Conv=2)
+        self.up1 = UpBlock(48, 48, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1368,9 +1378,14 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])
+        x4 = self.norm_4_1(outputs[2])
+        x3 = self.norm_3_1(outputs[1])
+        x2 = self.norm_2_1(outputs[0])
+
+        x4 = self.norm_4_2(self.reduce_4(x4))
+        x3 = self.norm_3_2(self.reduce_3(x3))
+        x2 = self.norm_2_2(self.reduce_2(x2))
+                      
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
@@ -1387,13 +1402,13 @@ class DATUNet(nn.Module):
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
        
-        # x3 = self.up3(x4, x3) 
-        # x2 = self.up2(x3, x2)         
-        # x1 = self.up1(x2, x1)
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2)         
+        x1 = self.up1(x2, x1)
 
-        x3 = self.decoder3(x4) + x3
-        x2 = self.decoder2(x3) + x2
-        x1 = self.decoder1(x2) + x1
+        # x3 = self.decoder3(x4) + x3
+        # x2 = self.decoder2(x3) + x2
+        # x1 = self.decoder1(x2) + x1
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
