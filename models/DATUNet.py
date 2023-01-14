@@ -1024,11 +1024,11 @@ class SegFormerHead(nn.Module):
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
         self.linear_c0 = MLP(input_dim=c0_in_channels, embed_dim=embedding_dim)
      
-        self.up_4 = nn.Upsample(16)
-        self.up_3 = nn.Upsample(8)
-        self.up_2 = nn.Upsample(4)
-        self.up_1 = nn.Upsample(2)
-        self.up_0 = nn.Upsample(1)
+        self.up_4 = nn.Upsample(scale_factor=16.0)
+        self.up_3 = nn.Upsample(scale_factor=8.0)
+        self.up_2 = nn.Upsample(scale_factor=4.0)
+        self.up_1 = nn.Upsample(scale_factor=2.0)
+        self.up_0 = nn.Upsample(scale_factor=1.0)
 
         self.linear_fuse = BasicConv2d(embedding_dim*5, embedding_dim, 1)
 
@@ -1052,6 +1052,11 @@ class SegFormerHead(nn.Module):
         _c0 = self.linear_c0(c0).permute(0,2,1).reshape(n, -1, c0.shape[2], c0.shape[3])
         _c0 = self.up_0(_c0)
 
+        print(_c0.shape)
+        print(_c1.shape)
+        print(_c2.shape)
+        print(_c3.shape)
+        print(_c4.shape)
 
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1, _c0], dim=1))
 
