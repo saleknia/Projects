@@ -916,6 +916,22 @@ class BasicConv2d(nn.Module):
         x = self.relu(x)
         return x
 
+import ml_collections
+
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 336  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0.0
+    config.patch_sizes = [8,4,2]
+    config.base_channel = 48 # base channel of U-Net
+    config.n_classes = 1
+    return config
 
 class _ASPPModule(nn.Module):
     def __init__(self, inplanes, planes, kernel_size, padding, dilation):
@@ -956,23 +972,6 @@ class ASPP(nn.Module):
         x = self.relu(x)
 
         return x
-
-import ml_collections
-
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 336  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
-    config.transformer.dropout_rate = 0.0
-    config.patch_sizes = [8,4,2]
-    config.base_channel = 48 # base channel of U-Net
-    config.n_classes = 1
-    return config
 
 
 class DATUNet(nn.Module):
@@ -1078,15 +1077,20 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.norm_4 = LayerNormProxy(dim=384)
-        self.norm_3 = LayerNormProxy(dim=192)
-        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_4_1 = LayerNormProxy(dim=384)
+        self.norm_3_1 = LayerNormProxy(dim=192)
+        self.norm_2_1 = LayerNormProxy(dim=96)
+
+        self.ASPP_4 = ASPP(384)
+        self.ASPP_3 = ASPP(192)
+        self.ASPP_2 = ASPP(96)
+
+        self.norm_4_2 = LayerNormProxy(dim=384)
+        self.norm_3_2 = LayerNormProxy(dim=192)
+        self.norm_2_2 = LayerNormProxy(dim=96)
+
         self.norm_1 = LayerNormProxy(dim=48)
 
-
-        # self.decoder3 = DecoderBottleneckLayer(384, 192)
-        # self.decoder2 = DecoderBottleneckLayer(192, 96 )
-        # self.decoder1 = DecoderBottleneckLayer(96 , 48 )
         
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1114,9 +1118,14 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[2])
-        x3 = self.norm_3(outputs[1])
-        x2 = self.norm_2(outputs[0])                   
+        x4 = self.norm_4_1(outputs[2])
+        x3 = self.norm_3_1(outputs[1])
+        x2 = self.norm_2_1(outputs[0])  
+
+        x4 = self.norm_4_2(self.ASPP_4(x4))
+        x3 = self.norm_3_2(self.ASPP_3(x3))        
+        x2 = self.norm_2_2(self.ASPP_2(x2))        
+
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
