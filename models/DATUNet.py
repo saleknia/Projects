@@ -616,8 +616,8 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -1156,80 +1156,7 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
 
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out
-
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1334,18 +1261,9 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.norm_4_1 = LayerNormProxy(dim=384)
-        self.norm_3_1 = LayerNormProxy(dim=192)
-        self.norm_2_1 = LayerNormProxy(dim=96)
-
-        self.reduce_4 = ConvBatchNorm(in_channels=384, out_channels=48, kernel_size=1, padding=0)
-        self.reduce_3 = ConvBatchNorm(in_channels=192, out_channels=48, kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=96 , out_channels=48, kernel_size=1, padding=0)
-
-        self.norm_4_2 = LayerNormProxy(dim=48)
-        self.norm_3_2 = LayerNormProxy(dim=48)
-        self.norm_2_2 = LayerNormProxy(dim=48)
-
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
         # self.decoder3 = DecoderBottleneckLayer(384, 192)
@@ -1378,14 +1296,9 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4_1(outputs[2])
-        x3 = self.norm_3_1(outputs[1])
-        x2 = self.norm_2_1(outputs[0])
-
-        x4 = self.norm_4_2(self.reduce_4(x4))
-        x3 = self.norm_3_2(self.reduce_3(x3))
-        x2 = self.norm_2_2(self.reduce_2(x2))
-                      
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])                   
         x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
