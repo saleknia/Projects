@@ -28,27 +28,6 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=
         layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
 
-def _make_nDConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
-    layers = []
-    layers.append(DConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-    return nn.Sequential(*layers)
-
-class DConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
-        super(DConvBatchNorm, self).__init__()
-        self.conv = DeformableConv2d(in_channels,out_channels,kernel_size=3,stride=1,padding=1,bias=False)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -81,7 +60,7 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nDConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
