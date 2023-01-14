@@ -1033,7 +1033,6 @@ class SegFormerHead(nn.Module):
         self.linear_fuse = BasicConv2d(embedding_dim*5, embedding_dim, 1)
 
     def forward(self, c0, c1, c2, c3, c4):
-        c0, c1, c2, c3, c4 = x
 
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
