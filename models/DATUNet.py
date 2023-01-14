@@ -1270,9 +1270,9 @@ class DATUNet(nn.Module):
         # self.decoder2 = DecoderBottleneckLayer(192, 96 )
         # self.decoder1 = DecoderBottleneckLayer(96 , 48 )
         
-        self.up3 = UpBlock(48, 48, nb_Conv=2)
-        self.up2 = UpBlock(48, 48, nb_Conv=2)
-        self.up1 = UpBlock(48, 48, nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
