@@ -969,6 +969,45 @@ class SegFormerHead(nn.Module):
         return _c
 
 
+class _ASPPModule(nn.Module):
+    def __init__(self, inplanes, planes, kernel_size, padding, dilation):
+        super(_ASPPModule, self).__init__()
+        self.atrous_conv = nn.Conv2d(inplanes, planes, kernel_size=kernel_size, stride=1, padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm(planes)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.atrous_conv(x)
+        x = self.bn(x)
+        x = self.relu(x)
+        return x
+
+class ASPP(nn.Module):
+    def __init__(self, inplanes):
+        super(ASPP, self).__init__()
+
+        self.aspp1 = _ASPPModule(inplanes, inplanes, 1, padding=0, 1)
+        self.aspp2 = _ASPPModule(inplanes, inplanes, 3, padding=3, 3)
+        self.aspp3 = _ASPPModule(inplanes, inplanes, 3, padding=5, 5)
+        self.aspp4 = _ASPPModule(inplanes, inplanes, 3, padding=7, 7)
+
+        self.conv1 = nn.Conv2d(inplanes*4, inplanes, 1, bias=False)
+        self.bn1 = BatchNorm(inplanes)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x1 = self.aspp1(x)
+        x2 = self.aspp2(x)
+        x3 = self.aspp3(x)
+        x4 = self.aspp4(x)
+
+        x = torch.cat((x1, x2, x3, x4), dim=1)
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = self.relu(x)
+
+        return x
 
 import ml_collections
 
@@ -986,53 +1025,6 @@ def get_CTranS_config():
     config.base_channel = 48 # base channel of U-Net
     config.n_classes = 1
     return config
-
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-
-class ParallelPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
-
 
 
 class DATUNet(nn.Module):
@@ -1143,15 +1135,6 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.conv_4 = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, padding=1)
-        self.conv_3 = _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, padding=1)
-        self.conv_2 = _make_nConv(in_channels=96 , out_channels=96 , nb_Conv=2, padding=1)
-        self.conv_1 = _make_nConv(in_channels=48 , out_channels=48 , nb_Conv=2, padding=1)
-
-        self.PSA_4 = ParallelPolarizedSelfAttention(384)
-        self.PSA_3 = ParallelPolarizedSelfAttention(192)
-        self.PSA_2 = ParallelPolarizedSelfAttention(96)
-        self.PSA_1 = ParallelPolarizedSelfAttention(48)
 
         # self.decoder3 = DecoderBottleneckLayer(384, 192)
         # self.decoder2 = DecoderBottleneckLayer(192, 96 )
@@ -1201,11 +1184,6 @@ class DATUNet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
-
-        x1 = x1 + self.conv_1(x1-self.PSA_1(x1))
-        x2 = x2 + self.conv_2(x2-self.PSA_2(x2))        
-        x3 = x3 + self.conv_3(x3-self.PSA_3(x3))        
-        x4 = x4 + self.conv_4(x4-self.PSA_4(x4))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)         
