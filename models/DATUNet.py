@@ -479,10 +479,10 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -545,10 +545,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -623,65 +623,6 @@ class UpBlock(nn.Module):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        return x
-
-def create_aa(aa_layer, channels, stride=2, enable=True):
-    if not aa_layer or not enable:
-        return nn.Identity()
-    return aa_layer(stride) if issubclass(aa_layer, nn.AvgPool2d) else aa_layer(channels=channels, stride=stride)
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(
-            self, inplanes, planes, stride=1, downsample=None, cardinality=1, base_width=64,
-            reduce_first=1, dilation=1, first_dilation=None, act_layer=nn.ReLU, norm_layer=nn.BatchNorm2d,
-            attn_layer=None, aa_layer=None, drop_block=None, drop_path=None):
-        super(BasicBlock, self).__init__()
-
-        assert cardinality == 1, 'BasicBlock only supports cardinality of 1'
-        assert base_width == 64, 'BasicBlock does not support changing base width'
-        first_planes = planes // reduce_first
-        outplanes = planes * self.expansion
-        first_dilation = first_dilation or dilation
-        use_aa = aa_layer is not None and (stride == 2 or first_dilation != dilation)
-
-        self.conv1 = nn.Conv2d(
-            inplanes, first_planes, kernel_size=3, stride=1 if use_aa else stride, padding=first_dilation,
-            dilation=first_dilation, bias=False)
-        self.bn1 = norm_layer(first_planes)
-        self.drop_block = drop_block() if drop_block is not None else nn.Identity()
-        self.act1 = act_layer(inplace=True)
-        self.aa = create_aa(aa_layer, channels=first_planes, stride=stride, enable=use_aa)
-
-        self.conv2 = nn.Conv2d(
-            first_planes, outplanes, kernel_size=3, padding=dilation, dilation=dilation, bias=False)
-        self.bn2 = norm_layer(outplanes)
-
-        self.se = None
-        self.act2 = act_layer(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-        self.dilation = dilation
-        self.drop_path = drop_path
-
-    def zero_init_last(self):
-        nn.init.zeros_(self.bn2.weight)
-
-    def forward(self, x):
-        shortcut = x
-
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.drop_block(x)
-        x = self.act1(x)
-
-        x = self.conv2(x)
-        x = self.bn2(x)
-
-        x += shortcut
-        x = self.act2(x)
-
         return x
 
 def make_stage(multi_scale_output=True):
@@ -800,7 +741,6 @@ class HighResolutionModule(nn.Module):
 
         return x_fuse
 
-# HighResolutionModule(num_branches=3, blocks='BASIC', num_blocks=1, num_in_chs=[96, 192, 384], num_channels=[96, 192, 384], fuse_method='SUM', multi_scale_output=True)
 
 def make_fuse_layers():
     num_branches = 4
@@ -835,34 +775,6 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-def make_deformable_head():
-    deformable_layer = DAT(
-        img_size=224,
-        patch_size=4,
-        num_classes=1000,
-        expansion=4,
-        dim_stem=96,
-        dims=[96, 192, 384, 768],
-        depths=[2, 2, 6, 2],
-        stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        heads=[3, 6, 12, 24],
-        window_sizes=[7, 7, 7, 7] ,
-        groups=[-1, -1, 3, 6],
-        use_pes=[False, False, True, True],
-        dwc_pes=[False, False, False, False],
-        strides=[-1, -1, 1, 1],
-        sr_ratios=[-1, -1, -1, -1],
-        offset_range_factor=[-1, -1, 2, 2],
-        no_offs=[False, False, False, False],
-        fixed_pes=[False, False, False, False],
-        use_dwc_mlps=[False, False, False, False],
-        use_conv_patches=False,
-        drop_rate=0.0,
-        attn_drop_rate=0.0,
-        drop_path_rate=0.2,
-    ).stages[2]
-
-    return deformable_layer
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -898,24 +810,6 @@ class FAMBlock(nn.Module):
 
         return out
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        return x
-
 import ml_collections
 
 def get_CTranS_config():
@@ -933,130 +827,34 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class _ASPPModule(nn.Module):
-    def __init__(self, inplanes, planes, kernel_size, padding, dilation):
-        super(_ASPPModule, self).__init__()
-        self.atrous_conv = nn.Conv2d(inplanes, planes, kernel_size=kernel_size, stride=1, padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(planes)
-        self.relu = nn.ReLU()
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
 
-    def forward(self, x):
-        x = self.atrous_conv(x)
-        x = self.bn(x)
-        x = self.relu(x)
-        return x
+class ReversSpatialSelfAttention(nn.Module):
 
-class ASPP(nn.Module):
-    def __init__(self, inplanes):
-        super(ASPP, self).__init__()
-
-        self.aspp1 = _ASPPModule(inplanes, inplanes, 1, padding=0, dilation=1)
-        self.aspp2 = _ASPPModule(inplanes, inplanes, 3, padding=3, dilation=3)
-        self.aspp3 = _ASPPModule(inplanes, inplanes, 3, padding=5, dilation=5)
-        self.aspp4 = _ASPPModule(inplanes, inplanes, 3, padding=7, dilation=7)
-
-        self.conv1 = nn.Conv2d(inplanes*4, inplanes, 1, bias=False)
-        self.bn1 = nn.BatchNorm2d(inplanes)
-        self.relu = nn.ReLU()
-
-    def forward(self, x):
-        x1 = self.aspp1(x)
-        x2 = self.aspp2(x)
-        x3 = self.aspp3(x)
-        x4 = self.aspp4(x)
-
-        x = torch.cat((x1, x2, x3, x4), dim=1)
-
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-
-        return x
-
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        
-        
-
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        return x
-
-class MLP(nn.Module):
-    """
-    Linear Embedding
-    """
-    def __init__(self, input_dim=2048, embed_dim=768):
+    def __init__(self, channel=512):
         super().__init__()
-        self.proj = nn.Linear(input_dim, embed_dim)
+        self.softmax_spatial=nn.Softmax(-1)
+        self.sigmoid=nn.Sigmoid()
+        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.agp=nn.AdaptiveAvgPool2d((1,1))
 
     def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
-        return x
+        b, c, h, w = x.size()
 
-
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
-
-
-        c0_in_channels, c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384, 768
-        
-        embedding_dim = 48
-
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
-        self.linear_c0 = MLP(input_dim=c0_in_channels, embed_dim=embedding_dim)
-     
-        self.up_4 = nn.Upsample(scale_factor=16.0)
-        self.up_3 = nn.Upsample(scale_factor=8.0)
-        self.up_2 = nn.Upsample(scale_factor=4.0)
-        self.up_1 = nn.Upsample(scale_factor=2.0)
-        self.up_0 = nn.Upsample(scale_factor=1.0)
-
-        self.linear_fuse = BasicConv2d(embedding_dim*5, embedding_dim, 1)
-
-    def forward(self, c0, c1, c2, c3, c4):
-
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
-
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up_4(_c4)
-
-        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up_3(_c3)
-
-        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up_2(_c2)
-        
-        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-        _c1 = self.up_1(_c1)
-        
-        _c0 = self.linear_c0(c0).permute(0,2,1).reshape(n, -1, c0.shape[2], c0.shape[3])
-        _c0 = self.up_0(_c0)
-
-
-        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1, _c0], dim=1))
-
-        return x
-
+        #Reverse Spatial Self-Attention
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
+        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
+        spatial_wq=self.softmax_spatial(spatial_wq)
+        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
+        spatial_weight=1.0-self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
+        return spatial_weight
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1083,7 +881,7 @@ class DATUNet(nn.Module):
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-
+        
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -1091,8 +889,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -1107,44 +905,25 @@ class DATUNet(nn.Module):
             use_conv_patches=False,
             drop_rate=0.0,
             attn_drop_rate=0.0,
-            drop_path_rate=0.2)
+            drop_path_rate=0.2,
+        )
 
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
+        
+        self.RSA_4 = ReversSpatialSelfAttention(channel=384)
+        self.RSA_3 = ReversSpatialSelfAttention(channel=192)
+        self.RSA_2 = ReversSpatialSelfAttention(channel=96)
+        self.RSA_1 = ReversSpatialSelfAttention(channel=48)
 
-        # self.encoder = CrossFormer(
-        #                         img_size=224,
-        #                         patch_size=[4, 8, 16, 32],
-        #                         in_chans= 3,
-        #                         num_classes=1000,
-        #                         embed_dim=96,
-        #                         depths=[2, 2, 6, 2],
-        #                         num_heads=[3, 6, 12, 24],
-        #                         group_size=[7, 7, 7, 7],
-        #                         mlp_ratio=4.,
-        #                         qkv_bias=True,
-        #                         qk_scale=None,
-        #                         drop_rate=0.0,
-        #                         drop_path_rate=0.1,
-        #                         ape=False,
-        #                         patch_norm=True,
-        #                         use_checkpoint=False,
-        #                         merge_size=[[2, 4], [2,4], [2, 4]]
-        #                         )
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
-
-        self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
-        self.norm_0 = LayerNormProxy(dim=48)
-
-        self.decode = SegFormerHead()
-
-        # self.up4 = UpBlock(768, 384, nb_Conv=2)      
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1158,49 +937,49 @@ class DATUNet(nn.Module):
         B, C, H, W = x.shape
 
 
-        x0 = self.firstconv(x_input)
-        x0 = self.firstbn(x0)
-        x0 = self.firstrelu(x0)
-        x0 = self.encoder1(x0)
-        x0 = self.Reduce(x0)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
         for i in range(6):
-            x0 = self.FAM1[i](x0)
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[3])
-        x3 = self.norm_3(outputs[2])
-        x2 = self.norm_2(outputs[1])     
-        x1 = self.norm_1(outputs[0])
-        x0 = self.norm_0(x0)
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
 
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
 
-        # x1, x2, x3, x4 = x1 + (x_fuse[0]), x2 + (x_fuse[1]) , x3 + (x_fuse[2]), x4 + (x_fuse[3])
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        # x3 = self.up4(x4, x3) 
-        # x2 = self.up3(x3, x2) 
-        # x1 = self.up2(x2, x1)         
-        # x0 = self.up1(x1, x0)
+        x1 = x_fuse[0] + (self.RSA_1(x_fuse[0])*x1)
+        x2 = x_fuse[1] + (self.RSA_2(x_fuse[1])*x2)
+        x3 = x_fuse[2] + (self.RSA_3(x_fuse[2])*x3) 
+        x4 = x_fuse[3] + (self.RSA_4(x_fuse[3])*x4)
 
-        x = self.decode(x0, x1, x2, x3, x4)
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
 
-        x = self.final_conv1(x)
+        x = self.final_conv1(x1)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv(x)
-        
+
         return x
 
 import math
@@ -1881,6 +1660,214 @@ class CrossFormer(nn.Module):
         return flops, excluded_flops
 
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+class CBR(nn.Module):
+    '''
+    This class defines the convolution layer with batch normalization and PReLU activation
+    '''
+
+    def __init__(self, nIn, nOut, kSize, stride=1):
+        '''
+        :param nIn: number of input channels
+        :param nOut: number of output channels
+        :param kSize: kernel size
+        :param stride: stride rate for down-sampling. Default is 1
+        '''
+        super().__init__()
+        padding = int((kSize - 1) / 2)
+        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
+        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
+        self.act = nn.PReLU(nOut)
+
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: transformed feature map
+        '''
+        output = self.conv(input)
+        output = self.bn(output)
+        output = self.act(output)
+        return output
+
+
+class BR(nn.Module):
+    '''
+        This class groups the batch normalization and PReLU activation
+    '''
+
+    def __init__(self, nOut):
+        '''
+        :param nOut: output feature maps
+        '''
+        super().__init__()
+        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
+        self.act = nn.PReLU(nOut)
+
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: normalized and thresholded feature map
+        '''
+        output = self.bn(input)
+        output = self.act(output)
+        return output
+
+
+class CB(nn.Module):
+    '''
+       This class groups the convolution and batch normalization
+    '''
+
+    def __init__(self, nIn, nOut, kSize, stride=1):
+        '''
+        :param nIn: number of input channels
+        :param nOut: number of output channels
+        :param kSize: kernel size
+        :param stride: optinal stide for down-sampling
+        '''
+        super().__init__()
+        padding = int((kSize - 1) / 2)
+        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
+        self.bn = nn.BatchNorm2d(nOut, eps=1e-03)
+
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: transformed feature map
+        '''
+        output = self.conv(input)
+        output = self.bn(output)
+        return output
+
+
+class C(nn.Module):
+    '''
+    This class is for a convolutional layer.
+    '''
+
+    def __init__(self, nIn, nOut, kSize, stride=1):
+        '''
+        :param nIn: number of input channels
+        :param nOut: number of output channels
+        :param kSize: kernel size
+        :param stride: optional stride rate for down-sampling
+        '''
+        super().__init__()
+        padding = int((kSize - 1) / 2)
+        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False)
+
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: transformed feature map
+        '''
+        output = self.conv(input)
+        return output
+
+
+class CDilated(nn.Module):
+    '''
+    This class defines the dilated convolution, which can maintain feature map size
+    '''
+
+    def __init__(self, nIn, nOut, kSize, stride=1, d=1):
+        '''
+        :param nIn: number of input channels
+        :param nOut: number of output channels
+        :param kSize: kernel size
+        :param stride: optional stride rate for down-sampling
+        :param d: optional dilation rate
+        '''
+        super().__init__()
+        padding = int((kSize - 1) / 2) * d
+        self.conv = nn.Conv2d(nIn, nOut, (kSize, kSize), stride=stride, padding=(padding, padding), bias=False,
+                              dilation=d)
+
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: transformed feature map
+        '''
+        output = self.conv(input)
+        return output
+
+
+class DownSamplerB(nn.Module):
+    def __init__(self, nIn, nOut):
+        super().__init__()
+        n = int(nOut / 5)
+        n1 = nOut - 4 * n
+        self.c1 = C(nIn, n, 3, 2)
+        self.d1 = CDilated(n, n1, 3, 1, 1)
+        self.d2 = CDilated(n, n, 3, 1, 2)
+        self.d4 = CDilated(n, n, 3, 1, 4)
+        self.d8 = CDilated(n, n, 3, 1, 8)
+        self.d16 = CDilated(n, n, 3, 1, 16)
+        self.bn = nn.BatchNorm2d(nOut, eps=1e-3)
+        self.act = nn.PReLU(nOut)
+
+    def forward(self, input):
+        output1 = self.c1(input)
+        d1 = self.d1(output1)
+        d2 = self.d2(output1)
+        d4 = self.d4(output1)
+        d8 = self.d8(output1)
+        d16 = self.d16(output1)
+
+        # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
+        # by the large effective receptive filed of the ESP module
+        add1 = d2
+        add2 = add1 + d4
+        add3 = add2 + d8
+        add4 = add3 + d16
+
+        combine = torch.cat([d1, add1, add2, add3, add4], 1)
+        # combine_in_out = input + combine  #shotcut path
+        output = self.bn(combine)
+        output = self.act(output)
+        return output
+
+
+# ESP block
+class DilatedParllelResidualBlockB(nn.Module):
+    '''
+    This class defines the ESP block, which is based on the following principle
+        Reduce ---> Split ---> Transform --> Merge
+    '''
+
+    def __init__(self, nIn, nOut):
+        '''
+        :param nIn: number of input channels
+        :param nOut: number of output channels
+        :param add: if true, add a residual connection through identity operation. You can use projection too as
+                in ResNet paper, but we avoid to use it if the dimensions are not the same because we do not want to
+                increase the module complexity
+        '''
+        super().__init__()
+
+        self.d1 = CDilated(nIn, nIn, 3, 1, 1)  # dilation rate of 1
+        self.d3 = CDilated(nIn, nIn, 3, 1, 3)  # dilation rate of 3
+        self.d5 = CDilated(nIn, nIn, 3, 1, 5)  # dilation rate of 5
+        self.d7 = CDilated(nIn, nIn, 3, 1, 7)  # dilation rate of 7
+
+        self.Conv = ConvBatchNorm(in_channels=nIn*4, out_channels=nOut)
+        
+    def forward(self, input):
+        '''
+        :param input: input feature map
+        :return: transformed feature map
+        '''
+        d1 = self.d1(input)
+        d3 = self.d3(input)
+        d5 = self.d5(input)
+        d7 = self.d7(input)
+        # merge
+        combine = torch.cat([d1, d3, d5, d7], 1)
+        output = self.Conv(combine)
+        return output
 
 
 import torch
