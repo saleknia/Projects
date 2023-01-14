@@ -157,7 +157,7 @@ class UNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(16, n_classes, 3, padding=1)
+        self.final_conv_out = nn.Conv2d(16, n_classes, 1, padding=0)
         self.final_up_sample = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
