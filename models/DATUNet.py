@@ -972,8 +972,7 @@ class HighResolutionModule(nn.Module):
 
 def make_fuse_layers():
     num_branches = 4
-    # num_in_chs = [48, 96, 192, 384]
-    num_in_chs = [48, 48, 48, 48]
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
