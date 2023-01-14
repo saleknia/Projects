@@ -1052,11 +1052,6 @@ class SegFormerHead(nn.Module):
         _c0 = self.linear_c0(c0).permute(0,2,1).reshape(n, -1, c0.shape[2], c0.shape[3])
         _c0 = self.up_0(_c0)
 
-        print(_c0.shape)
-        print(_c1.shape)
-        print(_c2.shape)
-        print(_c3.shape)
-        print(_c4.shape)
 
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1, _c0], dim=1))
 
