@@ -662,11 +662,11 @@ class UNet_out(nn.Module):
         x3 = self.down3(x2)
         x4 = self.down4(x3)
 
-        print(x0.shape)
-        print(x1.shape)
-        print(x2.shape)
-        print(x3.shape)
-        print(x4.shape)
+        # print(x0.shape)
+        # print(x1.shape)
+        # print(x2.shape)
+        # print(x3.shape)
+        # print(x4.shape)
 
         x3 = self.up4(x4, x3)
         x2 = self.up3(x3, x2)
@@ -964,7 +964,7 @@ class DATUNet(nn.Module):
         # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         # self.final_relu2 = nn.ReLU(inplace=True)
         self.unet_out = UNet_out()
-        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=1)
+        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
 
     def forward(self, x):
         # # Question here
