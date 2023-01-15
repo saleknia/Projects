@@ -834,57 +834,16 @@ from torch.nn import init
 
 class ReverseSpatialSelfAttention(nn.Module):
 
-    def __init__(self, channel=512):
+    def __init__(self):
         super().__init__()
-        # self.sigmoid=nn.Sigmoid()
-        self.attention = AttentionBlock(F_g=channel, F_l=channel, n_coefficients=channel)
+        self.sigmoid=nn.Sigmoid()
+        self.avg_pool=nn.AvgPool2d(kernel_size=5, stride=1, padding=2)
     def forward(self, x, gate):
-        # gate = 1.0 - self.sigmoid(gate)
-        # x = x * gate
-        x = self.attention(gate=gate, skip_connection=x)
+        gate = 1.0 - self.sigmoid(gate)
+        gate = gate - self.avg_pool(gate)
+        x = x * gate
         return x
 
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = 1.0 - self.psi(psi)
-        out = skip_connection * psi
-        return out
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -941,10 +900,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
         
-        self.RSA_4 = ReverseSpatialSelfAttention(channel=384)
-        self.RSA_3 = ReverseSpatialSelfAttention(channel=192)
-        self.RSA_2 = ReverseSpatialSelfAttention(channel=96)
-        self.RSA_1 = ReverseSpatialSelfAttention(channel=48)
+        self.RSA_4 = ReverseSpatialSelfAttention()
+        self.RSA_3 = ReverseSpatialSelfAttention()
+        self.RSA_2 = ReverseSpatialSelfAttention()
+        self.RSA_1 = ReverseSpatialSelfAttention()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
