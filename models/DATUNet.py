@@ -837,7 +837,7 @@ class ReverseSpatialSelfAttention(nn.Module):
     def __init__(self, channel=512):
         super().__init__()
         self.sigmoid=nn.Sigmoid()
-        self.conv = _make_nConv(in_channels=channel, out_channels=channel, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=channel, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     def forward(self, x, gate):
         gate = 1.0 - self.sigmoid(gate)
         x = x * gate
