@@ -837,10 +837,8 @@ class ReverseSpatialSelfAttention(nn.Module):
     def __init__(self):
         super().__init__()
         self.sigmoid=nn.Sigmoid()
-        self.avg_pool=nn.AvgPool2d(kernel_size=5, stride=1, padding=2)
     def forward(self, x, gate):
         gate = 1.0 - self.sigmoid(gate)
-        gate = gate - self.avg_pool(gate)
         x = x * gate
         return x
 
