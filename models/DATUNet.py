@@ -644,15 +644,15 @@ class UNet_out(nn.Module):
         super().__init__()
 
         in_channels = 48
-        self.down1 = DownBlock(48, 48, nb_Conv=2)
-        self.down2 = DownBlock(48, 48, nb_Conv=2)
-        self.down3 = DownBlock(48, 48, nb_Conv=2)
-        self.down4 = DownBlock(48, 48, nb_Conv=2)
+        self.down1 = DownBlock(48, 48, nb_Conv=1)
+        self.down2 = DownBlock(48, 48, nb_Conv=1)
+        self.down3 = DownBlock(48, 48, nb_Conv=1)
+        self.down4 = DownBlock(48, 48, nb_Conv=1)
 
-        self.up4 = Up(48, 48, nb_Conv=2)
-        self.up3 = Up(48, 48, nb_Conv=2)
-        self.up2 = Up(48, 48, nb_Conv=2)
-        self.up1 = Up(48, 48, nb_Conv=2)
+        self.up4 = Up(48, 48, nb_Conv=1)
+        self.up3 = Up(48, 48, nb_Conv=1)
+        self.up2 = Up(48, 48, nb_Conv=1)
+        self.up1 = Up(48, 48, nb_Conv=1)
 
     def forward(self, x):
         # Question here
