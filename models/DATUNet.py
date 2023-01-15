@@ -827,21 +827,6 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-
-class ReverseSpatialSelfAttention(nn.Module):
-
-    def __init__(self):
-        super().__init__()
-        self.sigmoid=nn.Sigmoid()
-    def forward(self, x, gate):
-        g = 1.0 - self.sigmoid(gate)
-        return x*g
-
-
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -854,6 +839,7 @@ class DATUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
+
 
         resnet = resnet_model.resnet34(pretrained=True)
 
@@ -894,16 +880,13 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.fuse_layers_1 = make_fuse_layers()
-        self.fuse_act_1 = nn.ReLU()
-
-        self.fuse_layers_2 = make_fuse_layers()
-        self.fuse_act_2 = nn.ReLU()
-
-        # self.RSA_4 = ReverseSpatialSelfAttention()
-        # self.RSA_3 = ReverseSpatialSelfAttention()
-        # self.RSA_2 = ReverseSpatialSelfAttention()
-        # self.RSA_1 = ReverseSpatialSelfAttention()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
+        
+        # self.RSA_4 = ReverseSpatialSelfAttention(384)
+        # self.RSA_3 = ReverseSpatialSelfAttention(192)
+        # self.RSA_2 = ReverseSpatialSelfAttention(96)
+        # self.RSA_1 = ReverseSpatialSelfAttention(48)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -915,10 +898,10 @@ class DATUNet(nn.Module):
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
 
     def forward(self, x):
         # # Question here
@@ -944,41 +927,24 @@ class DATUNet(nn.Module):
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers_1):
+        for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
                 if i == j:
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act_1(y))
+            x_fuse.append(self.fuse_act(y))
 
         x1 = x_fuse[0] + x1
         x2 = x_fuse[1] + x2
         x3 = x_fuse[2] + x3
         x4 = x_fuse[3] + x4
 
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers_2):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act_2(y))
-
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
-
-        # x1 = x_fuse[0] + self.RSA_1(x=x1, gate=x_fuse[0])
-        # x2 = x_fuse[1] + self.RSA_2(x=x2, gate=x_fuse[1])
-        # x3 = x_fuse[2] + self.RSA_3(x=x3, gate=x_fuse[2])
-        # x4 = x_fuse[3] + self.RSA_4(x=x4, gate=x_fuse[3])
+        # x1 = self.RSA_1(x=x1, gate=x_fuse[0])
+        # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
+        # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
+        # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
 
 
         x3 = self.up3(x4, x3) 
@@ -986,9 +952,9 @@ class DATUNet(nn.Module):
         x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
+        # x = self.final_relu1(x)
+        # x = self.final_conv2(x)
+        # x = self.final_relu2(x)
         x = self.final_conv(x)
 
         return x
