@@ -618,9 +618,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        skip_x = (1.0-self.sigmoid(x))*skip_x
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -925,10 +927,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
         
-        self.RSA_4 = ReverseSpatialSelfAttention(384)
-        self.RSA_3 = ReverseSpatialSelfAttention(192)
-        self.RSA_2 = ReverseSpatialSelfAttention(96)
-        self.RSA_1 = ReverseSpatialSelfAttention(48)
+        # self.RSA_4 = ReverseSpatialSelfAttention(384)
+        # self.RSA_3 = ReverseSpatialSelfAttention(192)
+        # self.RSA_2 = ReverseSpatialSelfAttention(96)
+        # self.RSA_1 = ReverseSpatialSelfAttention(48)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -978,15 +980,15 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        # x1 = x_fuse[0] + self.RSA_1(x=x1, gate=x_fuse[0])
-        # x2 = x_fuse[1] + self.RSA_2(x=x2, gate=x_fuse[1])
-        # x3 = x_fuse[2] + self.RSA_3(x=x3, gate=x_fuse[2])
-        # x4 = x_fuse[3] + self.RSA_4(x=x4, gate=x_fuse[3])
+        x1 = x_fuse[0] + x1
+        x2 = x_fuse[1] + x2
+        x3 = x_fuse[2] + x3
+        x4 = x_fuse[3] + x4
 
-        x1 = self.RSA_1(x=x1, gate=x_fuse[0])
-        x2 = self.RSA_2(x=x2, gate=x_fuse[1])
-        x3 = self.RSA_3(x=x3, gate=x_fuse[2])
-        x4 = self.RSA_4(x=x4, gate=x_fuse[3])
+        # x1 = self.RSA_1(x=x1, gate=x_fuse[0])
+        # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
+        # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
+        # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
 
 
         x3 = self.up3(x4, x3) 
