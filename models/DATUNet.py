@@ -618,11 +618,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = (1.0-self.sigmoid(x))*skip_x
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -836,41 +834,14 @@ from torch.nn import init
 
 class ReverseSpatialSelfAttention(nn.Module):
 
-    def __init__(self, in_channels):
+    def __init__(self):
         super().__init__()
-        # self.sigmoid=nn.Sigmoid()
-        self.att = SAPblock(in_channels=in_channels)
+        self.sigmoid=nn.Sigmoid()
     def forward(self, x, gate):
-        # g = 1.0 - self.sigmoid(gate)
-        # x_g = x * g
-        # x = self.att(x, x_g, g)
-        x = self.att(x, gate)
-        return x
+        g = 1.0 - self.sigmoid(gate)
+        return x*g
 
-class SAPblock(nn.Module):
-    def __init__(self, in_channels):
-        super(SAPblock, self).__init__()
-        
-        self.bn=nn.BatchNorm2d(in_channels)
-        self.conv1x1=nn.Conv2d(in_channels=2*in_channels//1, out_channels=in_channels//1,dilation=1,kernel_size=1, padding=0)        
-        self.conv3x3_1=nn.Conv2d(in_channels=in_channels//1, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1)
-        self.conv3x3_2=nn.Conv2d(in_channels=in_channels//2, out_channels=2             ,dilation=1,kernel_size=3, padding=1)    
-        self.relu=nn.ReLU(inplace=True)
 
-    def forward(self, x1, x2):
-
-        feat=torch.cat([x1, x2],dim=1)
-        feat=self.relu(self.conv1x1(feat))
-        feat=self.relu(self.conv3x3_1(feat))
-        att=self.conv3x3_2(feat)
-        att = F.softmax(att, dim=1)
-        
-        att_1=att[:,0,:,:].unsqueeze(1)
-        att_2=att[:,1,:,:].unsqueeze(1)
-
-        fusion = att_1*x1 + att_2*x2
-
-        return fusion
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -883,7 +854,6 @@ class DATUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-
 
         resnet = resnet_model.resnet34(pretrained=True)
 
@@ -924,13 +894,16 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
-        
-        # self.RSA_4 = ReverseSpatialSelfAttention(384)
-        # self.RSA_3 = ReverseSpatialSelfAttention(192)
-        # self.RSA_2 = ReverseSpatialSelfAttention(96)
-        # self.RSA_1 = ReverseSpatialSelfAttention(48)
+        self.fuse_layers_1 = make_fuse_layers()
+        self.fuse_act_1 = nn.ReLU()
+
+        self.fuse_layers_2 = make_fuse_layers()
+        self.fuse_act_2 = nn.ReLU()
+
+        # self.RSA_4 = ReverseSpatialSelfAttention()
+        # self.RSA_3 = ReverseSpatialSelfAttention()
+        # self.RSA_2 = ReverseSpatialSelfAttention()
+        # self.RSA_1 = ReverseSpatialSelfAttention()
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -971,24 +944,41 @@ class DATUNet(nn.Module):
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
+        for i, fuse_outer in enumerate(self.fuse_layers_1):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
                 if i == j:
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+            x_fuse.append(self.fuse_act_1(y))
 
         x1 = x_fuse[0] + x1
         x2 = x_fuse[1] + x2
         x3 = x_fuse[2] + x3
         x4 = x_fuse[3] + x4
 
-        # x1 = self.RSA_1(x=x1, gate=x_fuse[0])
-        # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
-        # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
-        # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers_2):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act_2(y))
+
+        x1 = x_fuse[0] + x1
+        x2 = x_fuse[1] + x2
+        x3 = x_fuse[2] + x3
+        x4 = x_fuse[3] + x4
+
+        # x1 = x_fuse[0] + self.RSA_1(x=x1, gate=x_fuse[0])
+        # x2 = x_fuse[1] + self.RSA_2(x=x2, gate=x_fuse[1])
+        # x3 = x_fuse[2] + self.RSA_3(x=x3, gate=x_fuse[2])
+        # x4 = x_fuse[3] + self.RSA_4(x=x4, gate=x_fuse[3])
 
 
         x3 = self.up3(x4, x3) 
