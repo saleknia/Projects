@@ -661,6 +661,13 @@ class UNet_out(nn.Module):
         x2 = self.down2(x1)
         x3 = self.down3(x2)
         x4 = self.down4(x3)
+
+        print(x0.shape)
+        print(x1.shape)
+        print(x2.shape)
+        print(x3.shape)
+        print(x4.shape)
+
         x3 = self.up4(x4, x3)
         x2 = self.up3(x3, x2)
         x1 = self.up2(x2, x1)
@@ -674,7 +681,7 @@ class DownBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(DownBlock, self).__init__()
         self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
 
     def forward(self, x):
         out = self.maxpool(x)
