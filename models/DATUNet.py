@@ -834,14 +834,41 @@ from torch.nn import init
 
 class ReverseSpatialSelfAttention(nn.Module):
 
-    def __init__(self):
+    def __init__(self, in_channels):
         super().__init__()
         self.sigmoid=nn.Sigmoid()
+        self.att = SAPblock(in_channels=in_channels)
     def forward(self, x, gate):
-        gate = 1.0 - self.sigmoid(gate)
-        x_g = x * gate
-        return x+x_g
+        g = 1.0 - self.sigmoid(gate)
+        x_g = x * g
+        x = self.att(x, x_g, g)
+        return x
 
+class SAPblock(nn.Module):
+    def __init__(self, in_channels):
+        super(SAPblock, self).__init__()
+        
+        self.bn=nn.BatchNorm2d(in_channels)
+        self.conv1x1=nn.Conv2d(in_channels=3*in_channels//1, out_channels=in_channels//1,dilation=1,kernel_size=1, padding=0)        
+        self.conv3x3_1=nn.Conv2d(in_channels=in_channels//1, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1)
+        self.conv3x3_2=nn.Conv2d(in_channels=in_channels//2, out_channels=3             ,dilation=1,kernel_size=3, padding=1)    
+        self.relu=nn.ReLU(inplace=True)
+
+    def forward(self, x1, x2, x3):
+
+        feat=torch.cat([x1, x2, x3],dim=1)
+        feat=self.relu(self.conv1x1(feat))
+        feat=self.relu(self.conv3x3_1(feat))
+        att=self.conv3x3_2(feat)
+        att = F.softmax(att, dim=1)
+        
+        att_1=att[:,0,:,:].unsqueeze(1)
+        att_2=att[:,1,:,:].unsqueeze(1)
+        att_3=att[:,2,:,:].unsqueeze(1)
+
+        fusion = att_1*x1 + att_2*x2 + att_3*x3
+
+        return fusion
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -898,10 +925,10 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
         
-        self.RSA_4 = ReverseSpatialSelfAttention()
-        self.RSA_3 = ReverseSpatialSelfAttention()
-        self.RSA_2 = ReverseSpatialSelfAttention()
-        self.RSA_1 = ReverseSpatialSelfAttention()
+        self.RSA_4 = ReverseSpatialSelfAttention(384)
+        self.RSA_3 = ReverseSpatialSelfAttention(192)
+        self.RSA_2 = ReverseSpatialSelfAttention(96)
+        self.RSA_1 = ReverseSpatialSelfAttention(48)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
@@ -951,10 +978,16 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + self.RSA_1(x=x1, gate=x_fuse[0])
-        x2 = x_fuse[1] + self.RSA_2(x=x2, gate=x_fuse[1])
-        x3 = x_fuse[2] + self.RSA_3(x=x3, gate=x_fuse[2])
-        x4 = x_fuse[3] + self.RSA_4(x=x4, gate=x_fuse[3])
+        # x1 = x_fuse[0] + self.RSA_1(x=x1, gate=x_fuse[0])
+        # x2 = x_fuse[1] + self.RSA_2(x=x2, gate=x_fuse[1])
+        # x3 = x_fuse[2] + self.RSA_3(x=x3, gate=x_fuse[2])
+        # x4 = x_fuse[3] + self.RSA_4(x=x4, gate=x_fuse[3])
+
+        x1 = self.RSA_1(x=x1, gate=x_fuse[0])
+        x2 = self.RSA_2(x=x2, gate=x_fuse[1])
+        x3 = self.RSA_3(x=x3, gate=x_fuse[2])
+        x4 = self.RSA_4(x=x4, gate=x_fuse[3])
+
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
