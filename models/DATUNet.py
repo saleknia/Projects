@@ -901,7 +901,7 @@ class DATUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
