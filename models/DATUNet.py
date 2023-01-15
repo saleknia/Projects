@@ -625,6 +625,61 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
+class Up(nn.Module):
+    """Upscaling then conv"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(Up, self).__init__()
+        self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+    
+    def forward(self, x, skip_x):
+        x = self.up(x) 
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
+        return x
+
+class UNet_out(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        in_channels = 48
+        self.down1 = DownBlock(48, 48, nb_Conv=2)
+        self.down2 = DownBlock(48, 48, nb_Conv=2)
+        self.down3 = DownBlock(48, 48, nb_Conv=2)
+        self.down4 = DownBlock(48, 48, nb_Conv=2)
+
+        self.up4 = Up(48, 48, nb_Conv=2)
+        self.up3 = Up(48, 48, nb_Conv=2)
+        self.up2 = Up(48, 48, nb_Conv=2)
+        self.up1 = Up(48, 48, nb_Conv=2)
+
+    def forward(self, x):
+        # Question here
+        x0 = x.float()
+        x1 = self.down1(x0)
+        x2 = self.down2(x1)
+        x3 = self.down3(x2)
+        x4 = self.down4(x3)
+        x3 = self.up4(x4, x3)
+        x2 = self.up3(x3, x2)
+        x1 = self.up2(x2, x1)
+        x0 = self.up1(x1, x0)
+
+        return x0
+
+class DownBlock(nn.Module):
+    """Downscaling with maxpool convolution"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(DownBlock, self).__init__()
+        self.maxpool = nn.MaxPool2d(2)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+    def forward(self, x):
+        out = self.maxpool(x)
+        return self.nConvs(out)
+
 def make_stage(multi_scale_output=True):
     num_modules = 1
     num_branches = 3
@@ -898,10 +953,11 @@ class DATUNet(nn.Module):
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        self.unet_out = UNet_out()
+        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -955,6 +1011,7 @@ class DATUNet(nn.Module):
         # x = self.final_relu1(x)
         # x = self.final_conv2(x)
         # x = self.final_relu2(x)
+        x = self.unet_out(x)
         x = self.final_conv(x)
 
         return x
