@@ -839,8 +839,8 @@ class ReverseSpatialSelfAttention(nn.Module):
         self.sigmoid=nn.Sigmoid()
     def forward(self, x, gate):
         gate = 1.0 - self.sigmoid(gate)
-        x = x * gate
-        return x
+        x_g = x * gate
+        return x+x_g
 
 
 class DATUNet(nn.Module):
