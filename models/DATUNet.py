@@ -836,12 +836,13 @@ class ReverseSpatialSelfAttention(nn.Module):
 
     def __init__(self, in_channels):
         super().__init__()
-        self.sigmoid=nn.Sigmoid()
+        # self.sigmoid=nn.Sigmoid()
         self.att = SAPblock(in_channels=in_channels)
     def forward(self, x, gate):
-        g = 1.0 - self.sigmoid(gate)
-        x_g = x * g
-        x = self.att(x, x_g, g)
+        # g = 1.0 - self.sigmoid(gate)
+        # x_g = x * g
+        # x = self.att(x, x_g, g)
+        x = self.att(x, gate)
         return x
 
 class SAPblock(nn.Module):
@@ -849,14 +850,14 @@ class SAPblock(nn.Module):
         super(SAPblock, self).__init__()
         
         self.bn=nn.BatchNorm2d(in_channels)
-        self.conv1x1=nn.Conv2d(in_channels=3*in_channels//1, out_channels=in_channels//1,dilation=1,kernel_size=1, padding=0)        
+        self.conv1x1=nn.Conv2d(in_channels=2*in_channels//1, out_channels=in_channels//1,dilation=1,kernel_size=1, padding=0)        
         self.conv3x3_1=nn.Conv2d(in_channels=in_channels//1, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1)
-        self.conv3x3_2=nn.Conv2d(in_channels=in_channels//2, out_channels=3             ,dilation=1,kernel_size=3, padding=1)    
+        self.conv3x3_2=nn.Conv2d(in_channels=in_channels//2, out_channels=2             ,dilation=1,kernel_size=3, padding=1)    
         self.relu=nn.ReLU(inplace=True)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x1, x2):
 
-        feat=torch.cat([x1, x2, x3],dim=1)
+        feat=torch.cat([x1, x2],dim=1)
         feat=self.relu(self.conv1x1(feat))
         feat=self.relu(self.conv3x3_1(feat))
         att=self.conv3x3_2(feat)
@@ -864,9 +865,8 @@ class SAPblock(nn.Module):
         
         att_1=att[:,0,:,:].unsqueeze(1)
         att_2=att[:,1,:,:].unsqueeze(1)
-        att_3=att[:,2,:,:].unsqueeze(1)
 
-        fusion = att_1*x1 + att_2*x2 + att_3*x3
+        fusion = att_1*x1 + att_2*x2
 
         return fusion
 
