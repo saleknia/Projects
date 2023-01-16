@@ -934,7 +934,7 @@ class SegFormerHead(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(48, 1, 3, padding=1)
+        self.final_conv  = nn.Conv2d(24, 1, 3, padding=1)
 
     def forward(self, c1, c2, c3, c4):
         ############## MLP decoder on C1-C4 ###########
