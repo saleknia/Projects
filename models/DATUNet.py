@@ -960,9 +960,7 @@ class DATUNet(nn.Module):
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.ESP_3 = DilatedParllelResidualBlockB(192,192)
-        self.PSA_3 = ParallelPolarizedSelfAttention(192)
         self.ESP_2 = DilatedParllelResidualBlockB(96,96)
-        self.PSA_2 = ParallelPolarizedSelfAttention(96)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1017,11 +1015,9 @@ class DATUNet(nn.Module):
 
         x3 = self.up3(x4, x3) 
         x3 = self.ESP_3(x3)
-        x3 = self.PSA_3(x3)
 
         x2 = self.up2(x3, x2)
         x2 = self.ESP_2(x2)
-        x2 = self.PSA_2(x2)
 
         x1 = self.up1(x2, x1) 
 
