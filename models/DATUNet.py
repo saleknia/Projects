@@ -617,13 +617,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        x = x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
 
 class Up(nn.Module):
@@ -632,7 +631,7 @@ class Up(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(Up, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -640,22 +639,37 @@ class Up(nn.Module):
         x = self.conv(x)
         return x
 
-class int_unet(nn.Module):
-    def __init__(self, channel):
+class UNet_out(nn.Module):
+    def __init__(self):
         super().__init__()
 
-        self.down1 = DownBlock(channel, channel, nb_Conv=2)
-        self.down2 = DownBlock(channel, channel, nb_Conv=2)
+        in_channels = 48
+        self.down1 = DownBlock(48, 48, nb_Conv=1)
+        self.down2 = DownBlock(48, 48, nb_Conv=1)
+        self.down3 = DownBlock(48, 48, nb_Conv=1)
+        self.down4 = DownBlock(48, 48, nb_Conv=1)
 
-        self.up2 = Up(channel, channel, nb_Conv=2)
-        self.up1 = Up(channel, channel, nb_Conv=2)
+        self.up4 = Up(48, 48, nb_Conv=1)
+        self.up3 = Up(48, 48, nb_Conv=1)
+        self.up2 = Up(48, 48, nb_Conv=1)
+        self.up1 = Up(48, 48, nb_Conv=1)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         x1 = self.down1(x0)
         x2 = self.down2(x1)
+        x3 = self.down3(x2)
+        x4 = self.down4(x3)
 
+        # print(x0.shape)
+        # print(x1.shape)
+        # print(x2.shape)
+        # print(x3.shape)
+        # print(x4.shape)
+
+        x3 = self.up4(x4, x3)
+        x2 = self.up3(x3, x2)
         x1 = self.up2(x2, x1)
         x0 = self.up1(x1, x0)
 
@@ -667,12 +681,11 @@ class DownBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(DownBlock, self).__init__()
         self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
 
     def forward(self, x):
-        out = self.nConvs(x)
         out = self.maxpool(x)
-        return out
+        return self.nConvs(out)
 
 def make_stage(multi_scale_output=True):
     num_modules = 1
@@ -946,12 +959,8 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.int_unet_3 = int_unet(192)
-        self.int_unet_2 = int_unet(96)
-        self.int_unet_1 = int_unet(48)
-
-        # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
-        # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
+        self.ESP_3 = DilatedParllelResidualBlockB(192,192)
+        self.ESP_2 = DilatedParllelResidualBlockB(96,96)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1002,16 +1011,11 @@ class DATUNet(nn.Module):
         # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
         # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
         # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
-        
+
 
         x3 = self.up3(x4, x3) 
-        x3 = self.int_unet_3(x3)
-
         x2 = self.up2(x3, x2)
-        x2 = self.int_unet_2(x2)
-
         x1 = self.up1(x2, x1) 
-        x1 = self.int_unet_1(x1)
 
         x = self.final_conv1(x1)
         # x = self.final_relu1(x)
@@ -1021,6 +1025,56 @@ class DATUNet(nn.Module):
         x = self.final_conv(x)
 
         return x
+
+
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+
+
+
+class ParallelPolarizedSelfAttention(nn.Module):
+
+    def __init__(self, channel=512):
+        super().__init__()
+        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
+        self.softmax_channel=nn.Softmax(1)
+        self.softmax_spatial=nn.Softmax(-1)
+        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
+        self.ln=nn.LayerNorm(channel)
+        self.sigmoid=nn.Sigmoid()
+        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.agp=nn.AdaptiveAvgPool2d((1,1))
+
+    def forward(self, x):
+        b, c, h, w = x.size()
+
+        #Channel-only Self-Attention
+        channel_wv=self.ch_wv(x) #bs,c//2,h,w
+        channel_wq=self.ch_wq(x) #bs,1,h,w
+        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
+        channel_wq=self.softmax_channel(channel_wq)
+        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
+        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
+        channel_out=channel_weight*x
+
+        #Spatial-only Self-Attention
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
+        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
+        spatial_wq=self.softmax_spatial(spatial_wq)
+        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
+        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
+        spatial_out=spatial_weight*x
+        out=spatial_out+channel_out
+        return out
+
 
 import torch
 import torch.nn as nn
@@ -1156,6 +1210,43 @@ class CDilated(nn.Module):
         output = self.conv(input)
         return output
 
+
+class DownSamplerB(nn.Module):
+    def __init__(self, nIn, nOut):
+        super().__init__()
+        n = int(nOut / 5)
+        n1 = nOut - 4 * n
+        self.c1 = C(nIn, n, 3, 2)
+        self.d1 = CDilated(n, n1, 3, 1, 1)
+        self.d2 = CDilated(n, n, 3, 1, 2)
+        self.d4 = CDilated(n, n, 3, 1, 4)
+        self.d8 = CDilated(n, n, 3, 1, 8)
+        self.d16 = CDilated(n, n, 3, 1, 16)
+        self.bn = nn.BatchNorm2d(nOut, eps=1e-3)
+        self.act = nn.PReLU(nOut)
+
+    def forward(self, input):
+        output1 = self.c1(input)
+        d1 = self.d1(output1)
+        d2 = self.d2(output1)
+        d4 = self.d4(output1)
+        d8 = self.d8(output1)
+        d16 = self.d16(output1)
+
+        # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
+        # by the large effective receptive filed of the ESP module
+        add1 = d2
+        add2 = add1 + d4
+        add3 = add2 + d8
+        add4 = add3 + d16
+
+        combine = torch.cat([d1, add1, add2, add3, add4], 1)
+        # combine_in_out = input + combine  #shotcut path
+        output = self.bn(combine)
+        output = self.act(output)
+        return output
+
+
 # ESP block
 class DilatedParllelResidualBlockB(nn.Module):
     '''
@@ -1163,7 +1254,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         Reduce ---> Split ---> Transform --> Merge
     '''
 
-    def __init__(self, nIn, nOut, add=True):
+    def __init__(self, nIn, nOut, add=False):
         '''
         :param nIn: number of input channels
         :param nOut: number of output channels
@@ -1178,9 +1269,9 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
+        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
         self.bn = BR(nOut)
         self.add = add
 
@@ -1199,9 +1290,9 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
-        add1 = d2   
-        add2 = d4 + add1
-        add3 = d8 + add2
+        add1 = d2
+        add2 = add1 + d4
+        add3 = add2 + d8
 
         # merge
         combine = torch.cat([d1, add1, add2, add3], 1)
