@@ -961,6 +961,7 @@ class DATUNet(nn.Module):
 
         self.ESP_3 = DilatedParllelResidualBlockB(192,192)
         self.ESP_2 = DilatedParllelResidualBlockB(96,96)
+        self.ESP_1 = DilatedParllelResidualBlockB(48,48)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1011,14 +1012,13 @@ class DATUNet(nn.Module):
         # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
         # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
         # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
-
-
-        x3 = self.up3(x4, x3) 
+        
+        x1 = self.ESP_1(x1)
+        x2 = self.ESP_2(x2)
         x3 = self.ESP_3(x3)
 
+        x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)
-        x2 = self.ESP_2(x2)
-
         x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
