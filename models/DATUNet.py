@@ -669,8 +669,9 @@ class DownBlock(nn.Module):
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
 
     def forward(self, x):
-        out = self.maxpool(x)
-        return self.nConvs(out)
+        x = self.nConvs(x)
+        x = self.maxpool(x)
+        return x
 
 def make_stage(multi_scale_output=True):
     num_modules = 1
