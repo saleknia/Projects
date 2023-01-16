@@ -1258,7 +1258,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         Reduce ---> Split ---> Transform --> Merge
     '''
 
-    def __init__(self, nIn, nOut, add=True):
+    def __init__(self, nIn, nOut, add=False):
         '''
         :param nIn: number of input channels
         :param nOut: number of output channels
