@@ -937,8 +937,6 @@ class SegFormerHead(nn.Module):
         self.final_conv  = nn.Conv2d(48, 1, 3, padding=1)
 
     def forward(self, c1, c2, c3, c4):
-        c1, c2, c3, c4 = x
-
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c4.shape
 
