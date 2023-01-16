@@ -936,7 +936,7 @@ class SegFormerHead(nn.Module):
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv  = nn.Conv2d(48, 1, 3, padding=1)
 
-    def forward(self, inputs):
+    def forward(self, c1, c2, c3, c4):
         c1, c2, c3, c4 = x
 
         ############## MLP decoder on C1-C4 ###########
@@ -1029,9 +1029,11 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+
+        self.Head = SegFormerHead()
 
         # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
         # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
@@ -1086,10 +1088,12 @@ class DATUNet(nn.Module):
         # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
         # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
 
+        x = self.Head(x1, x2, x3, x4)
 
-        x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2)
-        x1 = self.up1(x2, x1) 
+
+        # x3 = self.up3(x4, x3) 
+        # x2 = self.up2(x3, x2)
+        # x1 = self.up1(x2, x1) 
 
         # x = self.final_conv1(x1)
         # # x = self.final_relu1(x)
