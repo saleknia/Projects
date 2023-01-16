@@ -670,7 +670,7 @@ class DownBlock(nn.Module):
         self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
 
     def forward(self, x):
-        out = self.nConvs(out)
+        out = self.nConvs(x)
         out = self.maxpool(x)
         return out
 
