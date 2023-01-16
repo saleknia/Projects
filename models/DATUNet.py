@@ -639,20 +639,19 @@ class Up(nn.Module):
         x = self.conv(x)
         return x
 
-class UNet_out(nn.Module):
-    def __init__(self):
+class int_unet(nn.Module):
+    def __init__(self, channel):
         super().__init__()
 
-        in_channels = 48
-        self.down1 = DownBlock(48, 48, nb_Conv=1)
-        self.down2 = DownBlock(48, 48, nb_Conv=1)
-        self.down3 = DownBlock(48, 48, nb_Conv=1)
-        self.down4 = DownBlock(48, 48, nb_Conv=1)
+        self.down1 = DownBlock(channel, channel, nb_Conv=1)
+        self.down2 = DownBlock(channel, channel, nb_Conv=1)
+        self.down3 = DownBlock(channel, channel, nb_Conv=1)
+        self.down4 = DownBlock(channel, channel, nb_Conv=1)
 
-        self.up4 = Up(48, 48, nb_Conv=1)
-        self.up3 = Up(48, 48, nb_Conv=1)
-        self.up2 = Up(48, 48, nb_Conv=1)
-        self.up1 = Up(48, 48, nb_Conv=1)
+        self.up4 = Up(channel, channel, nb_Conv=1)
+        self.up3 = Up(channel, channel, nb_Conv=1)
+        self.up2 = Up(channel, channel, nb_Conv=1)
+        self.up1 = Up(channel, channel, nb_Conv=1)
 
     def forward(self, x):
         # Question here
@@ -661,12 +660,6 @@ class UNet_out(nn.Module):
         x2 = self.down2(x1)
         x3 = self.down3(x2)
         x4 = self.down4(x3)
-
-        # print(x0.shape)
-        # print(x1.shape)
-        # print(x2.shape)
-        # print(x3.shape)
-        # print(x4.shape)
 
         x3 = self.up4(x4, x3)
         x2 = self.up3(x3, x2)
@@ -959,8 +952,12 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.ESP_3 = DilatedParllelResidualBlockB(192,192)
-        self.ESP_2 = DilatedParllelResidualBlockB(96,96)
+        self.int_unet_3 = int_unet(192)
+        self.int_unet_2 = int_unet(96)
+        self.int_unet_1 = int_unet(48)
+
+        # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
+        # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1014,12 +1011,13 @@ class DATUNet(nn.Module):
         
 
         x3 = self.up3(x4, x3) 
-        x3 = self.ESP_3(x3)
+        x3 = self.int_unet_3(x3)
 
         x2 = self.up2(x3, x2)
-        x2 = self.ESP_2(x2)
+        x2 = self.int_unet_2(x2)
 
         x1 = self.up1(x2, x1) 
+        x1 = self.int_unet_1(x1)
 
         x = self.final_conv1(x1)
         # x = self.final_relu1(x)
