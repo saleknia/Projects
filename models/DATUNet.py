@@ -1208,8 +1208,8 @@ class DilatedParllelResidualBlockB(nn.Module):
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
         add1 = d2   
-        add2 = d4
-        add3 = d8
+        add2 = d4 + add1
+        add3 = d8 + add2
 
         # merge
         combine = torch.cat([d1, add1, add2, add3], 1)
