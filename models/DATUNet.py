@@ -643,26 +643,18 @@ class int_unet(nn.Module):
     def __init__(self, channel):
         super().__init__()
 
-        self.down1 = DownBlock(channel, channel, nb_Conv=1)
-        self.down2 = DownBlock(channel, channel, nb_Conv=1)
-        self.down3 = DownBlock(channel, channel, nb_Conv=1)
-        self.down4 = DownBlock(channel, channel, nb_Conv=1)
+        self.down1 = DownBlock(channel, channel, nb_Conv=2)
+        self.down2 = DownBlock(channel, channel, nb_Conv=2)
 
-        self.up4 = Up(channel, channel, nb_Conv=1)
-        self.up3 = Up(channel, channel, nb_Conv=1)
-        self.up2 = Up(channel, channel, nb_Conv=1)
-        self.up1 = Up(channel, channel, nb_Conv=1)
+        self.up2 = Up(channel, channel, nb_Conv=2)
+        self.up1 = Up(channel, channel, nb_Conv=2)
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         x1 = self.down1(x0)
         x2 = self.down2(x1)
-        x3 = self.down3(x2)
-        x4 = self.down4(x3)
 
-        x3 = self.up4(x4, x3)
-        x2 = self.up3(x3, x2)
         x1 = self.up2(x2, x1)
         x0 = self.up1(x1, x0)
 
