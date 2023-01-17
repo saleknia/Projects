@@ -482,7 +482,7 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        self.stages[3] = None
+        # self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -545,10 +545,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 2:
+            if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -918,7 +918,7 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
         embedding_dim = 48
 
         self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
@@ -928,16 +928,10 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
 
-        self.up_4 = nn.Upsample(scale_factor=8.0)
-        self.up_3 = nn.Upsample(scale_factor=4.0)
-        self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_1 = nn.Upsample(scale_factor=1.0)
-
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(24, 1, 3, padding=1)
+        self.up_4 = nn.Upsample(scale_factor=16.0)
+        self.up_3 = nn.Upsample(scale_factor=8.00)
+        self.up_2 = nn.Upsample(scale_factor=4.00)
+        self.up_1 = nn.Upsample(scale_factor=2.00)
 
     def forward(self, c1, c2, c3, c4):
         ############## MLP decoder on C1-C4 ###########
@@ -956,12 +950,6 @@ class SegFormerHead(nn.Module):
         _c1 = self.up_1(_c1)
 
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
-
-        x = self.final_conv1(x)
-        x = self.final_relu1(x)
-        x = self.final_conv2(x)
-        x = self.final_relu2(x)
-        x = self.final_conv(x)
 
         return x
 
@@ -1025,6 +1013,7 @@ class DATUNet(nn.Module):
         # self.RSA_2 = ReverseSpatialSelfAttention(96)
         # self.RSA_1 = ReverseSpatialSelfAttention(48)
 
+        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -1041,7 +1030,7 @@ class DATUNet(nn.Module):
 
         # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
         # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
-        self.unet_out = UNet_out()
+        self.head = SegFormerHead()
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1065,11 +1054,12 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
+        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
-
+        z = self.head(x2, x3, x4, x5)
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1087,22 +1077,12 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + x3
         x4 = x_fuse[3] + x4
 
-        # x1 = self.RSA_1(x=x1, gate=x_fuse[0])
-        # x2 = self.RSA_2(x=x2, gate=x_fuse[1])
-        # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
-        # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
-
         x3 = self.up3(x4, x3) 
-        # x3 = self.ESP_3(x3)
-
         x2 = self.up2(x3, x2)
-        # x2 = self.ESP_2(x2)
-
         x1 = self.up1(x2, x1) 
 
-        x = self.unet_out(x1)
-
-
+        x = x1 + z
+        
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
