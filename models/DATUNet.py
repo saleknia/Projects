@@ -555,10 +555,9 @@ class DAT(nn.Module):
         
         return outputs
 
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
+def get_activation(activation_type):  
+    if activation_type=='Sigmoid':
+        return nn.Sigmoid()
     else:
         return nn.ReLU()
 
