@@ -1031,10 +1031,10 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.conv_1 = ConvBatchNorm(48 , 48, 'Sigmoid', 1, 0)
-        self.conv_2 = ConvBatchNorm(96 , 48, 'Sigmoid', 1, 0)
-        self.conv_3 = ConvBatchNorm(192, 48, 'Sigmoid', 1, 0)
-        self.conv_4 = ConvBatchNorm(384, 48, 'Sigmoid', 1, 0)
+        self.conv_1 = ConvBatchNorm(48 , 1, 'Sigmoid', 1, 0)
+        self.conv_2 = ConvBatchNorm(96 , 1, 'Sigmoid', 1, 0)
+        self.conv_3 = ConvBatchNorm(192, 1, 'Sigmoid', 1, 0)
+        self.conv_4 = ConvBatchNorm(384, 1, 'Sigmoid', 1, 0)
 
         # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
         # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
