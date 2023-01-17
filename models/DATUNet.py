@@ -1027,9 +1027,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         self.Head = SegFormerHead()
 
@@ -1086,12 +1086,11 @@ class DATUNet(nn.Module):
         # x3 = self.RSA_3(x=x3, gate=x_fuse[2])
         # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2)
+        x1 = self.up1(x2, x1) 
+
         x = self.Head(x1, x2, x3, x4)
-
-
-        # x3 = self.up3(x4, x3) 
-        # x2 = self.up2(x3, x2)
-        # x1 = self.up1(x2, x1) 
 
         # x = self.final_conv1(x1)
         # # x = self.final_relu1(x)
