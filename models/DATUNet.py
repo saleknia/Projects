@@ -1031,17 +1031,15 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.Head = SegFormerHead()
 
-        # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
-        # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
+        self.ESP_3 = DilatedParllelResidualBlockB(192,192)
+        self.ESP_2 = DilatedParllelResidualBlockB(96,96)
 
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # # self.final_relu1 = nn.ReLU(inplace=True)
         # # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         # # self.final_relu2 = nn.ReLU(inplace=True)
-        # # self.unet_out = UNet_out()
-        # self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_conv  = nn.Conv2d(48, n_classes, 1, padding=0)
 
     def forward(self, x):
         # # Question here
@@ -1087,17 +1085,20 @@ class DATUNet(nn.Module):
         # x4 = self.RSA_4(x=x4, gate=x_fuse[3])
 
         x3 = self.up3(x4, x3) 
+        x3 = self.ESP_3(x3)
+
         x2 = self.up2(x3, x2)
+        x2 = self.ESP_2(x2)
+
         x1 = self.up1(x2, x1) 
 
-        x = self.Head(x1, x2, x3, x4)
 
-        # x = self.final_conv1(x1)
+        x = self.final_conv1(x1)
         # # x = self.final_relu1(x)
         # # x = self.final_conv2(x)
         # # x = self.final_relu2(x)
         # # x = self.unet_out(x)
-        # x = self.final_conv(x)
+        x = self.final_conv(x)
 
         return x
 
