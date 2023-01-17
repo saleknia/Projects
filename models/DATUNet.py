@@ -1281,7 +1281,7 @@ class DilatedParllelResidualBlockB(nn.Module):
         Reduce ---> Split ---> Transform --> Merge
     '''
 
-    def __init__(self, nIn, nOut, add=False):
+    def __init__(self, nIn, nOut, add=True):
         '''
         :param nIn: number of input channels
         :param nOut: number of output channels
@@ -1296,9 +1296,9 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
+        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
         self.bn = BR(nOut)
         self.add = add
 
@@ -1317,12 +1317,13 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
-        add1 = d2   + d1
-        add2 = add1 + d4
-        add3 = add2 + d8
+        # add1 = d2   + d1
+        # add2 = add1 + d4
+        # add3 = add2 + d8
 
         # merge
-        combine = torch.cat([d1, add1, add2, add3], 1)
+        # combine = torch.cat([d1, add1, add2, add3], 1)
+        combine = torch.cat([d1, d2, d4, d8], 1)
 
         # if residual version
         if self.add:
