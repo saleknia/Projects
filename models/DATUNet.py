@@ -644,7 +644,7 @@ class UNet_out(nn.Module):
 
         self.down1 = DownBlock(48 , 96 , nb_Conv=2)
         self.down2 = DownBlock(96 , 192, nb_Conv=2)
-        self.down2 = DownBlock(192, 384, nb_Conv=2)
+        self.down3 = DownBlock(192, 384, nb_Conv=2)
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
