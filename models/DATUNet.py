@@ -1055,14 +1055,13 @@ class DATUNet(nn.Module):
         B, C, H, W = x.shape
 
 
-        z = self.firstconv(x_input)
-        z = self.firstbn(z)
-        z = self.firstrelu(z)
-        z = self.encoder1(z)
-        z = self.Reduce(z)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
         for i in range(6):
-            z = self.FAM1[i](z)
-        x1 = z
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
@@ -1101,7 +1100,7 @@ class DATUNet(nn.Module):
 
         x1 = self.up1(x2, x1) 
 
-        x = self.unet_out(x1+z)
+        x = self.unet_out(x1)
 
 
         x = self.final_conv1(x1)
