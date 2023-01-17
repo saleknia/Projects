@@ -616,8 +616,8 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -792,7 +792,7 @@ class HighResolutionModule(nn.Module):
 
 def make_fuse_layers():
     num_branches = 4
-    num_in_chs = [48, 48, 48, 48]
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -1025,15 +1025,15 @@ class DATUNet(nn.Module):
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(48, 48, nb_Conv=2)
-        self.up2 = UpBlock(48, 48, nb_Conv=2)
-        self.up1 = UpBlock(48, 48, nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.conv_2 = ConvBatchNorm(96 , 48, 'ReLU', 1, 0)
-        self.conv_3 = ConvBatchNorm(192, 48, 'ReLU', 1, 0)
-        self.conv_4 = ConvBatchNorm(384, 48, 'ReLU', 1, 0)
+        # self.conv_2 = ConvBatchNorm(96 , 48, 'ReLU', 1, 0)
+        # self.conv_3 = ConvBatchNorm(192, 48, 'ReLU', 1, 0)
+        # self.conv_4 = ConvBatchNorm(384, 48, 'ReLU', 1, 0)
 
         # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
         # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
@@ -1060,10 +1060,10 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.conv_4(self.norm_4(outputs[2]))
-        x3 = self.conv_3(self.norm_3(outputs[1]))
-        x2 = self.conv_2(self.norm_2(outputs[0]))
-        # x1 = self.norm_1(x1)
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
