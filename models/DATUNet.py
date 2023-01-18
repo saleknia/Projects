@@ -581,13 +581,19 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.conv_1 = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv_4 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        return x
+        x1 = self.conv_1(x)
+        x2 = self.conv_2(x1)
+        x3 = self.conv_3(x1+x2)
+        x4 = self.conv_4(x1+x2+x3)
+        return x4
 
 
 class DownBlock(nn.Module):
@@ -940,15 +946,15 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] 
-        x2 = x_fuse[1] 
-        x3 = x_fuse[2]
-        x4 = x_fuse[3]
+        # x1 = x_fuse[0] 
+        # x2 = x_fuse[1] 
+        # x3 = x_fuse[2]
+        # x4 = x_fuse[3]
 
-        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         # x1 = self.RAB_1(x1, x_fuse[0])
         # x2 = self.RAB_2(x2, x_fuse[1])
