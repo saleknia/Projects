@@ -896,10 +896,10 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.RAB_1 = RAB(48)
-        # self.RAB_2 = RAB(96)
-        # self.RAB_3 = RAB(192)
-        # self.RAB_4 = RAB(384)
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -940,10 +940,15 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2 
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
+        # x1 = x_fuse[0] + x1
+        # x2 = x_fuse[1] + x2 
+        # x3 = x_fuse[2] + x3
+        # x4 = x_fuse[3] + x4
+
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         # x1 = self.RAB_1(x1, x_fuse[0])
         # x2 = self.RAB_2(x2, x_fuse[1])
