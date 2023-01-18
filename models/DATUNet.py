@@ -582,11 +582,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.ESP = DilatedParllelResidualBlockB(nIn=in_channels//2, nOut=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.ESP(skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -898,6 +896,9 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
+        self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
+        self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
+
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
@@ -958,7 +959,11 @@ class DATUNet(nn.Module):
         # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
+        x3 = self.ESP_3(x3)
+
         x2 = self.up2(x3, x2)
+        x2 = self.ESP_2(x2)
+        
         x1 = self.up1(x2, x1) 
         
         x = self.final_conv1(x1)
