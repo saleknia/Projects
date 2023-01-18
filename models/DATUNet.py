@@ -589,44 +589,6 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
-class Up(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(Up, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-    
-    def forward(self, x, skip_x):
-        x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        return x
-
-class UNet_out(nn.Module):
-    def __init__(self):
-        super().__init__()
-
-        self.down1 = DownBlock(48 , 96 , nb_Conv=2)
-        self.down2 = DownBlock(96 , 192, nb_Conv=2)
-        self.down3 = DownBlock(192, 384, nb_Conv=2)
-
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
-
-    def forward(self, x):
-        # Question here
-        x0 = x.float()
-        x1 = self.down1(x0)
-        x2 = self.down2(x1)
-        x3 = self.down3(x2)
-
-        x2 = self.up3(x3, x2)
-        x1 = self.up2(x2, x1)
-        x0 = self.up1(x1, x0)
-
-        return x0
 
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
@@ -878,7 +840,6 @@ class DATUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
@@ -926,7 +887,6 @@ class DATUNet(nn.Module):
         # self.RSA_2 = ReverseSpatialSelfAttention(96)
         # self.RSA_1 = ReverseSpatialSelfAttention(48)
 
-        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
@@ -936,10 +896,10 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.RAB_1 = RAB(48)
-        self.RAB_2 = RAB(96)
-        self.RAB_3 = RAB(192)
-        self.RAB_4 = RAB(384)
+        # self.RAB_1 = RAB(48)
+        # self.RAB_2 = RAB(96)
+        # self.RAB_3 = RAB(192)
+        # self.RAB_4 = RAB(384)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -980,15 +940,15 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        # x1 = x_fuse[0] + x1
-        # x2 = x_fuse[1] + x2 
-        # x3 = x_fuse[2] + x3
-        # x4 = x_fuse[3] + x4
+        x1 = x_fuse[0] + x1
+        x2 = x_fuse[1] + x2 
+        x3 = x_fuse[2] + x3
+        x4 = x_fuse[3] + x4
 
-        x1 = self.RAB_1(x1, x_fuse[0])
-        x2 = self.RAB_2(x2, x_fuse[1])
-        x3 = self.RAB_3(x3, x_fuse[2])
-        x4 = self.RAB_4(x4, x_fuse[3])
+        # x1 = self.RAB_1(x1, x_fuse[0])
+        # x2 = self.RAB_2(x2, x_fuse[1])
+        # x3 = self.RAB_3(x3, x_fuse[2])
+        # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)
