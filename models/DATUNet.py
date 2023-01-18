@@ -482,7 +482,7 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -545,10 +545,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -574,41 +574,6 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-
-class SEBlock(nn.Module):
-    def __init__(self, channel, r=16):
-        super(SEBlock, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        # Squeeze
-        y = self.avg_pool(x).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        y = torch.mul(x, y)
-        return y
-
-class SpatialAttention(nn.Module):
-    def __init__(self,kernel_size=7):
-        super().__init__()
-        self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
-        self.sigmoid=nn.Sigmoid()
-    
-    def forward(self, x) :
-        max_result,_=torch.max(x,dim=1,keepdim=True)
-        avg_result=torch.mean(x,dim=1,keepdim=True)
-        result=torch.cat([max_result,avg_result],1)
-        output=self.conv(result)
-        output=self.sigmoid(output)
-        return output
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -878,80 +843,28 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        
-        
+class RAB(nn.Module):
+    def __init__(self, channel, r=4):
+        super(RAB, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            nn.Sigmoid(),
+        )
 
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        return x
-
-class MLP(nn.Module):
-    """
-    Linear Embedding
-    """
-    def __init__(self, input_dim=2048, embed_dim=768):
-        super().__init__()
-        self.proj = nn.Linear(input_dim, embed_dim)
-
-    def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
-        return x
-
-
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
-
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
-        embedding_dim = 48
-
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
-
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
-
-        self.up_4 = nn.Upsample(scale_factor=16.0)
-        self.up_3 = nn.Upsample(scale_factor=8.00)
-        self.up_2 = nn.Upsample(scale_factor=4.00)
-        self.up_1 = nn.Upsample(scale_factor=2.00)
-
-    def forward(self, c1, c2, c3, c4):
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
-
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up_4(_c4)
-
-        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up_3(_c3)
-
-        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up_2(_c2)
-
-        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-        _c1 = self.up_1(_c1)
-
-        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
-
-        return x
+    def forward(self, x_l, x_g):
+        b, c, _, _ = x_g.size()
+        # Squeeze
+        y = self.avg_pool(x_g).view(b, c)
+        # Excitation
+        y = self.fc(y).view(b, c, 1, 1)
+        # Fusion
+        y = torch.mul(x_l, y)
+        y = (1.0-torch.sigmoid(x_g)) * y
+        y = x_g + y
+        return y
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1023,14 +936,10 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.conv_1 = ConvBatchNorm(48 , 1, 'Sigmoid', 1, 0)
-        # self.conv_2 = ConvBatchNorm(96 , 1, 'Sigmoid', 1, 0)
-        # self.conv_3 = ConvBatchNorm(192, 1, 'Sigmoid', 1, 0)
-        # self.conv_4 = ConvBatchNorm(384, 1, 'Sigmoid', 1, 0)
-
-        # self.ESP_3 = DilatedParllelResidualBlockB(192,192)
-        # self.ESP_2 = DilatedParllelResidualBlockB(96,96)
-        self.head = SegFormerHead()
+        self.RAB_1 = RAB(48)
+        self.RAB_2 = RAB(96)
+        self.RAB_3 = RAB(192)
+        self.RAB_4 = RAB(384)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -1054,12 +963,11 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
-        z = self.head(x2, x3, x4, x5)
+
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
@@ -1072,16 +980,19 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2 
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
+        # x1 = x_fuse[0] + x1
+        # x2 = x_fuse[1] + x2 
+        # x3 = x_fuse[2] + x3
+        # x4 = x_fuse[3] + x4
+
+        x1 = self.RAB_1(x1, x_fuse[0])
+        x2 = self.RAB_2(x2, x_fuse[1])
+        x3 = self.RAB_3(x3, x_fuse[2])
+        x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)
         x1 = self.up1(x2, x1) 
-
-        x = x1 + z
         
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
