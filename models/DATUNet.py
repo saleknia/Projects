@@ -593,7 +593,8 @@ class UpBlock(nn.Module):
         x2 = self.conv_2(x1)
         x3 = self.conv_3(x1+x2)
         x4 = self.conv_4(x1+x2+x3)
-        return x4
+        x = x1 + x2 + x3 + x4
+        return x
 
 
 class DownBlock(nn.Module):
