@@ -581,19 +581,14 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv_1 = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
-        self.conv_4 = _make_nConv(in_channels=out_channels, out_channels=out_channels, nb_Conv=1, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.ESP = DilatedParllelResidualBlockB(nIn=in_channels//2, nOut=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        skip_x = self.ESP(skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x1 = self.conv_1(x)
-        x2 = self.conv_2(x1)
-        x3 = self.conv_3(x1+x2)
-        x4 = self.conv_4(x1+x2+x3)
-        x = x1 + x2 + x3 + x4
+        x = self.conv(x)
         return x
 
 
@@ -1162,13 +1157,15 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut / 3)  # K=5,
+        n = int(nOut / 4)  # K=5,
+        n1 = nOut - 3 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
         self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
-        self.d2 = CDilated(n, n, 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n, 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n, 3, 1, 8)  # dilation rate of 2^3
+        self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
+        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
         self.bn = BR(nOut)
         self.add = add
 
@@ -1180,24 +1177,26 @@ class DilatedParllelResidualBlockB(nn.Module):
         # reduce
         output1 = self.c1(input)
         # split and transform
+        d1 = self.d1(output1)
         d2 = self.d2(output1)
         d4 = self.d4(output1)
         d8 = self.d8(output1)
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
-        add1 = d2   
+        add1 = d2
         add2 = add1 + d4
         add3 = add2 + d8
 
         # merge
-        combine = torch.cat([add1, add2, add3], 1)
+        combine = torch.cat([d1, add1, add2, add3], 1)
 
         # if residual version
         if self.add:
             combine = input + combine
         output = self.bn(combine)
         return output
+
 
 import math
 import torch
