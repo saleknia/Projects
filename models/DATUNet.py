@@ -975,11 +975,11 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        x_fuse[0] = self.ASPP_1(x_fuse[0]) 
-        x_fuse[1] = self.ASPP_2(x_fuse[1]) 
-        x_fuse[2] = self.ASPP_3(x_fuse[2])
-        x_fuse[3] = self.ASPP_4(x_fuse[3])
-        
+        x1 = self.ASPP_1(x1) 
+        x2 = self.ASPP_2(x2) 
+        x3 = self.ASPP_3(x3)
+        x4 = self.ASPP_4(x4)
+
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2)     
         x1 = self.up1(x2, x1) 
