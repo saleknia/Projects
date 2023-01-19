@@ -797,9 +797,9 @@ def get_CTranS_config(num_channels, patch_size):
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = num_channels * 2  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.num_heads  = 2
+    config.transformer.num_layers = 2
+    config.expand_ratio           = 2  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0.0
