@@ -479,9 +479,9 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
-        state_dict = checkpoint['model']
-        self.load_pretrained(state_dict)
+        # checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        # state_dict = checkpoint['model']
+        # self.load_pretrained(state_dict)
         self.stages[3] = None
     
     def reset_parameters(self):
@@ -960,8 +960,8 @@ class DATUNet(nn.Module):
 
         # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
         # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
-        self.SAPblock_3 = SAPblock(in_channels=192)
-        self.SAPblock_2 = SAPblock(in_channels=96)
+        # self.SAPblock_3 = SAPblock(in_channels=192)
+        # self.SAPblock_2 = SAPblock(in_channels=96)
 
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
@@ -1023,10 +1023,10 @@ class DATUNet(nn.Module):
         # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
-        x3 = self.SAPblock_3(x3)
+        # x3 = self.SAPblock_3(x3)
 
         x2 = self.up2(x3, x2)     
-        x2 = self.SAPblock_2(x2)
+        # x2 = self.SAPblock_2(x2)
 
         x1 = self.up1(x2, x1) 
         
