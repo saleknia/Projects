@@ -578,12 +578,12 @@ class Flatten(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, config, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, config, img_size, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.patchSize = config.patch_size
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.mtc = ChannelTransformer(config, vis=False, img_size=224, channel_num=in_channels//2, patchSize=self.patchSize)
+        self.mtc = ChannelTransformer(config, vis=False, img_size=img_size, channel_num=in_channels//2, patchSize=self.patchSize)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -871,9 +871,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2, config=get_CTranS_config(192, 2))
-        self.up2 = UpBlock(192, 96 , nb_Conv=2, config=get_CTranS_config(96 , 4))
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2, config=get_CTranS_config(48 , 8))
+        self.up3 = UpBlock(384, 192, nb_Conv=2, config=get_CTranS_config(192, 2), img_size=28)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2, config=get_CTranS_config(96 , 4), img_size=56)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2, config=get_CTranS_config(48 , 8), img_size=112)
 
         # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
         # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)

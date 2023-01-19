@@ -275,8 +275,8 @@ class ChannelTransformer(nn.Module):
 
         self.patchSize = patchSize
 
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize, img_size=img_size , in_channels=channel_num)
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize, img_size=img_size , in_channels=channel_num)
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize, img_size=img_size, in_channels=channel_num)
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize, img_size=img_size, in_channels=channel_num)
 
         self.encoder = Encoder(config, vis, channel_num)
 
