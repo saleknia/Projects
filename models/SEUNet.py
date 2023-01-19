@@ -100,7 +100,7 @@ class SEUNet(nn.Module):
         # Question here
         in_channels = 64
 
-        self.inc = ConvBatchNorm(n_channels, in_channels)
+        self.inc = ConvBatchNorm(1, in_channels)
         self.down1 = DownBlock(in_channels  , in_channels*2, nb_Conv=2, reduce=False, reduction_rate=1)
         self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2, reduce=True , reduction_rate=4)
         self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2, reduce=True , reduction_rate=8)
