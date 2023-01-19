@@ -999,6 +999,7 @@ class DATUNet(nn.Module):
         x_fuse = []
         num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
+            y = 0
             for j in range(i, num_branches):
                 if i == j:
                     y = y + x[j]
