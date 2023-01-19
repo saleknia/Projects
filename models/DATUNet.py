@@ -589,20 +589,6 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x
 
-
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-
-    def forward(self, x):
-        x = self.maxpool(x)
-        x = self.nConvs(x)
-        return x
-
 def make_stage(multi_scale_output=True):
     num_modules = 1
     num_branches = 3
@@ -719,6 +705,18 @@ class HighResolutionModule(nn.Module):
 
         return x_fuse
 
+class DownBlock(nn.Module):
+    """Downscaling with maxpool convolution"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(DownBlock, self).__init__()
+        self.maxpool = nn.MaxPool2d(2)
+        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+
+    def forward(self, x):
+        x = self.maxpool(x)
+        x = self.nConvs(x)
+        return x
 
 def make_fuse_layers():
     num_branches = 4
@@ -726,32 +724,57 @@ def make_fuse_layers():
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
-        for j in range(i, num_branches):
+        for j in range(num_branches):
             if j > i:
                 fuse_layer.append(nn.Sequential(
                     nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
                     nn.BatchNorm2d(num_in_chs[i]),
+                    nn.ReLU(False),
                     nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
             elif j == i:
                 fuse_layer.append(nn.Identity())
             else:
                 conv3x3s = []
                 for k in range(i - j):
-                    if k == i - j - 1:
-                        num_outchannels_conv3x3 = num_in_chs[i]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3)))
-                    else:
-                        num_outchannels_conv3x3 = num_in_chs[j]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3),
-                            nn.ReLU(False)))
+                    conv3x3s.append(DownBlock(in_channels=num_in_chs[j+k], out_channels=num_in_chs[j+k+1], nb_Conv=2, activation='ReLU'))
                 fuse_layer.append(nn.Sequential(*conv3x3s))
         fuse_layers.append(nn.ModuleList(fuse_layer))
 
     return nn.ModuleList(fuse_layers)
+
+
+# def make_fuse_layers():
+#     num_branches = 4
+#     num_in_chs = [48, 96, 192, 384]
+#     fuse_layers = []
+#     for i in range(num_branches):
+#         fuse_layer = []
+#         for j in range(num_branches):
+#             if j > i:
+#                 fuse_layer.append(nn.Sequential(
+#                     nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+#                     nn.BatchNorm2d(num_in_chs[i]),
+#                     nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+#             elif j == i:
+#                 fuse_layer.append(nn.Identity())
+#             else:
+#                 conv3x3s = []
+#                 for k in range(i - j):
+#                     if k == i - j - 1:
+#                         num_outchannels_conv3x3 = num_in_chs[i]
+#                         conv3x3s.append(nn.Sequential(
+#                             nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+#                             nn.BatchNorm2d(num_outchannels_conv3x3)))
+#                     else:
+#                         num_outchannels_conv3x3 = num_in_chs[j]
+#                         conv3x3s.append(nn.Sequential(
+#                             nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+#                             nn.BatchNorm2d(num_outchannels_conv3x3),
+#                             nn.ReLU(False)))
+#                 fuse_layer.append(nn.Sequential(*conv3x3s))
+#         fuse_layers.append(nn.ModuleList(fuse_layer))
+
+#     return nn.ModuleList(fuse_layers)
 
 
 class ConvBatchNorm(nn.Module):
@@ -999,25 +1022,13 @@ class DATUNet(nn.Module):
         x_fuse = []
         num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
-            y = 0
-            for j in range(i, num_branches):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
                 if i == j:
                     y = y + x[j]
                 else:
-                    y = y + fuse_outer[j-i](x[j])
+                    y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
-
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
 
         # x1 = x_fuse[0] 
         # x2 = x_fuse[1] 
@@ -1029,17 +1040,9 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        # x1 = self.RAB_1(x1, x_fuse[0])
-        # x2 = self.RAB_2(x2, x_fuse[1])
-        # x3 = self.RAB_3(x3, x_fuse[2])
-        # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
-        # x3 = self.SAPblock_3(x3)
-
         x2 = self.up2(x3, x2)     
-        # x2 = self.SAPblock_2(x2)
-
         x1 = self.up1(x2, x1) 
         
         x = self.final_conv1(x1)
