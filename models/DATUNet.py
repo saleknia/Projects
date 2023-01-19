@@ -578,13 +578,16 @@ class Flatten(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, config, activation='ReLU'):
         super(UpBlock, self).__init__()
+        self.patchSize = config.patch_size
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        self.mtc = ChannelTransformer(config, vis=False, img_size=224, channel_num=in_channels//2, patchSize=self.patchSize)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        x, skip_x = self.mtc(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -790,43 +793,19 @@ class FAMBlock(nn.Module):
 
 import ml_collections
 
-def get_CTranS_config():
+def get_CTranS_config(num_channels, patch_size):
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 336  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = num_channels * 2  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0.0
-    config.patch_sizes = [8,4,2]
-    config.base_channel = 48 # base channel of U-Net
-    config.n_classes = 1
+    config.patch_size = patch_size
+    config.base_channel = num_channels # base channel of U-Net
     return config
-
-class RAB(nn.Module):
-    def __init__(self, channel, r=4):
-        super(RAB, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x_l, x_g):
-        b, c, _, _ = x_g.size()
-        # Squeeze
-        y = self.avg_pool(x_g).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        y = torch.mul(x_l, y)
-        y = (1.0-torch.sigmoid(x_g)) * y
-        y = x_g + y
-        return y
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -892,12 +871,12 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2, config=get_CTranS_config(192, 2))
+        self.up2 = UpBlock(192, 96 , nb_Conv=2, config=get_CTranS_config(96 , 4))
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2, config=get_CTranS_config(48 , 8))
 
-        self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
-        self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
+        # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
+        # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
 
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
@@ -959,11 +938,7 @@ class DATUNet(nn.Module):
         # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
-        x3 = self.ESP_3(x3)
-
-        x2 = self.up2(x3, x2)
-        x2 = self.ESP_2(x2)
-        
+        x2 = self.up2(x3, x2)        
         x1 = self.up1(x2, x1) 
         
         x = self.final_conv1(x1)
