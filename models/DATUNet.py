@@ -1004,7 +1004,7 @@ class DATUNet(nn.Module):
                 if i == j:
                     y = y + x[j]
                 else:
-                    y = y + fuse_outer[j](x[j])
+                    y = y + fuse_outer[j-i](x[j])
             x_fuse.append(self.fuse_act(y))
 
         # x = [x1, x2, x3, x4]
