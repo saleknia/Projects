@@ -578,19 +578,16 @@ class Flatten(nn.Module):
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, config, img_size, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.patchSize = config.patch_size
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.mtc = ChannelTransformer(config, vis=False, img_size=img_size, channel_num=in_channels//2, patchSize=self.patchSize)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         x, skip_x = self.mtc(x, skip_x)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        x = x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
 
 
@@ -772,6 +769,92 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
+class ConvBnRelu(nn.Module):
+    def __init__(self, in_planes, out_planes, ksize, stride, pad, dilation=1,
+                 groups=1, has_bn=True, norm_layer=nn.BatchNorm2d,
+                 has_relu=True, inplace=True, has_bias=False):
+        super(ConvBnRelu, self).__init__()
+        self.conv = nn.Conv2d(in_planes, out_planes, kernel_size=ksize,
+                              stride=stride, padding=pad,
+                              dilation=dilation, groups=groups, bias=has_bias)
+        self.has_bn = has_bn
+        if self.has_bn:
+            self.bn = nn.BatchNorm2d(out_planes)
+        self.has_relu = has_relu
+        if self.has_relu:
+            self.relu = nn.ReLU(inplace=inplace)
+
+    def forward(self, x):
+        x = self.conv(x)
+        if self.has_bn:
+            x = self.bn(x)
+        if self.has_relu:
+            x = self.relu(x)
+
+        return 
+
+class SAPblock(nn.Module):
+    def __init__(self, in_channels):
+        super(SAPblock, self).__init__()
+        self.conv3x3=nn.Conv2d(in_channels=in_channels, out_channels=in_channels,dilation=1,kernel_size=3, padding=1)
+        
+        self.bn=nn.ModuleList([nn.BatchNorm2d(in_channels),nn.BatchNorm2d(in_channels),nn.BatchNorm2d(in_channels)]) 
+        self.conv1x1=nn.ModuleList([nn.Conv2d(in_channels=2*in_channels, out_channels=in_channels,dilation=1,kernel_size=1, padding=0),
+                                    nn.Conv2d(in_channels=2*in_channels, out_channels=in_channels,dilation=1,kernel_size=1, padding=0)])
+        self.conv3x3_1=nn.ModuleList([nn.Conv2d(in_channels=in_channels, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1),
+                                      nn.Conv2d(in_channels=in_channels, out_channels=in_channels//2,dilation=1,kernel_size=3, padding=1)])
+        self.conv3x3_2=nn.ModuleList([nn.Conv2d(in_channels=in_channels//2, out_channels=2,dilation=1,kernel_size=3, padding=1),
+                                      nn.Conv2d(in_channels=in_channels//2, out_channels=2,dilation=1,kernel_size=3, padding=1)])
+        self.conv_last=ConvBnRelu(in_planes=in_channels,out_planes=in_channels,ksize=1,stride=1,pad=0,dilation=1)
+
+
+
+        self.gamma = nn.Parameter(torch.zeros(1))
+    
+        self.relu=nn.ReLU(inplace=True)
+
+    def forward(self, x):
+
+        x_size= x.size()
+
+        branches_1=self.conv3x3(x)
+        branches_1=self.bn[0](branches_1)
+
+        branches_2=F.conv2d(x,self.conv3x3.weight,padding=2,dilation=2)#share weight
+        branches_2=self.bn[1](branches_2)
+
+        branches_3=F.conv2d(x,self.conv3x3.weight,padding=4,dilation=4)#share weight
+        branches_3=self.bn[2](branches_3)
+
+        feat=torch.cat([branches_1,branches_2],dim=1)
+        # feat=feat_cat.detach()
+        feat=self.relu(self.conv1x1[0](feat))
+        feat=self.relu(self.conv3x3_1[0](feat))
+        att=self.conv3x3_2[0](feat)
+        att = F.softmax(att, dim=1)
+        
+        att_1=att[:,0,:,:].unsqueeze(1)
+        att_2=att[:,1,:,:].unsqueeze(1)
+
+        fusion_1_2=att_1*branches_1+att_2*branches_2
+
+
+
+        feat1=torch.cat([fusion_1_2,branches_3],dim=1)
+        # feat=feat_cat.detach()
+        feat1=self.relu(self.conv1x1[0](feat1))
+        feat1=self.relu(self.conv3x3_1[0](feat1))
+        att1=self.conv3x3_2[0](feat1)
+        att1 = F.softmax(att1, dim=1)
+        
+        att_1_2=att1[:,0,:,:].unsqueeze(1)
+        att_3=att1[:,1,:,:].unsqueeze(1)
+
+
+        ax=self.relu(self.gamma*(att_1_2*fusion_1_2+att_3*branches_3)+(1-self.gamma)*x)
+        ax=self.conv_last(ax)
+
+        return ax
 
 class FAMBlock(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -872,12 +955,14 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2, config=get_CTranS_config(192, 2), img_size=28)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2, config=get_CTranS_config(96 , 4), img_size=56)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2, config=get_CTranS_config(48 , 8), img_size=112)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
         # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
+        self.SAPblock_3 = SAPblock(in_channels=192)
+        self.SAPblock_2 = SAPblock(in_channels=96)
 
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
@@ -939,7 +1024,11 @@ class DATUNet(nn.Module):
         # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2)        
+        x3 = self.SAPblock_3(x3)
+
+        x2 = self.up2(x3, x2)     
+        x2 = self.SAPblock_2(x2)
+
         x1 = self.up1(x2, x1) 
         
         x = self.final_conv1(x1)
