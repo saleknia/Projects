@@ -960,8 +960,8 @@ class DATUNet(nn.Module):
 
         # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
         # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
-        # self.SAPblock_3 = SAPblock(in_channels=192)
-        # self.SAPblock_2 = SAPblock(in_channels=96)
+        self.SAPblock_3 = SAPblock(in_channels=192)
+        self.SAPblock_2 = SAPblock(in_channels=96)
 
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
@@ -1023,10 +1023,10 @@ class DATUNet(nn.Module):
         # x4 = self.RAB_4(x4, x_fuse[3])
 
         x3 = self.up3(x4, x3) 
-        # x3 = self.SAPblock_3(x3)
+        x3 = self.SAPblock_3(x3)
 
         x2 = self.up2(x3, x2)     
-        # x2 = self.SAPblock_2(x2)
+        x2 = self.SAPblock_2(x2)
 
         x1 = self.up1(x2, x1) 
         

@@ -220,7 +220,6 @@ class ISIC2017(Dataset):
         
         self.transform = A.Compose(
             [
-                A.RandomResizedCrop(224, 224, scale=(0.08, 1.0), ratio=(0.75, 1.3333333333333333), interpolation=1, always_apply=False, p=1.0),
                 A.ShiftScaleRotate(shift_limit=0.15, scale_limit=0.15, rotate_limit=20, p=0.5, border_mode=0),
                 A.ColorJitter (brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1, always_apply=False, p=0.5),
                 A.HorizontalFlip(p=0.5),
