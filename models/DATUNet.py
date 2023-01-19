@@ -479,9 +479,9 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        # checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
-        # state_dict = checkpoint['model']
-        # self.load_pretrained(state_dict)
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        state_dict = checkpoint['model']
+        self.load_pretrained(state_dict)
         self.stages[3] = None
     
     def reset_parameters(self):
@@ -726,7 +726,7 @@ def make_fuse_layers():
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
-        for j in range(num_branches):
+        for j in range(i, num_branches):
             if j > i:
                 fuse_layer.append(nn.Sequential(
                     nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
@@ -999,13 +999,24 @@ class DATUNet(nn.Module):
         x_fuse = []
         num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
+            for j in range(i, num_branches):
                 if i == j:
                     y = y + x[j]
                 else:
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
+
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
         # x1 = x_fuse[0] 
         # x2 = x_fuse[1] 
