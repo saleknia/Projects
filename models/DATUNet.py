@@ -813,7 +813,7 @@ class MLP(nn.Module):
         x = self.proj(x)
         return x
 
-class SegFormerHead():
+class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
     """
