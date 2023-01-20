@@ -20,7 +20,7 @@ class disparity(nn.Module):
     def __init__(self, num_classes):
         super(disparity, self).__init__()
         self.num_classes = num_classes
-        self.smooth_labels = (torch.eye(self.num_classes) * 0.9) + (torch.ones(self.num_classes)*(0.1/8.0)*(1.0-torch.eye(self.num_classes)))
+        self.smooth_labels = ((torch.eye(self.num_classes) * 0.9) + (torch.ones(self.num_classes)*(0.1/8.0)*(1.0-torch.eye(self.num_classes)))).to('cuda')
 
     def forward(self, masks, outputs):
         loss = 0.0
