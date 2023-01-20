@@ -44,7 +44,7 @@ class disparity(nn.Module):
                 prototypes.append(proto)
                 labels.append(p)
                 
-        labels = [self.smooth_labels(label) for label in labels]
+        labels = [self.smooth_labels[label] for label in labels]
         
         prototypes = torch.tensor(prototypes)
         labels = torch.tensor(labels).long()
