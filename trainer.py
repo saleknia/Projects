@@ -16,6 +16,43 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
+class disparity(nn.Module):
+    def __init__(self, num_classes):
+        super(disparity, self).__init__()
+        self.num_classes = num_classes
+        smooth_labels = (torch.eye(self.num_classes) * 0.9) + (torch.one(self.num_classes)*(0.1/8.0)*(1.0-torch.eye(self.num_classes))
+
+    def forward(self, masks, outputs):
+        loss = 0.0
+        B,C,H,W = outputs.shape
+        
+        labels = []
+        prototypes = []
+
+        for b in range(B):
+            mask = masks[b]
+            output = outputs[b]
+            mask_unique_value = torch.unique(mask)
+            mask_unique_value = mask_unique_value[1:]
+            
+            for p in mask_unique_value:
+                p = p.long()
+                bin_mask = torch.tensor(mask==p,dtype=torch.int8)
+                bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
+
+                proto = torch.sum(bin_mask*output,dim=[1,2])/torch.sum(bin_mask,dim=[1,2])
+                prototypes.append(proto)
+                labels.append(p)
+                
+        labels = [self.smooth_labels(label) for label in labels]
+        
+        prototypes = torch.tensor(prototypes)
+        labels = torch.tensor(labels).long()
+        
+        loss = torch.nn.functional.cross_entropy(input=prototypes, target=labels)
+
+        return loss
+
 def gram_matrix(input):
     B, C, H, W = input.size()  # a=batch size(=1) # b=number of feature maps # (c,d)=dimensions of a f. map (N=c*d)
     features = input.view(B , C, H * W)  # resise F_XL into \hat F_XL
@@ -120,6 +157,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_total = utils.AverageMeter()
     loss_dice_total = utils.AverageMeter()
     loss_ce_total = utils.AverageMeter()
+    loss_disparity_total = utils.AverageMeter()
 
     Eval = utils.Evaluator(num_class=num_class)
 
@@ -129,7 +167,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     accuracy = utils.AverageMeter()
 
     dice_loss = DiceLoss(num_class)
-    ce_loss = CrossEntropyLoss()
+    ce_loss = CrossEntropyLoss()    
+    disparity_loss = disparity(num_class)
+
     ##################################################################
 
     total_batchs = len(dataloader)
@@ -153,12 +193,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        loss_disparity = disparity_loss(masks=targets, outputs=outputs)
 
         ###############################################
         alpha = 0.5
         beta = 0.5
+        theta = 0.1
 
-        loss = alpha * loss_dice + beta * loss_ce
+        loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
 
         ###############################################
 
@@ -176,7 +218,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
         loss_ce_total.update(loss_ce)
-
+        loss_disparity_total.update(loss_disparity)
         ###############################################
         targets = targets.long()
 
@@ -189,7 +231,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , kd_loss = {theta * loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
