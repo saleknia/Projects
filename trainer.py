@@ -44,9 +44,9 @@ class disparity(nn.Module):
                 prototypes.append(proto)
                 labels.append(p)
                 
-        labels = [self.smooth_labels[label] for label in labels]
+        labels     = [self.smooth_labels[label] for label in labels]
         prototypes = torch.stack(prototypes, dim=0)
-        labels = torch.tensor(labels).long()
+        labels     = torch.stack(labels, dim=0).long()
         
         loss = torch.nn.functional.cross_entropy(input=prototypes, target=labels)
 
