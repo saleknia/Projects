@@ -1071,9 +1071,9 @@ class DATUNet(nn.Module):
         t = self.final_conv_3(t)
 
         if self.training:
-            return (x, k, t)
+            return (y, k, t)
         else:
-            return (x+k+t) / 3.0
+            return (y+k+t) / 3.0
 
 
 import torch
