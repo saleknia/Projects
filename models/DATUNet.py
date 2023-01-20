@@ -599,7 +599,6 @@ class UpBlock_b(nn.Module):
         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
-        skip_x = self.aspp(skip_x)
         x = self.up(x) 
         x = x + skip_x
         x = self.conv(x)
