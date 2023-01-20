@@ -936,7 +936,7 @@ class RefUnet(nn.Module):
 
         residual = self.conv_d0(d1)
 
-        return x + residual
+        return residual
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -1022,7 +1022,7 @@ class DATUNet(nn.Module):
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
         ## -------------Refine Module-------------
-        self.refunet = RefUnet(1,64)
+        self.refunet = RefUnet(4,64)
 
     def forward(self, x):
         # # Question here
@@ -1076,7 +1076,7 @@ class DATUNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv(x)
-        x = self.refunet(x)
+        x = self.refunet(torch.cat([x, x_input], dim=1))
 
         return x
 
