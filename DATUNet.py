@@ -1105,7 +1105,7 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels = 48, 96, 192
+        c1_in_channels, c2_in_channels, c3_in_channels, c3_in_channels = 96, 192, 384, 768
 
         embedding_dim = 48
 
@@ -1113,10 +1113,12 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up3 = nn.Upsample(scale_factor=4)
-        self.up2 = nn.Upsample(scale_factor=2)
+        self.up4 = nn.Upsample(scale_factor=16.0)
+        self.up3 = nn.Upsample(scale_factor=8.0)
+        self.up2 = nn.Upsample(scale_factor=4.0)
+        self.up1 = nn.Upsample(scale_factor=2.0)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
 
     def forward(self, x1, x2, x3):
         c1, c2, c3 = x1, x2, x3
