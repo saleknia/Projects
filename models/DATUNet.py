@@ -936,8 +936,8 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
         
         # self.RSA_4 = ReverseSpatialSelfAttention(384)
         # self.RSA_3 = ReverseSpatialSelfAttention(192)
@@ -1013,12 +1013,11 @@ class DATUNet(nn.Module):
         # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        y3 = self.up3(x4, x3) 
-        y2 = self.up2(x3, x2)     
-        y1 = self.up1(x2, x1) 
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2)     
+        x = self.up1(x , x1) 
 
-
-        x = self.final_conv1(x1)
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         x = self.final_conv2(x)
         x = self.final_relu2(x)
