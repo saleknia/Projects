@@ -949,6 +949,11 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
+        self.norm_decode_3 = LayerNormProxy(dim=192)
+        self.norm_decode_2 = LayerNormProxy(dim=96)
+
+        self.stage_1, self.stage_2 = stages()
+
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -1013,9 +1018,15 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        y3 = self.up3(x4, x3) 
-        y2 = self.up2(x3, x2)     
-        y1 = self.up1(x2, x1) 
+        x3 = self.up3(x4, x3) 
+        x3 = self.norm_decode_3(x3)
+        x3 = self.stage_2(x3)[0]
+
+        x2 = self.up2(x3, x2) 
+        x2 = self.norm_decode_2(x2)
+        x2 = self.stage_1(x2)[0]
+
+        x1 = self.up1(x2, x1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
@@ -1024,6 +1035,60 @@ class DATUNet(nn.Module):
         x = self.final_conv(x)
 
         return x
+
+def stages():
+    stage_1 = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        ).stages[0]
+
+    stage_2 = DAT(
+            img_size=224,
+            patch_size=4,
+            num_classes=1000,
+            expansion=4,
+            dim_stem=96,
+            dims=[96, 192, 384, 768],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            heads=[3, 6, 12, 24],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[-1, -1, 3, 6],
+            use_pes=[False, False, True, True],
+            dwc_pes=[False, False, False, False],
+            strides=[-1, -1, 1, 1],
+            sr_ratios=[-1, -1, -1, -1],
+            offset_range_factor=[-1, -1, 2, 2],
+            no_offs=[False, False, False, False],
+            fixed_pes=[False, False, False, False],
+            use_dwc_mlps=[False, False, False, False],
+            use_conv_patches=False,
+            drop_rate=0.0,
+            attn_drop_rate=0.0,
+            drop_path_rate=0.2,
+        ).stages[1]
+    return stage_1, stage_2
 
 import torch
 import torch.nn as nn
