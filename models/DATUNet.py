@@ -1001,7 +1001,7 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        y = self.head(x2, x3, x4, x5)
+        z = self.head(x2, x3, x4, x5)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
@@ -1029,7 +1029,7 @@ class DATUNet(nn.Module):
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
 
-        x = x+y
+        x = x+z
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
