@@ -958,68 +958,17 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
-        # self.sigmoid_1 = nn.Sigmoid()
-        # self.sigmoid_2 = nn.Sigmoid()
-        # self.sigmoid_3 = nn.Sigmoid()
-        # self.sigmoid_4 = nn.Sigmoid()
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
-        self.pre_out_1 = nn.Sequential(    
-            nn.Upsample(scale_factor=1.0),    
-            _make_nConv(in_channels=48, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1))
-
-        self.pre_out_2 = nn.Sequential(    
-            nn.Upsample(scale_factor=2.0),    
-            _make_nConv(in_channels=96, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1))
-
-        self.pre_out_3 = nn.Sequential(    
-            nn.Upsample(scale_factor=4.0),    
-            _make_nConv(in_channels=192, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1))
-
-        self.pre_out_4 = nn.Sequential(    
-            nn.Upsample(scale_factor=8.0),    
-            _make_nConv(in_channels=384, out_channels=48, nb_Conv=2, activation='ReLU', dilation=1, padding=1))
-
-        
-        self.out_0 = nn.Sequential(        
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1))
-
-        self.out_1 = nn.Sequential(        
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1))
-
-        self.out_2 = nn.Sequential(        
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1))
-
-        self.out_3 = nn.Sequential(        
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1))
-
-        self.out_4 = nn.Sequential(        
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1))
-
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
+    
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1054,36 +1003,28 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
+        # x1 = x_fuse[0] + x1
+        # x2 = x_fuse[1] + x2
+        # x3 = x_fuse[2] + x3
+        # x4 = x_fuse[3] + x4
 
-        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         y3 = self.up3(x4, x3) 
         y2 = self.up2(x3, x2)     
         y1 = self.up1(x2, x1) 
 
-        y = self.out_0(y1)
-        x = self.out_1(self.pre_out_1(x1))
-        k = self.out_2(self.pre_out_2(x2))
-        l = self.out_3(self.pre_out_3(x3))       
-        p = self.out_4(self.pre_out_4(x4))  
 
-        # x = self.final_conv1(x1)
-        # x = self.final_relu1(x)
-        # x = self.final_conv2(x)
-        # x = self.final_relu2(x)
-        # x = self.final_conv(x)
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv(x)
 
-        if self.training:
-            return (y, x, k, l, p)
-        else:
-            return (y+x+k+l+p) / 5.0
+        return x
 
 import torch
 import torch.nn as nn
