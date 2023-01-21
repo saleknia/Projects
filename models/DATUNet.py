@@ -582,11 +582,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = x + (x*(1-self.sigmoid(x)))
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
@@ -872,6 +870,57 @@ class FAMBlock(nn.Module):
         return out
 
 
+from collections import OrderedDict
+
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512,kernels=[1,3,5,7],reduction=4,group=1,L=16):
+        super().__init__()
+        self.d=max(L,channel//reduction)
+        self.convs=nn.ModuleList([])
+        for k in kernels:
+            self.convs.append(
+                nn.Sequential(OrderedDict([
+                    ('conv',nn.Conv2d(channel,channel,kernel_size=k,padding=k//2,groups=group)),
+                    ('bn',nn.BatchNorm2d(channel)),
+                    ('relu',nn.ReLU())
+                ]))
+            )
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(len(kernels)):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+
+
+    def forward(self, x):
+        bs, c, _, _ = x.size()
+        conv_outs=[]
+        ### split
+        for conv in self.convs:
+            conv_outs.append(conv(x))
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
+        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weughts*feats).sum(0)
+        return V
+
 
 import ml_collections
 
@@ -967,6 +1016,9 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
+        self.SK_3 = SKAttention(channel=192)
+        self.SK_2 = SKAttention(channel=96)
+
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
@@ -1022,7 +1074,9 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x = self.up3(x4, x3) 
+        x = self.SK_3(x)
         x = self.up2(x , x2) 
+        x = self.SK_2(x)
         x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
