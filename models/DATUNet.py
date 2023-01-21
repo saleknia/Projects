@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         self.stages[3] = None
@@ -909,7 +909,7 @@ class DATUNet(nn.Module):
         self.Reduce = ConvBatchNorm(in_channels=64, out_channels=48, kernel_size=3, padding=1)
         self.FAMBlock1 = FAMBlock(in_channels=48, out_channels=48)
         self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        
+    
         self.encoder = DAT(
             img_size=224,
             patch_size=4,
@@ -917,8 +917,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 6, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -958,10 +958,10 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
-        self.sigmoid_1 = nn.Sigmoid()
-        self.sigmoid_2 = nn.Sigmoid()
-        self.sigmoid_3 = nn.Sigmoid()
-        self.sigmoid_4 = nn.Sigmoid()
+        # self.sigmoid_1 = nn.Sigmoid()
+        # self.sigmoid_2 = nn.Sigmoid()
+        # self.sigmoid_3 = nn.Sigmoid()
+        # self.sigmoid_4 = nn.Sigmoid()
 
     
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
@@ -991,27 +991,27 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
         # x1 = x_fuse[0] + x1
         # x2 = x_fuse[1] + x2
         # x3 = x_fuse[2] + x3
         # x4 = x_fuse[3] + x4
 
-        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         y3 = self.up3(x4, x3) 
         y2 = self.up2(x3, x2)     
