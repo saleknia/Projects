@@ -949,10 +949,10 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.norm_decode_3 = LayerNormProxy(dim=192)
-        self.norm_decode_2 = LayerNormProxy(dim=96)
+        # self.norm_decode_3 = LayerNormProxy(dim=192)
+        # self.norm_decode_2 = LayerNormProxy(dim=96)
 
-        self.stage_1, self.stage_2 = stages()
+        # self.stage_1, self.stage_2 = stages()
 
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
@@ -1018,15 +1018,9 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        x3 = self.up3(x4, x3) 
-        x3 = self.norm_decode_3(x3)
-        x3 = self.stage_2(x3)[0]
-
-        x2 = self.up2(x3, x2) 
-        x2 = self.norm_decode_2(x2)
-        x2 = self.stage_1(x2)[0]
-
-        x1 = self.up1(x2, x1) 
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
