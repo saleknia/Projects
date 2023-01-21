@@ -575,11 +575,11 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 
-class UpBlock_a(nn.Module):
+class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock_a, self).__init__()
+        super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
@@ -589,19 +589,6 @@ class UpBlock_a(nn.Module):
         x = self.conv(x)
         return x
 
-class UpBlock_b(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock_b, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-    
-    def forward(self, x, skip_x):
-        x = self.up(x) 
-        x = x + skip_x
-        x = self.conv(x)
-        return x
 
 def make_stage(multi_scale_output=True):
     num_modules = 1
@@ -962,15 +949,9 @@ class DATUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up3_a = UpBlock_a(384, 192, nb_Conv=2)
-        self.up2_a = UpBlock_a(192, 96 , nb_Conv=2)
-        self.up1_a = UpBlock_a(96 , 48 , nb_Conv=2)
-
-        self.up3_b = UpBlock_b(384, 192, nb_Conv=2)
-        self.up2_b = UpBlock_b(192, 96 , nb_Conv=2)
-        self.up1_b = UpBlock_b(96 , 48 , nb_Conv=2)
-
-        self.head = SegFormerHead()
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
         # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
         # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
@@ -982,23 +963,11 @@ class DATUNet(nn.Module):
         self.sigmoid_3 = nn.Sigmoid()
         self.sigmoid_4 = nn.Sigmoid()
 
-        self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_1 = nn.ReLU(inplace=True)
-        self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_1 = nn.ReLU(inplace=True)
-        self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.final_conv1_2 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_2 = nn.ReLU(inplace=True)
-        self.final_conv2_2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_2 = nn.ReLU(inplace=True)
-        self.final_conv_2  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.final_conv1_3 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_3 = nn.ReLU(inplace=True)
-        self.final_conv2_3 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_3 = nn.ReLU(inplace=True)
-        self.final_conv_3  = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1043,38 +1012,17 @@ class DATUNet(nn.Module):
         x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        y3 = self.up3_a(x4, x3) 
-        y2 = self.up2_a(x3, x2)     
-        y1 = self.up1_a(x2, x1) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2)     
+        x1 = self.up1(x2, x1) 
         
-        y = self.final_conv1_1(y1)
-        y = self.final_relu1_1(y)
-        y = self.final_conv2_1(y)
-        y = self.final_relu2_1(y)
-        y = self.final_conv_1(y)
+        x = self.final_conv1(x1)
+        x = self.final_relu1(x)
+        x = self.final_conv2(x)
+        x = self.final_relu2(x)
+        x = self.final_conv(x)
 
-        k3 = self.up3_b(x4, x3) 
-        k2 = self.up2_b(x3, x2)     
-        k1 = self.up1_b(x2, x1) 
-        
-        k = self.final_conv1_2(k1)
-        k = self.final_relu1_2(k)
-        k = self.final_conv2_2(k)
-        k = self.final_relu2_2(k)
-        k = self.final_conv_2(k)
-
-        t = self.head(x1, x2, x3, x4)
-        t = self.final_conv1_3(t)
-        t = self.final_relu1_3(t)
-        t = self.final_conv2_3(t)
-        t = self.final_relu2_3(t)
-        t = self.final_conv_3(t)
-
-        if self.training:
-            return (y, k, t)
-        else:
-            return (y+k+t) / 3.0
-
+        return x
 
 import torch
 import torch.nn as nn
