@@ -482,7 +482,7 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
     
     def reset_parameters(self):
 
@@ -545,10 +545,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -946,13 +946,10 @@ class DATUNet(nn.Module):
         # self.RSA_2 = ReverseSpatialSelfAttention(96)
         # self.RSA_1 = ReverseSpatialSelfAttention(48)
 
-        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
-
-        self.head = SegFormerHead()
 
         # self.norm_decode_3 = LayerNormProxy(dim=192)
         # self.norm_decode_2 = LayerNormProxy(dim=96)
@@ -995,13 +992,10 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
-
-        z = self.head(x2, x3, x4, x5)
 
         x = [x1, x2, x3, x4]
         x_fuse = []
@@ -1028,8 +1022,6 @@ class DATUNet(nn.Module):
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
-
-        x = x+z
 
         x = self.final_conv1(x)
         x = self.final_relu1(x)
