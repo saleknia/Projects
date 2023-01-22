@@ -575,6 +575,19 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
+class FeatureSelectionModule(nn.Module):
+    def __init__(self, in_chan):
+        super(FeatureSelectionModule, self).__init__()
+        self.conv_atten = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
+        self.sigmoid = nn.Sigmoid()
+        self.conv = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
+
+    def forward(self, x):
+        atten = self.sigmoid(self.conv_atten(F.avg_pool2d(x, x.size()[2:])))
+        feat = torch.mul(x, atten)
+        x = x + feat
+        feat = self.conv(x)
+        return feat
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -953,9 +966,9 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.ESP_4 = DilatedParllelResidualBlockB(nIn=384, nOut=384)
-        self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
-        self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
+        # self.ESP_4 = DilatedParllelResidualBlockB(nIn=384, nOut=384)
+        # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
+        # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
 
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
@@ -1016,14 +1029,8 @@ class DATUNet(nn.Module):
         # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x = self.up4(x5, x4) 
-        x = self.ESP_4(x)
-
         x = self.up3(x , x3) 
-        x = self.ESP_3(x)
-
         x = self.up2(x , x2) 
-        x = self.ESP_2(x)
-
         x = self.up1(x , x1) 
 
         x = self.final_conv1_1(x)
