@@ -580,14 +580,11 @@ class FeatureSelectionModule(nn.Module):
         super(FeatureSelectionModule, self).__init__()
         self.conv_atten = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
         self.sigmoid = nn.Sigmoid()
-        self.conv = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
 
     def forward(self, x, skip_x):
         atten = self.sigmoid(self.conv_atten(F.avg_pool2d(x, x.size()[2:])))
-        feat = torch.mul(skip_x, atten)
-        skip_x = skip_x + feat
-        feat = self.conv(skip_x)
-        return feat
+        skip_x = torch.mul(skip_x, atten)
+        return skip_x
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -597,10 +594,12 @@ class UpBlock(nn.Module):
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
         self.FSM = FeatureSelectionModule(in_channels//2)
+        self.sigmoid = nn.Sigmoid()
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         skip_x = self.FSM(x, skip_x)
+        skip_x = skip_x * (1.0-self.sigmoid(x))
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
         x = x + skip_x
