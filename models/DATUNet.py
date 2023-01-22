@@ -494,6 +494,10 @@ class DAT(nn.Module):
             nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0),
             LayerNormProxy(384)
             ) 
+        self.output = nn.Sequential(
+            nn.Conv2d(in_channels=384, out_channels=1, kernel_size=1, padding=0),
+            nn.Upsample(scale_factor=16.0)
+        )
     
     def reset_parameters(self):
 
@@ -559,6 +563,7 @@ class DAT(nn.Module):
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
         feature_tf = self.deit_norm(feature_tf)
+        feature_tf_out = self.output(feature_tf)
         
         x = self.patch_proj(x)
         positions = []
@@ -575,7 +580,7 @@ class DAT(nn.Module):
             positions.append(pos)
             references.append(ref)
         
-        return outputs
+        return outputs, feature_tf_out
 
 def get_activation(activation_type):  
     if activation_type=='Sigmoid':
@@ -1001,7 +1006,7 @@ class DATUNet(nn.Module):
         for i in range(6):
             x1 = self.FAM1[i](x1)
 
-        outputs = self.encoder(x_input)
+        outputs, feature_tf_out = self.encoder(x_input)
 
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
@@ -1040,7 +1045,10 @@ class DATUNet(nn.Module):
         x = self.final_relu2_1(x)
         x = self.final_conv_1(x)
 
-        return x
+        if self.training:
+            return x, feature_tf_out
+        else:
+            return x
 
 def stages():
     stage_1 = DAT(
