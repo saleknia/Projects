@@ -480,10 +480,10 @@ class DAT(nn.Module):
         
         # self.reset_parameters()
 
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        self.stages[3] = None
+        # self.stages[3] = None
 
         transformer = deit_small_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
@@ -551,26 +551,15 @@ class DAT(nn.Module):
     
     def forward(self, x):
 
-        b, c, h, w = x.shape
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.deit_norm(feature_tf)
-        
         x = self.patch_proj(x)
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 2:
-                if i==1:
-                    x = self.down_projs[i](x) + feature_tf
-                else:
-                    x = self.down_projs[i](x)
+            if i < 3:
+                x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
         
@@ -602,12 +591,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        x = x + skip_x
         return x
 
 
@@ -961,11 +951,13 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
+        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
+        self.up4 = UpBlock(768, 192, nb_Conv=2)
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -975,10 +967,10 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
-        self.sigmoid_1 = nn.Sigmoid()
-        self.sigmoid_2 = nn.Sigmoid()
-        self.sigmoid_3 = nn.Sigmoid()
-        self.sigmoid_4 = nn.Sigmoid()
+        # self.sigmoid_1 = nn.Sigmoid()
+        # self.sigmoid_2 = nn.Sigmoid()
+        # self.sigmoid_3 = nn.Sigmoid()
+        # self.sigmoid_4 = nn.Sigmoid()
     
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_1 = nn.ReLU(inplace=True)
@@ -1002,34 +994,36 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
+        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
-        x = [x1, x2, x3, x4]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x = [x1, x2, x3, x4]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
         # x1 = x_fuse[0] + x1
         # x2 = x_fuse[1] + x2
         # x3 = x_fuse[2] + x3
         # x4 = x_fuse[3] + x4
 
-        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        x = self.up3(x4, x3) 
+        x = self.up4(x5, x4) 
+        x = self.up3(x , x3) 
         x = self.up2(x , x2) 
         x = self.up1(x , x1) 
 
