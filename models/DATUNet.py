@@ -479,7 +479,7 @@ class DAT(nn.Module):
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
         # self.reset_parameters()
-        
+
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
@@ -490,6 +490,10 @@ class DAT(nn.Module):
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
+        self.deit_norm = nn.Sequential(
+            nn.Conv2d(in_channels=192, out_channels=384, kernel_size=1, padding=0),
+            LayerNormProxy(384)
+            ) 
     
     def reset_parameters(self):
 
@@ -547,6 +551,14 @@ class DAT(nn.Module):
         return {'relative_position_bias_table', 'rpe_table'}
     
     def forward(self, x):
+
+        b, c, h, w = x.shape
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.deit_norm(feature_tf)
         
         x = self.patch_proj(x)
         positions = []
@@ -556,7 +568,10 @@ class DAT(nn.Module):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 2:
-                x = self.down_projs[i](x)
+                if i==1:
+                    x = self.down_projs[i](x) + feature_tf
+                else:
+                    x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
         
