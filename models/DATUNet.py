@@ -582,11 +582,11 @@ class FeatureSelectionModule(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.conv = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
 
-    def forward(self, x):
+    def forward(self, x, skip_x):
         atten = self.sigmoid(self.conv_atten(F.avg_pool2d(x, x.size()[2:])))
-        feat = torch.mul(x, atten)
-        x = x + feat
-        feat = self.conv(x)
+        feat = torch.mul(skip_x, atten)
+        skip_x = skip_x + feat
+        feat = self.conv(skip_x)
         return feat
 
 class UpBlock(nn.Module):
@@ -600,7 +600,7 @@ class UpBlock(nn.Module):
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = self.FSM(x)
+        skip_x = self.FSM(x, skip_x)
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
         x = x + skip_x
