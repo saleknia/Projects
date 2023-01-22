@@ -1302,7 +1302,7 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
-        add1 = d2
+        add1 = d2   + d1
         add2 = add1 + d4
         add3 = add2 + d8
 
