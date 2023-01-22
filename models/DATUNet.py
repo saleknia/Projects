@@ -485,14 +485,13 @@ class DAT(nn.Module):
         self.load_pretrained(state_dict)
         self.stages[3] = None
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
         self.deit_norm = nn.Sequential(
-            nn.Upsample(scale_factor=2.0),
-            LayerNormProxy(192)
+            LayerNormProxy(384)
             ) 
     
     def reset_parameters(self):
@@ -557,7 +556,7 @@ class DAT(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.deit_norm(feature_tf)
         
         x = self.patch_proj(x)
@@ -569,7 +568,7 @@ class DAT(nn.Module):
             outputs.append(x)
             if i < 2:
                 if i==1:
-                    x = self.down_projs[i](x+feature_tf) 
+                    x = self.down_projs[i](x) + feature_tf
                 else:
                     x = self.down_projs[i](x)
             positions.append(pos)
