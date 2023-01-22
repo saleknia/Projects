@@ -1003,6 +1003,7 @@ class DATUNet(nn.Module):
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
 
+        
         x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
