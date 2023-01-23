@@ -481,20 +481,21 @@ class DAT(nn.Module):
         
         # self.reset_parameters()
 
-        checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         # self.stages[3] = None
 
-        # transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        # self.patch_embed = transformer.patch_embed
-        # self.transformers = nn.ModuleList(
-        #     [transformer.blocks[i] for i in range(12)]
-        # )
-        # self.deit = nn.Sequential(
-        #     _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
-        #     LayerNormProxy(384)
-        # )
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+        self.deit = nn.Sequential(
+            _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
+            nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2),
+            LayerNormProxy(384)
+        )
     
     def reset_parameters(self):
 
@@ -569,7 +570,7 @@ class DAT(nn.Module):
             outputs.append(x)
             if i < 3:
                 if i==1:
-                    x = self.down_projs[i](x)+feature_tf
+                    x = self.down_projs[i](x+feature_tf)
                 else:
                     x = self.down_projs[i](x)
             positions.append(pos)
@@ -602,12 +603,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        x = x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
 
 
@@ -932,8 +933,8 @@ class DATUNet(nn.Module):
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -954,13 +955,11 @@ class DATUNet(nn.Module):
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.norm_5 = LayerNormProxy(dim=768)
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
         self.norm_1 = LayerNormProxy(dim=48)
 
-        self.up4 = UpBlock(768, 384, nb_Conv=2)
         self.up3 = UpBlock(384, 192, nb_Conv=2)
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
@@ -999,40 +998,36 @@ class DATUNet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x5 = self.norm_5(outputs[3])
         x4 = self.norm_4(outputs[2])
         x3 = self.norm_3(outputs[1])
         x2 = self.norm_2(outputs[0])
         x1 = self.norm_1(x1)
+ 
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
-
-        # x1 = x_fuse[0] + x1
-        # x2 = x_fuse[1] + x2
-        # x3 = x_fuse[2] + x3
-        # x4 = x_fuse[3] + x4
+        x1 = x_fuse[0] + x1
+        x2 = x_fuse[1] + x2
+        x3 = x_fuse[2] + x3
+        x4 = x_fuse[3] + x4
 
         # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
         # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
         # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        x4 = self.up4(x5, x4) 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
-
 
         x = self.final_conv1_1(x1)
         x = self.final_relu1_1(x)
