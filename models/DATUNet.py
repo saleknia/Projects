@@ -492,8 +492,8 @@ class DAT(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
         self.deit = nn.Sequential(
-            _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
-            LayerNormProxy(192)
+            _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
+            LayerNormProxy(384)
         )
     
     def reset_parameters(self):
