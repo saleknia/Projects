@@ -1026,7 +1026,7 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = self.head(x1, x2, x3, x4) + x1
+        x = self.head(x1, x2, x3, x4)
 
         x = self.final_conv1_1(x)
         x = self.final_relu1_1(x)
