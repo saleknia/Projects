@@ -484,7 +484,7 @@ class DAT(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
 
         transformer = deit_tiny_distilled_patch16_224(pretrained=True)
         self.patch_embed = transformer.patch_embed
@@ -565,10 +565,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 if i==1:
                     x = self.down_projs[i](x+feature_tf)
                 else:
