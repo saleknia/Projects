@@ -196,11 +196,10 @@ class UNet(nn.Module):
         feature_tf = self.conv_tf(feature_tf)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        xl[3] = xl[3] + feature_tf
         yl = self.encoder.stage4(xl)
 
 
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]+feature_tf
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
