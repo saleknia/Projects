@@ -819,7 +819,7 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 48, 96, 192, 384
 
         embedding_dim = 48
 
@@ -828,10 +828,9 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up_8 = nn.Upsample(scale_factor=16.0)
-        self.up_4 = nn.Upsample(scale_factor=8.0)
-        self.up_2 = nn.Upsample(scale_factor=4.0)
-        self.up_1 = nn.Upsample(scale_factor=2.0)
+        self.up_8 = nn.Upsample(scale_factor=8.0)
+        self.up_4 = nn.Upsample(scale_factor=4.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
 
         self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
 
@@ -850,12 +849,6 @@ class SegFormerHead(nn.Module):
         _c2 = self.up_2(_c2)
 
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-        _c1 = self.up_1(_c1)
-
-        # print(_c4.shape)
-        # print(_c3.shape)
-        # print(_c2.shape)
-        # print(_c1.shape)
 
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
 
@@ -974,6 +967,8 @@ class DATUNet(nn.Module):
         # self.sigmoid_2 = nn.Sigmoid()
         # self.sigmoid_3 = nn.Sigmoid()
         # self.sigmoid_4 = nn.Sigmoid()
+
+        self.head = SegFormerHead()
     
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_1 = nn.ReLU(inplace=True)
@@ -1026,10 +1021,12 @@ class DATUNet(nn.Module):
         # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
-        x = self.up4(x5, x4) 
-        x = self.up3(x , x3) 
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1) 
+        x4 = self.up4(x5, x4) 
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1) 
+
+        x = self.head(x1, x2, x3, x4) + x1
 
         x = self.final_conv1_1(x)
         x = self.final_relu1_1(x)
