@@ -480,7 +480,7 @@ class DAT(nn.Module):
         
         # self.reset_parameters()
 
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cuda') 
+        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         # self.stages[3] = None
