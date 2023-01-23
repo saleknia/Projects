@@ -609,7 +609,6 @@ class UpBlock(nn.Module):
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
         x = x + skip_x
-        x = x + self.conv(x)
         return x
 
 
