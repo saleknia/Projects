@@ -10,6 +10,7 @@ from .CTrans import ChannelTransformer
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
+
 class LocalAttention(nn.Module):
 
     def __init__(self, dim, heads, window_size, attn_drop, proj_drop):
@@ -484,6 +485,17 @@ class DAT(nn.Module):
         state_dict = checkpoint['model']
         self.load_pretrained(state_dict)
         # self.stages[3] = None
+
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+        self.deit = nn.Sequential(
+            _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
+            nn.ConvTranspose2d(192, 192, kernel_size=2, stride=2),
+            LayerNormProxy(192)
+        )
     
     def reset_parameters(self):
 
@@ -541,6 +553,13 @@ class DAT(nn.Module):
         return {'relative_position_bias_table', 'rpe_table'}
     
     def forward(self, x):
+        b, c, h, w = x.shape
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.deit(feature_tf)
 
         x = self.patch_proj(x)
         positions = []
@@ -550,7 +569,10 @@ class DAT(nn.Module):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 3:
-                x = self.down_projs[i](x)
+                if i==1:
+                    x = self.down_projs[i](x+feature_tf)
+                else:
+                    x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
         
