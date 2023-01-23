@@ -575,82 +575,20 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-class FeatureSelectionModule(nn.Module):
-    def __init__(self, in_chan):
-        super(FeatureSelectionModule, self).__init__()
-        self.conv_atten = nn.Conv2d(in_chan, in_chan, kernel_size=1, bias=False)
-        self.sigmoid = nn.Sigmoid()
-
-    def forward(self, x, skip_x):
-        atten = self.sigmoid(self.conv_atten(F.avg_pool2d(x, x.size()[2:])))
-        skip_x = torch.mul(skip_x, atten)
-        return skip_x
-
-class CAB(nn.Module):
-    def __init__(self, features):
-        super(CAB, self).__init__()
-
-        self.delta_gen1 = nn.Sequential(
-                        nn.Conv2d(features*2, features, kernel_size=1, bias=False),
-                        nn.BatchNorm2d(features),
-                        nn.Conv2d(features, 2, kernel_size=3, padding=1, bias=False)
-                        )
-
-        self.delta_gen2 = nn.Sequential(
-                        nn.Conv2d(features*2, features, kernel_size=1, bias=False),
-                        nn.BatchNorm2d(features),
-                        nn.Conv2d(features, 2, kernel_size=3, padding=1, bias=False)
-                        )
-
-
-        self.delta_gen1[2].weight.data.zero_()
-        self.delta_gen2[2].weight.data.zero_()
-
-    # https://github.com/speedinghzl/AlignSeg/issues/7
-    # the normlization item is set to [w/s, h/s] rather than [h/s, w/s]
-    # the function bilinear_interpolate_torch_gridsample2 is standard implementation, please use bilinear_interpolate_torch_gridsample2 for training.
-    def bilinear_interpolate_torch_gridsample(self, input, size, delta=0):
-        out_h, out_w = size
-        n, c, h, w = input.shape
-        s = 1.0
-        norm = torch.tensor([[[[w/s, h/s]]]]).type_as(input).to(input.device)
-        w_list = torch.linspace(-1.0, 1.0, out_h).view(-1, 1).repeat(1, out_w)
-        h_list = torch.linspace(-1.0, 1.0, out_w).repeat(out_h, 1)
-        grid = torch.cat((h_list.unsqueeze(2), w_list.unsqueeze(2)), 2)
-        grid = grid.repeat(n, 1, 1, 1).type_as(input).to(input.device)
-        grid = grid + delta.permute(0, 2, 3, 1) / norm
-
-        output = F.grid_sample(input, grid)
-        return output
-
-    def forward(self, low_stage, high_stage):
-        h, w = low_stage.size(2), low_stage.size(3)
-        
-        concat = torch.cat((low_stage, high_stage), 1)
-        delta1 = self.delta_gen1(concat)
-        delta2 = self.delta_gen2(concat)
-        high_stage = self.bilinear_interpolate_torch_gridsample(high_stage, (h, w), delta1)
-        low_stage = self.bilinear_interpolate_torch_gridsample(low_stage, (h, w), delta2)
-
-        high_stage += low_stage
-        return high_stage
-
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
-        self.CAB = CAB(in_channels//2)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation=activation, dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
-        # x = x + skip_x
-        x = self.CAB(low_stage=skip_x, high_stage=x)
+        x = x + skip_x
+        x = x + self.conv(x)
         return x
 
 
