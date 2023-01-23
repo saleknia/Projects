@@ -146,19 +146,19 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
-        self.encoder_1.incre_modules = None
-        self.encoder_1.stage4 = None
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder.conv1.stride = (1, 1)
+        self.encoder.incre_modules = None
 
-        self.up2 = UpBlock(128, 64, nb_Conv=2)
-        self.up1 = UpBlock(64 , 32, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(32, 32, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 16, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(16, n_classes, 1, padding=0)
-        self.final_up_sample = nn.Upsample(scale_factor=2.0)
+        self.final_conv_out = nn.Conv2d(18, n_classes, 1, padding=0)
 
     def forward(self, x):
         # Question here
@@ -179,10 +179,14 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
         yl = self.encoder_1.stage3(xl)
 
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
+        yl = self.encoder_1.stage4(xl)
 
-        x1, x2, x3 = yl[0], yl[1], yl[2]
 
-        x = self.up2(x3, x2) 
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
         x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
@@ -190,8 +194,7 @@ class UNet(nn.Module):
         x = self.final_conv2(x)
         x = self.final_relu2(x)
         x = self.final_conv_out(x)
-        out = self.final_up_sample(x)
-        return out
+        return x
 
 
 # class UNet(nn.Module):
