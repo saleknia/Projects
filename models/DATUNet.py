@@ -1009,6 +1009,11 @@ class DATUNet(nn.Module):
         # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
         # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
+        x1 = torchvision.ops.stochastic_depth(x1, 0.5, 'batch', True)
+        x2 = torchvision.ops.stochastic_depth(x2, 0.5, 'batch', True)        
+        x3 = torchvision.ops.stochastic_depth(x3, 0.5, 'batch', True)
+        x4 = torchvision.ops.stochastic_depth(x4, 0.5, 'batch', True)
+
         x4 = self.up4(x5, x4) 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
