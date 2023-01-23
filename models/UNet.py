@@ -165,22 +165,22 @@ class UNet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
-        x = self.encoder_1.conv1(x0)
-        x = self.encoder_1.bn1(x)
-        x = self.encoder_1.act1(x)
-        x = self.encoder_1.conv2(x)
-        x = self.encoder_1.bn2(x)
-        x = self.encoder_1.act2(x)
-        x = self.encoder_1.layer1(x)
+        x = self.encoder.conv1(x0)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        x = self.encoder.conv2(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
 
-        xl = [t(x) for i, t in enumerate(self.encoder_1.transition1)]
-        yl = self.encoder_1.stage2(xl)
+        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        yl = self.encoder.stage2(xl)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition2)]
-        yl = self.encoder_1.stage3(xl)
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        yl = self.encoder.stage3(xl)
 
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_1.transition3)]
-        yl = self.encoder_1.stage4(xl)
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder.stage4(xl)
 
 
         x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
