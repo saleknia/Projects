@@ -494,7 +494,7 @@ class DAT(nn.Module):
         self.deit = nn.Sequential(
             _make_nConv(in_channels=192, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
             nn.ConvTranspose2d(192, 192, kernel_size=2, stride=2),
-            LayerNormProxy(384)
+            LayerNormProxy(192)
         )
     
     def reset_parameters(self):
