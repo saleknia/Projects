@@ -153,7 +153,7 @@ class UNet(nn.Module):
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_tf = _make_nConv(in_channels=192, out_channels=114, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_tf = _make_nConv(in_channels=192, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.conv1.stride = (1, 1)
