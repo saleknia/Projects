@@ -146,14 +146,14 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
 
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv_tf = _make_nConv(in_channels=192, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_tf = _make_nConv(in_channels=384, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.conv1.stride = (1, 1)
@@ -192,7 +192,7 @@ class UNet(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
         feature_tf = self.conv_tf(feature_tf)
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
