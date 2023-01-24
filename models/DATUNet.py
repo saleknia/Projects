@@ -888,19 +888,19 @@ class GCN(nn.Module):
         super(GCN, self).__init__()
         self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
         self.bn_l1 = nn.BatchNorm2d(out_c)
-        self.relu_l1 = nn.ReLU(inplace=True)
+        self.relu_l1 = nn.ReLU()
 
         self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
         self.bn_l2 = nn.BatchNorm2d(out_c)
-        self.relu_l2 = nn.ReLU(inplace=True)
+        self.relu_l2 = nn.ReLU()
 
         self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
         self.bn_r1 = nn.BatchNorm2d(out_c)
-        self.relu_r1 = nn.ReLU(inplace=True)
+        self.relu_r1 = nn.ReLU()
 
         self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
         self.bn_r2 = nn.BatchNorm2d(out_c)
-        self.relu_r2 = nn.ReLU(inplace=True)
+        self.relu_r2 = nn.ReLU()
 
     def forward(self, x):
         x_l = self.conv_l1(x)
@@ -912,12 +912,12 @@ class GCN(nn.Module):
         x_l = self.relu_l2(x)
 
         x_r = self.conv_r1(x)
-        x_l = self.bn_r1(x)
-        x_l = self.relu_r1(x)
+        x_r = self.bn_r1(x)
+        x_r = self.relu_r1(x)
 
         x_r = self.conv_r2(x_r)
-        x_l = self.bn_r2(x)
-        x_l = self.relu_r2(x)
+        x_r = self.bn_r2(x)
+        x_r = self.relu_r2(x)
 
         x = x_l + x_r
         return x
