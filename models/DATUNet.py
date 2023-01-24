@@ -953,37 +953,42 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
-        self.conv_up_2 = nn.Sequential(
-            ConvBatchNorm(96, 48),
-            nn.Upsample(scale_factor=2.0)
-        )
+        # self.conv_up_2 = nn.Sequential(
+        #     ConvBatchNorm(96, 48),
+        #     nn.Upsample(scale_factor=2.0)
+        # )
 
-        self.conv_out_2 = ConvBatchNorm(48, 48)
+        # self.conv_out_2 = ConvBatchNorm(48, 48)
 
-        self.conv_up_3 = nn.Sequential(
-            ConvBatchNorm(192, 48),
-            nn.Upsample(scale_factor=4.0)
-        )
+        # self.conv_up_3 = nn.Sequential(
+        #     ConvBatchNorm(192, 48),
+        #     nn.Upsample(scale_factor=4.0)
+        # )
 
-        self.conv_out_3 = ConvBatchNorm(48, 48)
+        # self.conv_out_3 = ConvBatchNorm(48, 48)
 
-        self.conv_up_4 = nn.Sequential(
-            ConvBatchNorm(384, 48),
-            nn.Upsample(scale_factor=8.0)
-        )
+        # self.conv_up_4 = nn.Sequential(
+        #     ConvBatchNorm(384, 48),
+        #     nn.Upsample(scale_factor=8.0)
+        # )
 
-        self.conv_out_4 = ConvBatchNorm(48, 48)
+        # self.conv_out_4 = ConvBatchNorm(48, 48)
 
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
         self.sigmoid_4 = nn.Sigmoid()
 
-        self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1_1 = nn.ReLU(inplace=True)
-        self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2_1 = nn.ReLU(inplace=True)
-        self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv = nn.Sequential(
+            nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2),
+            nn.Conv2d(48, n_classes, 1, padding=0)
+        ) 
+
+        # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
+        # self.final_relu1_1 = nn.ReLU(inplace=True)
+        # self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
+        # self.final_relu2_1 = nn.ReLU(inplace=True)
+        # self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1032,19 +1037,21 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x4 = self.conv_up_4(x4)
-        x3 = self.conv_up_3(x3)
-        x2 = self.conv_up_2(x2)
+        # x4 = self.conv_up_4(x4)
+        # x3 = self.conv_up_3(x3)
+        # x2 = self.conv_up_2(x2)
 
-        x2 = self.conv_out_2(x1+x2)
-        x3 = self.conv_out_3(x2+x3)
-        x4 = self.conv_out_4(x3+x4)
+        # x2 = self.conv_out_2(x1+x2)
+        # x3 = self.conv_out_3(x2+x3)
+        # x4 = self.conv_out_4(x3+x4)
 
-        x = self.final_conv1_1(x4)
-        x = self.final_relu1_1(x)
-        x = self.final_conv2_1(x)
-        x = self.final_relu2_1(x)
-        x = self.final_conv_1(x)
+        # x = self.final_conv1_1(x4)
+        # x = self.final_relu1_1(x)
+        # x = self.final_conv2_1(x)
+        # x = self.final_relu2_1(x)
+        # x = self.final_conv_1(x)
+
+        x = self.final_conv(x)
 
         return x
 
