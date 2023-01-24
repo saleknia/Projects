@@ -583,13 +583,11 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv = GCN(in_channels//2, in_channels//2)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x
 
@@ -992,16 +990,16 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
-        # self.sigmoid_1 = nn.Sigmoid()
-        # self.sigmoid_2 = nn.Sigmoid()
-        # self.sigmoid_3 = nn.Sigmoid()
-        # self.sigmoid_4 = nn.Sigmoid()
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1_1 = nn.ReLU(inplace=True)
-        # self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2_1 = nn.ReLU(inplace=True)
-        self.final_conv_1  = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_relu1_1 = nn.ReLU(inplace=True)
+        self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
+        self.final_relu2_1 = nn.ReLU(inplace=True)
+        self.final_conv_1  = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -1036,24 +1034,24 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
+        # x1 = x_fuse[0] + x1
+        # x2 = x_fuse[1] + x2
+        # x3 = x_fuse[2] + x3
+        # x4 = x_fuse[3] + x4
 
-        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
         x = self.final_conv1_1(x1)
-        # x = self.final_relu1_1(x)
-        # x = self.final_conv2_1(x)
-        # x = self.final_relu2_1(x)
+        x = self.final_relu1_1(x)
+        x = self.final_conv2_1(x)
+        x = self.final_relu2_1(x)
         x = self.final_conv_1(x)
 
         return x
