@@ -1051,7 +1051,7 @@ class DATUNet(nn.Module):
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
 
-        x = self.final_conv(x)
+        x = self.final_conv(x1)
 
         return x
 
