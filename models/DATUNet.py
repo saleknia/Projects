@@ -583,11 +583,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = GCN(in_channels//2, in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = x + skip_x
         x = self.conv(x)
         return x
 
@@ -884,17 +886,39 @@ def get_CTranS_config(num_channels, patch_size):
 class GCN(nn.Module):
     def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
         super(GCN, self).__init__()
-        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)/2,0))
-        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)/2))
-        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)/2,0))
-        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)/2))
-        
+        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
+        self.bn_l1 = nn.BatchNorm2d(out_c)
+        self.relu_l1 = nn.ReLU(inplace=True)
+
+        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
+        self.bn_l2 = nn.BatchNorm2d(out_c)
+        self.relu_l2 = nn.ReLU(inplace=True)
+
+        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
+        self.bn_r1 = nn.BatchNorm2d(out_c)
+        self.relu_r1 = nn.ReLU(inplace=True)
+
+        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
+        self.bn_r2 = nn.BatchNorm2d(out_c)
+        self.relu_r2 = nn.ReLU(inplace=True)
+
     def forward(self, x):
         x_l = self.conv_l1(x)
+        x_l = self.bn_l1(x)
+        x_l = self.relu_l1(x)
+
         x_l = self.conv_l2(x_l)
-        
+        x_l = self.bn_l2(x)
+        x_l = self.relu_l2(x)
+
         x_r = self.conv_r1(x)
+        x_l = self.bn_r1(x)
+        x_l = self.relu_r1(x)
+
         x_r = self.conv_r2(x_r)
+        x_l = self.bn_r2(x)
+        x_l = self.relu_r2(x)
+
         x = x_l + x_r
         return x
 
@@ -973,11 +997,6 @@ class DATUNet(nn.Module):
         # self.sigmoid_3 = nn.Sigmoid()
         # self.sigmoid_4 = nn.Sigmoid()
 
-        self.GCN_1 = GCN(c=48, out_c=48)
-        self.GCN_2 = GCN(c=96, out_c=96)        
-        self.GCN_3 = GCN(c=192, out_c=192)        
-        self.GCN_4 = GCN(c=384, out_c=384)  
-
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_1 = nn.ReLU(inplace=True)
         self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1021,11 +1040,6 @@ class DATUNet(nn.Module):
         x2 = x_fuse[1] + x2
         x3 = x_fuse[2] + x3
         x4 = x_fuse[3] + x4
-
-        x1 = self.GCN_1(x1)
-        x2 = self.GCN_2(x2)
-        x3 = self.GCN_3(x3)
-        x4 = self.GCN_4(x4)
 
         # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
         # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
