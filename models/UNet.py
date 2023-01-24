@@ -154,7 +154,7 @@ class UNet(nn.Module):
         self.up1 = UpBlock(96 , 48, nb_Conv=2)
 
         self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=48, out_channels=1, kernel_szie=1),
+            nn.Conv2d(in_channels=48, out_channels=1, kernel_size=1),
             nn.Upsample(scale_factor=4.0)
         )
 
