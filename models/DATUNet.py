@@ -840,7 +840,8 @@ class SegFormerHead(nn.Module):
 
         _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+        # x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+        x = _c4 + _c3 + _c2 + _c1
 
         return x
 
@@ -984,6 +985,8 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
+        self.MPH = SegFormerHead()
+
         # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1_1 = nn.ReLU(inplace=True)
         # self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1050,6 +1053,8 @@ class DATUNet(nn.Module):
         # x = self.final_conv2_1(x)
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
+
+        x = self.MPH(x1, x2, x3, x4)
 
         x = self.final_conv(x1)
 
