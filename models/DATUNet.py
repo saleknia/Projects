@@ -1017,10 +1017,15 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = self.GCN_1((x_fuse[0] + x1))
-        x2 = self.GCN_2((x_fuse[1] + x2))
-        x3 = self.GCN_3((x_fuse[2] + x3))
-        x4 = self.GCN_4((x_fuse[3] + x4))
+        x1 = x_fuse[0] + x1
+        x2 = x_fuse[1] + x2
+        x3 = x_fuse[2] + x3
+        x4 = x_fuse[3] + x4
+
+        x1 = self.GCN_1(x1)
+        x2 = self.GCN_2(x2)
+        x3 = self.GCN_3(x3)
+        x4 = self.GCN_4(x4)
 
         # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
         # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
