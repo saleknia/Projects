@@ -843,7 +843,7 @@ class SegFormerHead(nn.Module):
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
         # x = _c4 + _c3 + _c2 + _c1
 
-        return x
+        return x, _c4, _c3, _c2, _c1
 
 
 class FAMBlock(nn.Module):
@@ -1054,11 +1054,18 @@ class DATUNet(nn.Module):
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
 
-        x = self.MPH(x1, x2, x3, x4)
+        x, x1, x2, x3, x4 = self.MPH(x1, x2, x3, x4)
 
-        x = self.final_conv(x)
-
-        return x
+        x  = self.final_conv(x)
+        x1 = self.final_conv(x1)
+        x2 = self.final_conv(x2)
+        x3 = self.final_conv(x3)
+        x4 = self.final_conv(x4)
+        
+        if self.training:
+            return x, x1, x2, x3, x4
+        else:
+            return x
 
 def stages():
     stage_1 = DAT(
