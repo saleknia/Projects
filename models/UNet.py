@@ -146,28 +146,24 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-
-        self.conv_tf = _make_nConv(in_channels=384, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder.conv1.stride = (1, 1)
+        self.encoder = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
+        self.encoder.stage4 = None
 
-        self.up3 = UpBlock(144, 72, nb_Conv=2)
-        self.up2 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1 = UpBlock(36 , 18, nb_Conv=2)
+        self.conv_1 = _make_nConv(in_channels=64 , out_channels=48 , nb_Conv=2)
+        self.conv_2 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2)
+        self.conv_3 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2)
+        self.conv_4 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2)
 
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48, nb_Conv=2)
+
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(18, n_classes, 1, padding=0)
+        self.final_conv_out = nn.Conv2d(24, n_classes, 3, padding=1)
 
     def forward(self, x):
         # Question here
@@ -179,8 +175,8 @@ class UNet(nn.Module):
         x = self.encoder.act1(x)
         x = self.encoder.conv2(x)
         x = self.encoder.bn2(x)
-        x = self.encoder.act2(x)
-        x = self.encoder.layer1(x)
+        x0 = self.encoder.act2(x)
+        x = self.encoder.layer1(x0)
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
@@ -188,18 +184,7 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        feature_tf = self.conv_tf(feature_tf)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl)
-
-
-        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]+feature_tf
+        x1, x2, x3, x4 = self.conv_1(x0), self.conv_2(yl[0]), self.conv_3(yl[1]), self.conv_4(yl[2])
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
