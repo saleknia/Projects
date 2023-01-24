@@ -881,44 +881,7 @@ def get_CTranS_config(num_channels, patch_size):
     config.base_channel = num_channels # base channel of U-Net
     return config
 
-class GCN(nn.Module):
-    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
-        super(GCN, self).__init__()
-        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
-        self.bn_l1 = nn.BatchNorm2d(out_c)
-        self.relu_l1 = nn.ReLU()
 
-        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
-        self.bn_l2 = nn.BatchNorm2d(out_c)
-        self.relu_l2 = nn.ReLU()
-
-        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
-        self.bn_r1 = nn.BatchNorm2d(out_c)
-        self.relu_r1 = nn.ReLU()
-
-        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
-        self.bn_r2 = nn.BatchNorm2d(out_c)
-        self.relu_r2 = nn.ReLU()
-
-    def forward(self, x):
-        x_l = self.conv_l1(x)
-        x_l = self.bn_l1(x)
-        x_l = self.relu_l1(x)
-
-        x_l = self.conv_l2(x_l)
-        x_l = self.bn_l2(x)
-        x_l = self.relu_l2(x)
-
-        x_r = self.conv_r1(x)
-        x_r = self.bn_r1(x)
-        x_r = self.relu_r1(x)
-
-        x_r = self.conv_r2(x_r)
-        x_r = self.bn_r2(x)
-        x_r = self.relu_r2(x)
-
-        x = x_l + x_r
-        return x
 
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -990,6 +953,27 @@ class DATUNet(nn.Module):
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
+        self.conv_up_2 = nn.Sequential(
+            ConvBatchNorm(96, 48),
+            nn.Upsample(scale_factor=2.0)
+        )
+
+        self.conv_out_2 = ConvBatchNorm(48, 48)
+
+        self.conv_up_3 = nn.Sequential(
+            ConvBatchNorm(192, 48),
+            nn.Upsample(scale_factor=4.0)
+        )
+
+        self.conv_out_3 = ConvBatchNorm(48, 48)
+
+        self.conv_up_4 = nn.Sequential(
+            ConvBatchNorm(384, 48),
+            nn.Upsample(scale_factor=8.0)
+        )
+
+        self.conv_out_4 = ConvBatchNorm(48, 48)
+
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
@@ -1048,7 +1032,15 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = self.final_conv1_1(x1)
+        x4 = self.conv_up_4(x4)
+        x3 = self.conv_up_3(x3)
+        x2 = self.conv_up_2(x2)
+
+        x2 = self.conv_out_2(x1+x2)
+        x3 = self.conv_out_3(x2+x3)
+        x4 = self.conv_out_4(x3+x4)
+
+        x = self.final_conv1_1(x4)
         x = self.final_relu1_1(x)
         x = self.final_conv2_1(x)
         x = self.final_relu2_1(x)
