@@ -486,17 +486,6 @@ class DAT(nn.Module):
         self.load_pretrained(state_dict)
         self.stages[3] = None
 
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-        self.deit = nn.Sequential(
-            _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1),
-            # nn.ConvTranspose2d(192, 192, kernel_size=2, stride=2),
-            LayerNormProxy(384)
-        )
-    
     def reset_parameters(self):
 
         for m in self.parameters():
@@ -554,12 +543,6 @@ class DAT(nn.Module):
     
     def forward(self, x):
         b, c, h, w = x.shape
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.deit(feature_tf)
 
         x = self.patch_proj(x)
         positions = []
@@ -569,10 +552,7 @@ class DAT(nn.Module):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
             if i < 2:
-                if i==1:
-                    x = self.down_projs[i](x)+feature_tf
-                else:
-                    x = self.down_projs[i](x)
+                x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
         
@@ -901,6 +881,23 @@ def get_CTranS_config(num_channels, patch_size):
     config.base_channel = num_channels # base channel of U-Net
     return config
 
+class GCN(nn.Module):
+    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
+        super(GCN, self).__init__()
+        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)/2,0))
+        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)/2))
+        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)/2,0))
+        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)/2))
+        
+    def forward(self, x):
+        x_l = self.conv_l1(x)
+        x_l = self.conv_l2(x_l)
+        
+        x_r = self.conv_r1(x)
+        x_r = self.conv_r2(x_r)
+        x = x_l + x_r
+        return x
+
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -975,7 +972,12 @@ class DATUNet(nn.Module):
         # self.sigmoid_2 = nn.Sigmoid()
         # self.sigmoid_3 = nn.Sigmoid()
         # self.sigmoid_4 = nn.Sigmoid()
-    
+
+        self.GCN_1 = GCN(c=48, out_c=48)
+        self.GCN_2 = GCN(c=96, out_c=96)        
+        self.GCN_3 = GCN(c=192, out_c=192)        
+        self.GCN_4 = GCN(c=384, out_c=384)  
+
         self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1_1 = nn.ReLU(inplace=True)
         self.final_conv2_1 = nn.Conv2d(48, 24, 3, padding=1)
@@ -1015,10 +1017,10 @@ class DATUNet(nn.Module):
                     y = y + fuse_outer[j](x[j])
             x_fuse.append(self.fuse_act(y))
 
-        x1 = x_fuse[0] + x1
-        x2 = x_fuse[1] + x2
-        x3 = x_fuse[2] + x3
-        x4 = x_fuse[3] + x4
+        x1 = self.GCN_1(x_fuse[0] + x1)
+        x2 = self.GCN_2(x_fuse[1] + x2)
+        x3 = self.GCN_3(x_fuse[2] + x3)
+        x4 = self.GCN_4(x_fuse[3] + x4)
 
         # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
         # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
