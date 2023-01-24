@@ -150,20 +150,14 @@ class UNet(nn.Module):
         self.encoder.incre_modules = None
         self.encoder.stage4 = None
 
-        self.conv_1 = _make_nConv(in_channels=64 , out_channels=48 , nb_Conv=2)
-        self.conv_2 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2)
-        self.conv_3 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2)
-        self.conv_4 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2)
-
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up2 = UpBlock(192, 96, nb_Conv=2)
         self.up1 = UpBlock(96 , 48, nb_Conv=2)
 
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv_out = nn.Conv2d(24, n_classes, 3, padding=1)
+        self.final_conv_out = nn.ConvTranspose2d(24, n_classes, 4, 2, 1)
 
     def forward(self, x):
         # Question here
@@ -175,8 +169,8 @@ class UNet(nn.Module):
         x = self.encoder.act1(x)
         x = self.encoder.conv2(x)
         x = self.encoder.bn2(x)
-        x0 = self.encoder.act2(x)
-        x = self.encoder.layer1(x0)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
@@ -184,10 +178,9 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        x1, x2, x3, x4 = self.conv_1(x0), self.conv_2(yl[0]), self.conv_3(yl[1]), self.conv_4(yl[2])
+        x1, x2, x3 = yl[0], yl[1], yl[2]
 
-        x = self.up3(x4, x3) 
-        x = self.up2(x , x2) 
+        x = self.up2(x3, x2) 
         x = self.up1(x , x1) 
 
         x = self.final_conv1(x)
