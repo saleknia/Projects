@@ -434,6 +434,7 @@ class DAT(nn.Module):
                  ns_per_pts=[4, 4, 4, 4],
                  use_dwc_mlps=[False, False, False, False],
                  use_conv_patches=False,
+                 pretrain=True,
                  **kwargs):
         super().__init__()
 
@@ -479,11 +480,11 @@ class DAT(nn.Module):
         self.cls_norm = LayerNormProxy(dims[-1]) 
         self.cls_head = nn.Linear(dims[-1], num_classes)
         
-        # self.reset_parameters()
-
-        checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
-        state_dict = checkpoint['model']
-        self.load_pretrained(state_dict)
+        self.reset_parameters()
+        if pretrain:
+            checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
+            state_dict = checkpoint['model']
+            self.load_pretrained(state_dict)
         self.stages[3] = None
 
     def reset_parameters(self):
@@ -883,7 +884,6 @@ def get_CTranS_config(num_channels, patch_size):
     return config
 
 
-
 class DATUNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -985,7 +985,9 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
-        self.MPH = SegFormerHead()
+        self.stage_1, self.stage_2, self.stage_3 = stages()
+
+        # self.MPH = SegFormerHead()
 
         # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1_1 = nn.ReLU(inplace=True)
@@ -1037,8 +1039,13 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
+        x3 = self.stage_3(x3)
+
         x2 = self.up2(x3, x2) 
+        x2 = self.stage_2(x2)
+
         x1 = self.up1(x2, x1) 
+        x1 = self.stage_1(x1)
 
         # x4 = self.conv_up_4(x4)
         # x3 = self.conv_up_3(x3)
@@ -1054,37 +1061,28 @@ class DATUNet(nn.Module):
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
 
-        x, x1, x2, x3, x4 = self.MPH(x1, x2, x3, x4)
-
-        x  = self.final_conv(x)
-        x1 = self.final_conv(x1)
-        x2 = self.final_conv(x2)
-        x3 = self.final_conv(x3)
-        x4 = self.final_conv(x4)
+        x  = self.final_conv(x1)
         
-        if self.training:
-            return x, x1, x2, x3, x4
-        else:
-            return x
+        return x
 
 def stages():
-    stage_1 = DAT(
+    stages = DAT(
             img_size=224,
-            patch_size=4,
+            patch_size=2,
             num_classes=1000,
             expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
+            dim_stem=48,
+            dims=[48, 96, 192, 384],
+            depths=[2, 2, 2, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
+            heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
+            groups=[-1, -1, -1, -1],
             use_pes=[False, False, True, True],
             dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
+            strides=[-1, -1, -1, -1],
             sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
+            offset_range_factor=[-1, -1, -1, -1],
             no_offs=[False, False, False, False],
             fixed_pes=[False, False, False, False],
             use_dwc_mlps=[False, False, False, False],
@@ -1092,34 +1090,9 @@ def stages():
             drop_rate=0.0,
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
-        ).stages[0]
-
-    stage_2 = DAT(
-            img_size=224,
-            patch_size=4,
-            num_classes=1000,
-            expansion=4,
-            dim_stem=96,
-            dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-            heads=[3, 6, 12, 24],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, 3, 6],
-            use_pes=[False, False, True, True],
-            dwc_pes=[False, False, False, False],
-            strides=[-1, -1, 1, 1],
-            sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, 2, 2],
-            no_offs=[False, False, False, False],
-            fixed_pes=[False, False, False, False],
-            use_dwc_mlps=[False, False, False, False],
-            use_conv_patches=False,
-            drop_rate=0.0,
-            attn_drop_rate=0.0,
-            drop_path_rate=0.2,
-        ).stages[1]
-    return stage_1, stage_2
+            pretrain=False
+        )
+    return stages[0], stages[1], stages[2]
 
 import torch
 import torch.nn as nn
