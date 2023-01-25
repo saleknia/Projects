@@ -987,6 +987,10 @@ class DATUNet(nn.Module):
         self.up_3 = nn.Upsample(scale_factor=4.0)
         self.up_4 = nn.Upsample(scale_factor=8.0)
 
+        self.conv_2 = nn.Conv2d(96 , 48, 1, padding=0)
+        self.conv_3 = nn.Conv2d(192, 48, 1, padding=0)        
+        self.conv_4 = nn.Conv2d(384, 48, 1, padding=0)
+
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.MPH = SegFormerHead()
@@ -1066,9 +1070,9 @@ class DATUNet(nn.Module):
         # x = self.final_conv_1(x)
 
         x1 = self.final_conv(self.up_1(x1))
-        x2 = self.final_conv(self.up_2(x2))
-        x3 = self.final_conv(self.up_3(x3))
-        x4 = self.final_conv(self.up_4(x4))
+        x2 = self.final_conv(self.conv_2(self.up_2(x2)))
+        x3 = self.final_conv(self.conv_3(self.up_3(x3)))
+        x4 = self.final_conv(self.conv_4(self.up_4(x4)))
 
         if self.training:
             return (x1, x2, x3, x4)
