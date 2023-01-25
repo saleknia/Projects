@@ -590,6 +590,7 @@ class UpBlock(nn.Module):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        # x = x + skip_x
         return x
 
 
@@ -947,10 +948,6 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.ESP_4 = DilatedParllelResidualBlockB(nIn=384, nOut=384)
-        # self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
-        # self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
-
         # self.SAPblock_3 = SAPblock(in_channels=192)
         # self.SAPblock_2 = SAPblock(in_channels=96)
 
@@ -987,7 +984,7 @@ class DATUNet(nn.Module):
 
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        # self.MPH = SegFormerHead()
+        self.MPH = SegFormerHead()
 
         # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1_1 = nn.ReLU(inplace=True)
@@ -1039,13 +1036,13 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        # x3 = self.stage_3(x3)[0]
+        x3 = self.stage_3(x3)[0]
 
         x2 = self.up2(x3, x2) 
-        # x2 = self.stage_2(x2)[0]
+        x2 = self.stage_2(x2)[0]
 
         x1 = self.up1(x2, x1) 
-        # x1 = self.stage_1(x1)[0]
+        x1 = self.stage_1(x1)[0]
 
         # x4 = self.conv_up_4(x4)
         # x3 = self.conv_up_3(x3)
@@ -1054,6 +1051,8 @@ class DATUNet(nn.Module):
         # x2 = self.conv_out_2(x1+x2)
         # x3 = self.conv_out_3(x2+x3)
         # x4 = self.conv_out_4(x3+x4)
+
+        x1 = self.MPH(x1, x2, x3, x4)
 
         # x = self.final_conv1_1(x4)
         # x = self.final_relu1_1(x)
