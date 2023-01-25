@@ -585,11 +585,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.ESP  = DilatedParllelResidualBlockB(nIn=in_channels//2, nOut=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = self.ESP(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         # x = x + skip_x
@@ -984,6 +982,11 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
+        self.up_1 = nn.Upsample(scale_factor=1.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+        self.up_4 = nn.Upsample(scale_factor=8.0)
+
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.MPH = SegFormerHead()
@@ -1062,9 +1065,15 @@ class DATUNet(nn.Module):
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
 
-        x  = self.final_conv(x1)
+        x1 = self.final_conv(self.up_1(x1))
+        x2 = self.final_conv(self.up_2(x2))
+        x3 = self.final_conv(self.up_3(x3))
+        x4 = self.final_conv(self.up_4(x4))
 
-        return x
+        if self.training:
+            return (x1, x2, x3, x4)
+        else:
+            return x1 + x2 + x3 + x4
 
 def stages():
     D = DAT(
