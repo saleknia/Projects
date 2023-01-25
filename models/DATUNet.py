@@ -1066,7 +1066,7 @@ class DATUNet(nn.Module):
         return x
 
 def stages():
-    DAT = DAT(
+    D = DAT(
             img_size=224,
             patch_size=2,
             num_classes=1000,
@@ -1092,7 +1092,7 @@ def stages():
             drop_path_rate=0.2,
             pretrain=False
         )
-    return DAT.stages[0], DAT.stages[1], DAT.stages[2]
+    return D.stages[0], D.stages[1], D.stages[2]
 
 import torch
 import torch.nn as nn
