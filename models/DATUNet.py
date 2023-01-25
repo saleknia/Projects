@@ -845,7 +845,7 @@ class SegFormerHead(nn.Module):
         x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
         # x = _c4 + _c3 + _c2 + _c1
 
-        return x, _c4, _c3, _c2, _c1
+        return x
 
 
 class FAMBlock(nn.Module):
