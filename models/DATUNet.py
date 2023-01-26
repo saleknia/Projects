@@ -482,10 +482,10 @@ class DAT(nn.Module):
         
         self.reset_parameters()
         if pretrain:
-            checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
+            checkpoint = torch.load('/content/drive/MyDrive/dat_small_in1k_224.pth', map_location='cpu') 
             state_dict = checkpoint['model']
             self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
 
     def reset_parameters(self):
 
@@ -549,10 +549,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
@@ -578,12 +578,6 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Softmax
-
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -596,6 +590,7 @@ class UpBlock(nn.Module):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
+        # x = x + skip_x
         return x
 
 
@@ -917,13 +912,13 @@ class DATUNet(nn.Module):
 
         self.encoder = DAT(
             img_size=224,
-            patch_size=2,
+            patch_size=4,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 6, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 18, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -941,37 +936,30 @@ class DATUNet(nn.Module):
             drop_path_rate=0.2,
         )
 
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
-        self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
+        self.norm_1 = LayerNormProxy(dim=48)
 
-        # self.norm_4 = LayerNormProxy(dim=384)
-        # self.norm_3 = LayerNormProxy(dim=192)
-        # self.norm_2 = LayerNormProxy(dim=96)
-        # self.norm_1 = LayerNormProxy(dim=48)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up3 = UpBlock(768, 384, nb_Conv=2)
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
-        # self.sigmoid_1 = nn.Sigmoid()
-        # self.sigmoid_2 = nn.Sigmoid()
-        # self.sigmoid_3 = nn.Sigmoid()
-        # self.sigmoid_4 = nn.Sigmoid()
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         self.final_conv = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, kernel_size=2, stride=2),
-            nn.Conv2d(96, n_classes, 1, padding=0)
+            nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2),
+            nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
 
-        # self.stage = stages()
-
-        # self.MPH = SegFormerHead()
+        # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1_1 = nn.ReLU(inplace=True)
@@ -985,61 +973,48 @@ class DATUNet(nn.Module):
         B, C, H, W = x.shape
 
 
-        # x1 = self.firstconv(x_input)
-        # x1 = self.firstbn(x1)
-        # x1 = self.firstrelu(x1)
-        # x1 = self.encoder1(x1)
-        # x1 = self.Reduce(x1)
-        # for i in range(6):
-        #     x1 = self.FAM1[i](x1)
+        x1 = self.firstconv(x_input)
+        x1 = self.firstbn(x1)
+        x1 = self.firstrelu(x1)
+        x1 = self.encoder1(x1)
+        x1 = self.Reduce(x1)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
         outputs = self.encoder(x_input)
 
-        # x4 = self.norm_4(outputs[2])
-        # x3 = self.norm_3(outputs[1])
-        # x2 = self.norm_2(outputs[0])
-        # x1 = self.norm_1(x1)
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
+        x1 = self.norm_1(x1)
+ 
+        x = [x1, x2, x3, x4]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
 
-        x4 = self.norm_4(outputs[3])
-        x3 = self.norm_3(outputs[2])
-        x2 = self.norm_2(outputs[1])
-        x1 = self.norm_1(outputs[0])
+        # x1 = x_fuse[0] + x1
+        # x2 = x_fuse[1] + x2
+        # x3 = x_fuse[2] + x3
+        # x4 = x_fuse[3] + x4
 
-        # x = [x1, x2, x3, x4]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
-
-        # # x1 = x_fuse[0] + x1
-        # # x2 = x_fuse[1] + x2
-        # # x3 = x_fuse[2] + x3
-        # # x4 = x_fuse[3] + x4
-
-        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        # x = self.final_conv1_1(x4)
-        # x = self.final_relu1_1(x)
-        # x = self.final_conv2_1(x)
-        # x = self.final_relu2_1(x)
-        # x = self.final_conv_1(x)
-
-        x = self.final_conv(x1)
-
-        return x
+        return x1
 
 def stages():
     D = DAT(
@@ -1050,15 +1025,15 @@ def stages():
             dim_stem=48,
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
             heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
-            groups=[3, 3, 3, 3],
-            use_pes=[True, True, True, True],
+            groups=[-1, -1, -1, -1],
+            use_pes=[False, False, True, True],
             dwc_pes=[False, False, False, False],
-            strides=[1, 1, 1, 1],
+            strides=[-1, -1, -1, -1],
             sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[8, 8, 8, 8],
+            offset_range_factor=[-1, -1, -1, -1],
             no_offs=[False, False, False, False],
             fixed_pes=[False, False, False, False],
             use_dwc_mlps=[False, False, False, False],
@@ -1068,8 +1043,7 @@ def stages():
             drop_path_rate=0.2,
             pretrain=False
         )
-
-    return D.stages[0]
+    return D.stages[0], D.stages[1], D.stages[2]
 
 import torch
 import torch.nn as nn
