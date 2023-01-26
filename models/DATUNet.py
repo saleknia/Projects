@@ -1075,7 +1075,7 @@ def stages():
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
             stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
-            heads=[6, 6, 6, 6],
+            heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7],
             groups=[3, 3, 3, 3],
             use_pes=[True, True, True, True],
