@@ -616,7 +616,7 @@ class SKAttention(nn.Module):
         attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
 
         ### fuse
-        V=(attention_weughts*feats).sum(0)
+        V=(attention_weughts*feats)
         return V
 
 class UpBlock(nn.Module):
@@ -626,7 +626,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.SKAttention = SKAttention(in_channels//2)
-        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
