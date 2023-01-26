@@ -617,6 +617,7 @@ class SKAttention(nn.Module):
 
         ### fuse
         V=(attention_weughts*feats)
+        V=torch.cat([feats[0], feats[1]], dim=0)
         return V
 
 class UpBlock(nn.Module):
