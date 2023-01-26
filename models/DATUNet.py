@@ -578,17 +578,60 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+from collections import OrderedDict
+
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512, reduction=4, group=1):
+        super().__init__()
+        self.d=channel//reduction
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(2):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+    def forward(self, x, y):
+        bs, c, _, _ = x.size()
+        conv_outs=[x, y]
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weughts=torch.stack(weights,0)  #k,bs,channel,1,1
+        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weughts*feats).sum(0)
+        return V
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.SKAttention = SKAttention(in_channels//2)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.SKAttention(x, skip_x)
         x = self.conv(x)
         # x = x + skip_x
         return x
