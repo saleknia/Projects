@@ -584,13 +584,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        # x = x + skip_x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        x = x + skip_x
         return x
 
 
@@ -982,16 +982,8 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
-        self.up_1 = nn.Upsample(scale_factor=1.0)
-        self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_3 = nn.Upsample(scale_factor=4.0)
-        self.up_4 = nn.Upsample(scale_factor=8.0)
 
-        self.conv_2 = nn.Conv2d(96 , 48, 1, padding=0)
-        self.conv_3 = nn.Conv2d(192, 48, 1, padding=0)        
-        self.conv_4 = nn.Conv2d(384, 48, 1, padding=0)
-
-        # self.stage_1, self.stage_2, self.stage_3 = stages()
+        self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.MPH = SegFormerHead()
 
@@ -1045,13 +1037,13 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        # x3 = self.stage_3(x3)[0]
+        x3 = self.stage_3(x3)[0]
 
         x2 = self.up2(x3, x2) 
-        # x2 = self.stage_2(x2)[0]
+        x2 = self.stage_2(x2)[0]
 
         x1 = self.up1(x2, x1) 
-        # x1 = self.stage_1(x1)[0]
+        x1 = self.stage_1(x1)[0]
 
         # x4 = self.conv_up_4(x4)
         # x3 = self.conv_up_3(x3)
@@ -1069,15 +1061,9 @@ class DATUNet(nn.Module):
         # x = self.final_relu2_1(x)
         # x = self.final_conv_1(x)
 
-        x1 = self.final_conv(self.up_1(x1))
-        x2 = self.final_conv(self.conv_2(self.up_2(x2)))
-        x3 = self.final_conv(self.conv_3(self.up_3(x3)))
-        x4 = self.final_conv(self.conv_4(self.up_4(x4)))
+        x = self.final_conv(x1)
 
-        if self.training:
-            return (x1, x2, x3, x4)
-        else:
-            return x1 + x2 + x3 + x4
+        return x
 
 def stages():
     D = DAT(
@@ -1088,15 +1074,15 @@ def stages():
             dim_stem=48,
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
-            heads=[3, 3, 3, 3],
-            window_sizes=[7, 7, 7, 7] ,
-            groups=[-1, -1, -1, -1],
-            use_pes=[False, False, True, True],
+            stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
+            heads=[6, 6, 6, 6],
+            window_sizes=[7, 7, 7, 7],
+            groups=[3, 3, 3, 3],
+            use_pes=[True, True, True, True],
             dwc_pes=[False, False, False, False],
-            strides=[-1, -1, -1, -1],
+            strides=[1, 1, 1, 1],
             sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[-1, -1, -1, -1],
+            offset_range_factor=[2, 2, 2, 2],
             no_offs=[False, False, False, False],
             fixed_pes=[False, False, False, False],
             use_dwc_mlps=[False, False, False, False],
