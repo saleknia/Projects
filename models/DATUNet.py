@@ -584,13 +584,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        x = x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x
 
 
@@ -948,30 +947,6 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.SAPblock_3 = SAPblock(in_channels=192)
-        # self.SAPblock_2 = SAPblock(in_channels=96)
-
-        # self.conv_up_2 = nn.Sequential(
-        #     ConvBatchNorm(96, 48),
-        #     nn.Upsample(scale_factor=2.0)
-        # )
-
-        # self.conv_out_2 = ConvBatchNorm(48, 48)
-
-        # self.conv_up_3 = nn.Sequential(
-        #     ConvBatchNorm(192, 48),
-        #     nn.Upsample(scale_factor=4.0)
-        # )
-
-        # self.conv_out_3 = ConvBatchNorm(48, 48)
-
-        # self.conv_up_4 = nn.Sequential(
-        #     ConvBatchNorm(384, 48),
-        #     nn.Upsample(scale_factor=8.0)
-        # )
-
-        # self.conv_out_4 = ConvBatchNorm(48, 48)
-
         self.sigmoid_1 = nn.Sigmoid()
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
@@ -983,7 +958,7 @@ class DATUNet(nn.Module):
         ) 
 
 
-        self.stage_1, self.stage_2, self.stage_3 = stages()
+        # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.MPH = SegFormerHead()
 
@@ -1037,23 +1012,8 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)[0]
-
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)[0]
-
         x1 = self.up1(x2, x1) 
-        x1 = self.stage_1(x1)[0]
-
-        # x4 = self.conv_up_4(x4)
-        # x3 = self.conv_up_3(x3)
-        # x2 = self.conv_up_2(x2)
-
-        # x2 = self.conv_out_2(x1+x2)
-        # x3 = self.conv_out_3(x2+x3)
-        # x4 = self.conv_out_4(x3+x4)
-
-        # x1 = self.MPH(x1, x2, x3, x4)
 
         # x = self.final_conv1_1(x4)
         # x = self.final_relu1_1(x)
@@ -1074,7 +1034,7 @@ def stages():
             dim_stem=48,
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
             heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7],
             groups=[3, 3, 3, 3],
