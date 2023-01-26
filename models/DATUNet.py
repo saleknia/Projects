@@ -958,7 +958,6 @@ class DATUNet(nn.Module):
             nn.Conv2d(48, n_classes, 1, padding=0)
         ) 
 
-
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.final_conv1_1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
