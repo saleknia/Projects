@@ -1035,8 +1035,8 @@ class DATUNet(nn.Module):
 
 def stages():
     D = DAT(
-            img_size=448,
-            patch_size=4,
+            img_size=224,
+            patch_size=2,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
@@ -1058,6 +1058,7 @@ def stages():
             drop_rate=0.0,
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
+            pretrain=False
         )
 
     return D.stages[0]
