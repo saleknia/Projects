@@ -1056,7 +1056,9 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        return x1
+        x = self.final_conv(x1)
+
+        return x
 
 def stages():
     D = DAT(
