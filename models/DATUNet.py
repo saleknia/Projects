@@ -612,12 +612,12 @@ class SKAttention(nn.Module):
         for fc in self.fcs:
             weight=fc(Z)
             weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weughts=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
+        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
+        attention_weights=self.softmax(attention_weights)#k,bs,channel,1,1
 
         ### fuse
-        V=(attention_weughts*feats)
-        V=torch.cat([feats[0], feats[1]], dim=0)
+        V=(attention_weights*feats)
+        V=torch.cat([feats[0], feats[1]], dim=1)
         return V
 
 class UpBlock(nn.Module):
