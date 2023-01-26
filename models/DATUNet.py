@@ -917,13 +917,13 @@ class DATUNet(nn.Module):
 
         self.encoder = DAT(
             img_size=224,
-            patch_size=4,
+            patch_size=2,
             num_classes=1000,
             expansion=4,
             dim_stem=96,
             dims=[96, 192, 384, 768],
-            depths=[2, 2, 18, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D','L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+            depths=[2, 2, 6, 2],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
             heads=[3, 6, 12, 24],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, 3, 6],
@@ -1021,8 +1021,6 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x1 = self.stage(x1)
-
         # x = self.final_conv1_1(x4)
         # x = self.final_relu1_1(x)
         # x = self.final_conv2_1(x)
@@ -1043,14 +1041,14 @@ def stages():
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
             stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
-            heads=[6, 6, 6, 6],
+            heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
-            groups=[6, 6, 6, 6],
+            groups=[3, 3, 3, 3],
             use_pes=[True, True, True, True],
             dwc_pes=[False, False, False, False],
             strides=[1, 1, 1, 1],
             sr_ratios=[-1, -1, -1, -1],
-            offset_range_factor=[2, 2, 2, 2],
+            offset_range_factor=[8, 8, 8, 8],
             no_offs=[False, False, False, False],
             fixed_pes=[False, False, False, False],
             use_dwc_mlps=[False, False, False, False],
