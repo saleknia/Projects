@@ -584,46 +584,6 @@ import torch.nn.functional as F
 from torch.nn import Softmax
 
 
-def INF(B,H,W):
-     return -torch.diag(torch.tensor(float("inf")).to('cuda').repeat(H),0).unsqueeze(0).repeat(B*W,1,1)
-
-
-class CrissCrossAttention(nn.Module):
-    """ Criss-Cross Attention Module"""
-    def __init__(self, in_dim):
-        super(CrissCrossAttention,self).__init__()
-        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.softmax = Softmax(dim=3)
-        self.INF = INF
-        self.gamma = nn.Parameter(torch.zeros(1))
-
-
-    def forward(self, x):
-        m_batchsize, _, height, width = x.size()
-        proj_query = self.query_conv(x)
-        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
-        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
-        proj_key = self.key_conv(x)
-        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        proj_value = self.value_conv(x)
-        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
-        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
-        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
-
-        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
-        #print(concate)
-        #print(att_H) 
-        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
-        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
-        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
-        #print(out_H.size(),out_W.size())
-        return self.gamma*(out_H + out_W) + x
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -631,13 +591,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att = CrissCrossAttention(in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        x = self.att(x)
         return x
 
 
@@ -1006,7 +964,7 @@ class DATUNet(nn.Module):
         ) 
 
 
-        # self.stage_1, self.stage_2, self.stage_3 = stages()
+        self.stage = stages()
 
         # self.MPH = SegFormerHead()
 
@@ -1063,6 +1021,8 @@ class DATUNet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
+        x1 = self.stage(x1)
+
         # x = self.final_conv1_1(x4)
         # x = self.final_relu1_1(x)
         # x = self.final_conv2_1(x)
@@ -1075,17 +1035,17 @@ class DATUNet(nn.Module):
 
 def stages():
     D = DAT(
-            img_size=224,
-            patch_size=2,
+            img_size=448,
+            patch_size=4,
             num_classes=1000,
             expansion=4,
-            dim_stem=48,
+            dim_stem=96,
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
-            heads=[3, 3, 3, 3],
-            window_sizes=[7, 7, 7, 7],
-            groups=[3, 3, 3, 3],
+            stage_spec=[['L', 'D'], ['L', 'D'], ['L', 'D'], ['L', 'D']],
+            heads=[6, 6, 6, 6],
+            window_sizes=[7, 7, 7, 7] ,
+            groups=[6, 6, 6, 6],
             use_pes=[True, True, True, True],
             dwc_pes=[False, False, False, False],
             strides=[1, 1, 1, 1],
@@ -1098,9 +1058,9 @@ def stages():
             drop_rate=0.0,
             attn_drop_rate=0.0,
             drop_path_rate=0.2,
-            pretrain=False
         )
-    return D.stages[0], D.stages[1], D.stages[2]
+
+    return D.stages[0]
 
 import torch
 import torch.nn as nn
