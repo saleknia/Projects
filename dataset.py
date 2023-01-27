@@ -210,6 +210,11 @@ class ISIC2017(Dataset):
         self.mask = self.mask /255.0
         self.data = self.data /255.0
 
+        for i in range(len(self.data)):
+            img = np.float32(self.data[i])
+            seg = np.float32(self.mask[i])
+            self.data[i], self.mask[i] = self.resize(img, seg)
+
         self.img_transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize([0.485, 0.456, 0.406],
