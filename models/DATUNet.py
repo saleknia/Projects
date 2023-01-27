@@ -617,7 +617,7 @@ class SKAttention(nn.Module):
 
         ### fuse
         V=(attention_weights*feats)
-        V=torch.cat([feats[0], feats[1]], dim=1)
+        V=torch.cat([feats[0]+x, feats[1]+y], dim=1)
         return V
 
 class UpBlock(nn.Module):
@@ -1004,17 +1004,17 @@ class DATUNet(nn.Module):
 
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
+
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
 
 
     def forward(self, x):
