@@ -1010,7 +1010,7 @@ class DATUNet(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=4, stride=2, padding=1)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -1055,10 +1055,10 @@ class DATUNet(nn.Module):
         # x3 = x_fuse[2] + x3
         # x4 = x_fuse[3] + x4
 
-        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
