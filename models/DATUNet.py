@@ -1004,19 +1004,18 @@ class DATUNet(nn.Module):
 
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.head = SegFormerHead()
-
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
+
+
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
 
 
     def forward(self, x):
@@ -1057,10 +1056,10 @@ class DATUNet(nn.Module):
         # x3 = x_fuse[2] + x3
         # x4 = x_fuse[3] + x4
 
-        # x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        # x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        # x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-        # x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+        x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
@@ -1068,9 +1067,7 @@ class DATUNet(nn.Module):
 
         # x = self.final_conv(x1)
 
-        x = self.head(x1, x2, x3, x4) + x1
-
-        x = self.final_conv1(x)
+        x = self.final_conv1(x1)
         x = self.final_relu1(x)
         
         x = self.final_conv2(x)
