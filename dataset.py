@@ -194,21 +194,21 @@ class ISIC2017(Dataset):
         super(ISIC2017, self)
         if split=='train':
             self.train = True
-            self.data   = np.load(path_Data+'data_train.npy')
-            self.mask   = np.load(path_Data+'mask_train.npy')
+            self.data   = np.load(path_Data+'data_train.npy').astype(np.uint8)
+            self.mask   = np.load(path_Data+'mask_train.npy').astype(np.uint8)
             self.pos_weight = torch.tensor(np.sum(self.mask==0.0) / np.sum(self.mask==255.0))
         elif split=='test':
             self.train = False
-            self.data   = np.load(path_Data+'data_test.npy')
-            self.mask   = np.load(path_Data+'mask_test.npy')
+            self.data   = np.load(path_Data+'data_test.npy').astype(np.uint8)
+            self.mask   = np.load(path_Data+'mask_test.npy').astype(np.uint8)
         elif split=='valid':
             self.train = False
-            self.data   = np.load(path_Data+'data_val.npy')
-            self.mask   = np.load(path_Data+'mask_val.npy')          
+            self.data   = np.load(path_Data+'data_val.npy').astype(np.uint8)
+            self.mask   = np.load(path_Data+'mask_val.npy').astype(np.uint8)          
           
         self.mask = np.expand_dims(self.mask, axis=3)
-        self.mask = self.mask.astype(np.uint8)
-        self.data = self.data.astype(np.uint8)
+        # self.mask = self.mask
+        # self.data = self.data
 
         self.img_transform = transforms.Compose([
             transforms.ToTensor(),
