@@ -207,18 +207,8 @@ class ISIC2017(Dataset):
             self.mask   = np.load(path_Data+'mask_val.npy')          
           
         self.mask = np.expand_dims(self.mask, axis=3)
-        self.mask = self.mask /255.0
-        self.data = self.data /255.0
-
-        self.data = list(self.data)
-        self.mask = list(self.mask)
-
-        for i in range(len(self.data)):
-            img = np.float32(self.data[i])
-            seg = np.float32(self.mask[i])
-            img, seg = self.resize(img, seg)
-            self.data[i] = img
-            self.mask[i] = seg
+        self.mask = self.mask.astype(np.uint8)
+        self.data = self.data.astype(np.uint8)
 
         self.img_transform = transforms.Compose([
             transforms.ToTensor(),
@@ -241,8 +231,8 @@ class ISIC2017(Dataset):
         img = self.data[indx]
         seg = self.mask[indx]
 
-        img = np.float32(img)
-        seg = np.float32(seg)
+        img = np.float32(img) / 255.0
+        seg = np.float32(seg) / 255.0
         # (256, 256, 3)
         img, seg = self.resize(img, seg)
 
