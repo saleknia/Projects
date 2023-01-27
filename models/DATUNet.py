@@ -1014,9 +1014,8 @@ class DATUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu3 = nn.ReLU(inplace=True)
-        self.final_conv4 = nn.Conv2d(48, n_classes, 1, padding=0)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+
 
     def forward(self, x):
         # # Question here
@@ -1074,9 +1073,6 @@ class DATUNet(nn.Module):
         x = self.final_relu2(x)
         
         x = self.final_conv3(x)
-        x = self.final_relu3(x)
-
-        x = self.final_conv4(x)
 
         return x
 
