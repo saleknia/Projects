@@ -213,7 +213,9 @@ class ISIC2017(Dataset):
         for i in range(len(self.data)):
             img = np.float32(self.data[i])
             seg = np.float32(self.mask[i])
-            self.data[i], self.mask[i] = self.resize(img, seg)
+            img, seg = self.resize(img, seg)
+            self.data[i] = img
+            self.mask[i] = seg
 
         self.img_transform = transforms.Compose([
             transforms.ToTensor(),
