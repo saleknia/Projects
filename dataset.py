@@ -210,8 +210,8 @@ class ISIC2017(Dataset):
         self.mask = self.mask /255.0
         self.data = self.data /255.0
 
-        self.data = self.data.astype(object)
-        self.mask = self.mask.astype(object)
+        self.data = list(self.data)
+        self.mask = list(self.mask)
 
         for i in range(len(self.data)):
             img = np.float32(self.data[i])
