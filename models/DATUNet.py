@@ -992,10 +992,10 @@ class DATUNet(nn.Module):
         self.up2 = UpBlock(192, 96 , nb_Conv=2)
         self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.sigmoid_1 = nn.Sigmoid()
-        # self.sigmoid_2 = nn.Sigmoid()
-        # self.sigmoid_3 = nn.Sigmoid()
-        # self.sigmoid_4 = nn.Sigmoid()
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
 
         # self.final_conv = nn.Sequential(
         #     nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2),
