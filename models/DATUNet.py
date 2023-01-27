@@ -613,7 +613,7 @@ class SKAttention(nn.Module):
             weight=fc(Z)
             weights.append(weight.view(bs,c,1,1)) #bs,channel
         attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
+        attention_weights=torch.softmax(attention_weights)#k,bs,channel,1,1
 
         ### fuse
         V=(attention_weights*feats)
@@ -1077,7 +1077,7 @@ class DATUNet(nn.Module):
         x = self.final_relu3(x)
 
         x = self.final_conv4(x)
-        
+
         return x
 
 def stages():
