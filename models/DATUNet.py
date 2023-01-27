@@ -1010,6 +1010,8 @@ class DATUNet(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
+        self.head = SegFormerHead()
+
         self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
@@ -1066,7 +1068,9 @@ class DATUNet(nn.Module):
 
         # x = self.final_conv(x1)
 
-        x = self.final_conv1(x1)
+        x = self.head(x1, x2, x3, x4) + x1
+
+        x = self.final_conv1(x)
         x = self.final_relu1(x)
         
         x = self.final_conv2(x)
