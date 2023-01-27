@@ -625,7 +625,7 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=3, stride=2, padding=1)
         self.SKAttention = SKAttention(in_channels//2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
@@ -1010,7 +1010,7 @@ class DATUNet(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=3, stride=2, padding=1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
