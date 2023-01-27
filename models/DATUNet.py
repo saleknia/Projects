@@ -1004,20 +1004,17 @@ class DATUNet(nn.Module):
 
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
-
-        self.ESP_3 = DilatedParllelResidualBlockB(nIn=192, nOut=192)
-        self.ESP_2 = DilatedParllelResidualBlockB(nIn=96 , nOut=96)
-
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_conv  = nn.Conv2d(24, n_classes, 3, padding=1)
+
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv  = nn.Conv2d(48, n_classes, 3, padding=1)
 
 
     def forward(self, x):
@@ -1064,11 +1061,7 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        x3 = self.ESP_3(x3)
-
         x2 = self.up2(x3, x2) 
-        x2 = self.ESP_2(x2)
-
         x1 = self.up1(x2, x1) 
 
         # x = self.final_conv(x1)
