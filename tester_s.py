@@ -16,23 +16,23 @@ import ttach as tta
 
 warnings.filterwarnings("ignore")
 
-# class DiceLoss(nn.Module):
-#     def __init__(self, weight=None, size_average=True):
-#         super(DiceLoss, self).__init__()
+class DiceLoss(nn.Module):
+    def __init__(self, weight=None, size_average=True):
+        super(DiceLoss, self).__init__()
 
-#     def forward(self, inputs, targets, smooth=1e-5):
+    def forward(self, inputs, targets, smooth=1e-5):
         
-#         #comment out if your model contains a sigmoid or equivalent activation layer
-#         inputs = F.sigmoid(inputs)       
+        #comment out if your model contains a sigmoid or equivalent activation layer
+        inputs = F.sigmoid(inputs)       
         
-#         #flatten label and prediction tensors
-#         inputs = inputs.view(-1)
-#         targets = targets.view(-1)
+        #flatten label and prediction tensors
+        inputs = inputs.view(-1)
+        targets = targets.view(-1)
         
-#         intersection = (inputs * targets).sum()                            
-#         dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+        intersection = (inputs * targets).sum()                            
+        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
         
-#         return 1 - dice
+        return 1 - dice
 
 
 from torchmetrics.classification import BinaryConfusionMatrix
