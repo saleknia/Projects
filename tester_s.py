@@ -16,59 +16,24 @@ import ttach as tta
 
 warnings.filterwarnings("ignore")
 
-class DiceLoss(nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(DiceLoss, self).__init__()
+# class DiceLoss(nn.Module):
+#     def __init__(self, weight=None, size_average=True):
+#         super(DiceLoss, self).__init__()
 
-    def forward(self, inputs, targets, smooth=1e-5):
+#     def forward(self, inputs, targets, smooth=1e-5):
         
-        #comment out if your model contains a sigmoid or equivalent activation layer
-        inputs = F.sigmoid(inputs)       
+#         #comment out if your model contains a sigmoid or equivalent activation layer
+#         inputs = F.sigmoid(inputs)       
         
-        #flatten label and prediction tensors
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
+#         #flatten label and prediction tensors
+#         inputs = inputs.view(-1)
+#         targets = targets.view(-1)
         
-        intersection = (inputs * targets).sum()                            
-        dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
+#         intersection = (inputs * targets).sum()                            
+#         dice = (2.*intersection + smooth)/(inputs.sum() + targets.sum() + smooth)  
         
-        return 1 - dice
+#         return 1 - dice
 
-class Evaluator(object):
-    ''' For using this evaluator target and prediction
-        dims should be [B,H,W] '''
-    def __init__(self):
-        self.reset()
-        
-    def Pixel_Accuracy(self):
-        Acc = torch.tensor(np.mean(self.acc))
-        return Acc
-
-    def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU = torch.tensor(np.mean(self.iou))
-        return IoU
-
-    def Dice(self,per_class=False,show=False):
-        Dice = torch.tensor(np.mean(self.dice))
-        return Dice
-
-    def add_batch(self, gt_image, pre_image):
-        gt_image=gt_image.int().detach().cpu().numpy()
-        pre_image=pre_image.int().detach().cpu().numpy()
-        for i in range(gt_image.shape[0]):
-            tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
-            Acc = (tp + tn) / (tp + tn + fp + fn)
-            IoU = (tp) / (tp + fp + fn)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
-            self.acc.append(Acc)
-            self.iou.append(IoU)
-            self.dice.append(Dice)
-
-    def reset(self):
-        self.acc = []
-        self.iou = []
-        self.dice = []
-         
 # class Evaluator(object):
 #     ''' For using this evaluator target and prediction
 #         dims should be [B,H,W] '''
@@ -92,21 +57,9 @@ class Evaluator(object):
 #         pre_image=pre_image.int().detach().cpu().numpy()
 #         for i in range(gt_image.shape[0]):
 #             tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
-
-#             Acc_F = (tp + tn) / (tp + tn + fp + fn)
-#             IoU_F = (tp) / (tp + fp + fn)
-#             Dice_F =  (2 * tp) / ((2 * tp) + fp + fn)
-
-#             tn, fp, fn, tp = confusion_matrix(np.invert(gt_image[i]).reshape(-1), np.invert(pre_image[i]).reshape(-1)).ravel()
-
-#             Acc_B = (tp + tn) / (tp + tn + fp + fn)
-#             IoU_B = (tp) / (tp + fp + fn)
-#             Dice_B =  (2 * tp) / ((2 * tp) + fp + fn)
-
-#             Acc = 0.5 * (Acc_F+Acc_B)
-#             IoU = 0.5 * (IoU_B+IoU_F)
-#             Dice = 0.5 * (Dice_B+Dice_F)
-
+#             Acc = (tp + tn) / (tp + tn + fp + fn)
+#             IoU = (tp) / (tp + fp + fn)
+#             Dice =  (2 * tp) / ((2 * tp) + fp + fn)
 #             self.acc.append(Acc)
 #             self.iou.append(IoU)
 #             self.dice.append(Dice)
@@ -115,6 +68,53 @@ class Evaluator(object):
 #         self.acc = []
 #         self.iou = []
 #         self.dice = []
+         
+class Evaluator(object):
+    ''' For using this evaluator target and prediction
+        dims should be [B,H,W] '''
+    def __init__(self):
+        self.reset()
+        
+    def Pixel_Accuracy(self):
+        Acc = torch.tensor(np.mean(self.acc))
+        return Acc
+
+    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+        IoU = torch.tensor(np.mean(self.iou))
+        return IoU
+
+    def Dice(self,per_class=False,show=False):
+        Dice = torch.tensor(np.mean(self.dice))
+        return Dice
+
+    def add_batch(self, gt_image, pre_image):
+        gt_image=gt_image.int().detach().cpu().numpy()
+        pre_image=pre_image.int().detach().cpu().numpy()
+        for i in range(gt_image.shape[0]):
+            tn, fp, fn, tp = confusion_matrix(gt_image[i].reshape(-1), pre_image[i].reshape(-1)).ravel()
+
+            Acc_F = (tp + tn) / (tp + tn + fp + fn)
+            IoU_F = (tp) / (tp + fp + fn)
+            Dice_F =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            tn, fp, fn, tp = confusion_matrix(np.invert(gt_image[i]).reshape(-1), np.invert(pre_image[i]).reshape(-1)).ravel()
+
+            Acc_B = (tp + tn) / (tp + tn + fp + fn)
+            IoU_B = (tp) / (tp + fp + fn)
+            Dice_B =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            Acc = 0.5 * (Acc_F+Acc_B)
+            IoU = 0.5 * (IoU_B+IoU_F)
+            Dice = 0.5 * (Dice_B+Dice_F)
+
+            self.acc.append(Acc)
+            self.iou.append(IoU)
+            self.dice.append(Dice)
+
+    def reset(self):
+        self.acc = []
+        self.iou = []
+        self.dice = []
 
 # class Evaluator(object):
 #     ''' For using this evaluator target and prediction

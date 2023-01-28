@@ -1002,7 +1002,7 @@ class DATUNet(nn.Module):
         #     nn.Conv2d(48, n_classes, 1, padding=0)
         # ) 
 
-        self.stage_1, self.stage_2, self.stage_3 = stages()
+        # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -1062,13 +1062,8 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)[0]
-
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)[0]
-
         x1 = self.up1(x2, x1) 
-        x1 = self.stage_1(x1)[0]
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
@@ -1089,7 +1084,7 @@ def stages():
             dim_stem=48,
             dims=[48, 96, 192, 384],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
+            stage_spec=[['S', 'S'], ['S', 'S'], ['S', 'S'], ['S', 'S']],
             heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, -1, -1],
