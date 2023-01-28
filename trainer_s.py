@@ -144,15 +144,15 @@ class Evaluator(object):
         self.reset()
         self.metric = BinaryConfusionMatrix().to('cuda')
     def Pixel_Accuracy(self):
-        Acc = torch.tensor(np.mean(self.acc))
+        Acc = torch.tensor(self.acc).mean()
         return Acc
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
-        IoU = torch.tensor(np.mean(self.iou))
+        IoU = torch.tensor(self.iou).mean()
         return IoU
 
     def Dice(self,per_class=False,show=False):
-        Dice = torch.tensor(np.mean(self.dice))
+        Dice = torch.tensor(self.dice).mean()
         return Dice
 
     def add_batch(self, gt_image, pre_image):
@@ -173,7 +173,7 @@ class Evaluator(object):
         self.iou = []
         self.dice = []
 
-        
+
 # class Evaluator(object):
 #     ''' For using this evaluator target and prediction
 #         dims should be [B,H,W] '''
