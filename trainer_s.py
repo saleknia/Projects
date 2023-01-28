@@ -289,9 +289,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
-        # boundary = targets.unsqueeze(dim=1)
-        # boundary = boundary-erosion(boundary)
-        # weight = boundary + 1
 
         inputs = inputs.float()
         with torch.autocast(device_type=device, dtype=torch.float16):
@@ -303,7 +300,6 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss = loss_ce + loss_dice 
             else:
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
-                # loss_ce = nn.functional.binary_cross_entropy_with_logits(outputs, targets.unsqueeze(dim=1), weight=weight, reduction='mean')
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
                 loss_att = 0.0
                 loss = loss_ce + loss_dice + loss_att
