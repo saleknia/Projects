@@ -1002,20 +1002,20 @@ class DATUNet(nn.Module):
         #     nn.Conv2d(48, n_classes, 1, padding=0)
         # ) 
 
-        # self.stage_1, self.stage_2, self.stage_3 = stages()
+        self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-
-
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+
+
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
 
 
     def forward(self, x):
@@ -1062,10 +1062,13 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        x3 = self.stage_3(x3)
 
-        # x = self.final_conv(x1)
+        x2 = self.up2(x3, x2) 
+        x2 = self.stage_2(x2)
+
+        x1 = self.up1(x2, x1) 
+        x1 = self.stage_1(x1)
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
@@ -1079,8 +1082,8 @@ class DATUNet(nn.Module):
 
 def stages():
     D = DAT(
-            img_size=224,
-            patch_size=2,
+            img_size=448,
+            patch_size=4,
             num_classes=1000,
             expansion=4,
             dim_stem=48,
@@ -1090,7 +1093,7 @@ def stages():
             heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, -1, -1],
-            use_pes=[False, False, True, True],
+            use_pes=[False, False, False, False],
             dwc_pes=[False, False, False, False],
             strides=[-1, -1, -1, -1],
             sr_ratios=[-1, -1, -1, -1],
