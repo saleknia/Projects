@@ -1062,13 +1062,13 @@ class DATUNet(nn.Module):
         x4 = x_fuse[3] + (x4*(1.0-self.sigmoid_4(x_fuse[3])))
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)
+        x3 = self.stage_3(x3)[0]
 
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)
+        x2 = self.stage_2(x2)[0]
 
         x1 = self.up1(x2, x1) 
-        x1 = self.stage_1(x1)
+        x1 = self.stage_1(x1)[0]
 
         x = self.final_conv1(x1)
         x = self.final_relu1(x)
