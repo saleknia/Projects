@@ -475,7 +475,7 @@ class Save_Checkpoint(object):
         os.makedirs(self.folder, exist_ok=True)
 
     def save_best(self, acc, acc_per_class, epoch, net, optimizer, lr_scheduler):
-        if self.best_acc > acc:
+        if self.best_acc < acc:
             print(color.BOLD+color.RED+'Saving best checkpoint...'+color.END)
             state = {
                 'net': net.state_dict(),
