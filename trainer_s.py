@@ -291,6 +291,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.float()
 
         inputs = inputs.float()
+        alpha = 0.6
         with torch.autocast(device_type=device, dtype=torch.float16):
             outputs = model(inputs)
             if type(outputs)==tuple:
@@ -302,7 +303,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
                 loss_dice = dice_loss(inputs=outputs, targets=targets)
                 loss_att = 0.0
-                loss = loss_ce + loss_dice + loss_att
+                loss = alpha * loss_ce + (1.0-alpha) * loss_dice + loss_att
 
         # if epoch_num % 20==0:   
         #     lr_ = optimizer.param_groups['lr'] * 0.5
