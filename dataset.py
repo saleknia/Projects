@@ -45,8 +45,6 @@ def dataset_normalized(imgs):
         imgs_normalized[i] = ((imgs_normalized[i] - np.min(imgs_normalized[i])) / (np.max(imgs_normalized[i])-np.min(imgs_normalized[i])))*255
     return imgs_normalized
      
-
-
 class ISIC2018(Dataset):
     def __init__(self, path_Data='/content/drive/MyDrive/ISIC2018_dataset/', split='train'):
         super(ISIC2018, self)
@@ -203,9 +201,27 @@ class ISIC2017(Dataset):
             self.mask   = np.load(path_Data+'mask_test.npy').astype(np.uint8)
         elif split=='valid':
             self.train = False
-            self.data   = np.load(path_Data+'data_val.npy').astype(np.uint8)
-            self.mask   = np.load(path_Data+'mask_val.npy').astype(np.uint8)          
-          
+
+            self.data_1   = np.load(path_Data+'data_val.npy').astype(np.uint8)
+            self.mask_1   = np.load(path_Data+'mask_val.npy').astype(np.uint8)  
+
+            self.data_2   = np.load('/content/drive/MyDrive/ISIC2018_dataset/'+'data_val.npy').astype(np.uint8)
+            self.mask_2   = np.load('/content/drive/MyDrive/ISIC2018_dataset/'+'mask_val.npy').astype(np.uint8)  
+
+            self.data_3   = np.load('/content/drive/MyDrive/ISIC2016_dataset/'+'data_val.npy').astype(np.uint8)     
+            self.mask_3   = np.load('/content/drive/MyDrive/ISIC2016_dataset/'+'mask_val.npy').astype(np.uint8) 
+
+            self.data = np.concatenate((self.data_1, self.data_2, self.data_3), axis=0)
+            self.mask = np.concatenate((self.mask_1, self.mask_2, self.mask_3), axis=0)
+
+            del self.data_1
+            del self.data_2
+            del self.data_3
+
+            del self.mask_2 
+            del self.mask_1
+            del self.mask_3
+            
         self.mask = np.expand_dims(self.mask, axis=3)
         # self.mask = self.mask
         # self.data = self.data

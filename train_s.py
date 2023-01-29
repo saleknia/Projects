@@ -221,7 +221,7 @@ def main(args):
         lr_scheduler =  None     
 
 
-    initial_best_acc = 10
+    initial_best_acc = 0
     initial_best_epoch = 1
     current_num_epoch = 0
     last_num_epoch = 0
