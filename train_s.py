@@ -474,7 +474,7 @@ def main(args):
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
-                                drop_last=False,
+                                drop_last=True,
                                 )
         test_loader = DataLoader(test_dataset,
                                 batch_size=1,
