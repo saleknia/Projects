@@ -1004,18 +1004,18 @@ class DATUNet(nn.Module):
 
         # self.stage_1, self.stage_2, self.stage_3 = stages()
 
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-
-
-        self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
+
+
+        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
 
 
     def forward(self, x):
