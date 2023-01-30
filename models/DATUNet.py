@@ -626,15 +626,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.SKAttention = SKAttention(in_channels//2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.SKAttention(x, skip_x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
-        # x = x + skip_x
         return x
 
 
@@ -997,26 +994,11 @@ class DATUNet(nn.Module):
         self.sigmoid_3 = nn.Sigmoid()
         self.sigmoid_4 = nn.Sigmoid()
 
-        # self.final_conv = nn.Sequential(
-        #     nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2),
-        #     nn.Conv2d(48, n_classes, 1, padding=0)
-        # ) 
-
-        # self.stage_1, self.stage_2, self.stage_3 = stages()
-
         self.final_conv1 = nn.ConvTranspose2d(48, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 24, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.Conv2d(24, n_classes, 3, padding=1)
-
-
-        # self.final_conv1 = nn.ConvTranspose2d(48, 48, kernel_size=2, stride=2)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-
 
     def forward(self, x):
         # # Question here
