@@ -168,7 +168,8 @@ model_table = tabulate(
                         ['DABNet_loss',25],
                         ['TransFuse_S',26],
                         ['DATUNet',27],
-                        ['SEUNet',28]],
+                        ['SEUNet',28],
+                        ['Cross_unet',29]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -262,6 +263,9 @@ elif model_id==27:
 
 elif model_id==28:
     MODEL_NAME = 'SEUNet'
+
+elif model_id==29:
+    MODEL_NAME = 'Cross_unet'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
