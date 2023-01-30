@@ -72,12 +72,87 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+        
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
+
+        embedding_dim = 96
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.up_8 = nn.Upsample(scale_factor=8.0)
+        self.up_4 = nn.Upsample(scale_factor=4.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+    def forward(self, c1, c2, c3, c4):
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up_8(_c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up_4(_c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up_2(_c2)
+
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        return x
+
 class FAMBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+    def __init__(self, channels):
         super(FAMBlock, self).__init__()
 
-        self.conv3 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
 
         self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
@@ -90,6 +165,7 @@ class FAMBlock(nn.Module):
         out = x3 + x1
 
         return out
+
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -121,7 +197,8 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
+        # self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        # self.encoder.incre_modules = None
 
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
@@ -132,7 +209,12 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.stage_1, self.stage_2, self.stage_3 = stages()
+        self.FAMBlock1 = FAMBlock(channels=96)
+        self.FAMBlock2 = FAMBlock(channels=192)
+        self.FAMBlock3 = FAMBlock(channels=384)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -154,14 +236,16 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
 
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
+
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)[0]
-
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)[0]
-
         x1 = self.up1(x2, x1) 
-        x1 = self.stage_1(x1)[0]
 
         x = self.classifier(x1)
 
