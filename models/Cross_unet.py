@@ -125,7 +125,7 @@ class Cross_unet(nn.Module):
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 48, 3, padding=1),
             nn.ReLU(inplace=True),
