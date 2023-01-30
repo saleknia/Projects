@@ -285,8 +285,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     max_iterations = end_epoch * total_batchs
 
     if epoch_num % 10==0:   
-        lr_ = optimizer.param_groups['lr'] * 0.1
-        optimizer.param_groups['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = param_group['lr'] * 0.1   
 
     scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
