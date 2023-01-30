@@ -115,6 +115,16 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
+        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
+
+        self.squeeze_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0)
+        self.squeeze_2 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        self.squeeze_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
+
+        self.expand_1 = ConvBatchNorm(in_channels=48 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1)
+        self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=3, padding=1)
+        self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=3, padding=1)
+
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
@@ -143,6 +153,18 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3(outputs[2])
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
+
+        x3 = self.squeeze_3(x3)
+        x2 = self.squeeze_2(x2)
+        x1 = self.squeeze_1(x1)
+
+        x = [x1, x2, x3]
+        y = self.skip(x)
+        x1, x2, x3 = x[0]+y[0], x[1]+y[1], x[2]+y[2]
+
+        x3 = self.expand_3(x3)
+        x2 = self.expand_2(x2)
+        x1 = self.expand_1(x1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
