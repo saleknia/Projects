@@ -115,15 +115,11 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.skip = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage3
+        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
 
-        self.squeeze_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , activation='ReLU', kernel_size=1, padding=0)
-        self.squeeze_2 = ConvBatchNorm(in_channels=192, out_channels=64 , activation='ReLU', kernel_size=1, padding=0)
-        self.squeeze_3 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-
-        self.expand_1 = ConvBatchNorm(in_channels=32 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
-        self.expand_2 = ConvBatchNorm(in_channels=64 , out_channels=192, activation='ReLU', kernel_size=1, padding=0)
-        self.expand_3 = ConvBatchNorm(in_channels=128, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
+        self.squeeze_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0)
+        self.squeeze_2 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        self.squeeze_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
 
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
@@ -154,17 +150,17 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
 
-        t3 = self.squeeze_3(x3)
-        t2 = self.squeeze_2(x2)
-        t1 = self.squeeze_1(x1)
+        x3 = self.squeeze_3(x3)
+        x2 = self.squeeze_2(x2)
+        x1 = self.squeeze_1(x1)
 
-        t = [t1, t2, t3]
+        t = [x1, x2, x3]
         t = self.skip(t)
         t1, t2, t3 = t[0], t[1], t[2]
 
-        x3 = self.expand_3(t3) + x3
-        x2 = self.expand_2(t2) + x2
-        x1 = self.expand_1(t1) + x1
+        x3 = torch.cat([x3, t3], dim=1)
+        x2 = torch.cat([x2, t2], dim=1)
+        x1 = torch.cat([x1, t1], dim=1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
