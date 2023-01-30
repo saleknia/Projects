@@ -245,6 +245,10 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3 = x[0], x[1], x[2]
 
+        x1 = self.expand_1(x1)
+        x2 = self.expand_2(x2)
+        x3 = self.expand_3(x3)
+
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
