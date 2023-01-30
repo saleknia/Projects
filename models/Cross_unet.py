@@ -159,8 +159,8 @@ class Cross_unet(nn.Module):
         x1 = self.squeeze_1(x1)
 
         x = [x1, x2, x3]
-        y = self.skip(x)
-        x1, x2, x3 = x[0]+y[0], x[1]+y[1], x[2]+y[2]
+        x = self.skip(x)
+        x1, x2, x3 = x[0], x[1], x[2]
 
         x3 = self.expand_3(x3)
         x2 = self.expand_2(x2)
