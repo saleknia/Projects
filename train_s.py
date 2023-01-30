@@ -197,7 +197,7 @@ def main(args):
         model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='Cross_unet':
-        model = Cross_unet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
+        model = Cross_unet().to(DEVICE)
         
     else: 
         raise TypeError('Please enter a valid name for the model type')
