@@ -121,9 +121,9 @@ class Cross_unet(nn.Module):
         self.squeeze_2 = ConvBatchNorm(in_channels=192, out_channels=64 , activation='ReLU', kernel_size=1, padding=0)
         self.squeeze_3 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
 
-        self.expand_1 = ConvBatchNorm(in_channels=32 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1)
-        self.expand_2 = ConvBatchNorm(in_channels=64 , out_channels=192, activation='ReLU', kernel_size=3, padding=1)
-        self.expand_3 = ConvBatchNorm(in_channels=128, out_channels=384, activation='ReLU', kernel_size=3, padding=1)
+        self.expand_1 = ConvBatchNorm(in_channels=32 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        self.expand_2 = ConvBatchNorm(in_channels=64 , out_channels=192, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_3 = ConvBatchNorm(in_channels=128, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
 
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
@@ -159,7 +159,7 @@ class Cross_unet(nn.Module):
         t1 = self.squeeze_1(x1)
 
         t = [t1, t2, t3]
-        x = self.skip(x)
+        t = self.skip(t)
         t1, t2, t3 = t[0], t[1], t[2]
 
         x3 = self.expand_3(t3) + x3
