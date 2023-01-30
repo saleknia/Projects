@@ -101,7 +101,7 @@ class Cross_unet(nn.Module):
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
-                                    embed_dim=48,
+                                    embed_dim=96,
                                     depths=[2, 2, 6, 2],
                                     num_heads=[3, 6, 12, 24],
                                     group_size=[7, 7, 7, 7],
@@ -729,7 +729,7 @@ class CrossFormer(nn.Module):
         # stochastic depth
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
-        # build layers
+        # build layers ape
         self.layers = nn.ModuleList()
 
         num_patch_sizes = [len(patch_size)] + [len(m) for m in merge_size]
@@ -756,8 +756,6 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-
-        self.layers = self.layers
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
