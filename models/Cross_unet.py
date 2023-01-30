@@ -115,7 +115,7 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4 = LayerNormProxy(dim=784)
+        self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
@@ -131,8 +131,6 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
-
-
 
     def forward(self, x):
         # # Question here
