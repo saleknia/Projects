@@ -209,13 +209,6 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.FAMBlock1 = FAMBlock(channels=96)
-        self.FAMBlock2 = FAMBlock(channels=192)
-        self.FAMBlock3 = FAMBlock(channels=384)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -235,13 +228,6 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3(outputs[2])
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
-
-        for i in range(2):
-            x3 = self.FAM3[i](x3)
-        for i in range(4):
-            x2 = self.FAM2[i](x2)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
