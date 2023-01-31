@@ -134,6 +134,7 @@ class Cross_unet(nn.Module):
         e0 = self.firstconv(x_input)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
 
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
