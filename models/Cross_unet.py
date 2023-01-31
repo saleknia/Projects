@@ -9,6 +9,42 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+from collections import OrderedDict
+
+class ECAAttention(nn.Module):
+
+    def __init__(self, channel):
+        super().__init__()
+        self.gap=nn.AdaptiveAvgPool2d(1)
+        self.conv=nn.Conv2d(channel, channel, kernel_size=1, padding=0, bias=False)
+        self.sigmoid=nn.Sigmoid()
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, x, skip_x):
+        y=self.gap(x) #bs,c,1,1
+        y=y.squeeze(-1).permute(0,2,1) #bs,1,c
+        y=self.conv(y) #bs,1,c
+        y=self.sigmoid(y) #bs,1,c
+        y=y.permute(0,2,1).unsqueeze(-1) #bs,c,1,1
+        return skip_x*y.expand_as(x)
+
 def get_activation(activation_type):  
     if activation_type=='Sigmoid':
         return nn.Sigmoid()
@@ -34,9 +70,11 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.att  = ECAAttention(in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        skip_x = self.att(x, skip_x)
         return x + skip_x
 
 class ConvBatchNorm(nn.Module):
@@ -65,61 +103,6 @@ class LayerNormProxy(nn.Module):
         x = einops.rearrange(x, 'b c h w -> b h w c')
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-class MetaFormer(nn.Module):
-
-    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
-        super().__init__()
-
-        fuse_dim = 0
-        for i in range(num_skip):
-            fuse_dim += skip_dim[i]
-
-        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
-
-        self.down_sample1 = nn.AvgPool2d(4)
-        self.down_sample2 = nn.AvgPool2d(2)
-
-        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
-        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-
-
-    def forward(self, x1, x2, x3):
-        """
-        x: B, H*W, C
-        """
-        org1 = x1
-        org2 = x2
-        org3 = x3
-
-        x1_d = self.down_sample1(x1)
-        x2_d = self.down_sample2(x2)
-
-        list1 = [x1_d, x2_d, x3]
-
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(list1, dim=1)
-
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-        x3 = self.fuse_conv3(fuse)
-
-        x1_up = self.up_sample1(x1)
-        x2_up = self.up_sample2(x2)
-
-
-        x1 = org1 + x1_up
-        x2 = org2 + x2_up
-        x3 = org3 + x3
-
-
-        return x1, x2, x3
 
 
 class Cross_unet(nn.Module):
