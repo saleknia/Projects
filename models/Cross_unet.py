@@ -181,7 +181,7 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.MetaFormer = MetaFormer()
+        # self.MetaFormer = MetaFormer()
 
 
     def forward(self, x):
@@ -197,7 +197,7 @@ class Cross_unet(nn.Module):
         x1 = self.norm_1(outputs[0])
 
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1 = self.reduce_1(x1)
         # x2 = self.reduce_2(x2)
