@@ -8,48 +8,6 @@ import timm
 from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
-import numpy as np
-from torch.nn import init
-
-class SequentialPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(channel_out) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(channel_out) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*channel_out
-        return spatial_out
 
 def get_activation(activation_type):  
     if activation_type=='Sigmoid':
@@ -146,32 +104,22 @@ class Cross_unet(nn.Module):
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
+        self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
+        self.maxpool   = resnet.maxpool
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
 
-        # self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
-
-        # self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
-        # self.expand_1 = ConvBatchNorm(in_channels=48 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
-        # self.norm_4 = LayerNormProxy(dim=768)
-        # self.norm_3 = LayerNormProxy(dim=384)
-        # self.norm_2 = LayerNormProxy(dim=192)
-        # self.norm_1 = LayerNormProxy(dim=96)
+        self.expand_1 = ConvBatchNorm(in_channels=64 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_2 = ConvBatchNorm(in_channels=128, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_3 = ConvBatchNorm(in_channels=256, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_4 = ConvBatchNorm(in_channels=512, out_channels=768, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
-        # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -180,9 +128,6 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
-
-        # self.MetaFormer = MetaFormer()
-
 
     def forward(self, x):
         # # Question here
@@ -196,34 +141,14 @@ class Cross_unet(nn.Module):
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
         outputs = self.encoder(x_input)
 
-        x4 = outputs[3]
-        x3 = outputs[2]
-        x2 = outputs[1]
-        x1 = outputs[0]
-
-        # x4 = self.norm_4(outputs[3])
-        # x3 = self.norm_3(outputs[2])
-        # x2 = self.norm_2(outputs[1])
-        # x1 = self.norm_1(outputs[0])
-
-
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
-
-        # x1 = self.reduce_1(x1)
-        # x2 = self.reduce_2(x2)
-        # x3 = self.reduce_3(x3)
-
-        # x = [x1, x2, x3]
-        # x = self.skip(x)
-
-        # x1, x2, x3 = x[0], x[1], x[2]
-
-        # x1 = self.expand_1(x1)
-        # x2 = self.expand_2(x2)
-        # x3 = self.expand_3(x3)
+        x4 = outputs[3] + self.expand_4(e4)
+        x3 = outputs[2] + self.expand_3(e3)
+        x2 = outputs[1] + self.expand_2(e2)
+        x1 = outputs[0] + self.expand_1(e1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
