@@ -34,11 +34,9 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up  = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.dcn = DeformableConv2d(in_channels//2, in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = x + skip_x
-        x = self.dcn(x)
         return x
 
 class ConvBatchNorm(nn.Module):
@@ -76,70 +74,6 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-import torch
-import torchvision.ops
-from torch import nn
-
-class DeformableConv2d(nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size=3,
-                 stride=1,
-                 padding=1,
-                 bias=False):
-
-        super(DeformableConv2d, self).__init__()
-        
-        assert type(kernel_size) == tuple or type(kernel_size) == int
-
-        kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
-        self.stride = stride if type(stride) == tuple else (stride, stride)
-        self.padding = padding
-        
-        self.offset_conv = nn.Conv2d(in_channels, 
-                                     2 * kernel_size[0] * kernel_size[1],
-                                     kernel_size=kernel_size, 
-                                     stride=stride,
-                                     padding=self.padding, 
-                                     bias=True)
-
-        nn.init.constant_(self.offset_conv.weight, 0.)
-        nn.init.constant_(self.offset_conv.bias, 0.)
-        
-        self.modulator_conv = nn.Conv2d(in_channels, 
-                                     1 * kernel_size[0] * kernel_size[1],
-                                     kernel_size=kernel_size, 
-                                     stride=stride,
-                                     padding=self.padding, 
-                                     bias=True)
-
-        nn.init.constant_(self.modulator_conv.weight, 0.)
-        nn.init.constant_(self.modulator_conv.bias, 0.)
-        
-        self.regular_conv = nn.Conv2d(in_channels=in_channels,
-                                      out_channels=out_channels,
-                                      kernel_size=kernel_size,
-                                      stride=stride,
-                                      padding=self.padding,
-                                      bias=bias)
-
-    def forward(self, x):
-        #h, w = x.shape[2:]
-        #max_offset = max(h, w)/4.
-
-        offset = self.offset_conv(x)#.clamp(-max_offset, max_offset)
-        modulator = 2. * torch.sigmoid(self.modulator_conv(x))
-        
-        x = torchvision.ops.deform_conv2d(input=x, 
-                                          offset=offset, 
-                                          weight=self.regular_conv.weight, 
-                                          bias=self.regular_conv.bias, 
-                                          padding=self.padding,
-                                          mask=modulator,
-                                          stride=self.stride,
-                                          )
-        return x
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -176,21 +110,16 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        # self.conv_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_2 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_3 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        # self.classifier = nn.Sequential(
-        #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(48, 48, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        # )
+        self.conv_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.classifier = nn.Sequential(
-            nn.Conv2d(96, 1, 1, padding=0),
-            nn.Upsample(scale_factor=4.0)
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(48, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
 
@@ -210,11 +139,11 @@ class Cross_unet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = self.conv_1(x1)
-        x = self.conv_2(x)        
-        x = self.conv_3(x)
+        x1 = self.conv_1(x1) + x1
+        x1 = self.conv_2(x1) + x1        
+        x1 = self.conv_3(x1) + x1
 
-        x = self.classifier(x)
+        x = self.classifier(x1)
 
         return x
 
