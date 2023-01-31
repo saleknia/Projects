@@ -141,6 +141,7 @@ class Cross_unet(nn.Module):
         self.expand_1 = ConvBatchNorm(in_channels=48 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_4 = ConvBatchNorm(in_channels=384, out_channels=768, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -174,12 +175,14 @@ class Cross_unet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
         yl = self.encoder_cnn.stage3(xl)
 
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
+
         outputs = self.encoder_tf(x_input)
 
-        x4 = outputs[3] 
-        x3 = outputs[2] + self.expand_3(yl[2])
-        x2 = outputs[1] + self.expand_2(yl[1])
-        x1 = outputs[0] + self.expand_1(yl[0])
+        x4 = outputs[3] + self.expand_4(xl[3]) 
+        x3 = outputs[2] + self.expand_3(xl[2])
+        x2 = outputs[1] + self.expand_2(xl[1])
+        x1 = outputs[0] + self.expand_1(xl[0])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
