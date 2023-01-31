@@ -139,7 +139,7 @@ class Cross_unet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x = self.classifier(x1+x2+x3+x4)
+        x = self.classifier(x1)
 
         return x
 
