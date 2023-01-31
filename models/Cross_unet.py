@@ -110,17 +110,18 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.conv_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+            nn.Conv2d(96, 1, 1, padding=0),
+            nn.Upsample(scale_factor=4.0)
         )
+
+        # self.classifier = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(48, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
     def forward(self, x):
         # # Question here
@@ -137,10 +138,6 @@ class Cross_unet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
-
-        x2 = self.conv_1(x1) 
-        x3 = self.conv_2(x1+x2)        
-        x4 = self.conv_3(x1+x2+x3)
 
         x = self.classifier(x1+x2+x3+x4)
 
