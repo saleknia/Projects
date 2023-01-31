@@ -27,47 +27,6 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-from collections import OrderedDict
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=self.softmax(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weights*feats)
-        V=feats[0] + feats[1]
-        return V
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -107,99 +66,60 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        
-        
+class MetaFormer(nn.Module):
 
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        return x
-
-class MLP(nn.Module):
-    """
-    Linear Embedding
-    """
-    def __init__(self, input_dim=2048, embed_dim=768):
+    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
-        self.proj = nn.Linear(input_dim, embed_dim)
 
-    def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
-        return x
+        fuse_dim = 0
+        for i in range(num_skip):
+            fuse_dim += skip_dim[i]
 
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
+        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
+        self.down_sample1 = nn.AvgPool2d(4)
+        self.down_sample2 = nn.AvgPool2d(2)
 
-        embedding_dim = 96
+        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.up_8 = nn.Upsample(scale_factor=8.0)
-        self.up_4 = nn.Upsample(scale_factor=4.0)
-        self.up_2 = nn.Upsample(scale_factor=2.0)
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        org1 = x1
+        org2 = x2
+        org3 = x3
 
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+        x1_d = self.down_sample1(x1)
+        x2_d = self.down_sample2(x2)
 
-    def forward(self, c1, c2, c3, c4):
+        list1 = [x1_d, x2_d, x3]
 
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c4.shape
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(list1, dim=1)
 
-        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        _c4 = self.up_8(_c4)
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
 
-        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up_4(_c3)
+        x1_up = self.up_sample1(x1)
+        x2_up = self.up_sample2(x2)
 
-        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up_2(_c2)
 
-        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+        x1 = org1 + x1_up
+        x2 = org2 + x2_up
+        x3 = org3 + x3
 
-        x = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
 
-        return x
-
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
+        return x1, x2, x3
 
 
 class Cross_unet(nn.Module):
@@ -261,6 +181,8 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
+        self.MetaFormer = MetaFormer()
+
 
     def forward(self, x):
         # # Question here
@@ -273,6 +195,9 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3(outputs[2])
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
+
+
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1 = self.reduce_1(x1)
         # x2 = self.reduce_2(x2)
@@ -288,13 +213,8 @@ class Cross_unet(nn.Module):
         # x3 = self.expand_3(x3)
 
         x3 = self.up3(x4, x3) 
-        # x3 = self.stage_3(x3)[0]
-
         x2 = self.up2(x3, x2) 
-        # x2 = self.stage_2(x2)[0]
-
         x1 = self.up1(x2, x1) 
-        # x1 = self.stage_1(x1)[0]
 
         x = self.classifier(x1)
 
