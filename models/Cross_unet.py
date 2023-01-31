@@ -177,9 +177,9 @@ class Cross_unet(nn.Module):
         outputs = self.encoder_tf(x_input)
 
         x4 = outputs[3] 
-        x3 = outputs[2] + yl[2]
-        x2 = outputs[1] + yl[1]
-        x1 = outputs[0] + yl[0]
+        x3 = outputs[2] + self.expand_3(yl[2])
+        x2 = outputs[1] + self.expand_2(yl[1])
+        x1 = outputs[0] + self.expand_1(yl[0])
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
