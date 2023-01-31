@@ -54,10 +54,8 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up  = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.att = SEBlock(in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.att(x, skip_x)
         x = x + skip_x
         return x
 
@@ -199,6 +197,8 @@ class Cross_unet(nn.Module):
 
         self.MetaFormer = MetaFormer()
 
+        self.stage_1, self.stage_2, self.stage_3 = stages()
+
         # self.classifier = nn.Sequential(
         #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
         #     nn.ReLU(inplace=True),
@@ -222,8 +222,13 @@ class Cross_unet(nn.Module):
         x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         x3 = self.up3(x4, x3) 
+        x3 = self.stage_3(x3)[0]
+
         x2 = self.up2(x3, x2) 
-        x1 = self.up1(x2, x1) 
+        x2 = self.stage_2(x2)[0]
+
+        x1 = self.up1(x2, x1)
+        x1 = self.stage_1(x1)[0]
 
         x = self.classifier(x1)
 
