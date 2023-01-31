@@ -74,6 +74,102 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
+import torch
+import torch.nn as nn
+from utils.SE import SE_Block
+import torch.nn.functional as F
+
+
+class ChannelPool(nn.Module):
+    def forward(self, x):
+        return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1 )
+
+class SpatialGate(nn.Module):
+    def __init__(self):
+        super(SpatialGate, self).__init__()
+        kernel_size = 7
+        self.compress = ChannelPool()
+        self.spatial = nn.Conv2d(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2)
+    def forward(self, x):
+        x_compress = self.compress(x)
+        x_out = self.spatial(x_compress)
+        scale = F.sigmoid(x_out)
+        return x * scale
+
+class Mlp(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.1):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
+
+class MetaFormer(nn.Module):
+
+    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+        super().__init__()
+
+        embed_dim = 96
+
+        self.reduce_conv1 = nn.Conv2d(skip_dim[0], embed_dim, 1, 1, 0)
+        self.reduce_conv2 = nn.Conv2d(skip_dim[1], embed_dim, 1, 1, 0)
+        self.reduce_conv3 = nn.Conv2d(skip_dim[2], embed_dim, 1, 1, 0)
+
+        self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 1)
+        self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 1)
+        self.fuse_conv3 = nn.Conv2d(embed_dim*3, skip_dim[2], 3, 1, 1)
+
+        self.down_sample1 = nn.AvgPool2d(4)
+        self.down_sample2 = nn.AvgPool2d(2)
+
+        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        org1 = x1
+        org2 = x2
+        org3 = x3
+
+        x1 = self.reduce_conv1(x1)
+        x2 = self.reduce_conv2(x2)
+        x3 = self.reduce_conv3(x3)
+
+        x1_d = self.down_sample1(x1)
+        x2_d = self.down_sample2(x2)
+
+        list1 = [x1_d, x2_d, x3]
+
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(list1, dim=1)
+
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
+
+        x1_up = self.up_sample1(x1)
+        x2_up = self.up_sample2(x2)
+
+        x1 = org1 + x1_up
+        x2 = org2 + x2_up
+        x3 = org3 + x3
+
+
+        return x1, x2, x3
+
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -114,6 +210,8 @@ class Cross_unet(nn.Module):
             nn.Conv2d(96, 1, 1, padding=0),
             nn.Upsample(scale_factor=4.0)
         )
+
+        self.MetaFormer = MetaFormer()
 
         # self.classifier = nn.Sequential(
         #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
