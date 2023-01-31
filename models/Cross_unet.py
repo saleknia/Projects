@@ -122,7 +122,6 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -139,11 +138,11 @@ class Cross_unet(nn.Module):
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
 
-        x1 = self.conv_1(x1) + x1
-        x1 = self.conv_2(x1) + x1        
-        x1 = self.conv_3(x1) + x1
+        x2 = self.conv_1(x1) 
+        x3 = self.conv_2(x1+x2)        
+        x4 = self.conv_3(x1+x2+x3)
 
-        x = self.classifier(x1)
+        x = self.classifier(x1+x2+x3+x4)
 
         return x
 
