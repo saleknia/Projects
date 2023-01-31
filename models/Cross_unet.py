@@ -38,11 +38,9 @@ class ECAAttention(nn.Module):
                     init.constant_(m.bias, 0)
 
     def forward(self, x, skip_x):
-        y=self.gap(x) #bs,c,1,1
-        y=y.squeeze(-1).permute(0,2,1) #bs,1,c
-        y=self.conv(y) #bs,1,c
-        y=self.sigmoid(y) #bs,1,c
-        y=y.permute(0,2,1).unsqueeze(-1) #bs,c,1,1
+        y=self.gap(x)     #bs,c,1,1
+        y=self.conv(y)    #bs,c,1,1
+        y=self.sigmoid(y) #bs,c,1,1
         return skip_x*y.expand_as(x)
 
 def get_activation(activation_type):  
