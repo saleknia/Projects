@@ -116,7 +116,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder =  CrossFormer(img_size=224,
+        self.encoder_tf =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -134,19 +134,13 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
+        self.encoder_cnn.incre_modules = None
+        self.encoder_cnn.stage4 = None
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-
-        self.expand_1 = ConvBatchNorm(in_channels=64 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_2 = ConvBatchNorm(in_channels=128, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_3 = ConvBatchNorm(in_channels=256, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_1 = ConvBatchNorm(in_channels=48 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -160,26 +154,32 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        e0 = self.firstconv(x_input)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+        x = self.encoder_cnn.conv1(x_input)
+        x = self.encoder_cnn.bn1(x)
+        x = self.encoder_cnn.act1(x)
+        x = self.encoder_cnn.conv2(x)
+        x = self.encoder_cnn.bn2(x)
+        x = self.encoder_cnn.act2(x)
+        x = self.encoder_cnn.layer1(x)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
+        xl = [t(x) for i, t in enumerate(self.encoder_cnn.transition1)]
+        yl = self.encoder_cnn.stage2(xl)
 
-        outputs = self.encoder(x_input)
-        
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
+        yl = self.encoder_cnn.stage3(xl)
+
+        outputs = self.encoder_tf(x_input)
+
         x4 = outputs[3] 
-        x3 = outputs[2] + self.expand_3(e3)
-        x2 = outputs[1] + self.expand_2(e2)
-        x1 = outputs[0] + self.expand_1(e1)
+        x3 = outputs[2] + yl[2]
+        x2 = outputs[1] + yl[1]
+        x1 = outputs[0] + yl[0]
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
