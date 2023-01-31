@@ -97,7 +97,7 @@ class SKAttention(nn.Module):
             weight=fc(Z)
             weights.append(weight.view(bs,c,1,1)) #bs,channel
         attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=self.softmax(attention_weights)#k,bs,channel,1,1
+        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
 
         ### fuse
         V=(attention_weights*feats)
@@ -143,21 +143,14 @@ class Cross_unet(nn.Module):
         self.encoder1  = resnet.layer1
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
 
         self.expand_1 = ConvBatchNorm(in_channels=64 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.expand_2 = ConvBatchNorm(in_channels=128, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.expand_3 = ConvBatchNorm(in_channels=256, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_4 = ConvBatchNorm(in_channels=512, out_channels=768, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
-
-        self.att_1 = SKAttention(96)
-        self.att_2 = SKAttention(192)
-        self.att_3 = SKAttention(384)
-        self.att_4 = SKAttention(768)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -180,29 +173,17 @@ class Cross_unet(nn.Module):
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
 
         outputs = self.encoder(x_input)
 
-        e4 = self.expand_4(e4)
         e3 = self.expand_3(e3)
         e2 = self.expand_2(e2)
         e1 = self.expand_1(e1)
 
         x4 = outputs[3] 
-        x3 = outputs[2]
-        x2 = outputs[1] 
-        x1 = outputs[0] 
-
-        x4 = self.att_4(x4, e4)
-        x3 = self.att_3(x3, e3)
-        x2 = self.att_2(x2, e2)
-        x1 = self.att_1(x1, e1)
-
-        # x4 = outputs[3] + self.expand_4(e4)
-        # x3 = outputs[2] + self.expand_3(e3)
-        # x2 = outputs[1] + self.expand_2(e2)
-        # x1 = outputs[0] + self.expand_1(e1)
+        x3 = outputs[2] + self.expand_3(e3)
+        x2 = outputs[1] + self.expand_2(e2)
+        x1 = outputs[0] + self.expand_1(e1)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
