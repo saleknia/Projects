@@ -81,7 +81,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = x + skip_x
-        x = x + self.att(x)
+        x = self.att(x)
         return x
 
 class ConvBatchNorm(nn.Module):
