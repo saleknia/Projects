@@ -68,11 +68,11 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.att  = ECAAttention(in_channels//2)
+        # self.att  = ECAAttention(in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.att(x, skip_x)
+        # skip_x = self.att(x, skip_x)
         return x + skip_x
 
 class ConvBatchNorm(nn.Module):
@@ -143,10 +143,10 @@ class Cross_unet(nn.Module):
         # self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         # self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+        # self.norm_4 = LayerNormProxy(dim=768)
+        # self.norm_3 = LayerNormProxy(dim=384)
+        # self.norm_2 = LayerNormProxy(dim=192)
+        # self.norm_1 = LayerNormProxy(dim=96)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -172,10 +172,10 @@ class Cross_unet(nn.Module):
 
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[3])
-        x3 = self.norm_3(outputs[2])
-        x2 = self.norm_2(outputs[1])
-        x1 = self.norm_1(outputs[0])
+        # x4 = self.norm_4(outputs[3])
+        # x3 = self.norm_3(outputs[2])
+        # x2 = self.norm_2(outputs[1])
+        # x1 = self.norm_1(outputs[0])
 
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
