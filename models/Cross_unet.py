@@ -76,7 +76,6 @@ class LayerNormProxy(nn.Module):
 
 import torch
 import torch.nn as nn
-from utils.SE import SE_Block
 import torch.nn.functional as F
 
 
