@@ -216,7 +216,7 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.stage_1, self.stage_2, self.stage_3 = stages()
+        # self.stage_1, self.stage_2, self.stage_3 = stages()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -225,6 +225,8 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
+
+        self.head = SegFormerHead()
 
     def forward(self, x):
         # # Question here
@@ -252,15 +254,17 @@ class Cross_unet(nn.Module):
         # x3 = self.expand_3(x3)
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)[0]
+        # x3 = self.stage_3(x3)[0]
 
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)[0]
+        # x2 = self.stage_2(x2)[0]
 
         x1 = self.up1(x2, x1) 
-        x1 = self.stage_1(x1)[0]
+        # x1 = self.stage_1(x1)[0]
 
-        x = self.classifier(x1)
+        x = self.head(x1, x2, x3, x4)
+
+        x = self.classifier(x)
 
         return x
 
