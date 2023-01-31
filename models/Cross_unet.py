@@ -33,10 +33,12 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.up  = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.dcn = DeformableConv2d(in_channels//2, in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = x + skip_x
+        x = x + self.dcn(x)
         return x
 
 class ConvBatchNorm(nn.Module):
@@ -66,43 +68,70 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-from torchvision import models as resnet_model
+import torch
+import torchvision.ops
+from torch import nn
 
-class SKAttention(nn.Module):
+class DeformableConv2d(nn.Module):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size=3,
+                 stride=1,
+                 padding=1,
+                 bias=False):
 
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
+        super(DeformableConv2d, self).__init__()
+        
+        assert type(kernel_size) == tuple or type(kernel_size) == int
 
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+        kernel_size = kernel_size if type(kernel_size) == tuple else (kernel_size, kernel_size)
+        self.stride = stride if type(stride) == tuple else (stride, stride)
+        self.padding = padding
+        
+        self.offset_conv = nn.Conv2d(in_channels, 
+                                     2 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
 
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
+        nn.init.constant_(self.offset_conv.weight, 0.)
+        nn.init.constant_(self.offset_conv.bias, 0.)
+        
+        self.modulator_conv = nn.Conv2d(in_channels, 
+                                     1 * kernel_size[0] * kernel_size[1],
+                                     kernel_size=kernel_size, 
+                                     stride=stride,
+                                     padding=self.padding, 
+                                     bias=True)
 
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
+        nn.init.constant_(self.modulator_conv.weight, 0.)
+        nn.init.constant_(self.modulator_conv.bias, 0.)
+        
+        self.regular_conv = nn.Conv2d(in_channels=in_channels,
+                                      out_channels=out_channels,
+                                      kernel_size=kernel_size,
+                                      stride=stride,
+                                      padding=self.padding,
+                                      bias=bias)
 
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
+    def forward(self, x):
+        #h, w = x.shape[2:]
+        #max_offset = max(h, w)/4.
 
-        ### fuse
-        V=(attention_weights*feats)
-        V=feats[0] + feats[1]
-        return V
+        offset = self.offset_conv(x)#.clamp(-max_offset, max_offset)
+        modulator = 2. * torch.sigmoid(self.modulator_conv(x))
+        
+        x = torchvision.ops.deform_conv2d(input=x, 
+                                          offset=offset, 
+                                          weight=self.regular_conv.weight, 
+                                          bias=self.regular_conv.bias, 
+                                          padding=self.padding,
+                                          mask=modulator,
+                                          stride=self.stride,
+                                          )
+        return x
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -134,14 +163,6 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
-        self.encoder_cnn.incre_modules = None
-        self.encoder_cnn.stage4 = None
-
-        self.expand_1 = ConvBatchNorm(in_channels=48 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_2 = ConvBatchNorm(in_channels=96 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_3 = ConvBatchNorm(in_channels=192, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_4 = ConvBatchNorm(in_channels=384, out_channels=768, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.up3 = UpBlock(768, 384, nb_Conv=2)
         self.up2 = UpBlock(384, 192, nb_Conv=2)
@@ -161,28 +182,12 @@ class Cross_unet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x = self.encoder_cnn.conv1(x_input)
-        x = self.encoder_cnn.bn1(x)
-        x = self.encoder_cnn.act1(x)
-        x = self.encoder_cnn.conv2(x)
-        x = self.encoder_cnn.bn2(x)
-        x = self.encoder_cnn.act2(x)
-        x = self.encoder_cnn.layer1(x)
-
-        xl = [t(x) for i, t in enumerate(self.encoder_cnn.transition1)]
-        yl = self.encoder_cnn.stage2(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
-        yl = self.encoder_cnn.stage3(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition3)]
-
         outputs = self.encoder_tf(x_input)
 
-        x4 = outputs[3] + self.expand_4(xl[3]) 
-        x3 = outputs[2] + self.expand_3(xl[2])
-        x2 = outputs[1] + self.expand_2(xl[1])
-        x1 = outputs[0] + self.expand_1(xl[0])
+        x4 = outputs[3] 
+        x3 = outputs[2] 
+        x2 = outputs[1] 
+        x1 = outputs[0] 
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
