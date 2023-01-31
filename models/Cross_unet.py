@@ -55,6 +55,14 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+
+    for i in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    return nn.Sequential(*layers)
+
 class LayerNormProxy(nn.Module):
     
     def __init__(self, dim):
@@ -168,6 +176,10 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
+        self.conv_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -192,6 +204,10 @@ class Cross_unet(nn.Module):
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1) 
+
+        x1 = self.conv_1(x1) + x1
+        x1 = self.conv_2(x1) + x1        
+        x1 = self.conv_3(x1) + x1
 
         x = self.classifier(x1)
 
