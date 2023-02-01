@@ -109,9 +109,9 @@ class MetaFormer(nn.Module):
         self.reduce_conv2 = nn.Conv2d(skip_dim[1], embed_dim, 1, 1, 0)
         self.reduce_conv3 = nn.Conv2d(skip_dim[2], embed_dim, 1, 1, 0)
 
-        self.fuse_conv1 = _make_nConv(embed_dim*3, skip_dim[0], 2, activation='ReLU', dilation=1, padding=1) 
-        self.fuse_conv2 = _make_nConv(embed_dim*3, skip_dim[1], 2, activation='ReLU', dilation=1, padding=1)
-        self.fuse_conv3 = _make_nConv(embed_dim*3, skip_dim[2], 2, activation='ReLU', dilation=1, padding=1) 
+        self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 1) 
+        self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 1)
+        self.fuse_conv3 = nn.Conv2d(embed_dim*3, skip_dim[2], 3, 1, 1) 
 
         self.down_sample1 = nn.AvgPool2d(4)
         self.down_sample2 = nn.AvgPool2d(2)
@@ -153,25 +153,6 @@ class MetaFormer(nn.Module):
 
         return x1, x2, x3
 
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -207,27 +188,20 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
-        self.classifier = nn.Sequential(
-            nn.Conv2d(96, 1, 1, padding=0),
-            nn.Upsample(scale_factor=4.0)
-        )
-
-        # self.MetaFormer = MetaFormer()
-
-        self.FAMBlock1 = FAMBlock(channels=96)
-        self.FAMBlock2 = FAMBlock(channels=192)
-        self.FAMBlock3 = FAMBlock(channels=384)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
-
         # self.classifier = nn.Sequential(
-        #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(48, 48, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        #     nn.Conv2d(96, 1, 1, padding=0),
+        #     nn.Upsample(scale_factor=4.0)
         # )
+
+        self.MetaFormer = MetaFormer()
+
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(48, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
 
     def forward(self, x):
         # # Question here
@@ -241,14 +215,7 @@ class Cross_unet(nn.Module):
         x2 = outputs[1] 
         x1 = outputs[0] 
 
-        for i in range(2):
-            x3 = self.FAM3[i](x3)
-        for i in range(4):
-            x2 = self.FAM2[i](x2)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
-
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
