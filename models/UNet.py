@@ -147,7 +147,7 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
         self.up3_4 = UpBlock(144, 72, nb_Conv=2)
@@ -162,25 +162,7 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
 
-        self.classifier_4 = nn.Sequential(
-            nn.ConvTranspose2d(18, 18, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(18, 18, 3, padding=1),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(18, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
-        )
-
-        self.classifier_3 = nn.Sequential(
-            nn.ConvTranspose2d(18, 18, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(18, 18, 3, padding=1),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(18, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
-        )
-
-        self.classifier_2 = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.ConvTranspose2d(18, 18, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(18, 18, 3, padding=1),
@@ -229,14 +211,9 @@ class UNet(nn.Module):
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
 
-        z4 = self.classifier_4(z4)
-        z3 = self.classifier_3(z3)
-        z2 = self.classifier_2(z2)
+        z2 = self.classifier(z2)
 
-        if self.training:
-            return z2, z3, z4
-        else:
-            return z2
+        return z2
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
