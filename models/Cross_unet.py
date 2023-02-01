@@ -224,15 +224,22 @@ class Cross_unet(nn.Module):
         #     nn.Upsample(scale_factor=4.0)
         # )
 
-        # self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=32 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
+        self.expand_1 = ConvBatchNorm(in_channels=32 , out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_2 = ConvBatchNorm(in_channels=64 , out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_3 = ConvBatchNorm(in_channels=128, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_4 = ConvBatchNorm(in_channels=256, out_channels=512, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        # self.skip = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage4
+        self.stage_2 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage2
+        self.stage_3 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage3
+        self.stage_4 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage4
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(64, 64, 4, 2, 1),
@@ -257,10 +264,19 @@ class Cross_unet(nn.Module):
         x3 = self.encoder3(x2)
         x4 = self.encoder4(x3)
 
-        # x4 = self.reduce_4(x4) 
-        # x3 = self.reduce_3(x3) 
-        # x2 = self.reduce_2(x2)
-        # x1 = self.reduce_1(x1) 
+        x4 = self.reduce_4(x4) 
+        x3 = self.reduce_3(x3) 
+        x2 = self.reduce_2(x2)
+        x1 = self.reduce_1(x1) 
+
+        x1, x2 = self.stage_2([x1, x2])
+        x1, x2, x3 = self.stage_3([x1, x2, x3])
+        x1, x2, x3, x4 = self.stage_4([x1, x2, x3, x4])
+
+        x4 = self.expand_4(x4) 
+        x3 = self.expand_3(x3) 
+        x2 = self.expand_2(x2)
+        x1 = self.expand_1(x1) 
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
