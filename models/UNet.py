@@ -60,11 +60,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        x = x + skip_x
         return x
 
 
@@ -146,16 +147,30 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder.conv1.stride  = (1, 1)
         self.encoder.incre_modules = None
-        self.encoder.stage4 = None
+        self.encoder.stage4        = None
 
-        self.up2 = UpBlock(192, 96, nb_Conv=2)
-        self.up1 = UpBlock(96 , 48, nb_Conv=2)
+        self.up3 = UpBlock(144, 72, nb_Conv=2)
+        self.up2 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1 = UpBlock(36 , 16, nb_Conv=2)
 
-        self.final_conv = nn.Sequential(
-            nn.Conv2d(in_channels=48, out_channels=1, kernel_size=1),
-            nn.Upsample(scale_factor=4.0)
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
+
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+
+        self.conv = _make_nConv(in_channels=384, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(18, 18, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(18, 18, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(18, 18, 3, padding=1),
         )
 
     def forward(self, x):
@@ -179,10 +194,18 @@ class UNet(nn.Module):
 
         x1, x2, x3 = yl[0], yl[1], yl[2]
 
-        x = self.up2(x3, x2) 
+        emb = self.patch_embed(x0)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
+        x4 = self.conv(feature_tf)
+
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
         x = self.up1(x , x1) 
 
-        x = self.final_conv(x)
+        x = self.classifier(x)
 
         return x
 
