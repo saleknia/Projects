@@ -284,7 +284,7 @@ class Cross_unet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x_fuse = self.skip(x_fuse)
-        x1, x2, x3 = x_fuse[0], x_fuse[1], x_fuse[2]
+        x1, x2, x3 = x_fuse[0]+x1, x_fuse[1]+x2, x_fuse[2]+x3
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
