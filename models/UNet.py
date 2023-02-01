@@ -201,9 +201,9 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
-        z4 = self.up3(yl[3], yl[2]) 
-        z4 = self.up2(z4   , yl[1]) 
-        z4 = self.up1(z4   , yl[0]) 
+        z4 = self.up3_4(yl[3], yl[2]) 
+        z4 = self.up2_4(z4   , yl[1]) 
+        z4 = self.up1_4(z4   , yl[0]) 
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
