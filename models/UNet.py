@@ -147,28 +147,28 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder = timm.create_model('hrnet_w64', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
-        self.up3_4 = UpBlock(512, 256, nb_Conv=2)
-        self.up2_4 = UpBlock(256, 128, nb_Conv=2)
-        self.up1_4 = UpBlock(128, 64 , nb_Conv=2)
+        self.up3_4 = UpBlock(144, 72, nb_Conv=2)
+        self.up2_4 = UpBlock(72 , 36, nb_Conv=2)
+        self.up1_4 = UpBlock(36 , 18, nb_Conv=2)
 
-        self.up2_3 = UpBlock(256, 128, nb_Conv=2)
-        self.up1_3 = UpBlock(128, 64 , nb_Conv=2)
+        self.up2_3 = UpBlock(72, 36, nb_Conv=2)
+        self.up1_3 = UpBlock(36, 18, nb_Conv=2)
 
-        self.up1_2 = UpBlock(128, 64 , nb_Conv=2)
+        self.up1_2 = UpBlock(36, 18, nb_Conv=2)
 
-        self.conv_4 = _make_nConv(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_4 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(64, 64, 4, 2, 1),
+            nn.ConvTranspose2d(18, 18, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, padding=1),
+            nn.Conv2d(18, 18, 3, padding=1),
             nn.ReLU(inplace=True),
-            # nn.Conv2d(64, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
+            # nn.Conv2d(18, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
