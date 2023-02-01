@@ -148,29 +148,18 @@ class UNet(nn.Module):
         self.n_classes = n_classes
 
         self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder.conv1.stride  = (1, 1)
         self.encoder.incre_modules = None
-        self.encoder.stage4        = None
 
         self.up3 = UpBlock(144, 72, nb_Conv=2)
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
         self.up1 = UpBlock(36 , 16, nb_Conv=2)
-
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
-
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
-
-        self.conv = _make_nConv(in_channels=384, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(18, 18, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(18, 18, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(18, 1, 3, padding=1),
+            nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -192,14 +181,10 @@ class UNet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        x1, x2, x3 = yl[0], yl[1], yl[2]
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder.stage4(xl)
 
-        emb = self.patch_embed(x0)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        x4 = self.conv(feature_tf)
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         x = self.up3(x4, x3) 
         x = self.up2(x , x2) 
