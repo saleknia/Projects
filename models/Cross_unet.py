@@ -240,9 +240,9 @@ class Cross_unet(nn.Module):
         self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
