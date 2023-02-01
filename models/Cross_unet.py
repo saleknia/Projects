@@ -224,22 +224,22 @@ class Cross_unet(nn.Module):
         #     nn.Upsample(scale_factor=4.0)
         # )
 
-        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=32 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=18 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=36 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=72 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=144, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.expand_1 = ConvBatchNorm(in_channels=32 , out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_2 = ConvBatchNorm(in_channels=64 , out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_3 = ConvBatchNorm(in_channels=128, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.expand_4 = ConvBatchNorm(in_channels=256, out_channels=512, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_1 = ConvBatchNorm(in_channels=18 , out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_2 = ConvBatchNorm(in_channels=36 , out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_3 = ConvBatchNorm(in_channels=72 , out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_4 = ConvBatchNorm(in_channels=144, out_channels=512, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # self.fuse_layers = make_fuse_layers()
         # self.fuse_act = nn.ReLU()
 
-        self.stage_2 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage2
-        self.stage_3 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage3
-        self.stage_4 = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage4
+        self.stage_2 = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage2
+        self.stage_3 = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
+        self.stage_4 = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage4
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(64, 64, 4, 2, 1),
