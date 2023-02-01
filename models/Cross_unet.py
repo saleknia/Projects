@@ -216,13 +216,13 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.up3 = UpBlock(384, 192, nb_Conv=2)
-        self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        # self.up3 = UpBlock(384, 192, nb_Conv=2)
+        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        # self.up3 = UpBlock(768, 384, nb_Conv=2)
-        # self.up2 = UpBlock(384, 192, nb_Conv=2)
-        # self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up3 = UpBlock(768, 384, nb_Conv=2)
+        self.up2 = UpBlock(384, 192, nb_Conv=2)
+        self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
@@ -241,7 +241,7 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.fuse_layers = make_fuse_layers()
@@ -286,7 +286,7 @@ class Cross_unet(nn.Module):
             x_fuse.append(self.fuse_act(y))
 
         x_fuse = self.skip(x_fuse)
-        
+
         x1 = self.combine_1(torch.cat([x1, x_fuse[0]], dim=1))
         x2 = self.combine_2(torch.cat([x2, x_fuse[1]], dim=1))
         x3 = self.combine_3(torch.cat([x3, x_fuse[2]], dim=1))
