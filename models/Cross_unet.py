@@ -95,8 +95,8 @@ class LayerNormProxy(nn.Module):
         return einops.rearrange(x, 'b h w c -> b c h w')
 
 def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [48, 96, 192]
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -239,15 +239,17 @@ class Cross_unet(nn.Module):
         self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
         self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
         self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=768, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
 
-        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
+        self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -269,13 +271,14 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0]) 
 
+        t4 = self.reduce_4(x4) 
         t3 = self.reduce_3(x3) 
         t2 = self.reduce_2(x2)
         t1 = self.reduce_1(x1) 
 
-        x = [t1, t2, t3]
+        x = [t1, t2, t3, t4]
         x_fuse = []
-        num_branches = 3
+        num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
             y = x[0] if i == 0 else fuse_outer[0](x[0])
             for j in range(1, num_branches):
@@ -290,6 +293,7 @@ class Cross_unet(nn.Module):
         x1 = self.combine_1(torch.cat([t1, x_fuse[0]], dim=1)) + x1
         x2 = self.combine_2(torch.cat([t2, x_fuse[1]], dim=1)) + x2
         x3 = self.combine_3(torch.cat([t3, x_fuse[2]], dim=1)) + x3
+        x4 = self.combine_4(torch.cat([t4, x_fuse[3]], dim=1)) + x4
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
