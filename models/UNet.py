@@ -156,14 +156,14 @@ class UNet(nn.Module):
         self.up2 = UpBlock(72 , 36, nb_Conv=2)
         self.up1 = UpBlock(36 , 16, nb_Conv=2)
 
-        transformer = deit_small_distilled_patch16_224(pretrained=True)
+        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
 
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
             [transformer.blocks[i] for i in range(12)]
         )
 
-        self.conv = _make_nConv(in_channels=384, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=192, out_channels=144, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(18, 18, 4, 2, 1),
@@ -198,7 +198,7 @@ class UNet(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
         x4 = self.conv(feature_tf)
 
         x = self.up3(x4, x3) 
