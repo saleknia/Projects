@@ -109,9 +109,9 @@ class MetaFormer(nn.Module):
         self.reduce_conv2 = nn.Conv2d(skip_dim[1], embed_dim, 1, 1, 0)
         self.reduce_conv3 = nn.Conv2d(skip_dim[2], embed_dim, 1, 1, 0)
 
-        self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 0) 
-        self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 0)
-        self.fuse_conv3 = nn.Conv2d(embed_dim*3, skip_dim[2], 3, 1, 0) 
+        self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 1) 
+        self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 1)
+        self.fuse_conv3 = nn.Conv2d(embed_dim*3, skip_dim[2], 3, 1, 1) 
 
         self.down_sample1 = nn.AvgPool2d(4)
         self.down_sample2 = nn.AvgPool2d(2)
