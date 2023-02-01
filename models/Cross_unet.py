@@ -269,11 +269,11 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0]) 
 
-        x3 = self.reduce_3(x3) 
-        x2 = self.reduce_2(x2)
-        x1 = self.reduce_1(x1) 
+        t3 = self.reduce_3(x3) 
+        t2 = self.reduce_2(x2)
+        t1 = self.reduce_1(x1) 
 
-        x = [x1, x2, x3]
+        x = [t1, t2, t3]
         x_fuse = []
         num_branches = 3
         for i, fuse_outer in enumerate(self.fuse_layers):
@@ -287,9 +287,9 @@ class Cross_unet(nn.Module):
 
         x_fuse = self.skip(x_fuse)
 
-        x1 = self.combine_1(torch.cat([x1, x_fuse[0]], dim=1))
-        x2 = self.combine_2(torch.cat([x2, x_fuse[1]], dim=1))
-        x3 = self.combine_3(torch.cat([x3, x_fuse[2]], dim=1))
+        x1 = self.combine_1(torch.cat([t1, x_fuse[0]], dim=1)) + x1
+        x2 = self.combine_2(torch.cat([t2, x_fuse[1]], dim=1)) + x2
+        x3 = self.combine_3(torch.cat([t3, x_fuse[2]], dim=1)) + x3
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
