@@ -161,15 +161,14 @@ class UNet(nn.Module):
 
         self.conv_4 = _make_nConv(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_2 = _make_nConv(in_channels=128, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(64, 64, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(64, 64, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, n_classes, 3, padding=1),
-            # nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
+            # nn.Conv2d(64, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -184,8 +183,6 @@ class UNet(nn.Module):
         x = self.encoder.bn2(x)
         x = self.encoder.act2(x)
         x = self.encoder.layer1(x)
-
-        z1 = x
 
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
@@ -213,9 +210,8 @@ class UNet(nn.Module):
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        z1 = self.conv_2(torch.cat([z2, z1], dim=1))
 
-        x = self.classifier(z1)
+        x = self.classifier(z2)
 
         return x
 
