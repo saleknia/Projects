@@ -250,7 +250,7 @@ class Cross_unet(nn.Module):
         self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage3
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 48, 3, padding=1),
             nn.ReLU(inplace=True),
