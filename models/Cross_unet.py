@@ -211,13 +211,13 @@ class Cross_unet(nn.Module):
         self.encoder3 = resnet.layer3
         self.encoder4 = resnet.layer4
 
-        self.up3 = UpBlock(256, 128, nb_Conv=2)
-        self.up2 = UpBlock(128, 64 , nb_Conv=2)
-        self.up1 = UpBlock(64 , 32 , nb_Conv=2)
+        # self.up3 = UpBlock(256, 128, nb_Conv=2)
+        # self.up2 = UpBlock(128, 64 , nb_Conv=2)
+        # self.up1 = UpBlock(64 , 32 , nb_Conv=2)
 
-        # self.up3 = UpBlock(768, 384, nb_Conv=2)
-        # self.up2 = UpBlock(384, 192, nb_Conv=2)
-        # self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up3 = UpBlock(512, 256, nb_Conv=2)
+        self.up2 = UpBlock(256, 128, nb_Conv=2)
+        self.up1 = UpBlock(128, 64 , nb_Conv=2)
 
         # self.classifier = nn.Sequential(
         #     nn.Conv2d(96, 1, 1, padding=0),
@@ -235,11 +235,11 @@ class Cross_unet(nn.Module):
         # self.skip = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage4
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ConvTranspose2d(64, 64, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, 3, padding=1),
+            nn.Conv2d(64, 64, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
