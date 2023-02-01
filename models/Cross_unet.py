@@ -216,13 +216,13 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.up3 = UpBlock(384, 192, nb_Conv=2)
-        # self.up2 = UpBlock(192, 96 , nb_Conv=2)
-        # self.up1 = UpBlock(96 , 48 , nb_Conv=2)
+        self.up3 = UpBlock(384, 192, nb_Conv=2)
+        self.up2 = UpBlock(192, 96 , nb_Conv=2)
+        self.up1 = UpBlock(96 , 48 , nb_Conv=2)
 
-        self.up3 = UpBlock(768, 384, nb_Conv=2)
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        # self.up3 = UpBlock(768, 384, nb_Conv=2)
+        # self.up2 = UpBlock(384, 192, nb_Conv=2)
+        # self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
@@ -241,10 +241,10 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-        self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=768, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        # self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=768, activation='ReLU', kernel_size=3, padding=1, dilation=1)
 
         self.fuse_layers = make_fuse_layers()
         self.fuse_act = nn.ReLU()
@@ -252,7 +252,7 @@ class Cross_unet(nn.Module):
         self.skip = timm.create_model('hrnet_w48', pretrained=True, features_only=True).stage4
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 48, 4, 2, 1),
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 48, 3, padding=1),
             nn.ReLU(inplace=True),
@@ -271,12 +271,12 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0]) 
 
-        t4 = self.reduce_4(x4) 
-        t3 = self.reduce_3(x3) 
-        t2 = self.reduce_2(x2)
-        t1 = self.reduce_1(x1) 
+        x4 = self.reduce_4(x4) 
+        x3 = self.reduce_3(x3) 
+        x2 = self.reduce_2(x2)
+        x1 = self.reduce_1(x1) 
 
-        x = [t1, t2, t3, t4]
+        x = [x1, x2, x3, x4]
         x_fuse = []
         num_branches = 4
         for i, fuse_outer in enumerate(self.fuse_layers):
@@ -290,10 +290,15 @@ class Cross_unet(nn.Module):
 
         x_fuse = self.skip(x_fuse)
 
-        x1 = self.combine_1(torch.cat([t1, x_fuse[0]], dim=1)) + x1
-        x2 = self.combine_2(torch.cat([t2, x_fuse[1]], dim=1)) + x2
-        x3 = self.combine_3(torch.cat([t3, x_fuse[2]], dim=1)) + x3
-        x4 = self.combine_4(torch.cat([t4, x_fuse[3]], dim=1)) + x4
+        # x1 = self.combine_1(torch.cat([t1, x_fuse[0]], dim=1)) + x1
+        # x2 = self.combine_2(torch.cat([t2, x_fuse[1]], dim=1)) + x2
+        # x3 = self.combine_3(torch.cat([t3, x_fuse[2]], dim=1)) + x3
+        # x4 = self.combine_4(torch.cat([t4, x_fuse[3]], dim=1)) + x4
+
+        x1 = x_fuse[0]
+        x2 = x_fuse[1]
+        x3 = x_fuse[2]
+        x4 = x_fuse[3]
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
