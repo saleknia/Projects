@@ -153,7 +153,24 @@ class MetaFormer(nn.Module):
 
         return x1, x2, x3
 
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
 
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -195,7 +212,14 @@ class Cross_unet(nn.Module):
             nn.Upsample(scale_factor=4.0)
         )
 
-        self.MetaFormer = MetaFormer()
+        # self.MetaFormer = MetaFormer()
+
+        self.FAMBlock1 = FAMBlock(channels=96)
+        self.FAMBlock2 = FAMBlock(channels=192)
+        self.FAMBlock3 = FAMBlock(channels=384)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
         # self.classifier = nn.Sequential(
         #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -217,7 +241,14 @@ class Cross_unet(nn.Module):
         x2 = outputs[1] 
         x1 = outputs[0] 
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
+
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
