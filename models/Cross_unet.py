@@ -421,9 +421,9 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
-        self.d8 = CDilated(n, n , 3, 1, 8)  # dilation rate of 2^3
+        self.d2 = CDilated(n, n , 3, 1, 3)  # dilation rate of 2^1
+        self.d4 = CDilated(n, n , 3, 1, 5)  # dilation rate of 2^2
+        self.d8 = CDilated(n, n , 3, 1, 7)  # dilation rate of 2^3
         self.bn = BR(nOut)
         self.add = add
 
