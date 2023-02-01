@@ -211,7 +211,7 @@ class UNet(nn.Module):
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
 
-        z2 = self.classifier(z2)
+        z2 = self.classifier(z4)
 
         return z2
 
