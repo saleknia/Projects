@@ -188,6 +188,11 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
+
         # self.classifier = nn.Sequential(
         #     nn.Conv2d(96, 1, 1, padding=0),
         #     nn.Upsample(scale_factor=4.0)
@@ -210,10 +215,10 @@ class Cross_unet(nn.Module):
 
         outputs = self.encoder_tf(x_input)
 
-        x4 = outputs[3] 
-        x3 = outputs[2] 
-        x2 = outputs[1] 
-        x1 = outputs[0] 
+        x4 = self.norm_4(outputs[3]) 
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0]) 
 
         x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
