@@ -184,8 +184,8 @@ class UNet(nn.Module):
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)  
 
         self.GCN_4 = GCN(18, 18)  
-        self.GCN_3 = GCN(18, 18)  
-        self.GCN_2 = GCN(18, 18)      
+        self.GCN_3 = GCN(36, 36)  
+        self.GCN_2 = GCN(72, 72)      
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -220,6 +220,10 @@ class UNet(nn.Module):
         z3 = self.up2_3(yl[2] , yl[1]) 
         z3 = self.up1_3(z3    , yl[0]) 
 
+        yl[2] = self.GCN_4(yl[2])
+        yl[1] = self.GCN_3(yl[1])
+        yl[0] = self.GCN_2(yl[0])
+
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
@@ -233,13 +237,13 @@ class UNet(nn.Module):
         # x = self.up2(x , x2) 
         # x = self.up1(x , x1) 
 
-        z4 = self.GCN_4(z4)
+        z4 = self.GCN_4(z4) + z4
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z3 = self.GCN_3(z3)
+        z3 = self.GCN_3(z3) + z3
 
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        z2 = self.GCN_2(z2)
+        z2 = self.GCN_2(z2) + z2
 
         z2 = self.classifier(z4)
 
