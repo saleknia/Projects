@@ -141,7 +141,7 @@ from axial_attention import AxialAttention
 class AXA(nn.Module):
     def __init__(self, channel): 
         super(AXA, self).__init__()
-        attn_1 = AxialAttention(
+        self.attn_1 = AxialAttention(
                             dim = channel,               # embedding dimension
                             dim_index = 1,               # where is the embedding dimension
                             dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
@@ -149,7 +149,7 @@ class AXA(nn.Module):
                             num_dimensions = 2,          # number of axial dimensions (images is 2, video is 3, or more)
                             sum_axial_out = True         # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
                         )
-        attn_2 = AxialAttention(
+        self.attn_2 = AxialAttention(
                             dim = channel,               # embedding dimension
                             dim_index = 1,               # where is the embedding dimension
                             dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
