@@ -135,6 +135,25 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+class GCN(nn.Module):
+    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
+        super(GCN, self).__init__()
+        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)/2,0))
+        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)/2))
+        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)/2,0))
+        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)/2))
+        
+    def forward(self, x):
+        x_l = self.conv_l1(x)
+        x_l = self.conv_l2(x_l)
+        
+        x_r = self.conv_r1(x)
+        x_r = self.conv_r2(x_r)
+        
+        x = x_l + x_r
+        
+        return x
+
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -162,7 +181,11 @@ class UNet(nn.Module):
         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)  
+
+        self.GCN_4 = GCN(18, 18)  
+        self.GCN_3 = GCN(18, 18)  
+        self.GCN_2 = GCN(18, 18)      
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -210,8 +233,13 @@ class UNet(nn.Module):
         # x = self.up2(x , x2) 
         # x = self.up1(x , x1) 
 
+        z4 = self.GCN_4(z4)
+
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
+        z3 = self.GCN_3(z3)
+
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
+        z2 = self.GCN_2(z2)
 
         z2 = self.classifier(z4)
 
