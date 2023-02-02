@@ -147,26 +147,30 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        channels = 18
+        channel = 18
 
         self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
-        self.up3_4 = UpBlock(channels*8, channels*4, nb_Conv=2)
-        self.up2_4 = UpBlock(channels*4, channels*2, nb_Conv=2)
-        self.up1_4 = UpBlock(channels*2, channels*1, nb_Conv=2)
+        self.up3_4 = UpBlock(channel*8, channel*4, nb_Conv=2)
+        self.up2_4 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        self.up1_4 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.up2_3 = UpBlock(channels*4, channels*2, nb_Conv=2)
-        self.up1_3 = UpBlock(channels*2, channels*1, nb_Conv=2)
+        self.up2_3 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        self.up1_3 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.up1_2 = UpBlock(channels*2, channels*1, nb_Conv=2)      
+        self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
+
+        self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(channels, channels, 4, 2, 1),
+            nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(channels, channels, 3, padding=1),
+            nn.Conv2d(channel, channel, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(channels, n_classes, kernel_size=2, stride=2)
+            # nn.Conv2d(channel, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -206,10 +210,12 @@ class UNet(nn.Module):
         # x = self.up2(x , x2) 
         # x = self.up1(x , x1) 
 
+        z3 = self.conv_4(torch.cat([z4, z3], dim=1))
+        z2 = self.conv_3(torch.cat([z3, z2], dim=1))
 
-        z = self.classifier(z4+z3+z2)
+        z2 = self.classifier(z4)
 
-        return z
+        return z2
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
