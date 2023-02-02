@@ -218,7 +218,11 @@ class UNet(nn.Module):
 
         k31 = yl[0]
         k32 = yl[1]
-        k33 = yl[2]
+        k33 = yl[2]        
+        
+        yl[0] = self.CCA_1(yl[0])
+        yl[1] = self.CCA_2(yl[1])
+        yl[2] = self.CCA_3(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
@@ -234,13 +238,8 @@ class UNet(nn.Module):
         z3 = self.up1_3(z3  , k31) 
 
         z4 = self.up3_4(k44, k43) 
-        z4 = self.CCA_3(z4)
-
         z4 = self.up2_4(z4 , k42) 
-        z4 = self.CCA_2(z4)
-
         z4 = self.up1_4(z4 , k41)
-        z4 = self.CCA_1(z4)
  
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
