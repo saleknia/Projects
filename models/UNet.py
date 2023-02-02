@@ -135,33 +135,14 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-
-from axial_attention import AxialAttention
-
-class AXA(nn.Module):
-    def __init__(self, channel): 
-        super(AXA, self).__init__()
-        self.attn_1 = AxialAttention(
-                            dim = channel,               # embedding dimension
-                            dim_index = 1,               # where is the embedding dimension
-                            dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
-                            heads = 3,                   # number of heads for multi-head attention
-                            num_dimensions = 2,          # number of axial dimensions (images is 2, video is 3, or more)
-                            sum_axial_out = True         # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
-                        )
-        self.attn_2 = AxialAttention(
-                            dim = channel,               # embedding dimension
-                            dim_index = 1,               # where is the embedding dimension
-                            dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
-                            heads = 3,                   # number of heads for multi-head attention
-                            num_dimensions = 2,          # number of axial dimensions (images is 2, video is 3, or more)
-                            sum_axial_out = True         # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
-                        )
-        self.relu = nn.ReLU()
+class CCA(nn.Module):
+    def __init__(self, in_channels):
+        super(CCA, self).__init__()
+        self.CCA_1 = CrissCrossAttention(in_channels)
+        self.CCA_2 = CrissCrossAttention(in_channels)
     def forward(self, x):
-        x = self.relu(x + self.attn_1(self.attn_2(x)))
+        x = self.CCA_2(self.CCA_1(x))
         return x
-
 
 
 class UNet(nn.Module):
@@ -200,9 +181,9 @@ class UNet(nn.Module):
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-        self.AXA_3 = AXA(72)
-        self.AXA_2 = AXA(36)
-        self.AXA_1 = AXA(18)
+        self.CCA_1 = CCA(18)
+        self.CCA_2 = CCA(36)
+        self.CCA_3 = CCA(72)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -253,13 +234,13 @@ class UNet(nn.Module):
         z3 = self.up1_3(z3  , k31) 
 
         z4 = self.up3_4(k44, k43) 
-        z4 = self.AXA_3(z4)
+        z4 = self.CCA_3(z4)
 
         z4 = self.up2_4(z4 , k42) 
-        z4 = self.AXA_2(z4)
+        z4 = self.CCA_2(z4)
 
         z4 = self.up1_4(z4 , k41)
-        z4 = self.AXA_1(z4)
+        z4 = self.CCA_1(z4)
  
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
@@ -276,6 +257,52 @@ class UNet(nn.Module):
         z = self.classifier(z2)
 
         return z
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.nn import Softmax
+
+
+def INF(B,H,W):
+     return -torch.diag(torch.tensor(float("inf")).to('cuda').repeat(H),0).unsqueeze(0).repeat(B*W,1,1)
+
+
+class CrissCrossAttention(nn.Module):
+    """ Criss-Cross Attention Module"""
+    def __init__(self, in_dim):
+        super(CrissCrossAttention,self).__init__()
+        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        self.softmax = Softmax(dim=3)
+        self.INF = INF
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+
+    def forward(self, x):
+        m_batchsize, _, height, width = x.size()
+        proj_query = self.query_conv(x)
+        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
+        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
+        proj_key = self.key_conv(x)
+        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
+        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
+        proj_value = self.value_conv(x)
+        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
+        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
+        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
+        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
+        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
+
+        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
+        #print(concate)
+        #print(att_H) 
+        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
+        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
+        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
+        #print(out_H.size(),out_W.size())
+        return self.gamma*(out_H + out_W) + x
 
 
 # class UNet(nn.Module):
