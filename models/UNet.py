@@ -187,8 +187,8 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
-        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
+        self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
+        self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
