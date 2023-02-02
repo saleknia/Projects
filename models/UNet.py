@@ -264,7 +264,7 @@ class UNet(nn.Module):
         z4 = self.classifier_4(z4)
        
         if self.training:
-            return z2, z3, z4
+            return z2
         else:
             return z2
 
