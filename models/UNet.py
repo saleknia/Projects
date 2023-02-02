@@ -222,10 +222,6 @@ class UNet(nn.Module):
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-        self.PSA_1 = ParallelPolarizedSelfAttention(18)
-        self.PSA_2 = ParallelPolarizedSelfAttention(36)
-        self.PSA_3 = ParallelPolarizedSelfAttention(72)
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -248,6 +244,8 @@ class UNet(nn.Module):
         x = self.encoder.act2(x)
         x = self.encoder.layer1(x)
 
+        print(x.shape)
+
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
@@ -260,10 +258,6 @@ class UNet(nn.Module):
         k31 = yl[0]
         k32 = yl[1]
         k33 = yl[2]        
-
-        yl[0] = self.PSA_1(yl[0]) + yl[0]
-        yl[1] = self.PSA_2(yl[1]) + yl[1]
-        yl[2] = self.PSA_3(yl[2]) + yl[2]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
