@@ -254,7 +254,7 @@ class UNet(nn.Module):
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
         z2 = self.ESP_2(z2)
 
-        z = self.classifier(z2)
+        z = self.classifier(z4)
 
         return z
 
