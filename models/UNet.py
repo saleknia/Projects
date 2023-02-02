@@ -187,6 +187,9 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
+        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
+        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
+
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -246,7 +249,10 @@ class UNet(nn.Module):
         # x = self.up1(x , x1) 
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
+        z3 = self.ESP_3(z3)
+
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
+        z2 = self.ESP_2(z2)
 
         z = self.classifier(z2)
 
