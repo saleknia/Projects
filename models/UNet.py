@@ -181,11 +181,7 @@ class UNet(nn.Module):
         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)  
-
-        self.GCN_4 = GCN(18, 18)  
-        self.GCN_3 = GCN(36, 36)  
-        self.GCN_2 = GCN(72, 72)      
+        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -195,6 +191,10 @@ class UNet(nn.Module):
             # nn.Conv2d(channel, n_classes, 3, padding=1),
             nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         )
+
+        self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
+        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)        
+        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
     def forward(self, x):
         # Question here
@@ -220,10 +220,6 @@ class UNet(nn.Module):
         z3 = self.up2_3(yl[2] , yl[1]) 
         z3 = self.up1_3(z3    , yl[0]) 
 
-        yl[2] = self.GCN_4(yl[2])
-        yl[1] = self.GCN_3(yl[1])
-        yl[0] = self.GCN_2(yl[0])
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
@@ -237,13 +233,13 @@ class UNet(nn.Module):
         # x = self.up2(x , x2) 
         # x = self.up1(x , x1) 
 
-        z4 = self.GCN_4(z4) + z4
+        z4 = self.ESP_4(z4) 
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z3 = self.GCN_3(z3) + z3
+        z3 = self.ESP_3(z3) 
 
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        z2 = self.GCN_2(z2) + z2
+        z2 = self.ESP_2(z2) 
 
         z2 = self.classifier(z4)
 
@@ -1197,8 +1193,8 @@ class DilatedParllelResidualBlockB(nn.Module):
 
         # K=5, dilation rate: 2^{k-1},k={1,2,3,...,K}
         self.d1 = CDilated(n, n1, 3, 1, 1)  # dilation rate of 2^0
-        self.d2 = CDilated(n, n , 3, 1, 2)  # dilation rate of 2^1
-        self.d4 = CDilated(n, n , 3, 1, 4)  # dilation rate of 2^2
+        self.d3 = CDilated(n, n , 3, 1, 3)  # dilation rate of 2^1
+        self.d5 = CDilated(n, n , 3, 1, 5)  # dilation rate of 2^2
 
         self.bn = BR(nOut)
         self.add = add
@@ -1212,13 +1208,13 @@ class DilatedParllelResidualBlockB(nn.Module):
         output1 = self.c1(input)
         # split and transform
         d1 = self.d1(output1)
-        d2 = self.d2(output1)
-        d4 = self.d4(output1)
+        d3 = self.d3(output1)
+        d5 = self.d5(output1)
 
         # Using hierarchical feature fusion (HFF) to ease the gridding artifacts which is introduced
         # by the large effective receptive filed of the ESP module
-        add1 = d2
-        add2 = add1 + d4
+        add1 = d1   + d3
+        add2 = add1 + d5
 
         # merge
         combine = torch.cat([d1, add1, add2], 1)
