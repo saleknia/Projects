@@ -147,28 +147,26 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        channels = 18
+
         self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
-        self.up3_4 = UpBlock(144, 72, nb_Conv=2)
-        self.up2_4 = UpBlock(72 , 36, nb_Conv=2)
-        self.up1_4 = UpBlock(36 , 18, nb_Conv=2)
+        self.up3_4 = UpBlock(channels*8, channels*4, nb_Conv=2)
+        self.up2_4 = UpBlock(channels*4, channels*2, nb_Conv=2)
+        self.up1_4 = UpBlock(channels*2, channels*1, nb_Conv=2)
 
-        self.up2_3 = UpBlock(72, 36, nb_Conv=2)
-        self.up1_3 = UpBlock(36, 18, nb_Conv=2)
+        self.up2_3 = UpBlock(channels*4, channels*2, nb_Conv=2)
+        self.up1_3 = UpBlock(channels*2, channels*1, nb_Conv=2)
 
-        self.up1_2 = UpBlock(36, 18, nb_Conv=2)
-
-        self.conv_4 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=36, out_channels=18, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.up1_2 = UpBlock(channels*2, channels*1, nb_Conv=2)      
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(18, 18, 4, 2, 1),
+            nn.ConvTranspose2d(channels, channels, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(18, 18, 3, padding=1),
+            nn.Conv2d(channels, channels, 3, padding=1),
             nn.ReLU(inplace=True),
-            # nn.Conv2d(18, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(channels, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -208,12 +206,10 @@ class UNet(nn.Module):
         # x = self.up2(x , x2) 
         # x = self.up1(x , x1) 
 
-        z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z2 = self.conv_3(torch.cat([z3, z2], dim=1))
 
-        z2 = self.classifier(z4)
+        z = self.classifier(z4+z3+z2)
 
-        return z2
+        return z
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
