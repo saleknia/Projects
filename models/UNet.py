@@ -177,13 +177,15 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+from fightingcv_attention.attention.Axial_attention import AxialAttention
+
 class CCA(nn.Module):
     def __init__(self, in_channels):
         super(CCA, self).__init__()
-        self.CCA_1 = CrissCrossAttention(in_channels)
-        self.CCA_2 = CrissCrossAttention(in_channels)
+        self.CCA_1 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = -1, sum_axial_out = True)
+        self.CCA_2 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = -1, sum_axial_out = True)
     def forward(self, x):
-        x = self.CCA_2(self.CCA_1(x))
+        x = self.CCA_2(self.CCA_1(x))+x
         return x
 
 
@@ -222,6 +224,10 @@ class UNet(nn.Module):
 
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
+
+        self.CCA_3 = CCA(72)
+        self.CCA_2 = CCA(36)
+        self.CCA_1 = CCA(18)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -272,9 +278,14 @@ class UNet(nn.Module):
         z3 = self.up1_3(z3  , k31) 
 
         z4 = self.up3_4(k44, k43) 
+        z4 = self.CCA_3(z4)
+
         z4 = self.up2_4(z4 , k42) 
+        z4 = self.CCA_2(z4)
+
         z4 = self.up1_4(z4 , k41)
- 
+        z4 = self.CCA_1(z4)
+
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # x = self.up3(x4, x3) 
