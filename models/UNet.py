@@ -261,9 +261,9 @@ class UNet(nn.Module):
         k32 = yl[1]
         k33 = yl[2]        
 
-        yl[0] = self.PSA_1(yl[0])
-        yl[1] = self.PSA_2(yl[1])
-        yl[2] = self.PSA_3(yl[2])
+        yl[0] = self.PSA_1(yl[0]) + yl[0]
+        yl[1] = self.PSA_2(yl[1]) + yl[1]
+        yl[2] = self.PSA_3(yl[2]) + yl[2]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
