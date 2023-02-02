@@ -144,7 +144,7 @@ class CCA(nn.Module):
         x = self.CCA_2(self.CCA_1(x))
         return x
 
-class SequentialPolarizedSelfAttention(nn.Module):
+class ParallelPolarizedSelfAttention(nn.Module):
 
     def __init__(self, channel=512):
         super().__init__()
@@ -173,17 +173,17 @@ class SequentialPolarizedSelfAttention(nn.Module):
         channel_out=channel_weight*x
 
         #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(channel_out) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(channel_out) #bs,c//2,h,w
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
         spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
         spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
         spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
         spatial_wq=self.softmax_spatial(spatial_wq)
         spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
         spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*channel_out
-        return spatial_out
-
+        spatial_out=spatial_weight*x
+        out=spatial_out+channel_out
+        return out
 
 
 class UNet(nn.Module):
@@ -222,9 +222,9 @@ class UNet(nn.Module):
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-        self.PSA_1 = SequentialPolarizedSelfAttention(18)
-        self.PSA_2 = SequentialPolarizedSelfAttention(36)
-        self.PSA_3 = SequentialPolarizedSelfAttention(72)
+        self.PSA_1 = ParallelPolarizedSelfAttention(18)
+        self.PSA_2 = ParallelPolarizedSelfAttention(36)
+        self.PSA_3 = ParallelPolarizedSelfAttention(72)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
