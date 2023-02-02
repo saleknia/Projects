@@ -182,8 +182,8 @@ from fightingcv_attention.attention.Axial_attention import AxialAttention
 class CCA(nn.Module):
     def __init__(self, in_channels):
         super(CCA, self).__init__()
-        self.CCA_1 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = -1, sum_axial_out = True)
-        self.CCA_2 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = -1, sum_axial_out = True)
+        self.CCA_1 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = 1, sum_axial_out = True)
+        self.CCA_2 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 6, dim_heads = 18, dim_index = 1, sum_axial_out = True)
     def forward(self, x):
         x = self.CCA_2(self.CCA_1(x))+x
         return x
