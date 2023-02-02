@@ -92,7 +92,7 @@ class SKAttention(nn.Module):
 
         ### fuse
         V=(attention_weights*feats)
-        V=feats[0] + feats[1]
+        V=feats[0] + feats[1] + x + y
         return V
 
 
