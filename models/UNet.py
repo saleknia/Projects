@@ -53,6 +53,48 @@ class DownBlock(nn.Module):
     def forward(self, x):
         return self.nConvs(x)
 
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+from collections import OrderedDict
+
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512, reduction=4, group=1):
+        super().__init__()
+        self.d=channel//reduction
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(2):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+    def forward(self, x, y):
+        bs, c, _, _ = x.size()
+        conv_outs=[x, y]
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
+        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weights*feats)
+        V=feats[0] + feats[1]
+        return V
+
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -61,11 +103,13 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.SKAttention = SKAttention(in_channels//2)
     def forward(self, x, skip_x):
         x = self.up(x)
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         # x = self.conv(x)
-        x = x + skip_x
+        # x = x + skip_x
+        x = self.SKAttention(x, skip_x)
         return x
 
 
@@ -144,47 +188,6 @@ class CCA(nn.Module):
         x = self.CCA_2(self.CCA_1(x))
         return x
 
-class ParallelPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
-
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -200,7 +203,7 @@ class UNet(nn.Module):
 
         channel = 30
 
-        self.encoder = timm.create_model('hrnet_w30', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
         # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
