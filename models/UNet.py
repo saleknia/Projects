@@ -171,17 +171,21 @@ class UNet(nn.Module):
         self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
-        self.up3_4 = UpBlock(channel*8, channel*4, nb_Conv=2)
-        self.up2_4 = UpBlock(channel*4, channel*2, nb_Conv=2)
-        self.up1_4 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
+        self.up2 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        self.up1 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.up2_3 = UpBlock(channel*4, channel*2, nb_Conv=2)
-        self.up1_3 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        # self.up3_4 = UpBlock(channel*8, channel*4, nb_Conv=2)
+        # self.up2_4 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        # self.up1_4 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        # self.up2_3 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        # self.up1_3 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
+        # self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
+
+        # self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -208,44 +212,44 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-        k21 = yl[0]
-        k22 = yl[1]
+        # k21 = yl[0]
+        # k22 = yl[1]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        k31 = yl[0]
-        k32 = yl[1]
-        k33 = yl[2]
+        # k31 = yl[0]
+        # k32 = yl[1]
+        # k33 = yl[2]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
-        k41 = yl[0]
-        k42 = yl[1]
-        k43 = yl[2]
-        k44 = yl[3]
+        # k41 = yl[0]
+        # k42 = yl[1]
+        # k43 = yl[2]
+        # k44 = yl[3]
 
-        z2 = self.up1_2(k22, k21)  
+        # z2 = self.up1_2(k22, k21)  
 
-        z3 = self.up2_3(k33 , k32+k22) 
-        z3 = self.up1_3(z3  , k31+k21) 
+        # z3 = self.up2_3(k33 , k32+k22) 
+        # z3 = self.up1_3(z3  , k31+k21) 
 
-        z4 = self.up3_4(k44, k43+k33) 
-        z4 = self.up2_4(z4 , k42+k32+k22) 
-        z4 = self.up1_4(z4 , k41+k31+k21) 
+        # z4 = self.up3_4(k44, k43+k33) 
+        # z4 = self.up2_4(z4 , k42+k32+k22) 
+        # z4 = self.up1_4(z4 , k41+k31+k21) 
 
-        # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-        # x = self.up3(x4, x3) 
-        # x = self.up2(x , x2) 
-        # x = self.up1(x , x1) 
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1) 
 
-        z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z2 = self.conv_3(torch.cat([z3, z2], dim=1))
+        # z3 = self.conv_4(torch.cat([z4, z3], dim=1))
+        # z2 = self.conv_3(torch.cat([z3, z2], dim=1))
 
-        z = self.classifier(z2)
-        
+        z = self.classifier(x)
+
         return z
 
 
