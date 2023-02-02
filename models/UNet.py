@@ -166,9 +166,9 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        channel = 18
+        channel = 16
 
-        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
         # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
@@ -187,7 +187,6 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
         self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
         self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
@@ -242,8 +241,6 @@ class UNet(nn.Module):
         z4 = self.up3_4(k44, k43) 
         z4 = self.up2_4(z4 , k42) 
         z4 = self.up1_4(z4 , k41) 
-        z4 = self.ESP_4(z4)
-
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # x = self.up3(x4, x3) 
