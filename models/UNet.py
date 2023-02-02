@@ -249,10 +249,10 @@ class UNet(nn.Module):
         # x = self.up1(x , x1) 
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z3 = self.ESP_3(z3)
+        # z3 = self.ESP_3(z3)
 
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        z2 = self.ESP_2(z2)
+        # z2 = self.ESP_2(z2)
 
         z = self.classifier(z2)
 
