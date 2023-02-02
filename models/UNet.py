@@ -285,8 +285,6 @@ class CrissCrossAttention(nn.Module):
         self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
         self.softmax = Softmax(dim=3)
         self.INF = INF
-        self.gamma = nn.Parameter(torch.zeros(1))
-
 
     def forward(self, x):
         m_batchsize, _, height, width = x.size()
@@ -310,7 +308,7 @@ class CrissCrossAttention(nn.Module):
         out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
         out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
         #print(out_H.size(),out_W.size())
-        return self.gamma*(out_H + out_W) + x
+        return (out_H + out_W) + x
 
 
 # class UNet(nn.Module):
