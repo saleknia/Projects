@@ -187,8 +187,8 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.ESP_3 = DilatedParllelResidualBlockB(16, 16)
-        self.ESP_2 = DilatedParllelResidualBlockB(16, 16)
+        self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
+        self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -256,50 +256,6 @@ class UNet(nn.Module):
         z = self.classifier(z2)
 
         return z
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Softmax
-
-
-def INF(B,H,W):
-     return -torch.diag(torch.tensor(float("inf")).to('cuda').repeat(H),0).unsqueeze(0).repeat(B*W,1,1)
-
-
-class CrissCrossAttention(nn.Module):
-    """ Criss-Cross Attention Module"""
-    def __init__(self, in_dim):
-        super(CrissCrossAttention,self).__init__()
-        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.softmax = Softmax(dim=3)
-        self.INF = INF
-
-    def forward(self, x):
-        m_batchsize, _, height, width = x.size()
-        proj_query = self.query_conv(x)
-        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
-        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
-        proj_key = self.key_conv(x)
-        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        proj_value = self.value_conv(x)
-        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
-        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
-        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
-
-        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
-        #print(concate)
-        #print(att_H) 
-        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
-        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
-        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
-        #print(out_H.size(),out_W.size())
-        return (out_H + out_W) + x
 
 
 # class UNet(nn.Module):
@@ -1244,7 +1200,7 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut / 3)  # K=3,
+        n = int(nOut // 3)  # K=3,
         n1 = nOut - 2 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
         self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
 
