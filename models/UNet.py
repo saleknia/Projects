@@ -192,9 +192,27 @@ class UNet(nn.Module):
             nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         )
 
-        self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
-        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)        
-        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
+        # self.classifier_3 = nn.Sequential(
+        #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(channel, channel, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     # nn.Conv2d(channel, n_classes, 3, padding=1),
+        #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        # )
+
+        # self.classifier_4 = nn.Sequential(
+        #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(channel, channel, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     # nn.Conv2d(channel, n_classes, 3, padding=1),
+        #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        # )
+
+        # self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
+        # self.ESP_3 = DilatedParllelResidualBlockB(18, 18)        
+        # self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
     def forward(self, x):
         # Question here
@@ -241,7 +259,7 @@ class UNet(nn.Module):
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
         z2 = self.ESP_2(z2) 
 
-        z2 = self.classifier(z4)
+        z2 = self.classifier(z2)
 
         return z2
 
