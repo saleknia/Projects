@@ -181,10 +181,6 @@ class UNet(nn.Module):
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-        self.CCA_1 = CCA(18)
-        self.CCA_2 = CCA(36)
-        self.CCA_3 = CCA(72)
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -219,10 +215,6 @@ class UNet(nn.Module):
         k31 = yl[0]
         k32 = yl[1]
         k33 = yl[2]        
-        
-        yl[0] = self.CCA_1(yl[0])
-        yl[1] = self.CCA_2(yl[1])
-        yl[2] = self.CCA_3(yl[2])
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
