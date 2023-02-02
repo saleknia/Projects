@@ -244,8 +244,6 @@ class UNet(nn.Module):
         x = self.encoder.act2(x)
         x = self.encoder.layer1(x)
 
-        print(x.shape)
-
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
