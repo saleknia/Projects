@@ -187,12 +187,9 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
+        self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
         self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
         self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
-
-        self.CCA_1 = CrissCrossAttention(18)
-        self.CCA_2 = CrissCrossAttention(36)        
-        self.CCA_3 = CrissCrossAttention(72)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -229,10 +226,6 @@ class UNet(nn.Module):
         k32 = yl[1]
         k33 = yl[2]
 
-        yl[0] = self.CCA_1(yl[0])
-        yl[1] = self.CCA_2(yl[1])
-        yl[2] = self.CCA_3(yl[2])
-
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
@@ -249,6 +242,7 @@ class UNet(nn.Module):
         z4 = self.up3_4(k44, k43) 
         z4 = self.up2_4(z4 , k42) 
         z4 = self.up1_4(z4 , k41) 
+        z4 = self.ESP_4(z4)
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
