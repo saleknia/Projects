@@ -139,7 +139,8 @@ class CCA(nn.Module):
     def __init__(self, in_channels):
         super(CCA, self).__init__()
         self.CCA_1 = CrissCrossAttention(in_channels)
-        self.CCA_2 = CrissCrossAttention(in_channels)
+        # self.CCA_2 = CrissCrossAttention(in_channels)
+        self.CCA_2 = nn.Identity()
     def forward(self, x):
         x = self.CCA_2(self.CCA_1(x))
         return x
