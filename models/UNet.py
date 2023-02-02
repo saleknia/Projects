@@ -183,7 +183,7 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.classifier = nn.Sequential(
+        self.classifier_2 = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(channel, channel, 3, padding=1),
@@ -192,23 +192,23 @@ class UNet(nn.Module):
             nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         )
 
-        # self.classifier_3 = nn.Sequential(
-        #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(channel, channel, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     # nn.Conv2d(channel, n_classes, 3, padding=1),
-        #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
-        # )
+        self.classifier_3 = nn.Sequential(
+            nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel, channel, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(channel, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        )
 
-        # self.classifier_4 = nn.Sequential(
-        #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(channel, channel, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     # nn.Conv2d(channel, n_classes, 3, padding=1),
-        #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
-        # )
+        self.classifier_4 = nn.Sequential(
+            nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel, channel, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(channel, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        )
 
         self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
         self.ESP_3 = DilatedParllelResidualBlockB(18, 18)        
@@ -259,9 +259,14 @@ class UNet(nn.Module):
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
         z2 = self.ESP_2(z2) 
 
-        z2 = self.classifier(z2)
-
-        return z2
+        z2 = self.classifier_2(z2)
+        z3 = self.classifier_3(z3)
+        z4 = self.classifier_4(z4)
+       
+        if self.training:
+            return z2, z3, z4
+        else:
+            return z2
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
