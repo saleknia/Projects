@@ -135,24 +135,34 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-class GCN(nn.Module):
-    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
-        super(GCN, self).__init__()
-        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
-        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
-        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
-        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
-        
+
+from axial_attention import AxialAttention
+
+class AXA(nn.Module):
+    def __init__(self, channel): 
+        super(AXA, self).__init__()
+        attn_1 = AxialAttention(
+                            dim = channel,               # embedding dimension
+                            dim_index = 1,               # where is the embedding dimension
+                            dim_heads = 18,              # dimension of each head. defaults to dim // heads if not supplied
+                            heads = 8,             # number of heads for multi-head attention
+                            num_dimensions = 2,    # number of axial dimensions (images is 2, video is 3, or more)
+                            sum_axial_out = True   # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
+                        )
+        attn_2 = AxialAttention(
+                            dim = channel,               # embedding dimension
+                            dim_index = 1,               # where is the embedding dimension
+                            dim_heads = 18,              # dimension of each head. defaults to dim // heads if not supplied
+                            heads = 8,             # number of heads for multi-head attention
+                            num_dimensions = 2,    # number of axial dimensions (images is 2, video is 3, or more)
+                            sum_axial_out = True   # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
+                        )
+        self.relu = nn.ReLU()
     def forward(self, x):
-        x_l = self.conv_l1(x)
-        x_l = self.conv_l2(x_l)
-        
-        x_r = self.conv_r1(x)
-        x_r = self.conv_r2(x_r)
-        
-        x = x_l + x_r
-        
+        x = self.relu(x + self.atten_1(self.att_2(x)))
         return x
+
+
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -189,6 +199,10 @@ class UNet(nn.Module):
 
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
+
+        self.AXA_3 = AXA(72)
+        self.AXA_2 = AXA(36)
+        self.AXA_1 = AXA(18)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -239,8 +253,14 @@ class UNet(nn.Module):
         z3 = self.up1_3(z3  , k31) 
 
         z4 = self.up3_4(k44, k43) 
+        z4 = self.AXA_3(z4)
+
         z4 = self.up2_4(z4 , k42) 
-        z4 = self.up1_4(z4 , k41) 
+        z4 = self.AXA_2(z4)
+
+        z4 = self.up1_4(z4 , k41)
+        z4 = self.AXA_1(z4)
+ 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
         # x = self.up3(x4, x3) 
@@ -248,10 +268,10 @@ class UNet(nn.Module):
         # x = self.up1(x , x1) 
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        # z3 = self.ESP_3(z3)
+        z3 = self.ESP_3(z3)
 
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        # z2 = self.ESP_2(z2)
+        z2 = self.ESP_2(z2)
 
         z = self.classifier(z2)
 
