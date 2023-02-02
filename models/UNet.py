@@ -144,16 +144,16 @@ class AXA(nn.Module):
         attn_1 = AxialAttention(
                             dim = channel,               # embedding dimension
                             dim_index = 1,               # where is the embedding dimension
-                            dim_heads = 144,             # dimension of each head. defaults to dim // heads if not supplied
-                            heads = 8,                   # number of heads for multi-head attention
+                            dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
+                            heads = 3,                   # number of heads for multi-head attention
                             num_dimensions = 2,          # number of axial dimensions (images is 2, video is 3, or more)
                             sum_axial_out = True         # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
                         )
         attn_2 = AxialAttention(
                             dim = channel,               # embedding dimension
                             dim_index = 1,               # where is the embedding dimension
-                            dim_heads = 144,             # dimension of each head. defaults to dim // heads if not supplied
-                            heads = 8,                   # number of heads for multi-head attention
+                            dim_heads = None,            # dimension of each head. defaults to dim // heads if not supplied
+                            heads = 3,                   # number of heads for multi-head attention
                             num_dimensions = 2,          # number of axial dimensions (images is 2, video is 3, or more)
                             sum_axial_out = True         # whether to sum the contributions of attention on each axis, or to run the input through them sequentially. defaults to true
                         )
