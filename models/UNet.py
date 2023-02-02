@@ -159,7 +159,7 @@ class AXA(nn.Module):
                         )
         self.relu = nn.ReLU()
     def forward(self, x):
-        x = self.relu(x + self.atten_1(self.att_2(x)))
+        x = self.relu(x + self.attn_1(self.attn_2(x)))
         return x
 
 
