@@ -479,6 +479,8 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
+        self.stage_1, self.stage_2, self.stage_3 = stages()
+
         self.classifier = nn.Sequential(
             nn.Conv2d(96, 1, 1, padding=0),
             nn.Upsample(scale_factor=4.0)
@@ -502,8 +504,13 @@ class Cross_unet(nn.Module):
         x1 = self.reduce_1(x1) 
 
         x3 = self.up3(x4, x3) 
+        x3 = self.stage_3(x3)
+
         x2 = self.up2(x3, x2) 
+        x2 = self.stage_2(x2)
+
         x1 = self.up1(x2, x1)
+        x1 = self.stage_1(x1)
 
         x = self.classifier(x1)
 
@@ -516,10 +523,10 @@ def stages():
             num_classes=1000,
             expansion=4,
             dim_stem=96,
-            dims=[96, 192, 384, 768],
+            dims=[96, 96, 96, 96],
             depths=[2, 2, 2, 2],
-            stage_spec=[['S', 'S'], ['S', 'S'], ['S', 'S'], ['S', 'S']],
-            heads=[3, 3, 3, 3],
+            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
+            heads=[6, 6, 6, 6],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, -1, -1],
             use_pes=[False, False, False, False],
