@@ -410,7 +410,7 @@ class CSFR(nn.Module):
         x2_up = self.up(x2)
 
         up   = self.conv_up(x1+x2_up)
-        down = self.conv_down(x2_up+x2)
+        down = self.conv_down(x1_d+x2)
         down = self.final_up(down)
 
         x = self.conv_fuse(down + up)
