@@ -480,7 +480,7 @@ class Cross_unet(nn.Module):
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.classifier = nn.Sequential(
-            nn.Conv2d(96, 96, 3, padding=1),
+            nn.Conv2d(96, 1, 1, padding=0),
             nn.Upsample(scale_factor=4.0)
         )
 
