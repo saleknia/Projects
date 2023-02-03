@@ -479,16 +479,9 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.ESP_1 = DilatedParllelResidualBlockB(96, 96)
-        self.ESP_2 = DilatedParllelResidualBlockB(96, 96)
-        self.ESP_3 = DilatedParllelResidualBlockB(96, 96)
-
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
             nn.Conv2d(96, 96, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(96, n_classes, kernel_size=2, stride=2)
+            nn.Upsample(scale_factor=4.0)
         )
 
     def forward(self, x):
