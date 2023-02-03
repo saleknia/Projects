@@ -501,10 +501,6 @@ class Cross_unet(nn.Module):
         x2 = self.reduce_2(x2)
         x1 = self.reduce_1(x1) 
 
-        x1 = self.ESP_1(x1)
-        x2 = self.ESP_2(x2)
-        x3 = self.ESP_3(x3)
-
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1)
