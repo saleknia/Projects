@@ -53,7 +53,8 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        # self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        self.up = nn.Upsample(scale_factor=2)
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = x + skip_x
@@ -447,7 +448,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder =  CrossFormer(img_size=512,
+        self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
