@@ -56,7 +56,7 @@ class UpBlock(nn.Module):
         self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = x + skip_x
+        x = x + ((1.0-torch.sigmoid(x))*skip_x)
         return x
 
 class ConvBatchNorm(nn.Module):
