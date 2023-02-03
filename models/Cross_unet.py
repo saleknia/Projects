@@ -471,7 +471,7 @@ class Cross_unet(nn.Module):
 
         self.CSFR_1 = CSFR(96)        
         self.CSFR_2 = CSFR(96)        
-        self.CSFR_3 = CSFR(96)
+        # self.CSFR_3 = CSFR(96)
 
     def forward(self, x):
         # # Question here
@@ -490,7 +490,7 @@ class Cross_unet(nn.Module):
         x2 = self.reduce_2(x2)
         x1 = self.reduce_1(x1) 
 
-        x3 = self.CSFR_3(x3, x4)
+        # x3 = self.CSFR_3(x3, x4)
         x2 = self.CSFR_2(x2, x3)
         x1 = self.CSFR_1(x1, x2)
 
