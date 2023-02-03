@@ -59,7 +59,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = self.conv(x)
-        x = x + ((1.0*torch.sigmoid(x))*skip_x)
+        x = x + skip_x
         return x
 
 class ConvBatchNorm(nn.Module):
