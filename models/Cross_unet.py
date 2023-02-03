@@ -54,24 +54,10 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         # self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.up_1 = nn.Upsample(scale_factor=2.0)
-        self.up_2 = nn.Upsample(scale_factor=0.5)
-        self.up_3 = nn.Upsample(scale_factor=2.0)
-        self.conv_1 = _make_nConv(in_channels=in_channels*2, out_channels=in_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=in_channels*2, out_channels=in_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_3 = _make_nConv(in_channels=in_channels  , out_channels=in_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.up = nn.Upsample(scale_factor=2)
     def forward(self, x, skip_x):
-        
-        x_up = self.up_1(x) 
-        skip_x_up = self.up_2(skip_x)
-
-        H =  self.conv_1(torch.cat([x   , skip_x_up], dim=1))
-        H = self.up_3(H)
-
-        W =  self.conv_2(torch.cat([x_up, skip_x   ], dim=1))
-
-        x = self.conv_3(H + W)
-
+        x = self.up(x) 
+        x = x + skip_x
         return x
 
 class ConvBatchNorm(nn.Module):
