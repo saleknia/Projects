@@ -504,13 +504,13 @@ class Cross_unet(nn.Module):
         x1 = self.reduce_1(x1) 
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)
+        x3 = self.stage_3(x3)[0]
 
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)
+        x2 = self.stage_2(x2)[0]
 
         x1 = self.up1(x2, x1)
-        x1 = self.stage_1(x1)
+        x1 = self.stage_1(x1)[0]
 
         x = self.classifier(x1)
 
@@ -1628,7 +1628,7 @@ class DAT(nn.Module):
         
         self.stages = nn.ModuleList()
         for i in range(4):
-            dim1 = dim_stem if i == 0 else dims[i - 1] * 2
+            dim1 = dim_stem 
             dim2 = dims[i]
             self.stages.append(
                 TransformerStage(img_size, window_sizes[i], ns_per_pts[i],
