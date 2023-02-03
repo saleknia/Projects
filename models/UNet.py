@@ -177,8 +177,6 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-from fightingcv_attention.attention.Axial_attention import AxialAttention
-
 class CCA(nn.Module):
     def __init__(self, in_channels):
         super(CCA, self).__init__()
