@@ -391,52 +391,31 @@ class DilatedParllelResidualBlockB(nn.Module):
         output = self.bn(combine)
         return output
 
-class MetaFormer(nn.Module):
+class CSFR(nn.Module):
 
-    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 96, 96], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+    def __init__(self, channels):
         super().__init__()
 
-        embed_dim = 96
+        self.down     = nn.Upsample(scale_factor=0.5)
+        self.up       = nn.Upsample(scale_factor=2.0)
+        self.final_up = nn.Upsample(scale_factor=2.0)
 
-        self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 1) 
-        self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 1)
-        self.fuse_conv3 = nn.Conv2d(embed_dim*3, skip_dim[2], 3, 1, 1) 
+        self.conv_up   = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_down = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_fuse = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.down_sample1 = nn.AvgPool2d(4)
-        self.down_sample2 = nn.AvgPool2d(2)
+    def forward(self, x1, x2):
 
-        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
-        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        x1_d  = self.down(x1)
+        x2_up = self.up(x2)
 
-    def forward(self, x1, x2, x3):
-        """
-        x: B, H*W, C
-        """
-        org1 = x1
-        org2 = x2
-        org3 = x3
+        up   = self.conv_up(x1+x2_up)
+        down = self.conv_down(x2_up+x2)
+        down = self.final_up(down)
 
-        x1_d = self.down_sample1(x1)
-        x2_d = self.down_sample2(x2)
+        x = self.conv_fuse(down + up)
 
-        list1 = [x1_d, x2_d, x3]
-
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(list1, dim=1)
-
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-        x3 = self.fuse_conv3(fuse)
-
-        x1_up = self.up_sample1(x1)
-        x2_up = self.up_sample2(x2)
-
-        x1 = org1 + x1_up
-        x2 = org2 + x2_up
-        x3 = org3 + x3
-
-
-        return x1, x2, x3
+        return x
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -490,7 +469,9 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(96, n_classes, kernel_size=2, stride=2)
         )
 
-        self.MetaFormer = MetaFormer()
+        self.CSFR_1 = CSFR(96)        
+        self.CSFR_2 = CSFR(96)        
+        self.CSFR_3 = CSFR(96)
 
     def forward(self, x):
         # # Question here
@@ -509,7 +490,9 @@ class Cross_unet(nn.Module):
         x2 = self.reduce_2(x2)
         x1 = self.reduce_1(x1) 
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        x3 = self.CSFR_3(x3, x4)
+        x2 = self.CSFR_2(x2, x3)
+        x1 = self.CSFR_1(x1, x2)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
