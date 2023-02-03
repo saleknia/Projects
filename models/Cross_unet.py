@@ -188,81 +188,69 @@ class MetaFormer(nn.Module):
 
 from torchvision import models as resnet
 
-class Cross_unet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
+# class Cross_unet(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+#         self.up3 = UpBlock(96, 96, nb_Conv=2)
+#         self.up2 = UpBlock(96, 96, nb_Conv=2)
+#         self.up1 = UpBlock(96, 96, nb_Conv=2)
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool = resnet.maxpool
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
+#         self.LayerNorm_1 = LayerNormProxy(96)
+#         self.LayerNorm_2 = LayerNormProxy(192)
+#         self.LayerNorm_3 = LayerNormProxy(384)
+#         self.LayerNorm_4 = LayerNormProxy(768)
 
-        # self.up3 = UpBlock(256, 128, nb_Conv=2)
-        # self.up2 = UpBlock(128, 64 , nb_Conv=2)
-        # self.up1 = UpBlock(64 , 32 , nb_Conv=2)
+#         # self.classifier = nn.Sequential(
+#         #     nn.Conv2d(96, 1, 1, padding=0),
+#         #     nn.Upsample(scale_factor=4.0)
+#         # )
 
-        self.up3 = UpBlock(512, 256, nb_Conv=2)
-        self.up2 = UpBlock(256, 128, nb_Conv=2)
-        self.up1 = UpBlock(128, 64 , nb_Conv=2)
 
-        # self.classifier = nn.Sequential(
-        #     nn.Conv2d(96, 1, 1, padding=0),
-        #     nn.Upsample(scale_factor=4.0)
-        # )
 
-        self.ESP_3 = DilatedParllelResidualBlockB(256, 256)
-        self.ESP_2 = DilatedParllelResidualBlockB(128, 128)        
-        self.ESP_1 = DilatedParllelResidualBlockB(64 , 64 )
+#         self.classifier = nn.Sequential(
+#             nn.ConvTranspose2d(64, 64, 4, 2, 1),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(64, 64, 3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
+#         )
 
-        self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(64, 64, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(64, 64, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
-        )
+#     def forward(self, x):
+#         # # Question here
+#         x_input = x.float()
+#         B, C, H, W = x.shape
 
-    def forward(self, x):
-        # # Question here
-        x_input = x.float()
-        B, C, H, W = x.shape
+#         e0 = self.firstconv(x)
+#         e0 = self.firstbn(e0)
+#         e0 = self.firstrelu(e0)
+#         e0 = self.maxpool(e0)
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+#         x1 = self.encoder1(e0)
+#         x2 = self.encoder2(x1)
+#         x3 = self.encoder3(x2)
+#         x4 = self.encoder4(x3)
 
-        x1 = self.encoder1(e0)
-        x2 = self.encoder2(x1)
-        x3 = self.encoder3(x2)
-        x4 = self.encoder4(x3)
+#         x = self.up3(x4, x3) 
+#         x = self.ESP_3(x)
 
-        x = self.up3(x4, x3) 
-        x = self.ESP_3(x)
+#         x = self.up2(x , x2) 
+#         x = self.ESP_2(x)
 
-        x = self.up2(x , x2) 
-        x = self.ESP_2(x)
+#         x = self.up1(x , x1)
+#         x = self.ESP_1(x)
 
-        x = self.up1(x , x1)
-        x = self.ESP_1(x)
+#         x = self.classifier(x)
 
-        x = self.classifier(x)
-
-        return x
+#         return x
 
 import torch
 import torch.nn as nn
@@ -455,129 +443,82 @@ class DilatedParllelResidualBlockB(nn.Module):
         output = self.bn(combine)
         return output
 
-# class Cross_unet(nn.Module):
-#     def __init__(self, n_channels=3, n_classes=1):
-#         '''
-#         n_channels : number of channels of the input.
-#                         By default 3, because we have RGB images
-#         n_labels : number of channels of the ouput.
-#                       By default 3 (2 labels + 1 for the background)
-#         '''
-#         super().__init__()
-#         self.n_channels = n_channels
-#         self.n_classes = n_classes
+class Cross_unet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
 
-#         self.encoder_tf =  CrossFormer(img_size=224,
-#                                     patch_size=[4, 8, 16, 32],
-#                                     in_chans= 3,
-#                                     num_classes=1000,
-#                                     embed_dim=96,
-#                                     depths=[2, 2, 6, 2],
-#                                     num_heads=[3, 6, 12, 24],
-#                                     group_size=[7, 7, 7, 7],
-#                                     mlp_ratio=4.,
-#                                     qkv_bias=True,
-#                                     qk_scale=None,
-#                                     drop_rate=0.0,
-#                                     drop_path_rate=0.1,
-#                                     ape=False,
-#                                     patch_norm=True,
-#                                     use_checkpoint=False,
-#                                     merge_size=[[2, 4], [2,4], [2, 4]])
+        self.encoder =  CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.1,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
-#         self.up3 = UpBlock(256, 128, nb_Conv=2)
-#         self.up2 = UpBlock(128, 64 , nb_Conv=2)
-#         self.up1 = UpBlock(64 , 32 , nb_Conv=2)
+        self.up3 = UpBlock(96, 96, nb_Conv=2)
+        self.up2 = UpBlock(96, 96, nb_Conv=2)
+        self.up1 = UpBlock(96, 96, nb_Conv=2)
 
-#         # self.up3 = UpBlock(768, 384, nb_Conv=2)
-#         # self.up2 = UpBlock(384, 192, nb_Conv=2)
-#         # self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
-#         self.norm_4 = LayerNormProxy(dim=768)
-#         self.norm_3 = LayerNormProxy(dim=384)
-#         self.norm_2 = LayerNormProxy(dim=192)
-#         self.norm_1 = LayerNormProxy(dim=96)
+        self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-#         # self.classifier = nn.Sequential(
-#         #     nn.Conv2d(96, 1, 1, padding=0),
-#         #     nn.Upsample(scale_factor=4.0)
-#         # )
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 96, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(96, n_classes, kernel_size=2, stride=2)
+        )
 
-#         # self.MetaFormer = MetaFormer()
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
 
-#         self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=32 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-#         self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=64 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-#         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-#         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        outputs = self.encoder_tf(x_input)
 
-#         # self.combine_1 = ConvBatchNorm(in_channels=96 , out_channels=96 , activation='ReLU', kernel_size=3, padding=1, dilation=1)
-#         # self.combine_2 = ConvBatchNorm(in_channels=192, out_channels=192, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-#         # self.combine_3 = ConvBatchNorm(in_channels=384, out_channels=384, activation='ReLU', kernel_size=3, padding=1, dilation=1)
-#         # self.combine_4 = ConvBatchNorm(in_channels=768, out_channels=768, activation='ReLU', kernel_size=3, padding=1, dilation=1)
+        x4 = self.norm_4(outputs[3]) 
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0]) 
 
-#         self.fuse_layers = make_fuse_layers()
-#         self.fuse_act = nn.ReLU()
+        x4 = self.reduce_4(x4) 
+        x3 = self.reduce_3(x3) 
+        x2 = self.reduce_2(x2)
+        x1 = self.reduce_1(x1) 
 
-#         self.skip = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage4
+        x3 = self.up3(x4, x3) 
+        x2 = self.up2(x3, x2) 
+        x1 = self.up1(x2, x1)
 
-#         self.classifier = nn.Sequential(
-#             nn.ConvTranspose2d(32, 32, 4, 2, 1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(32, 32, 3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
-#         )
+        x = self.classifier(x1)
 
-#     def forward(self, x):
-#         # # Question here
-#         x_input = x.float()
-#         B, C, H, W = x.shape
-
-#         outputs = self.encoder_tf(x_input)
-
-#         x4 = self.norm_4(outputs[3]) 
-#         x3 = self.norm_3(outputs[2]) 
-#         x2 = self.norm_2(outputs[1]) 
-#         x1 = self.norm_1(outputs[0]) 
-
-#         x4 = self.reduce_4(x4) 
-#         x3 = self.reduce_3(x3) 
-#         x2 = self.reduce_2(x2)
-#         x1 = self.reduce_1(x1) 
-
-#         x = [x1, x2, x3, x4]
-#         x_fuse = []
-#         num_branches = 4
-#         for i, fuse_outer in enumerate(self.fuse_layers):
-#             y = x[0] if i == 0 else fuse_outer[0](x[0])
-#             for j in range(1, num_branches):
-#                 if i == j:
-#                     y = y + x[j]
-#                 else:
-#                     y = y + fuse_outer[j](x[j])
-#             x_fuse.append(self.fuse_act(y))
-
-#         x_fuse = self.skip(x_fuse)
-
-#         # x1 = self.combine_1(torch.cat([t1, x_fuse[0]], dim=1)) + x1
-#         # x2 = self.combine_2(torch.cat([t2, x_fuse[1]], dim=1)) + x2
-#         # x3 = self.combine_3(torch.cat([t3, x_fuse[2]], dim=1)) + x3
-#         # x4 = self.combine_4(torch.cat([t4, x_fuse[3]], dim=1)) + x4
-
-#         x1 = x_fuse[0]
-#         x2 = x_fuse[1]
-#         x3 = x_fuse[2]
-#         x4 = x_fuse[3]
-
-#         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
-
-#         x3 = self.up3(x4, x3) 
-#         x2 = self.up2(x3, x2) 
-#         x1 = self.up1(x2, x1)
-
-#         x = self.classifier(x1)
-
-#         return x
+        return x
 
 def stages():
     D = DAT(
