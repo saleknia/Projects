@@ -56,7 +56,7 @@ class UpBlock(nn.Module):
         self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = x + ((1.0-torch.sigmoid(x))*skip_x)
+        x = x + skip_x
         return x
 
 class ConvBatchNorm(nn.Module):
@@ -133,14 +133,10 @@ import torch.nn.functional as F
 
 class MetaFormer(nn.Module):
 
-    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
+    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 96, 96], act_layer=nn.GELU, norm_layer=nn.LayerNorm):
         super().__init__()
 
         embed_dim = 96
-
-        self.reduce_conv1 = nn.Conv2d(skip_dim[0], embed_dim, 1, 1, 0)
-        self.reduce_conv2 = nn.Conv2d(skip_dim[1], embed_dim, 1, 1, 0)
-        self.reduce_conv3 = nn.Conv2d(skip_dim[2], embed_dim, 1, 1, 0)
 
         self.fuse_conv1 = nn.Conv2d(embed_dim*3, skip_dim[0], 3, 1, 1) 
         self.fuse_conv2 = nn.Conv2d(embed_dim*3, skip_dim[1], 3, 1, 1)
@@ -159,10 +155,6 @@ class MetaFormer(nn.Module):
         org1 = x1
         org2 = x2
         org3 = x3
-
-        x1 = self.reduce_conv1(x1)
-        x2 = self.reduce_conv2(x2)
-        x3 = self.reduce_conv3(x3)
 
         x1_d = self.down_sample1(x1)
         x2_d = self.down_sample2(x2)
@@ -487,6 +479,10 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
+        self.ESP_1 = DilatedParllelResidualBlockB(96, 96)
+        self.ESP_2 = DilatedParllelResidualBlockB(96, 96)
+        self.ESP_3 = DilatedParllelResidualBlockB(96, 96)
+
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -511,6 +507,10 @@ class Cross_unet(nn.Module):
         x3 = self.reduce_3(x3) 
         x2 = self.reduce_2(x2)
         x1 = self.reduce_1(x1) 
+
+        x1 = self.ESP_1(x1)
+        x2 = self.ESP_2(x2)
+        x3 = self.ESP_3(x3)
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
