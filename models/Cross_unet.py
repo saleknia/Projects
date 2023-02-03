@@ -447,7 +447,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder =  CrossFormer(img_size=224,
+        self.encoder =  CrossFormer(img_size=512,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -479,11 +479,12 @@ class Cross_unet(nn.Module):
         self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.stage_1, self.stage_2, self.stage_3 = stages()
-
         self.classifier = nn.Sequential(
-            nn.Conv2d(96, 1, 1, padding=0),
-            nn.Upsample(scale_factor=4.0)
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 96, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(96, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
@@ -504,13 +505,8 @@ class Cross_unet(nn.Module):
         x1 = self.reduce_1(x1) 
 
         x3 = self.up3(x4, x3) 
-        x3 = self.stage_3(x3)[0]
-
         x2 = self.up2(x3, x2) 
-        x2 = self.stage_2(x2)[0]
-
         x1 = self.up1(x2, x1)
-        x1 = self.stage_1(x1)[0]
 
         x = self.classifier(x1)
 
@@ -523,10 +519,10 @@ def stages():
             num_classes=1000,
             expansion=4,
             dim_stem=96,
-            dims=[96, 96, 96, 96],
+            dims=[96, 192, 384, 768],
             depths=[2, 2, 2, 2],
-            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'S'], ['L', 'S']],
-            heads=[6, 6, 6, 6],
+            stage_spec=[['S', 'S'], ['S', 'S'], ['S', 'S'], ['S', 'S']],
+            heads=[3, 3, 3, 3],
             window_sizes=[7, 7, 7, 7] ,
             groups=[-1, -1, -1, -1],
             use_pes=[False, False, False, False],
@@ -1628,7 +1624,7 @@ class DAT(nn.Module):
         
         self.stages = nn.ModuleList()
         for i in range(4):
-            dim1 = dim_stem 
+            dim1 = dim_stem if i == 0 else dims[i - 1] * 2
             dim2 = dims[i]
             self.stages.append(
                 TransformerStage(img_size, window_sizes[i], ns_per_pts[i],
