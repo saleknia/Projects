@@ -500,7 +500,7 @@ class Cross_unet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs = self.encoder_tf(x_input)
+        outputs = self.encoder(x_input)
 
         x4 = self.norm_4(outputs[3]) 
         x3 = self.norm_3(outputs[2]) 
