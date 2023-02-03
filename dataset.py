@@ -180,7 +180,7 @@ class ISIC2016(Dataset):
         return img, seg
 
     def resize(self, img, seg):
-        size = 224
+        size = 512
         img = skimage.transform.resize(img, (size, size, 3))
         seg = skimage.transform.resize(seg, (size, size, 1))
         return img, seg
@@ -256,7 +256,7 @@ class ISIC2017(Dataset):
         return img, seg
 
     def resize(self, img, seg):
-        size = 512
+        size = 224
         img = skimage.transform.resize(img, (size, size, 3))
         seg = skimage.transform.resize(seg, (size, size, 1))
         return img, seg
