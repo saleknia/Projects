@@ -53,7 +53,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer import trainer
 from tester import tester
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K, TCIA
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
 from config import *
 from tabulate import tabulate
@@ -334,6 +334,40 @@ def main(args):
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader}
+
+    elif TASK_NAME=='TCIA':
+
+        train_dataset = TCIA(split='train', joint_transform=train_tf)
+        valid_dataset = TCIA(split='valid', joint_transform=val_tf)
+        test_dataset  = TCIA(split='test' , joint_transform=val_tf)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        
+
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='CT-1K':
 

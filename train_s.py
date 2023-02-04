@@ -63,7 +63,7 @@ from tabulate import tabulate
 from tensorboardX import SummaryWriter
 from dataset_builder import build_dataset_train, build_dataset_test
 # from testing import inference
-# from testingV2 import inferenceV2
+# from testingV2 import inferenceV2 TCIA
 import warnings
 warnings.filterwarnings('ignore')
 
