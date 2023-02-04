@@ -60,47 +60,6 @@ class ConvBatchNorm_r(nn.Module):
         x = self.activation_2(x)
         return x
 
-class ParallelPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
-
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
 
@@ -119,13 +78,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', reduce=False, reduction_rate=1):
         super(UpBlock, self).__init__()
 
-        self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.att = ParallelPolarizedSelfAttention(in_channels//2)
+        # self.up = nn.Upsample(scale_factor=2)
+        self.up = nn.ConvTranspose2d(in_channels, in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -142,7 +100,11 @@ class CSFR(nn.Module):
         self.conv_down = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_fuse = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
+        self.reduction = ConvBatchNorm(in_channels=2*channels, out_channels=channels, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
     def forward(self, x1, x2):
+
+        x2 = self.reduction(x2)
 
         x1_d  = self.down(x1)
         x2_up = self.up(x2)
@@ -182,11 +144,15 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
+        self.CSFR_3 = CSFR(256)
+        self.CSFR_2 = CSFR(128)
+        self.CSFR_1 = CSFR(64)
+
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -202,6 +168,10 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
+
+        e3 = self.CSFR_3(e3, e4)
+        e2 = self.CSFR_2(e2, e3)
+        e1 = self.CSFR_1(e1, e2)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
