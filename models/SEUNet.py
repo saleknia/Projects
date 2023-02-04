@@ -155,11 +155,6 @@ class SEUNet(nn.Module):
         # self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         # self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=64, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=64, activation='ReLU', kernel_size=1, padding=0)        
-        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=64, activation='ReLU', kernel_size=1, padding=0)        
-        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=64, activation='ReLU', kernel_size=1, padding=0)
-
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -180,11 +175,6 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
-
-        e1 = self.reduce_1(e1)
-        e2 = self.reduce_2(e2)
-        e3 = self.reduce_3(e3)
-        e4 = self.reduce_4(e4)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
