@@ -38,28 +38,6 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
-class ConvBatchNorm_r(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU', reduction_rate=1):
-        super(ConvBatchNorm_r, self).__init__()
-        self.conv_1 = nn.Conv2d(in_channels, out_channels//reduction_rate,kernel_size=3, padding=1)
-        self.norm_1 = nn.BatchNorm2d(out_channels//reduction_rate)
-        self.activation_1 = get_activation(activation)
-
-        self.conv_2 = nn.Conv2d(out_channels//reduction_rate, out_channels, kernel_size=1, padding=0)
-        self.norm_2 = nn.BatchNorm2d(out_channels)
-        self.activation_2 = get_activation(activation)
-
-    def forward(self, x):
-        x = self.conv_1(x)
-        x = self.norm_1(x)
-        x = self.activation_1(x)
-        x = self.conv_2(x)
-        x = self.norm_2(x)
-        x = self.activation_2(x)
-        return x
-
 class DownBlock(nn.Module):
     """Downscaling with maxpool convolution"""
 
@@ -71,42 +49,6 @@ class DownBlock(nn.Module):
     def forward(self, x):
         out = self.maxpool(x)
         return self.nConvs(out)
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=self.softmax(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weights*feats)
-        V=torch.cat([feats[0], feats[1]], dim=1)
-        return V
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -120,45 +62,8 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         out = self.up(x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.att(out, skip_x)
         return self.nConvs(x)
 
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
-
-import ml_collections
-from .CTrans import ChannelTransformer
-
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate = 0.1
-    config.transformer.dropout_rate = 0
-    config.patch_sizes = [4,2,1]
-    config.base_channel = 64 # base channel of U-Net
-    config.n_classes = 1
-    return config
 
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
@@ -182,10 +87,6 @@ class SEUNet(nn.Module):
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
-
-        # self.up3 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
-        # self.up2 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
-        # self.up1 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
