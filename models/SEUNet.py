@@ -102,39 +102,54 @@ class SEUNet(nn.Module):
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
+        self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
-        self.maxpool   = 
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
 
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        if n_classes == 1:
-            self.last_activation = nn.Sigmoid()
-        else:
-            self.last_activation = None
+        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
-        # Question here
-        x = x.float()
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        x = self.up4(x5, x4)
-        x = self.up3(x, x3)
-        x = self.up2(x, x2)
-        x = self.up1(x, x1)
-        if self.last_activation is not None:
-            logits = self.last_activation(self.outc(x))
-            # print("111")
-        else:
-            logits = self.outc(x)
-            # print("222")
-        # logits = self.outc(x) # if using BCEWithLogitsLoss
-        # print(logits.size())
-        return logits
+        b, c, h, w = x.shape
+
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
+
+        e = self.up3(e4, e3)
+        e = self.up2(e , e2)
+        e = self.up1(e , e1)
+
+        e = self.final_conv1(e)
+        e = self.final_relu1(e)
+        e = self.final_conv2(e)
+        e = self.final_relu2(e)
+        e = self.final_conv3(e)
+        
+        return e
+
+
+
+
+
+
+
+
 
