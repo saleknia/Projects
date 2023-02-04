@@ -137,15 +137,12 @@ class SEUNet(nn.Module):
         self.encoder1  = resnet.layer1
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        # self.encoder4  = resnet.layer4
 
-        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
+        # self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.CSFR_3 = CSFR(256)
-        self.CSFR_2 = CSFR(128)
-        self.CSFR_1 = CSFR(64)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -166,14 +163,11 @@ class SEUNet(nn.Module):
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e4 = self.encoder4(e3)
 
-        e3 = self.CSFR_3(e3, e4)
-        e2 = self.CSFR_2(e2, e3)
-        e1 = self.CSFR_1(e1, e2)
 
-        e = self.up3(e4, e3)
-        e = self.up2(e , e2)
+        # e = self.up3(e4, e3)
+        e = self.up2(e3, e2)
         e = self.up1(e , e1)
 
         e = self.final_conv1(e)
