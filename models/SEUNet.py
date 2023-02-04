@@ -123,6 +123,8 @@ class SEUNet(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
+        x = torch.cat([x, x, x], dim=1)
+
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
@@ -142,7 +144,7 @@ class SEUNet(nn.Module):
         e = self.final_conv2(e)
         e = self.final_relu2(e)
         e = self.final_conv3(e)
-        
+
         return e
 
 

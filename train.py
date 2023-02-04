@@ -160,7 +160,7 @@ def main(args):
         model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='SEUNet':
-        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
+        model = SEUNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')

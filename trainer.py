@@ -192,7 +192,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss_disparity = disparity_loss(masks=targets, outputs=outputs)
+        loss_disparity = 0
 
         ###############################################
         alpha = 0.5
@@ -208,7 +208,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
 
-        iter_num = iter_num + 1        
+        iter_num = iter_num + 1       
         
         optimizer.zero_grad()
         loss.backward()
