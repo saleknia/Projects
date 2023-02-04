@@ -10,7 +10,7 @@ import SimpleITK as sitk
 from dataset import Synapse_dataset,ValGenerator
 from torch.utils.data import Dataset
 from models.UNet import UNet
-from models.UCTransNet import UCTransNet 
+from models.SEUNet import SEUNet
 import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader
 from typing import Callable
@@ -22,37 +22,20 @@ import ml_collections
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--volume_path', type=str,
-                    default='/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5', help='root dir for validation volume data')  
+                    default='/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5', help='root dir for validation volume data')  
 parser.add_argument('--dataset', type=str,
                     default='Synapse', help='experiment_name')
 parser.add_argument('--num_classes', type=int,
                     default=9, help='output channel of network')
-parser.add_argument('--img_size', type=int, default=256, help='input patch size of network input')
+parser.add_argument('--img_size', type=int, default=224, help='input patch size of network input')
 args = parser.parse_args()
 
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    # config.transformer.embeddings_dropout_rate = 0.3
-    # config.transformer.attention_dropout_rate  = 0.3
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
-    config.transformer.dropout_rate = 0
-    config.patch_sizes = [16,8,4,2]
-    # config.patch_sizes = [8,4,2,1]
-    config.base_channel = 64 # base channel of U-Net
-    config.n_classes = 9
-    return config
 
 class Synapse_dataset(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
 
         if split == 'val_test':
-            base_dir = '/content/UNet/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'        
+            base_dir = '/content/UNet_V2/MICCAI_2015_Multi_Atlas_Abdomen/test_vol_h5'        
 
         self.joint_transform = joint_transform
 
@@ -102,7 +85,7 @@ def calculate_metric_percase(pred, gt):
         return 0, 0
 
 
-def test_single_volume(image, label, net, classes, patch_size=[256, 256], case=None):
+def test_single_volume(image, label, net, classes, patch_size=[224, 224], case=None):
     image, label = image.squeeze(0).cpu().detach().numpy(), label.squeeze(0).cpu().detach().numpy()
     if len(image.shape) == 3:
         prediction = np.zeros_like(label)
@@ -134,8 +117,6 @@ def test_single_volume(image, label, net, classes, patch_size=[256, 256], case=N
         metric_list.append(calculate_metric_percase(prediction == i, label == i))
 
     return metric_list
-
-
 
 # DataLoader(db_test, batch_size=1, shuffle=False, num_workers=1)
 
@@ -191,9 +172,8 @@ if __name__ == "__main__":
     # acc=state['acc']
     # epoch=state['best_epoch']
 
-    config_vit = get_CTranS_config()
-    net = UCTransNet(config_vit,n_channels=1,n_classes=9,img_size=256).cuda()
-    state=torch.load('/content/drive/MyDrive/checkpoint/UCTransNet_Synapse_best.pth', map_location=torch.device('cuda'))
+    net = SEUNet(n_channels=1, n_classes=9).to('cuda')
+    state=torch.load('/content/drive/MyDrive/checkpoint/SEUNet_Synapse_best.pth', map_location=torch.device('cuda'))
     net.load_state_dict(state['net'])
     acc=state['acc']
     epoch=state['best_epoch']
