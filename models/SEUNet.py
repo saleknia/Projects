@@ -26,10 +26,10 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', reduce=Fa
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
         super(ConvBatchNorm, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+                              kernel_size=kernel_size, padding=padding)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -114,15 +114,14 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', reduce=False, reduction_rate=1):
         super(UpBlock, self).__init__()
 
-        # self.up = nn.Upsample(scale_factor=2)
-        self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-        self.att = SKAttention(in_channels//2)
+        self.up = nn.Upsample(scale_factor=2)
+        # self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
+        self.nConvs = _make_nConv(in_channels*2, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.att(out, skip_x)
+        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.att(out, skip_x)
         return self.nConvs(x)
 
 class SEUNet(nn.Module):
@@ -148,9 +147,18 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+        self.up3 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
+
+        # self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
+        # self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
+        # self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+
+        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=64, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=64, activation='ReLU', kernel_size=1, padding=0)        
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=64, activation='ReLU', kernel_size=1, padding=0)        
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=64, activation='ReLU', kernel_size=1, padding=0)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -172,6 +180,11 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
+
+        e1 = self.reduce_1(e1)
+        e2 = self.reduce_2(e2)
+        e3 = self.reduce_3(e3)
+        e4 = self.reduce_4(e4)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
