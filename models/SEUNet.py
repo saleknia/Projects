@@ -142,6 +142,24 @@ class FAMBlock(nn.Module):
 
         return out
 
+import ml_collections
+from .CTrans import ChannelTransformer
+
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate = 0.1
+    config.transformer.dropout_rate = 0
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 64 # base channel of U-Net
+    config.n_classes = 1
+    return config
+
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -173,6 +191,8 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False)
+
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -193,6 +213,9 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
+
+
+        e1, e2, e3 = self.mtc(e1, e2, e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
