@@ -161,9 +161,9 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        e3 = self.CSFR_3(e3, e4)
-        e2 = self.CSFR_2(e2, e3)
-        e1 = self.CSFR_1(e1, e2)
+        # e3 = self.CSFR_3(e3, e4)
+        # e2 = self.CSFR_2(e2, e3)
+        # e1 = self.CSFR_1(e1, e2)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
