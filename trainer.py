@@ -189,7 +189,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         with torch.autocast(device_type=device, dtype=torch.float16):
             outputs = model(inputs)
             loss_ce = ce_loss(outputs, targets[:].long())
-            loss_dice = dice_loss(inputs=outputs, targets=targets, softmax=True)
+            loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
             loss_disparity = 0
             loss = loss_ce + loss_dice 
 
