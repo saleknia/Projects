@@ -178,68 +178,41 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-
-    scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
+
         targets = targets.float()
 
-        inputs = inputs.float()
-        with torch.autocast(device_type=device, dtype=torch.float16):
-            outputs = model(inputs)
-            loss_ce = ce_loss(outputs, targets[:].long())
-            loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-            loss_disparity = 0
-            loss = loss_ce + loss_dice 
+        outputs = model(inputs)
 
-        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
+        if teacher_model is not None:
+            with torch.no_grad():
+                outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
+
+        loss_ce = ce_loss(outputs, targets[:].long())
+        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+        loss_disparity = 0
+
+        ###############################################
+        alpha = 0.5
+        beta = 0.5
+        theta = 0.1
+
+        loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
+
+        ###############################################
+
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
 
-        iter_num = iter_num + 1  
-
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
-        optimizer.zero_grad()
-
-    # for batch_idx, (inputs, targets) in enumerate(loader):
-
-    #     inputs, targets = inputs.to(device), targets.to(device)
-
-    #     targets = targets.float()
-
-    #     outputs = model(inputs)
-
-    #     if teacher_model is not None:
-    #         with torch.no_grad():
-    #             outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
-
-    #     loss_ce = ce_loss(outputs, targets[:].long())
-    #     loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-    #     loss_disparity = 0
-
-    #     ###############################################
-    #     alpha = 0.5
-    #     beta = 0.5
-    #     theta = 0.1
-
-    #     loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
-
-    #     ###############################################
-
-    #     lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
-
-    #     for param_group in optimizer.param_groups:
-    #         param_group['lr'] = lr_
-
-    #     iter_num = iter_num + 1       
+        iter_num = iter_num + 1        
         
-    #     optimizer.zero_grad()
-    #     loss.backward()
-    #     optimizer.step()
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
@@ -257,7 +230,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss = {loss_ce_total.avg:.4f} , kd_loss = {loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , kd_loss = {theta * loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
