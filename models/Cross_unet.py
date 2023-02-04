@@ -213,7 +213,11 @@ class CSFR(nn.Module):
         self.conv_down = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_fuse = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
+        self.reduction = ConvBatchNorm(in_channels=2*channels, out_channels=channels, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
     def forward(self, x1, x2):
+
+        x2 = self.reduction(x2)
 
         x1_d  = self.down(x1)
         x2_up = self.up(x2)

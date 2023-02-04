@@ -87,6 +87,37 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
+class CSFR(nn.Module):
+
+    def __init__(self, channels):
+        super().__init__()
+
+        self.down     = nn.Upsample(scale_factor=0.5)
+        self.up       = nn.Upsample(scale_factor=2.0)
+        self.final_up = nn.Upsample(scale_factor=2.0)
+
+        self.conv_up   = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_down = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_fuse = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.reduction = ConvBatchNorm(in_channels=2*channels, out_channels=channels, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
+    def forward(self, x1, x2):
+
+        x2 = self.reduction(x2)
+
+        x1_d  = self.down(x1)
+        x2_up = self.up(x2)
+
+        up   = self.conv_up(x1+x2_up)
+        down = self.conv_down(x1_d+x2)
+        down = self.final_up(down)
+
+        x = self.conv_fuse(down + up)
+
+        return x
+
+
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -114,6 +145,10 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
+        self.CSFR_3 = CSFR(256)
+        self.CSFR_2 = CSFR(128)
+        self.CSFR_1 = CSFR(64)
+
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -134,6 +169,10 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
+
+        e3 = self.CSFR_3(e3, e4)
+        e2 = self.CSFR_2(e2, e3)
+        e1 = self.CSFR_1(e1, e2)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
