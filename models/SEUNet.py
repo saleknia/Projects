@@ -68,8 +68,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         # self.up = nn.Upsample(scale_factor=2)
-        self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        # self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
+        self.up = nn.Upsample(scale_factor=2.0)
+        self.nConvs = _make_nConv(in_channels*2, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
         out = self.up(x)
@@ -130,13 +131,14 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+        self.up3 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
 
-        self.CSFR_3 = CSFR(256)
-        self.CSFR_2 = CSFR(128)
-        self.CSFR_1 = CSFR(64)
+        self.reduce_1 = ConvBatchNorm(in_channels=64 , out_channels=64, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=64, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=64, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=64, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
