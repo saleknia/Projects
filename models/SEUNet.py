@@ -191,8 +191,6 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False)
-
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -213,9 +211,6 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
-
-
-        e1, e2, e3 = self.mtc(e1, e2, e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
