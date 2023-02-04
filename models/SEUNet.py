@@ -1,3 +1,4 @@
+from torchvision import models as resnet_model
 import torch.nn as nn
 import torch
 
@@ -97,19 +98,17 @@ class SEUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        # Question here
-        in_channels = 64
 
-        self.inc = ConvBatchNorm(1, in_channels)
-        self.down1 = DownBlock(in_channels  , in_channels*2, nb_Conv=2, reduce=False, reduction_rate=1)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2, reduce=True , reduction_rate=4)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2, reduce=True , reduction_rate=8)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2, reduce=True , reduction_rate=16)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, reduce=True , reduction_rate=16)
-        self.up3 = UpBlock(in_channels*8 , in_channels*2, nb_Conv=2, reduce=True , reduction_rate=8)
-        self.up2 = UpBlock(in_channels*4 , in_channels  , nb_Conv=2, reduce=True , reduction_rate=4)
-        self.up1 = UpBlock(in_channels*2 , in_channels  , nb_Conv=2, reduce=False, reduction_rate=1)
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = 
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.
 
         self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
         if n_classes == 1:
