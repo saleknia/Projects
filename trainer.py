@@ -257,7 +257,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f} , CE_loss = {beta*loss_ce_total.avg:.4f} , kd_loss = {theta * loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
+            suffix=f'Dice_loss = {loss_dice_total.avg:.4f} , CE_loss = {loss_ce_total.avg:.4f} , kd_loss = {loss_disparity_total.avg:.4f} , Dice = {Eval.Dice()*100:.2f}',          
             # suffix=f'Dice_loss = {alpha*loss_dice_total.avg:.4f}, CE_loss = {beta*loss_ce_total.avg:.4f}, kd_loss = {loss_kd_total.avg:.4f}, att_loss = {loss_att_total.avg:.4f}, proto_loss = {loss_proto_total.avg:.4f}, Dice = {Eval.Dice()*100:.2f}',          
             bar_length=45
         )  
