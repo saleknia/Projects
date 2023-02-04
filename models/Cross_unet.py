@@ -54,7 +54,6 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         # self.up  = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.up   = nn.Upsample(scale_factor=2.0)
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = x + skip_x
@@ -200,36 +199,6 @@ from torchvision import models as resnet
 
 #         return x
 
-class CSFR(nn.Module):
-
-    def __init__(self, channels):
-        super().__init__()
-
-        self.down     = nn.Upsample(scale_factor=0.5)
-        self.up       = nn.Upsample(scale_factor=2.0)
-        self.final_up = nn.Upsample(scale_factor=2.0)
-
-        self.conv_up   = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_down = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_fuse = _make_nConv(in_channels=channels, out_channels=channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        self.reduction = ConvBatchNorm(in_channels=2*channels, out_channels=channels, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
-    def forward(self, x1, x2):
-
-        x2 = self.reduction(x2)
-
-        x1_d  = self.down(x1)
-        x2_up = self.up(x2)
-
-        up   = self.conv_up(x1+x2_up)
-        down = self.conv_down(x1_d+x2)
-        down = self.final_up(down)
-
-        x = self.conv_fuse(down + up)
-
-        return x
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -269,11 +238,6 @@ class Cross_unet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -281,10 +245,6 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.ConvTranspose2d(96, n_classes, kernel_size=2, stride=2)
         )
-
-        self.CSFR_1 = CSFR(96)        
-        self.CSFR_2 = CSFR(96)        
-        self.CSFR_3 = CSFR(96)
 
     def forward(self, x):
         # # Question here
@@ -297,15 +257,6 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3(outputs[2]) 
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0]) 
-
-        x4 = self.reduce_4(x4) 
-        x3 = self.reduce_3(x3) 
-        x2 = self.reduce_2(x2)
-        x1 = self.reduce_1(x1) 
-
-        x3 = self.CSFR_3(x3, x4) + x3
-        x2 = self.CSFR_2(x2, x3) + x2
-        x1 = self.CSFR_1(x1, x2) + x1
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
