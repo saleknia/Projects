@@ -192,7 +192,7 @@ def stages():
             patch_size=4,
             num_classes=1000,
             expansion=4,
-            dim_stem=96,
+            dim_stem=64,
             dims=[64, 128, 256, 512],
             depths=[2, 2, 2, 2],
             stage_spec=[['S', 'S'], ['S', 'S'], ['S', 'S'], ['S', 'S']],
