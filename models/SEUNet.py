@@ -38,39 +38,28 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
-class ConvBatchNorm_r(nn.Module):
+
+class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', reduction_rate=1):
-        super(ConvBatchNorm_r, self).__init__()
-        self.conv_1 = nn.Conv2d(in_channels, out_channels//reduction_rate,kernel_size=3, padding=1)
-        self.norm_1 = nn.BatchNorm2d(out_channels//reduction_rate)
-        self.activation_1 = get_activation(activation)
-
-        self.conv_2 = nn.Conv2d(out_channels//reduction_rate, out_channels, kernel_size=1, padding=0)
-        self.norm_2 = nn.BatchNorm2d(out_channels)
-        self.activation_2 = get_activation(activation)
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
 
     def forward(self, x):
-        x = self.conv_1(x)
-        x = self.norm_1(x)
-        x = self.activation_1(x)
-        x = self.conv_2(x)
-        x = self.norm_2(x)
-        x = self.activation_2(x)
-        return x
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
 
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', reduce=False, reduction_rate=1):
-        super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-
-    def forward(self, x):
-        out = self.maxpool(x)
-        return self.nConvs(out)
+    for i in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    return nn.Sequential(*layers)
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
