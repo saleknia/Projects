@@ -198,14 +198,8 @@ class SEUNet(nn.Module):
         e0 = self.maxpool(e0)
 
         e1 = self.encoder1(e0)
-        e1 = self.stage_1(e1)[0]
-
         e2 = self.encoder2(e1)
-        e2 = self.stage_2(e2)[0]
-
         e3 = self.encoder3(e2)
-        e3 = self.stage_3(e3)[0]
-
         e4 = self.encoder4(e3)
 
         e = self.up3(e4, e3)
