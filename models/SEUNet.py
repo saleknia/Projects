@@ -123,6 +123,25 @@ class UpBlock(nn.Module):
         # x = self.att(out, skip_x)
         return self.nConvs(x)
 
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
+
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -150,11 +169,16 @@ class SEUNet(nn.Module):
         # self.up2 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
         # self.up1 = UpBlock(in_channels=64, out_channels=64, nb_Conv=2)
 
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
-
-        self.stage_1, self.stage_2, self.stage_3 = stages()
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -173,16 +197,17 @@ class SEUNet(nn.Module):
         e0 = self.maxpool(e0)
 
         e1 = self.encoder1(e0)
-        e1 = self.stage_1(e1)[0]
-
         e2 = self.encoder2(e1)
-        e2 = self.stage_2(e2)[0]
-
         e3 = self.encoder3(e2)
-        e3 = self.stage_3(e3)[0]
-
         e4 = self.encoder4(e3)
 
+        for i in range(2):
+            e3 = self.FAM3[i](e3)
+        for i in range(4):
+            e2 = self.FAM2[i](e2)
+        for i in range(6):
+            e1 = self.FAM1[i](e1)
+            
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
         e = self.up1(e , e1)
