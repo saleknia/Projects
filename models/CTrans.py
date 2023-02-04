@@ -324,4 +324,4 @@ class ChannelTransformer(nn.Module):
         x2 = x2 + en2  if en2 is not None else None
         x3 = x3 + en3  if en3 is not None else None
 
-        return x1, x2, x3, attn_weights
+        return x1, x2, x3
