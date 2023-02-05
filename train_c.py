@@ -57,6 +57,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
 from tester_s import tester_s
+from trainer_c import trainer
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
@@ -64,7 +65,7 @@ from tabulate import tabulate
 from tensorboardX import SummaryWriter
 from dataset_builder import build_dataset_train, build_dataset_test
 # from testing import inference
-# from testingV2 import inferenceV2 TCIA
+# from testingV2 import inferenceV2 TCIA trainer
 import warnings
 warnings.filterwarnings('ignore')
 
