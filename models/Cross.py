@@ -22,7 +22,7 @@ class Cross(nn.Module):
         # self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         # self.gap     = nn.AdaptiveAvgPool2d(1)
 
-        model = timm.create_model('hrnet_w2', pretrained=True, num_classes=NUM_FINETUNE_CLASSES)
+        model = timm.create_model('hrnet_w2', pretrained=True, num_classes=40)
 
 
         # self.classifier = nn.Sequential(
