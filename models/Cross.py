@@ -1220,7 +1220,7 @@ class DAT(nn.Module):
         x = self.patch_proj(x)
         positions = []
         references = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             if i < 3:
                 x = self.down_projs[i](x)
