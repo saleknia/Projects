@@ -602,32 +602,40 @@ class CrossFormer(nn.Module):
 
     def __init__(self, img_size=224, patch_size=[4], in_chans=3, num_classes=1000,
                  embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
-                 group_size=7, crs_interval=[8, 4, 2, 1], mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 group_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
-                 norm_layer=nn.LayerNorm, patch_norm=True,
+                 norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, merge_size=[[2], [2], [2]], **kwargs):
         super().__init__()
+
 
         self.num_classes = num_classes
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
+        self.ape = ape
         self.patch_norm = patch_norm
         self.num_features = int(embed_dim * 2 ** (self.num_layers - 1))
         self.mlp_ratio = mlp_ratio
 
-        # split image into non-overlapping patches stage
+        # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(
             img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
             norm_layer=norm_layer if self.patch_norm else None)
+        num_patches = self.patch_embed.num_patches
         patches_resolution = self.patch_embed.patches_resolution
-        self.patches_resolution = patches_resolution # [H//4, W//4] of original image size
+        self.patches_resolution = patches_resolution
+
+        # absolute position embedding
+        if self.ape:
+            self.absolute_pos_embed = nn.Parameter(torch.zeros(1, num_patches, embed_dim))
+            trunc_normal_(self.absolute_pos_embed, std=.02)
 
         self.pos_drop = nn.Dropout(p=drop_rate)
 
         # stochastic depth
         dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
-        # build layers ape
+        # build layers
         self.layers = nn.ModuleList()
 
         num_patch_sizes = [len(patch_size)] + [len(m) for m in merge_size]
@@ -640,7 +648,6 @@ class CrossFormer(nn.Module):
                                depth=depths[i_layer],
                                num_heads=num_heads[i_layer],
                                group_size=group_size[i_layer],
-                               interval=crs_interval[i_layer],
                                mlp_ratio=self.mlp_ratio,
                                qkv_bias=qkv_bias, qk_scale=qk_scale,
                                drop=drop_rate, attn_drop=attn_drop_rate,
@@ -651,6 +658,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
+
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
