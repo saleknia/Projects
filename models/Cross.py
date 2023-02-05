@@ -565,7 +565,7 @@ class CrossFormer(nn.Module):
 
     def __init__(self, img_size=224, patch_size=[4, 8, 16, 32], in_chans=3, num_classes=1000,
                  embed_dim=64, depths=[1, 1, 8, 6], num_heads=[2, 4, 8, 16],
-                 group_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 group_size=[7, 7, 7, 7], mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
                  use_checkpoint=False, merge_size=[[2,4], [2,4], [2,4]], **kwargs):
