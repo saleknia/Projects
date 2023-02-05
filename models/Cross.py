@@ -39,6 +39,7 @@ class Cross(nn.Module):
         x1, x2, x3, x4, x5 = self.encoder(x)
 
         x = self.gap(x5)
+        x = torch.flatten(x, 1)
         x = self.classifier(x)
         return x
 
