@@ -20,8 +20,8 @@ class Cross(nn.Module):
         super().__init__()
 
         # self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, num_classes=40)
-        self.encoder      = deit_tiny_distilled_patch16_224(pretrained=True)
-        self.encoder.head = nn.Linear(192, 40)
+        self.encoder      = deit_small_distilled_patch16_224(pretrained=True)
+        self.encoder.head = nn.Linear(384, 40)
 
     def forward(self, x):
         x_input = x.float()
