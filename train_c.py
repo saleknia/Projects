@@ -12,12 +12,15 @@ import random
 import pickle
 import argparse
 from torch.backends import cudnn
+# from albumentations.pytorch.transforms import ToTensorV2
+# import albumentations as A
 import matplotlib.pyplot as plt
 from torchvision import transforms
 import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
+from models.SEUNet import SEUNet
 from models.UNet import UNet
 from models.UNet_loss import UNet_loss
 from models.UNet_plus import NestedUNet
@@ -25,37 +28,43 @@ from models.UNet_plus_loss import NestedUNet_loss
 from models.att_unet import AttentionUNet
 from models.att_unet_loss import AttentionUNet_loss
 from models.multi_res_unet import MultiResUnet
-from models.U import U
-from models.U_loss import U_loss
 from models.ERFNet import ERFNet
 from models.ERFNet_loss import ERFNet_loss
+from models.U import U
+from models.U_loss import U_loss
 from models.multi_res_unet_loss import MultiResUnet_loss
 from models.UCTransNet import UCTransNet
 from models.GT_UNet import GT_U_Net
 from models.ENet import ENet
-from models.Mobile_netV2 import Mobile_netV2
-from models.Mobile_netV2_loss import Mobile_netV2_loss
-from models.Fast_SCNN import Fast_SCNN
-from models.Fast_SCNN_loss import Fast_SCNN_loss
-from models.ESPNet import ESPNet
-from models.ESPNet_loss import ESPNet_loss
 from models.DABNet import DABNet
 from models.DABNet_loss import DABNet_loss
+from models.Mobile_netV2 import Mobile_netV2
+from models.Mobile_netV2_loss import Mobile_netV2_loss
+from models.ESPNet import ESPNet
+from models.ESPNet_loss import ESPNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
+from models.Fast_SCNN import Fast_SCNN
+from models.Fast_SCNN_loss import Fast_SCNN_loss
+from models.TransFuse import TransFuse_S
 from models.DATUNet import DATUNet
-from torchvision import datasets, transforms 
+from models.Cross_unet import Cross_unet
+from models.Cross import Cross
+# from models.original_UNet import original_UNet
 import utils
 from utils import color
 from utils import Save_Checkpoint
-from trainer_c import trainer
-from tester_c import tester
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K
-from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto,disparity_har
+from trainer_s import trainer_s
+from tester_s import tester_s
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018
+from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
+from dataset_builder import build_dataset_train, build_dataset_test
+# from testing import inference
+# from testingV2 import inferenceV2 TCIA
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -99,21 +108,21 @@ def main(args):
 # LOAD_MODEL
 
     if MODEL_NAME=='UNet':
-        model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+        model = UNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
         # model = original_UNet().to(DEVICE)
 
     elif MODEL_NAME=='UNet_loss':
         model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='U':
-        model = U(bilinear=False, n_classes=NUM_CLASS).to(DEVICE)
+        model = U(bilinear=False).to(DEVICE)
 
     elif MODEL_NAME=='U_loss':
         model = U_loss(bilinear=False).to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet':
         config_vit = get_CTranS_config()
-        model = UCTransNet(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+        model = UCTransNet(config_vit,n_channels=3,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet_GT':
         config_vit = get_CTranS_config()
@@ -127,7 +136,7 @@ def main(args):
         model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
 
     elif MODEL_NAME == 'AttUNet':
-        model = AttentionUNet(img_ch=1, output_ch=NUM_CLASS).to(DEVICE)
+        model = AttentionUNet(img_ch=3, output_ch=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'AttUNet_loss':
         model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
@@ -156,11 +165,17 @@ def main(args):
     elif MODEL_NAME == 'ERFNet_loss':
         model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME == 'Mobile_NetV2':
-        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME == 'Mobile_NetV2_loss':
-        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME == 'ESPNet_loss':
+        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+        
+    elif MODEL_NAME == 'DABNet':
+        model = DABNet(classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'DABNet_loss':
+        model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME == 'Fast_SCNN':
         model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
@@ -168,17 +183,26 @@ def main(args):
     elif MODEL_NAME == 'Fast_SCNN_loss':
         model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME == 'ESPNet':
-        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME == 'ESPNet_loss':
-        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME == 'Mobile_NetV2_loss':
+        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'TransFuse_S':
+        model = TransFuse_S(pretrained=True).to(DEVICE)
 
     elif MODEL_NAME == 'DATUNet':
         model = DATUNet().to(DEVICE)
-        
-    elif MODEL_NAME == 'DABNet_loss':
-        model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='SEUNet':
+        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='Cross_unet':
+        model = Cross_unet().to(DEVICE)
+
+    elif MODEL_NAME=='Cross':
+        model = Cross().to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')

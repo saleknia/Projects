@@ -43,16 +43,26 @@ if log:
     logger.info(f'Logging Directory: {logging_log}')   
 ##########################################################################
 
-# Hyperparameters etc.
-LEARNING_RATE = 5e-5
+LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 16
-NUM_EPOCHS = 150
+BATCH_SIZE = 40
+NUM_EPOCHS = 60
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
 PIN_MEMORY = True
 early_stopping = 200
+
+# Hyperparameters etc.
+# LEARNING_RATE = 5e-5
+# DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+# BATCH_SIZE = 16
+# NUM_EPOCHS = 150
+# NUM_WORKERS = 4
+# IMAGE_HEIGHT = 224
+# IMAGE_WIDTH = 224
+# PIN_MEMORY = True
+# early_stopping = 200
 
 LOAD_MODEL = True
 CONTINUE = True
@@ -138,7 +148,7 @@ elif task_id==11:
     NUM_CLASS = 1
     TASK_NAME = 'ISIC2018'
 
-model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29']
+model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30']
 model_table = tabulate(
                     tabular_data=[
                         ['UCTransNet', 1],
@@ -169,7 +179,8 @@ model_table = tabulate(
                         ['TransFuse_S',26],
                         ['DATUNet',27],
                         ['SEUNet',28],
-                        ['Cross_unet',29]],
+                        ['Cross_unet',29],
+                        ['Cross',30]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -266,6 +277,9 @@ elif model_id==28:
 
 elif model_id==29:
     MODEL_NAME = 'Cross_unet'
+
+elif model_id==30:
+    MODEL_NAME = 'Cross'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
