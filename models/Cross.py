@@ -18,7 +18,9 @@ class Cross(nn.Module):
                       By default 3 (2 labels + 1 for the background)
         '''
         super().__init__()
+
         self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
+        self.gap     = nn.AdaptiveAvgPool2d(1)
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -36,7 +38,7 @@ class Cross(nn.Module):
 
         x1, x2, x3, x4, x5 = self.encoder(x)
 
-        x = F.adaptive_avg_pool2d(x5, 1)
+        x = self.gap(x5)
         x = self.classifier(x)
         return x
 
