@@ -57,14 +57,11 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
         self.features_1 = model.features[0:3]
-        self.att_1 = ParallelPolarizedSelfAttention(channel=24)
         self.features_2 = model.features[3:4]
-        self.att_2 = ParallelPolarizedSelfAttention(channel=40)
         self.features_3 = model.features[4:6]
-        self.att_3 = ParallelPolarizedSelfAttention(channel=112)
         self.features_4 = model.features[6:]
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
@@ -75,22 +72,13 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
         )
-        # self.se = SEAttention(channel=1280)
     def forward(self, x):
         b, c, w, h = x.shape
 
         x = self.features_1(x)
-        x = self.att_1(x)
-
         x = self.features_2(x)
-        x = self.att_2(x)
-
         x = self.features_3(x)
-        x = self.att_3(x)
-
         x = self.features_4(x)
-
-        # x = self.se(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
