@@ -51,7 +51,8 @@ class Cross(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
-        x = yl[3]
+        yl = self.encoder.incre_modules(yl)
+
         x = F.adaptive_avg_pool2d(x, 1)
         x = self.classifier(x)
         return x
