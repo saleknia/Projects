@@ -401,12 +401,12 @@ def main(args):
         ])
 
 
-        trainset = datasets.ImageFolder(root='/content/StanfordAction/train/',
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
             trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        testset = datasets.ImageFolder(root='/content/StanfordAction/test/',
+        testset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/test/',
                                         transform=transform_test)
         test_loader = torch.utils.data.DataLoader(
             testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
