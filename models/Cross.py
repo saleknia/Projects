@@ -19,7 +19,7 @@ class Cross(nn.Module):
         '''
         super().__init__()
 
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
         self.gap     = nn.AdaptiveAvgPool2d(1)
 
         self.classifier = nn.Sequential(
