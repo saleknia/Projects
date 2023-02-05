@@ -29,8 +29,6 @@ class Cross(nn.Module):
         x = self.encoder(x_input)
         return x
 
-
-
 import torch
 import torch.nn as nn
 from functools import partial
