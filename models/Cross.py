@@ -19,31 +19,28 @@ class Cross(nn.Module):
         '''
         super().__init__()
 
-        self.encoder =  CrossFormer()
-
-
-        # self.encoder =  CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.1,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
+        self.encoder =  CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.1,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
-            # nn.Linear(in_features=5122, out_features=512, bias=True),
-            # nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=768, out_features=512, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=256, out_features=40, bias=True),
@@ -551,24 +548,13 @@ class CrossFormer(nn.Module):
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
     """
 
-# MODEL:
-#   TYPE: cross-scale
-#   NAME: cros_tiny_patch4_group7_224
-#   DROP_PATH_RATE: 0.1
-#   CROS:
-#     EMBED_DIM: 64
-#     DEPTHS: [ 1, 1, 8, 6 ]
-#     NUM_HEADS: [ 2, 4, 8, 16 ]
-#     GROUP_SIZE: [ 7, 7, 7, 7 ]
-#     PATCH_SIZE: [4, 8, 16, 32]
-#     MERGE_SIZE: [[2, 4], [2,4], [2, 4]]
 
-    def __init__(self, img_size=224, patch_size=[4, 8, 16, 32], in_chans=3, num_classes=1000,
-                 embed_dim=64, depths=[1, 1, 8, 6], num_heads=[2, 4, 8, 16],
-                 group_size=[7, 7, 7, 7], mlp_ratio=4., qkv_bias=True, qk_scale=None,
+    def __init__(self, img_size=224, patch_size=[4], in_chans=3, num_classes=1000,
+                 embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
+                 group_size=7, mlp_ratio=4., qkv_bias=True, qk_scale=None,
                  drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
                  norm_layer=nn.LayerNorm, ape=False, patch_norm=True,
-                 use_checkpoint=False, merge_size=[[2,4], [2,4], [2,4]], **kwargs):
+                 use_checkpoint=False, merge_size=[[2], [2], [2]], **kwargs):
         super().__init__()
 
         self.num_classes = num_classes
@@ -626,7 +612,7 @@ class CrossFormer(nn.Module):
         self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
 
         
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
 
