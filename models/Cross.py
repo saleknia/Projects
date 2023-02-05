@@ -19,28 +19,31 @@ class Cross(nn.Module):
         '''
         super().__init__()
 
-        self.encoder = timm.create_model('hrnet_w18_small', pretrained=True, features_only=True)
-        self.gap     = nn.AdaptiveAvgPool2d(1)
+        # self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
+        # self.gap     = nn.AdaptiveAvgPool2d(1)
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1024, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
+        model = timm.create_model('hrnet_w2', pretrained=True, num_classes=NUM_FINETUNE_CLASSES)
+
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1024, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=40, bias=True),
+        # )
 
     def forward(self, x):
 
         x = x.float()
         b, c, h, w = x.shape
 
-        x1, x2, x3, x4, x5 = self.encoder(x)
+        x = self.encoder(x)
 
-        x = self.gap(x5)
-        x = torch.flatten(x, 1)
-        x = self.classifier(x)
+        # x = self.gap(x5)
+        # x = torch.flatten(x, 1)
+        # x = self.classifier(x)
         return x
 
 
