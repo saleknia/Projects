@@ -156,7 +156,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     # disparity_loss = loss_function
     ##################################################################
 
@@ -196,7 +196,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = ce_loss(outputs, targets.long())
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = intra_fd(x0) + intra_fd(x1) + intra_fd(x2) + intra_fd(x3) 
+        loss_disparity = 0.01*(intra_fd(x0) + intra_fd(x1) + intra_fd(x2) + intra_fd(x3) )
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
