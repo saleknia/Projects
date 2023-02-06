@@ -107,6 +107,11 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
+def intra_fd(f_s):
+    sorted_s, indices_s = torch.sort(F.normalize(f_s, p=2, dim=(2,3)).mean([0, 2, 3]), dim=0, descending=True)
+    f_s = torch.index_select(f_s, 1, indices_s)
+    intra_fd_loss = F.mse_loss(f_s[:, 0:f_s.shape[1]//2, :, :], f_s[:, f_s.shape[1]//2: f_s.shape[1], :, :])
+    return intra_fd_loss
 
 def importance_maps_distillation(s, t, exp=4):
     """
@@ -167,7 +172,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        outputs = model(inputs)
+        outputs, x0, x1, x2, x3 = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -191,7 +196,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = ce_loss(outputs, targets.long())
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
+        loss_disparity = intra_fd(x0) + intra_fd(x1) + intra_fd(x2) + intra_fd(x3) 
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
