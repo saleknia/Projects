@@ -76,11 +76,11 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x0 = self.features_1(x)
-        x1 = self.features_2(x)
-        x2 = self.features_3(x)
-        x3 = self.features_4(x)
+        x1 = self.features_2(x0)
+        x2 = self.features_3(x1)
+        x3 = self.features_4(x2)
 
-        x = self.avgpool(x)
+        x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         
