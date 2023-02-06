@@ -129,7 +129,7 @@ def importance_maps_distillation(s, t, exp=4):
 
 def distillation(outputs, labels):
     unique = torch.unique(labels)
-    temp = torch.zeros((len(unique),40), device='cuda')
+    temp   = torch.zeros((len(unique),40), device='cuda')
     for i, v in enumerate(unique):
         temp[i] = torch.mean(outputs[labels==v], dim=0)
     distances = torch.cdist(temp, temp, p=2.0)
@@ -196,7 +196,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = ce_loss(outputs, targets.long())
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.01*(intra_fd(x0) + intra_fd(x1) + intra_fd(x2) + intra_fd(x3) )
+        loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
