@@ -1,6 +1,62 @@
 from torchvision import models as resnet_model
 import torch.nn as nn
 import torch
+import torch.nn.functional as F
+from torch.nn import Softmax
+
+
+def INF(B,H,W):
+     return -torch.diag(torch.tensor(float("inf")).repeat(H),0).to('cuda').unsqueeze(0).repeat(B*W,1,1)
+
+class CCA(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels):
+        super(CCA, self).__init__()
+        self.CCA_1 = CrissCrossAttention(in_channels)
+        self.CCA_2 = CrissCrossAttention(in_channels)
+
+    def forward(self, x):
+        x = self.CCA_1(x)
+        x = self.CCA_2(x)
+        return x
+
+class CrissCrossAttention(nn.Module):
+    """ Criss-Cross Attention Module"""
+    def __init__(self, in_dim):
+        super(CrissCrossAttention,self).__init__()
+        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
+        self.softmax = Softmax(dim=3)
+        self.INF = INF
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+
+    def forward(self, x):
+        m_batchsize, _, height, width = x.size()
+        proj_query = self.query_conv(x)
+        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
+        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
+        proj_key = self.key_conv(x)
+        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
+        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
+        proj_value = self.value_conv(x)
+        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
+        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
+        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
+        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
+        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
+
+        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
+        #print(concate)
+        #print(att_H) 
+        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
+        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
+        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
+        #print(out_H.size(),out_W.size())
+        return self.gamma*(out_H + out_W) + x
+
 
 def get_activation(activation_type):
     activation_type = activation_type.lower()
@@ -88,6 +144,10 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
+        self.CCA_1 = CCA(64)
+        self.CCA_2 = CCA(128)
+        self.CCA_3 = CCA(256)
+
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
@@ -113,6 +173,10 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
+        e1 = self.CCA_1(e1)
+        e2 = self.CCA_2(e2)
+        e3 = self.CCA_3(e3)
+
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
         e = self.up1(e , e1)
@@ -124,6 +188,7 @@ class SEUNet(nn.Module):
         e = self.final_conv3(e)
 
         return e
+
 
 
 
