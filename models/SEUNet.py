@@ -179,10 +179,6 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.CCA_1 = CCA(64)
-        self.CCA_2 = CCA(128)
-        self.CCA_3 = CCA(256)
-
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
@@ -198,30 +194,22 @@ class SEUNet(nn.Module):
 
         x = torch.cat([x, x, x], dim=1)
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # e4 = self.encoder4(e3)
 
-        x1, x2, x3, x4 = self.encoder(x)
-        x1 = self.LayerNorm_1(x1)
-        x2 = self.LayerNorm_2(x2)
-        x3 = self.LayerNorm_3(x3)
-        x4 = self.LayerNorm_4(x4)
+        e1, e2, e3, e4 = self.encoder(x)
+        e1 = self.LayerNorm_1(e1)
+        e2 = self.LayerNorm_2(e2)
+        e3 = self.LayerNorm_3(e3)
+        e4 = self.LayerNorm_4(e4)
 
-        e1 = e1 + x1
-        e2 = e2 + x2
-        e3 = e3 + x3
-        e4 = e4 + x4
-
-        e1 = self.CCA_1(e1)
-        e2 = self.CCA_2(e2)
-        e3 = self.CCA_3(e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
