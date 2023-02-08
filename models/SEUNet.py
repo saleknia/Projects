@@ -113,12 +113,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
+        # self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return self.nConvs(x)
+        # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        return out + x # self.nConvs(x)
 
 class GCN(nn.Module):
     def __init__(self,c,out_c,k=13): #out_Channel=21 in paper
@@ -168,10 +168,6 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.GCN_1 = GCN(64 , 64)
-        self.GCN_2 = GCN(128, 128)
-        self.GCN_3 = GCN(256, 256)
-
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -192,10 +188,6 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
-
-        e1 = self.GCN_1(e1)
-        e2 = self.GCN_2(e2)
-        e3 = self.GCN_3(e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
