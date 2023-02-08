@@ -118,7 +118,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         out = self.up(x)
         # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return out + x # self.nConvs(x)
+        return out + skip_x # self.nConvs(x)
 
 class GCN(nn.Module):
     def __init__(self,c,out_c,k=13): #out_Channel=21 in paper
