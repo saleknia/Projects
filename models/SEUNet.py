@@ -168,9 +168,9 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.GCN_1 = GCN(64)
-        self.GCN_2 = GCN(128)
-        self.GCN_3 = GCN(256)
+        self.GCN_1 = GCN(64 , 64)
+        self.GCN_2 = GCN(128, 128)
+        self.GCN_3 = GCN(256, 256)
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
