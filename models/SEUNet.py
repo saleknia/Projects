@@ -170,14 +170,14 @@ class SEUNet(nn.Module):
         self.LayerNorm_3 = LayerNormProxy(256)
         self.LayerNorm_4 = LayerNormProxy(512)
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        # self.firstconv = resnet.conv1
+        # self.firstbn   = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.maxpool   = resnet.maxpool 
+        # self.encoder1  = resnet.layer1
+        # self.encoder2  = resnet.layer2
+        # self.encoder3  = resnet.layer3
+        # self.encoder4  = resnet.layer4
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
