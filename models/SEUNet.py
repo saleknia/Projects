@@ -164,8 +164,6 @@ class SEUNet(nn.Module):
         self.convert = _make_nConv(in_channels=192, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
         self.up_2 = nn.ConvTranspose2d(256, 128, (2,2), 2)
         self.up_1 = nn.ConvTranspose2d(128, 64 , (2,2), 2)
-        self.combine_1 = _make_nConv(in_channels=128, out_channels=64 , nb_Conv=2, activation='ReLU', reduce=False)
-        self.combine_2 = _make_nConv(in_channels=256, out_channels=128, nb_Conv=2, activation='ReLU', reduce=False)
 
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
@@ -203,13 +201,14 @@ class SEUNet(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 192, 14, 14)
-        feature_tf = self.convert(feature_tf)
+        x3 = self.convert(feature_tf)
 
-        x2 = self.up_2(feature_tf)
+        x2 = self.up_2(x3)
         x1 = self.up_1(x2)
 
-        e1 = self.combine_1(torch.cat([e1, x1], dim=1))
-        e2 = self.combine_2(torch.cat([e2, x2], dim=1))
+        e1 = e1 + x1
+        e2 = e2 + x2
+        e3 = e3 + x3
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
