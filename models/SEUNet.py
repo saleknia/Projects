@@ -162,8 +162,6 @@ class SEUNet(nn.Module):
         self.encoder4  = resnet.layer4
 
         self.convert = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=1, padding=0)
-        self.up_2 = nn.ConvTranspose2d(256, 128, (2,2), 2)
-        self.up_1 = nn.ConvTranspose2d(128, 64 , (2,2), 2)
 
         self.patch_embed = transformer.patch_embed
         self.transformers = nn.ModuleList(
@@ -201,16 +199,9 @@ class SEUNet(nn.Module):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
         feature_tf = feature_tf.view(b, 384, 14, 14)
-        x3 = self.convert(feature_tf)
+        x = self.convert(feature_tf)
 
-        x2 = self.up_2(x3)
-        x1 = self.up_1(x2)
-
-        e1 = e1 + x1
-        e2 = e2 + x2
-        e3 = e3 + x3
-
-        e = self.up3(e4, e3)
+        e = self.up3(e4, e3) + x
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
