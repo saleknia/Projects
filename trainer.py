@@ -21,7 +21,7 @@ class disparity(nn.Module):
         super(disparity, self).__init__()
 
 
-    def forward(self, masks, outputs):
+    def forward(self, outputs, masks):
         loss = 0.0
         B,C,H,W = outputs.shape
         
@@ -193,6 +193,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             with torch.no_grad():
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
+
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
