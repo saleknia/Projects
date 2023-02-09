@@ -161,7 +161,7 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.convert = _make_nConv(in_channels=384, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
+        self.convert = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=1, padding=0)
         self.up_2 = nn.ConvTranspose2d(256, 128, (2,2), 2)
         self.up_1 = nn.ConvTranspose2d(128, 64 , (2,2), 2)
 
