@@ -134,15 +134,39 @@ class SEUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
+        # self.firstconv = resnet.conv1
+        # self.firstbn   = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # self.maxpool   = resnet.maxpool 
+        # self.encoder1  = resnet.layer1
+        # self.encoder2  = resnet.layer2
+        # self.encoder3  = resnet.layer3
+        # self.encoder4  = resnet.layer4
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        self.firstconv_1 = resnet.conv1
+        self.firstbn_1   = resnet.bn1
+        self.firstrelu_1 = resnet.relu
+        self.maxpool_1   = resnet.maxpool 
+        self.encoder1_1  = resnet.layer1
+        self.encoder2_1  = resnet.layer2
+        self.encoder3_1  = resnet.layer3
+        self.encoder4_1  = resnet.layer4
+
+        self.firstconv_2 = resnet.conv1
+        self.firstbn_2   = resnet.bn1
+        self.firstrelu_2 = resnet.relu
+        self.encoder1_2  = resnet.layer1
+        self.encoder2_2  = resnet.layer2
+        self.encoder3_2  = resnet.layer3
+        self.encoder4_2  = resnet.layer4
+
+        self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=64 , activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=256, activation='ReLU', kernel_size=1, padding=0)
+
+        self.combine_1 = _make_nConv(in_channels=128, out_channels=64 , nb_Conv=2, activation='ReLU', reduce=False)
+        self.combine_2 = _make_nConv(in_channels=256, out_channels=128, nb_Conv=2, activation='ReLU', reduce=False)
+        self.combine_3 = _make_nConv(in_channels=512, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
@@ -154,20 +178,48 @@ class SEUNet(nn.Module):
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
+
     def forward(self, x):
         b, c, h, w = x.shape
 
         x = torch.cat([x, x, x], dim=1)
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # e4 = self.encoder4(e3)
+
+        e0 = self.firstconv_1(x)
+        e0 = self.firstbn_1(e0)
+        e0 = self.firstrelu_1(e0)
+        e0 = self.maxpool_1(e0)
+
+        e1 = self.encoder1_1(e0)
+        e2 = self.encoder2_1(e1)
+        e3 = self.encoder3_1(e2)
+        e4 = self.encoder4_1(e3)
+
+        x0 = self.firstconv_2(x)
+        x0 = self.firstbn_2(x0)
+        x0 = self.firstrelu_2(x0)
+
+        x1 = self.encoder1_2(x0)
+        x2 = self.encoder2_2(x1)
+        x3 = self.encoder3_2(x2)
+        x4 = self.encoder4_2(x3)
+
+        x2 = self.reduce_2(x2)
+        x3 = self.reduce_3(x3)
+        x4 = self.reduce_4(x4)
+
+        e1 = self.combine_1(torch.cat([e1, x2], dim=1))
+        e2 = self.combine_2(torch.cat([e2, x3], dim=1))
+        e3 = self.combine_3(torch.cat([e3, x4], dim=1))
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
