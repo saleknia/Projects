@@ -17,38 +17,42 @@ from utils import importance_maps_distillation as imd
 warnings.filterwarnings("ignore")
 
 class disparity(nn.Module):
-    def __init__(self, num_classes):
+    def __init__(self):
         super(disparity, self).__init__()
-        self.num_classes = num_classes
-        self.smooth_labels = ((torch.eye(self.num_classes) * 0.9) + (torch.ones(self.num_classes)*(0.1/8.0)*(1.0-torch.eye(self.num_classes)))).to('cuda')
+
 
     def forward(self, masks, outputs):
         loss = 0.0
         B,C,H,W = outputs.shape
         
-        labels = []
-        prototypes = []
+        temp_masks = masks
 
-        for b in range(B):
-            mask = masks[b]
-            output = outputs[b]
-            mask_unique_value = torch.unique(mask)
-            mask_unique_value = mask_unique_value[1:]
-            
-            for p in mask_unique_value:
-                p = p.long()
-                bin_mask = torch.tensor(mask==p,dtype=torch.int8)
-                bin_mask = bin_mask.unsqueeze(dim=0).expand_as(output)
+        mask_unique_value = torch.unique(temp_masks)
+        mask_unique_value = mask_unique_value[1:]
+        unique_num = len(mask_unique_value)
 
-                proto = torch.sum(bin_mask*output,dim=[1,2])/torch.sum(bin_mask,dim=[1,2])
-                prototypes.append(proto)
-                labels.append(p)
-                
-        labels     = [self.smooth_labels[label] for label in labels]
-        prototypes = torch.stack(prototypes, dim=0)
-        labels     = torch.stack(labels, dim=0)
-        
-        loss = torch.nn.functional.cross_entropy(input=prototypes, target=labels)
+        if unique_num<2:
+            return 0
+
+        prototypes = torch.zeros(size=(unique_num,C),device='cuda')
+
+        for count,p in enumerate(mask_unique_value):
+            p = p.long()
+            bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+            bin_mask = bin_mask.unsqueeze(dim=1).expand_as(outputs)
+
+            temp = 0.0
+            batch_counter = 0
+            for t in range(B):
+                if torch.sum(bin_mask[t])!=0:
+                    v = torch.sum(bin_mask[t]*outputs[t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+                    temp = temp + v
+                    batch_counter = batch_counter + 1
+            temp = temp / batch_counter
+            prototypes[count] = temp
+
+        distances = torch.cdist(prototypes, prototypes, p=2.0)
+        loss = 1.0 / (torch.mean(distances)) 
 
         return loss
 
@@ -167,7 +171,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
     dice_loss = DiceLoss(num_class)
     ce_loss = CrossEntropyLoss()    
-    disparity_loss = disparity(num_class)
+    disparity_loss = disparity()
 
     ##################################################################
 
@@ -192,12 +196,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         loss_ce = ce_loss(outputs, targets[:].long())
         loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss_disparity = 0
+        loss_disparity = disparity_loss(outputs, targets)
 
         ###############################################
         alpha = 0.5
-        beta = 0.5
-        theta = 0.1
+        beta  = 0.5
+        theta = 0.01
 
         loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
 
