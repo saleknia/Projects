@@ -30,6 +30,10 @@ parser.add_argument('--num_classes', type=int,
 parser.add_argument('--img_size', type=int, default=224, help='input patch size of network input')
 args = parser.parse_args()
 
+import skimage.transform
+def resize(img, x, y):
+    img = skimage.transform.resize(img, (x, y))
+    return img
 
 class Synapse_dataset(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
@@ -92,7 +96,8 @@ def test_single_volume(image, label, net, classes, patch_size=[224, 224], case=N
             slice = image[ind, :, :]
             x, y = slice.shape[0], slice.shape[1]
             if x != patch_size[0] or y != patch_size[1]:
-                slice = zoom(slice, (patch_size[0] / x, patch_size[1] / y), order=3)  # previous using 0
+                # slice = zoom(slice, (patch_size[0] / x, patch_size[1] / y), order=3)  # previous using 0
+                slice = resize(slice, x, y)
             input = torch.from_numpy(slice).unsqueeze(0).unsqueeze(0).float().cuda()
             net.eval()
             with torch.no_grad():
@@ -100,13 +105,13 @@ def test_single_volume(image, label, net, classes, patch_size=[224, 224], case=N
                 out = torch.argmax(torch.softmax(outputs, dim=1), dim=1).squeeze(0)
                 out = out.cpu().detach().numpy()
                 if x != patch_size[0] or y != patch_size[1]:
-                    pred = zoom(out, (x / patch_size[0], y / patch_size[1]), order=0)
+                    # pred = zoom(out, (x / patch_size[0], y / patch_size[1]), order=0)
+                    pred = resize(out, x, y)
                 else:
                     pred = out
                 prediction[ind] = pred
     else:
-        input = torch.from_numpy(image).unsqueeze(
-            0).unsqueeze(0).float().cuda()
+        input = torch.from_numpy(image).unsqueeze(0).unsqueeze(0).float().cuda()
         net.eval()
         with torch.no_grad():
             out = torch.argmax(torch.softmax(net(input), dim=1), dim=1).squeeze(0)
