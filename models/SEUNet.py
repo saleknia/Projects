@@ -55,7 +55,7 @@ class CrissCrossAttention(nn.Module):
         out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
         out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
         #print(out_H.size(),out_W.size())
-        return (out_H + out_W) + x
+        return self.gamma*(out_H + out_W) + x
 
 
 def get_activation(activation_type):
@@ -114,9 +114,11 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
+        self.att = CrissCrossAttention(in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
