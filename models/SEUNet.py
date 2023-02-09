@@ -213,9 +213,9 @@ class SEUNet(nn.Module):
         x3 = self.encoder3_2(x2)
         x4 = self.encoder4_2(x3)
 
-        x2 = self.reduce_2(x2)
-        x3 = self.reduce_3(x3)
-        x4 = self.reduce_4(x4)
+        x2 = self.reduce_1(x2)
+        x3 = self.reduce_2(x3)
+        x4 = self.reduce_3(x4)
 
         e1 = self.combine_1(torch.cat([e1, x2], dim=1))
         e2 = self.combine_2(torch.cat([e2, x3], dim=1))
