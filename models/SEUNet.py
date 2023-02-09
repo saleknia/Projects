@@ -167,7 +167,10 @@ class SEUNet(nn.Module):
         self.combine_1 = _make_nConv(in_channels=128, out_channels=64 , nb_Conv=2, activation='ReLU', reduce=False)
         self.combine_2 = _make_nConv(in_channels=256, out_channels=128, nb_Conv=2, activation='ReLU', reduce=False)
 
-        
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
