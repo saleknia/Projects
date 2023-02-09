@@ -114,49 +114,11 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-        self.att = SKAttention(channel=in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.att(out, skip_x)
+        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weights*feats)
-        V=torch.cat([feats[0], feats[1]], dim=1)
-        return V
 
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
