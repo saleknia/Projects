@@ -68,7 +68,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         out = self.up(x)
         x = (torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
-        return self.nConvs(x) + out + skip_x
+        return self.nConvs(x)
 
 import torchvision
 class seg_head(nn.Module):
