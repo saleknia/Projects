@@ -120,6 +120,23 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
+from .CTrans import ChannelTransformer
+import ml_collections
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 64 # base channel of U-Net
+    config.n_classes = 1
+    return config
+
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -132,46 +149,22 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet_1 = resnet_model.resnet34(pretrained=True)
-        resnet_2 = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn   = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.maxpool   = resnet.maxpool 
-        # self.encoder1  = resnet.layer1
-        # self.encoder2  = resnet.layer2
-        # self.encoder3  = resnet.layer3
-        # self.encoder4  = resnet.layer4
-
-        self.firstconv_1 = resnet_1.conv1
-        self.firstbn_1   = resnet_1.bn1
-        self.firstrelu_1 = resnet_1.relu
-        self.maxpool_1   = resnet_1.maxpool 
-        self.encoder1_1  = resnet_1.layer1
-        self.encoder2_1  = resnet_1.layer2
-        self.encoder3_1  = resnet_1.layer3
-        self.encoder4_1  = resnet_1.layer4
-
-        self.firstconv_2 = resnet_2.conv1
-        self.firstbn_2   = resnet_2.bn1
-        self.firstrelu_2 = resnet_2.relu
-        self.encoder1_2  = resnet_2.layer1
-        self.encoder2_2  = resnet_2.layer2
-        self.encoder3_2  = resnet_2.layer3
-        self.encoder4_2  = resnet_2.layer4
-
-        self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=64 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=256, activation='ReLU', kernel_size=1, padding=0)
-
-        self.combine_1 = _make_nConv(in_channels=128, out_channels=64 , nb_Conv=2, activation='ReLU', reduce=False)
-        self.combine_2 = _make_nConv(in_channels=256, out_channels=128, nb_Conv=2, activation='ReLU', reduce=False)
-        self.combine_3 = _make_nConv(in_channels=512, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[64, 128, 256], patchSize=[4, 2, 1])
 
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -185,42 +178,17 @@ class SEUNet(nn.Module):
 
         x = torch.cat([x, x, x], dim=1)
 
-        # e0 = self.firstconv(x)
-        # e0 = self.firstbn(e0)
-        # e0 = self.firstrelu(e0)
-        # e0 = self.maxpool(e0)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
 
-        # e1 = self.encoder1(e0)
-        # e2 = self.encoder2(e1)
-        # e3 = self.encoder3(e2)
-        # e4 = self.encoder4(e3)
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
-        e0 = self.firstconv_1(x)
-        e0 = self.firstbn_1(e0)
-        e0 = self.firstrelu_1(e0)
-        e0 = self.maxpool_1(e0)
-
-        e1 = self.encoder1_1(e0)
-        e2 = self.encoder2_1(e1)
-        e3 = self.encoder3_1(e2)
-        e4 = self.encoder4_1(e3)
-
-        x0 = self.firstconv_2(x)
-        x0 = self.firstbn_2(x0)
-        x0 = self.firstrelu_2(x0)
-
-        x1 = self.encoder1_2(x0)
-        x2 = self.encoder2_2(x1)
-        x3 = self.encoder3_2(x2)
-        x4 = self.encoder4_2(x3)
-
-        x2 = self.reduce_1(x2)
-        x3 = self.reduce_2(x3)
-        x4 = self.reduce_3(x4)
-
-        e1 = self.combine_1(torch.cat([e1, x2], dim=1))
-        e2 = self.combine_2(torch.cat([e2, x3], dim=1))
-        e3 = self.combine_3(torch.cat([e3, x4], dim=1))
+        e1, e2, e3 = self.mtc(e1, e2, e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
