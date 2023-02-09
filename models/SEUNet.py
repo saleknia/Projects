@@ -136,7 +136,7 @@ def get_CTranS_config():
     config.base_channel = 64 # base channel of U-Net
     config.n_classes = 1
     return config
-import timm
+
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -149,76 +149,42 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn   = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.maxpool   = resnet.maxpool 
-        # self.encoder1  = resnet.layer1
-        # self.encoder2  = resnet.layer2
-        # self.encoder3  = resnet.layer3
-        # self.encoder4  = resnet.layer4
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
 
-        channel = 18
+        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder.incre_modules = None
-
-        self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
-        self.up2 = UpBlock(channel*4, channel*2, nb_Conv=2)
-        self.up1 = UpBlock(channel*2, channel*1, nb_Conv=2)
-
-        # self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        # self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        # self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
-
-
-        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
-
-        self.final_conv1 = nn.ConvTranspose2d(18, 18, 4, 2, 1)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(18, 18, 3, padding=1)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(18, n_classes, kernel_size=2, stride=2)
+        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x = torch.cat([x, x, x], dim=1)
 
-        # e0 = self.firstconv(x)
-        # e0 = self.firstbn(e0)
-        # e0 = self.firstrelu(e0)
-        # e0 = self.maxpool(e0)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
 
-        # e1 = self.encoder1(e0)
-        # e2 = self.encoder2(e1)
-        # e3 = self.encoder3(e2)
-        # e4 = self.encoder4(e3)
-
-        x = self.encoder.conv1(x)
-        x = self.encoder.bn1(x)
-        x = self.encoder.act1(x)
-        x = self.encoder.conv2(x)
-        x = self.encoder.bn2(x)
-        x = self.encoder.act2(x)
-        x = self.encoder.layer1(x)
-
-        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
-        yl = self.encoder.stage2(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-        yl = self.encoder.stage3(xl)      
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-        yl = self.encoder.stage4(xl)
-
-        e1, e2, e3, e4 = yl[0], yl[1], yl[2], yl[3]
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
