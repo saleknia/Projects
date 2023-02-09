@@ -5,57 +5,7 @@ import torch.nn.functional as F
 from torch.nn import Softmax
 
 
-def INF(B,H,W):
-     return -torch.diag(torch.tensor(float("inf")).repeat(H),0).to('cuda').unsqueeze(0).repeat(B*W,1,1)
 
-class CCA(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels):
-        super(CCA, self).__init__()
-        self.CCA_1 = CrissCrossAttention(in_channels)
-        self.CCA_2 = CrissCrossAttention(in_channels)
-
-    def forward(self, x):
-        x = self.CCA_1(x)
-        x = self.CCA_2(x)
-        return x
-
-class CrissCrossAttention(nn.Module):
-    """ Criss-Cross Attention Module"""
-    def __init__(self, in_dim):
-        super(CrissCrossAttention,self).__init__()
-        self.query_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.softmax = Softmax(dim=3)
-        self.INF = INF
-        self.gamma = nn.Parameter(torch.zeros(1))
-
-
-    def forward(self, x):
-        m_batchsize, _, height, width = x.size()
-        proj_query = self.query_conv(x)
-        proj_query_H = proj_query.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height).permute(0, 2, 1)
-        proj_query_W = proj_query.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width).permute(0, 2, 1)
-        proj_key = self.key_conv(x)
-        proj_key_H = proj_key.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_key_W = proj_key.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        proj_value = self.value_conv(x)
-        proj_value_H = proj_value.permute(0,3,1,2).contiguous().view(m_batchsize*width,-1,height)
-        proj_value_W = proj_value.permute(0,2,1,3).contiguous().view(m_batchsize*height,-1,width)
-        energy_H = (torch.bmm(proj_query_H, proj_key_H)+self.INF(m_batchsize, height, width)).view(m_batchsize,width,height,height).permute(0,2,1,3)
-        energy_W = torch.bmm(proj_query_W, proj_key_W).view(m_batchsize,height,width,width)
-        concate = self.softmax(torch.cat([energy_H, energy_W], 3))
-
-        att_H = concate[:,:,:,0:height].permute(0,2,1,3).contiguous().view(m_batchsize*width,height,height)
-        #print(concate)
-        #print(att_H) 
-        att_W = concate[:,:,:,height:height+width].contiguous().view(m_batchsize*height,width,width)
-        out_H = torch.bmm(proj_value_H, att_H.permute(0, 2, 1)).view(m_batchsize,width,-1,height).permute(0,2,3,1)
-        out_W = torch.bmm(proj_value_W, att_W.permute(0, 2, 1)).view(m_batchsize,height,-1,width).permute(0,2,1,3)
-        #print(out_H.size(),out_W.size())
-        return self.gamma*(out_H + out_W) + x
 
 
 def get_activation(activation_type):
@@ -106,35 +56,6 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-        # self.chanel_in = in_dim
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.softmax  = Softmax(dim=-1)
-
-    def forward(self,x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = x.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
-
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
-
-        out = self.gamma*out + x
-        return out
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -144,11 +65,10 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-        self.att = CAM_Module()
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        x = self.att(torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
+        x = (torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
         return self.nConvs(x)
 
 import torchvision
@@ -167,48 +87,6 @@ class seg_head(nn.Module):
         up = up2 + up1
 
         return up
-
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out
 
 
 class SEUNet(nn.Module):
