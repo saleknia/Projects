@@ -149,7 +149,7 @@ class SEUNet(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        transformer = deit_tiny_distilled_patch16_224(pretrained=True)
+        transformer = deit_small_distilled_patch16_224(pretrained=True)
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
@@ -161,7 +161,7 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.convert = _make_nConv(in_channels=192, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
+        self.convert = _make_nConv(in_channels=384, out_channels=256, nb_Conv=2, activation='ReLU', reduce=False)
         self.up_2 = nn.ConvTranspose2d(256, 128, (2,2), 2)
         self.up_1 = nn.ConvTranspose2d(128, 64 , (2,2), 2)
 
@@ -200,7 +200,7 @@ class SEUNet(nn.Module):
         for i in range(12):
             emb = self.transformers[i](emb)
         feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = feature_tf.view(b, 384, 14, 14)
         x3 = self.convert(feature_tf)
 
         x2 = self.up_2(x3)
