@@ -64,28 +64,54 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
+        self.att = ParallelPolarizedSelfAttention(in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
+        out = self.att(out)
         x = (torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
         return self.nConvs(x)
 
-import torchvision
-class seg_head(nn.Module):
-    def __init__(self, num_class):
+class ParallelPolarizedSelfAttention(nn.Module):
+
+    def __init__(self, channel=512):
         super().__init__()
-        self.scale_3 = nn.Upsample(scale_factor=2.0)
-        self.scale_2 = nn.Upsample(scale_factor=2.0)
-        self.conv_3 =  nn.Conv2d(256, 128, kernel_size=(1,1), stride=(1,1))
-        self.conv_2 =  nn.Conv2d(128, 64 , kernel_size=(1,1), stride=(1,1))
+        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
+        self.softmax_channel=nn.Softmax(1)
+        self.softmax_spatial=nn.Softmax(-1)
+        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
+        self.ln=nn.LayerNorm(channel)
+        self.sigmoid=nn.Sigmoid()
+        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
+        self.agp=nn.AdaptiveAvgPool2d((1,1))
 
-    def forward(self, up3, up2, up1):
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = up3 + up2
-        up2 = self.scale_2(self.conv_2(up2))
-        up = up2 + up1
+    def forward(self, x):
+        b, c, h, w = x.size()
 
-        return up
+        #Channel-only Self-Attention
+        channel_wv=self.ch_wv(x) #bs,c//2,h,w
+        channel_wq=self.ch_wq(x) #bs,1,h,w
+        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
+        channel_wq=self.softmax_channel(channel_wq)
+        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
+        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
+        channel_out=channel_weight*x
+
+        #Spatial-only Self-Attention
+        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
+        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
+        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
+        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
+        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
+        spatial_wq=self.softmax_spatial(spatial_wq)
+        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
+        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
+        spatial_out=spatial_weight*x
+        out=spatial_out+channel_out
+        return out
 
 
 class SEUNet(nn.Module):
