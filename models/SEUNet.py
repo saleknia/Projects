@@ -120,25 +120,6 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
-class GCN(nn.Module):
-    def __init__(self,c,out_c,k=13): #out_Channel=21 in paper
-        super(GCN, self).__init__()
-        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
-        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
-        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
-        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
-        
-    def forward(self, x):
-        x_l = self.conv_l1(x)
-        x_l = self.conv_l2(x_l)
-        
-        x_r = self.conv_r1(x)
-        x_r = self.conv_r2(x_r)
-        
-        x = x_l + x_r
-        
-        return x
-
 
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
@@ -168,6 +149,10 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
+        self.CCA_3 = CrissCrossAttention(256)
+        self.CCA_2 = CrissCrossAttention(128)
+        self.CCA_1 = CrissCrossAttention(64)
+
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
@@ -190,8 +175,13 @@ class SEUNet(nn.Module):
         e4 = self.encoder4(e3)
 
         e = self.up3(e4, e3)
+        e = self.CCA_3(e)
+
         e = self.up2(e , e2)
+        e = self.CCA_2(e)
+
         e = self.up1(e , e1)
+        e = self.CCA_1(e)
 
         e = self.final_conv1(e)
         e = self.final_relu1(e)
@@ -200,3 +190,5 @@ class SEUNet(nn.Module):
         e = self.final_conv3(e)
 
         return e
+
+
