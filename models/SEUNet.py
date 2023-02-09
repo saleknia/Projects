@@ -114,9 +114,11 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
+        self.att = AttentionBlock(out_channels, out_channels, out_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
+        skip_x = self.att(out, skip_x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -136,6 +138,48 @@ class seg_head(nn.Module):
         up = up2 + up1
 
         return up
+
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
 
 
 class SEUNet(nn.Module):
@@ -160,13 +204,6 @@ class SEUNet(nn.Module):
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
-
-        self.convert = nn.Conv2d(in_channels=384, out_channels=256, kernel_size=1, padding=0)
-
-        self.patch_embed = transformer.patch_embed
-        self.transformers = nn.ModuleList(
-            [transformer.blocks[i] for i in range(12)]
-        )
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
@@ -194,14 +231,7 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        emb = self.patch_embed(x)
-        for i in range(12):
-            emb = self.transformers[i](emb)
-        feature_tf = emb.permute(0, 2, 1)
-        feature_tf = feature_tf.view(b, 384, 14, 14)
-        x = self.convert(feature_tf)
-
-        e = self.up3(e4, e3) + x
+        e = self.up3(e4, e3)
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
