@@ -114,30 +114,11 @@ class UpBlock(nn.Module):
 
         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-        self.att = CrissCrossAttention(in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
-
-from .CTrans import ChannelTransformer
-import ml_collections
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 448  # KV_size = Q1 + Q2 + Q3 
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
-    config.transformer.dropout_rate = 0
-    config.patch_sizes = [4,2,1]
-    config.base_channel = 64 # base channel of U-Net
-    config.n_classes = 1
-    return config
 
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
@@ -171,7 +152,6 @@ class SEUNet(nn.Module):
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
         self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
-
 
     def forward(self, x):
         b, c, h, w = x.shape
