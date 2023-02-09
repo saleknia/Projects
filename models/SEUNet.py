@@ -119,7 +119,7 @@ class UpBlock(nn.Module):
     def forward(self, x, skip_x):
         out = self.up(x)
         # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.att(out, x)
+        x = self.att(out, skip_x)
         return self.nConvs(x)
 
 class SKAttention(nn.Module):
