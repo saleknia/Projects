@@ -206,7 +206,7 @@ class SEUNet(nn.Module):
         feature_tf = self.convert(feature_tf)
 
         x2 = self.up_2(feature_tf)
-        x1 = self.up_1(x1)
+        x1 = self.up_1(x2)
 
         e1 = self.combine_1(torch.cat([e1, x1], dim=1))
         e2 = self.combine_2(torch.cat([e2, x2], dim=1))
