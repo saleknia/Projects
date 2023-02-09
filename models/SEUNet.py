@@ -56,7 +56,6 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
