@@ -132,7 +132,8 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet_1 = resnet_model.resnet34(pretrained=True)
+        resnet_2 = resnet_model.resnet34(pretrained=True)
 
         # self.firstconv = resnet.conv1
         # self.firstbn   = resnet.bn1
@@ -143,22 +144,22 @@ class SEUNet(nn.Module):
         # self.encoder3  = resnet.layer3
         # self.encoder4  = resnet.layer4
 
-        self.firstconv_1 = resnet.conv1
-        self.firstbn_1   = resnet.bn1
-        self.firstrelu_1 = resnet.relu
-        self.maxpool_1   = resnet.maxpool 
-        self.encoder1_1  = resnet.layer1
-        self.encoder2_1  = resnet.layer2
-        self.encoder3_1  = resnet.layer3
-        self.encoder4_1  = resnet.layer4
+        self.firstconv_1 = resnet_1.conv1
+        self.firstbn_1   = resnet_1.bn1
+        self.firstrelu_1 = resnet_1.relu
+        self.maxpool_1   = resnet_1.maxpool 
+        self.encoder1_1  = resnet_1.layer1
+        self.encoder2_1  = resnet_1.layer2
+        self.encoder3_1  = resnet_1.layer3
+        self.encoder4_1  = resnet_1.layer4
 
-        self.firstconv_2 = resnet.conv1
-        self.firstbn_2   = resnet.bn1
-        self.firstrelu_2 = resnet.relu
-        self.encoder1_2  = resnet.layer1
-        self.encoder2_2  = resnet.layer2
-        self.encoder3_2  = resnet.layer3
-        self.encoder4_2  = resnet.layer4
+        self.firstconv_2 = resnet_2.conv1
+        self.firstbn_2   = resnet_2.bn1
+        self.firstrelu_2 = resnet_2.relu
+        self.encoder1_2  = resnet_2.layer1
+        self.encoder2_2  = resnet_2.layer2
+        self.encoder3_2  = resnet_2.layer3
+        self.encoder4_2  = resnet_2.layer4
 
         self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=64 , activation='ReLU', kernel_size=1, padding=0)
         self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=128, activation='ReLU', kernel_size=1, padding=0)
