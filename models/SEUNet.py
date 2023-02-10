@@ -168,7 +168,8 @@ class SEUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
 
     def forward(self, x):
         b, c, h, w = x.shape
