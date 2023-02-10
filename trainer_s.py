@@ -354,7 +354,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.long()
 
         if type(outputs)==tuple:
-            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs[0], dim=1)))
+            outputs = (outputs[0]+outputs[1]+outputs[2]) / 3.0
+            predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
 
         else:
             predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
