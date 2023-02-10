@@ -119,11 +119,11 @@ class knitt(nn.Module):
         self.reduce_3e = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
         self.reduce_3x = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.reduce_2e = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_2x = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1) 
+        self.reduce_2e = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2x = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1) 
 
-        self.reduce_1e = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_1x = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_1e = ConvBatchNorm(in_channels=96, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_1x = ConvBatchNorm(in_channels=96, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.fusion_e2 = fusion()
         self.fusion_e1 = fusion()
