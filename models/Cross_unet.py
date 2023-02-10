@@ -146,6 +146,17 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
+
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
@@ -168,6 +179,14 @@ class Cross_unet(nn.Module):
         self.up2 = UpBlock(256, 128, nb_Conv=2)
         self.up1 = UpBlock(128, 64 , nb_Conv=2)
 
+        self.up3_1 = UpBlock(512, 256, nb_Conv=2)
+        self.up2_1 = UpBlock(256, 128, nb_Conv=2)
+        self.up1_1 = UpBlock(128, 64 , nb_Conv=2)
+
+        self.up3_2 = UpBlock(512, 256, nb_Conv=2)
+        self.up2_2 = UpBlock(256, 128, nb_Conv=2)
+        self.up1_2 = UpBlock(128, 64 , nb_Conv=2)
+
         self.norm_4 = LayerNormProxy(dim=512)
         self.norm_3 = LayerNormProxy(dim=256)
         self.norm_2 = LayerNormProxy(dim=128)
@@ -181,25 +200,69 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
         )
 
+        self.classifier_1 = nn.Sequential(
+            nn.ConvTranspose2d(64, 64, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
+        )
+
+        self.classifier_2 = nn.Sequential(
+            nn.ConvTranspose2d(64, 64, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(64, 64, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(64, n_classes, kernel_size=2, stride=2)
+        )
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
+
         outputs = self.encoder(x_input)
 
-        x4 = self.norm_4(outputs[3]) 
+        x4 = self.norm_4(outputs[3])
         x3 = self.norm_3(outputs[2]) 
         x2 = self.norm_2(outputs[1]) 
-        x1 = self.norm_1(outputs[0]) 
+        x1 = self.norm_1(outputs[0])
+
+        x = self.up3_1(x4, x3) 
+        x = self.up2_1(x , x2) 
+        x = self.up1_1(x , x1)
+
+        e = self.up3_1(e4, e3) 
+        e = self.up2_1(e , e2) 
+        e = self.up1_1(e , e1)
+
+        x4 = x4 + e4
+        x3 = x3 + e3 
+        x2 = x2 + e2 
+        x1 = x1 + e1
 
         x3 = self.up3(x4, x3) 
         x2 = self.up2(x3, x2) 
         x1 = self.up1(x2, x1)
 
-        x = self.classifier(x1)
+        k = self.classifier(x1)
+        x = self.classifier_1(x)
+        e = self.classifier_2(e)
 
-        return x
+        if self.training:
+            return k, x, e
+        else:
+            return k
 
 
 
