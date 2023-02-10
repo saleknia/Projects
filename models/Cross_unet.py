@@ -241,12 +241,10 @@ class Cross_unet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-        x4 = self.norm_4_1(outputs_1[3])
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        e4 = self.norm_4_2(outputs_2[3])
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
