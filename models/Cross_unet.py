@@ -883,7 +883,7 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers[0:3]):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
