@@ -214,11 +214,11 @@ class Cross_unet(nn.Module):
                             drop_path_rate=0.2,
                         )
 
-        self.norm_3_1 = LayerNormProxy(dim=368)
+        self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        self.norm_3_2 = LayerNormProxy(dim=368)
+        self.norm_3_2 = LayerNormProxy(dim=384)
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
 
