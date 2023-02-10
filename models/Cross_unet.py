@@ -116,29 +116,15 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.reduce_3e = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_3x = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.fusion_e2 = UpBlock(384, 192)
+        self.fusion_e1 = UpBlock(192, 96)
 
-        self.reduce_2e = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_2x = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1) 
+        self.fusion_x2 = UpBlock(384, 192)
+        self.fusion_x1 = UpBlock(192, 96)
 
-        self.reduce_1e = ConvBatchNorm(in_channels=96, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_1x = ConvBatchNorm(in_channels=96, out_channels=96, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-
-        self.fusion_e2 = fusion()
-        self.fusion_e1 = fusion()
-
-        self.fusion_x2 = fusion()
-        self.fusion_x1 = fusion()
+        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
-        e1 = self.reduce_1e(e1)
-        e2 = self.reduce_2e(e2)
-        e3 = self.reduce_3e(e3)
-
-        x1 = self.reduce_1e(x1)
-        x2 = self.reduce_2e(x2)
-        x3 = self.reduce_3e(x3)
 
         e2 = self.fusion_e2(x3, e2)
         x2 = self.fusion_x2(e3, x2)
@@ -146,7 +132,7 @@ class knitt(nn.Module):
         e1 = self.fusion_e1(x2, e1)
         x1 = self.fusion_x1(e2, x1)
 
-        x = x1 + e1
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
         return x    
 
