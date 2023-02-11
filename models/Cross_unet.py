@@ -135,8 +135,8 @@ class knitt(nn.Module):
         e1 = self.fusion_e1(x2, e1)
         x1 = self.fusion_x1(e2, x1)
 
-        x = self.combine(torch.cat([e1, x1], dim=1))
-
+        # x = self.combine(torch.cat([e1, x1], dim=1))
+        x = e1 + x1
         return x    
 
 import torch
