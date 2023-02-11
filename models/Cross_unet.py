@@ -228,7 +228,7 @@ class Cross_unet(nn.Module):
         e4 = self.encoder4(e3)
 
 
-        t = self.knitt(x2, x3, x4, e1, e2, e3)
+        t = self.knitt(x2, x3, x4, e2, e3, e4)
 
         t = self.classifier(t)
 
