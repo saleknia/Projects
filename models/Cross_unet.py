@@ -139,48 +139,6 @@ class knitt(nn.Module):
 
         return x    
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models as resnet
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weights*feats)
-        V=feats[0] + feats[1]
-        return V
-
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -238,12 +196,10 @@ class Cross_unet(nn.Module):
                             drop_path_rate=0.2,
                         )
 
-        self.norm_4_1 = LayerNormProxy(dim=768)
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        self.norm_4_2 = LayerNormProxy(dim=768)
         self.norm_3_2 = LayerNormProxy(dim=384)
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
@@ -258,29 +214,27 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.up3_x = nn.ConvTranspose2d(768, 384, kernel_size=2, stride=2)
-        self.up2_x = nn.ConvTranspose2d(384, 192, kernel_size=2, stride=2)
-        self.up1_x = nn.ConvTranspose2d(192, 96 , kernel_size=2, stride=2)
+        # self.up2_x = UpBlock(384, 192, nb_Conv=2)
+        # self.up1_x = UpBlock(192, 96 , nb_Conv=2)
 
-        self.up3_e = nn.ConvTranspose2d(768, 384, kernel_size=2, stride=2)
-        self.up2_e = nn.ConvTranspose2d(384, 192, kernel_size=2, stride=2)
-        self.up1_e = nn.ConvTranspose2d(192, 96 , kernel_size=2, stride=2)
+        # self.up2_e = UpBlock(384, 192, nb_Conv=2)
+        # self.up1_e = UpBlock(192, 96 , nb_Conv=2)
 
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
-        self.classifier_x = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier_x = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
 
     def forward(self, x):
@@ -291,12 +245,10 @@ class Cross_unet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-        x4 = self.norm_4_1(outputs_1[3]) 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        e4 = self.norm_4_2(outputs_2[3]) 
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
@@ -305,22 +257,21 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)  
 
-        x3 = self.up3_x(x4) + x3
-        x2 = self.up2_x(x3) + x2
-        x1 = self.up1_x(x2) + x1
+        # x = self.up2_x(x3, x2)
+        # x = self.up1_x(x , x1)
 
-        e3 = self.up3_e(e4) + e3
-        e2 = self.up2_e(e3) + e2
-        e1 = self.up1_e(e2) + e1
+        # e = self.up2_e(e3, e2)
+        # e = self.up1_e(e , e1)
 
-        x = self.classifier_x(x1)
-        e = self.classifier_e(e1)
+        # x = self.classifier_x(x)
+        # e = self.classifier_e(e)
 
-        if self.training:
-            return t, x, e
-        else:    
-            return (t+x+e) / 3.0
+        # if self.training:
+        #     return t, x, e
+        # else:    
+        #     return (t+x+e) / 3.0
 
+        return t
 
 import math
 import torch
@@ -923,7 +874,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        # self.layers[3] = None
+        self.layers[3] = None
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -947,8 +898,7 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        # for i, layer in enumerate(self.layers[0:3]):
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers[0:3]):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
@@ -1452,7 +1402,7 @@ class DAT(nn.Module):
             checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
             state_dict = checkpoint['model']
             self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
 
     def reset_parameters(self):
 
@@ -1516,10 +1466,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
