@@ -248,7 +248,8 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
-        self.SKAttention = SKAttention(384)
+        self.SKAttention_e = SKAttention(384)
+        self.SKAttention_x = SKAttention(384)
 
         self.up2_x = UpBlock(384, 192, nb_Conv=2)
         self.up1_x = UpBlock(192, 96 , nb_Conv=2)
@@ -301,12 +302,13 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)  
 
-        s = self.SKAttention(x3, e3)
+        x3 = self.SKAttention_x(x3, e3)
+        e3 = self.SKAttention_e(x3, e3)
 
-        x = self.up2_x(s , x2)
+        x = self.up2_x(x3, x2)
         x = self.up1_x(x , x1)
 
-        e = self.up2_e(s , e2)
+        e = self.up2_e(e3, e2)
         e = self.up1_e(e , e1)
 
         x = self.classifier_x(x)
