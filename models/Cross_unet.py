@@ -177,11 +177,11 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        resnet = resnet_model.resnet50(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        self.reduce_2 = ConvBatchNorm(in_channels=512 , out_channels=96 , kernel_size=1, activation='ReLU', dilation=1, padding=0)        
-        self.reduce_3 = ConvBatchNorm(in_channels=1024, out_channels=192, kernel_size=1, activation='ReLU', dilation=1, padding=0)
-        self.reduce_4 = ConvBatchNorm(in_channels=2048, out_channels=384, kernel_size=1, activation='ReLU', dilation=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=96 , kernel_size=3, activation='ReLU', dilation=1, padding=1)        
+        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=192, kernel_size=3, activation='ReLU', dilation=1, padding=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=384, kernel_size=3, activation='ReLU', dilation=1, padding=1)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
