@@ -251,20 +251,7 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)
 
-        x = self.up2_x(x3, x2)
-        x = self.up1_x(x , x1)
-
-        e = self.up2_e(e3, e2)
-        e = self.up1_e(e , e1)
-
-        x = self.classifier_x(x)
-        e = self.classifier_e(e)
-
-        if self.training:
-            return t, x, e
-        else:
-            return (t+x+e) / 3.0
-
+        return t
 
 import math
 import torch
