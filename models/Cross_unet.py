@@ -249,29 +249,29 @@ class Cross_unet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        # outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        outputs_1 = self.encoder_1(x_input)
+        # outputs_2 = self.encoder_2(x_input)
 
-        # x3 = self.norm_3_1(outputs_1[2]) 
-        # x2 = self.norm_2_1(outputs_1[1]) 
-        # x1 = self.norm_1_1(outputs_1[0])
+        x3 = self.norm_3_1(outputs_1[2]) 
+        x2 = self.norm_2_1(outputs_1[1]) 
+        x1 = self.norm_1_1(outputs_1[0])
 
-        e3 = self.norm_3_2(outputs_2[2]) 
-        e2 = self.norm_2_2(outputs_2[1]) 
-        e1 = self.norm_1_2(outputs_2[0])
+        # e3 = self.norm_3_2(outputs_2[2]) 
+        # e2 = self.norm_2_2(outputs_2[1]) 
+        # e1 = self.norm_1_2(outputs_2[0])
 
         # t = self.knitt(x1, x2, x3, e1, e2, e3)
 
         # t = self.classifier(t)
 
-        # x = self.up2_x(x3, x2)
-        # x = self.up1_x(x , x1)
+        x = self.up2_x(x3, x2)
+        x = self.up1_x(x , x1)
 
-        e = self.up2_e(e3, e2)
-        e = self.up1_e(e , e1)
+        # e = self.up2_e(e3, e2)
+        # e = self.up1_e(e , e1)
 
-        # x = self.classifier_x(x)
-        e = self.classifier_e(e)
+        x = self.classifier_x(x)
+        # e = self.classifier_e(e)
 
         # if self.training:
         #     return t, x, e
@@ -279,7 +279,7 @@ class Cross_unet(nn.Module):
             
         # return (t+x+e) / 3.0
 
-        return e
+        return x
 
 
 import math
