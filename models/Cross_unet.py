@@ -54,13 +54,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        return x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        return x + skip_x
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -196,6 +196,7 @@ class Cross_unet(nn.Module):
         #                     drop_path_rate=0.2,
         #                 )
 
+        self.norm_4_1 = LayerNormProxy(dim=512)
         self.norm_3_1 = LayerNormProxy(dim=256)
         self.norm_2_1 = LayerNormProxy(dim=128)
         self.norm_1_1 = LayerNormProxy(dim=64)
@@ -214,6 +215,7 @@ class Cross_unet(nn.Module):
         #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         # )
 
+        self.up3_x = UpBlock(512, 256, nb_Conv=2)
         self.up2_x = UpBlock(256, 128, nb_Conv=2)
         self.up1_x = UpBlock(128, 64 , nb_Conv=2)
 
@@ -245,6 +247,7 @@ class Cross_unet(nn.Module):
         outputs_1 = self.encoder_1(x_input)
         # outputs_2 = self.encoder_2(x_input)
 
+        x4 = self.norm_4_1(outputs_1[3]) 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
@@ -257,7 +260,8 @@ class Cross_unet(nn.Module):
 
         # t = self.classifier(t)  
 
-        x = self.up2_x(x3, x2)
+        x = self.up3_x(x4, x3)
+        x = self.up2_x(x , x2)
         x = self.up1_x(x , x1)
 
         # e = self.up2_e(e3, e2)
@@ -874,7 +878,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        self.layers[3] = None
+        # self.layers[3] = None
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -898,7 +902,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        for i, layer in enumerate(self.layers[0:3]):
+        # for i, layer in enumerate(self.layers[0:3]):
+        for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
