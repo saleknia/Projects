@@ -248,15 +248,6 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
-        self.SKAttention_e = SKAttention(384)
-        self.SKAttention_x = SKAttention(384)
-
-        self.up2_x = UpBlock(384, 192, nb_Conv=2)
-        self.up1_x = UpBlock(192, 96 , nb_Conv=2)
-
-        self.up2_e = UpBlock(384, 192, nb_Conv=2)
-        self.up1_e = UpBlock(192, 96 , nb_Conv=2)
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -265,21 +256,27 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.up2_x = UpBlock(384, 192, nb_Conv=2)
+        # self.up1_x = UpBlock(192, 96 , nb_Conv=2)
 
-        self.classifier_x = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.up2_e = UpBlock(384, 192, nb_Conv=2)
+        # self.up1_e = UpBlock(192, 96 , nb_Conv=2)
+
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
+
+        # self.classifier_x = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
 
     def forward(self, x):
@@ -302,23 +299,21 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)  
 
-        x3 = self.SKAttention_x(x3, e3)
-        e3 = self.SKAttention_e(x3, e3)
+        # x = self.up2_x(x3, x2)
+        # x = self.up1_x(x , x1)
 
-        x = self.up2_x(x3, x2)
-        x = self.up1_x(x , x1)
+        # e = self.up2_e(e3, e2)
+        # e = self.up1_e(e , e1)
 
-        e = self.up2_e(e3, e2)
-        e = self.up1_e(e , e1)
+        # x = self.classifier_x(x)
+        # e = self.classifier_e(e)
 
-        x = self.classifier_x(x)
-        e = self.classifier_e(e)
+        # if self.training:
+        #     return t, x, e
+        # else:    
+        #     return (t+x+e) / 3.0
 
-        if self.training:
-            return t, x, e
-        else:    
-            return (t+x+e) / 3.0
-
+        return t
 
 import math
 import torch
