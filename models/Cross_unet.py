@@ -273,11 +273,10 @@ class Cross_unet(nn.Module):
         x = self.classifier_x(x)
         e = self.classifier_e(e)
 
-        # if self.training:
-        #     return t, x, e
-        # else:
-            
-        return (t+x+e) / 3.0
+        if self.training:
+            return t, x, e
+        else:    
+            return (t+x+e) / 3.0
 
 
 import math
