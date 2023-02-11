@@ -308,6 +308,13 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
                 loss_att = 0.0
                 loss = loss_ce + loss_dice + loss_att
 
+        lr_ = 0.00005 * (1.0 - iter_num / max_iterations) ** 0.9
+
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
+
+        iter_num = iter_num + 1  
+
         scaler.scale(loss).backward()
         scaler.step(optimizer)
         scaler.update()
