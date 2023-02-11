@@ -247,7 +247,7 @@ class Cross_unet(nn.Module):
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
 
-        t = self.knitt(x1, x2, x3, e1, e2, e3)
+        t = self.knitt(x1, x2, x3, x4, e1, e2, e3, e4)
 
         t = self.classifier(t)
 
