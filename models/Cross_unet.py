@@ -144,6 +144,41 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models as resnet
 
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512, reduction=4, group=1):
+        super().__init__()
+        self.d=channel//reduction
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(2):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+    def forward(self, x, y):
+        bs, c, _, _ = x.size()
+        conv_outs=[x, y]
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
+        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weights*feats)
+        V=feats[0] + feats[1]
+        return V
 
 
 class Cross_unet(nn.Module):
@@ -213,6 +248,8 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
+        self.SKAttention = SKAttention(384)
+
         self.up2_x = UpBlock(384, 192, nb_Conv=2)
         self.up1_x = UpBlock(192, 96 , nb_Conv=2)
 
@@ -262,20 +299,14 @@ class Cross_unet(nn.Module):
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        t = self.classifier(t)
+        t = self.classifier(t)  
 
-        x1 = x1.detach()
-        x2 = x2.detach()
-        x3 = x3.detach()
+        s = self.SKAttention(x3, e3)
 
-        e1 = e1.detach()
-        e2 = e2.detach()
-        e3 = e3.detach()      
-
-        x = self.up2_x(x3, x2)
+        x = self.up2_x(s , x2)
         x = self.up1_x(x , x1)
 
-        e = self.up2_e(e3, e2)
+        e = self.up2_e(s , e2)
         e = self.up1_e(e , e1)
 
         x = self.classifier_x(x)
