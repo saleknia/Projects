@@ -179,7 +179,6 @@ class Cross_unet(nn.Module):
 
         resnet = resnet_model.resnet50(pretrained=True)
 
-        self.reduce_1 = ConvBatchNorm(in_channels=256 , out_channels=48 , activation='ReLU', dilation=1, padding=0)
         self.reduce_2 = ConvBatchNorm(in_channels=512 , out_channels=96 , activation='ReLU', dilation=1, padding=0)        
         self.reduce_3 = ConvBatchNorm(in_channels=1024, out_channels=192, activation='ReLU', dilation=1, padding=0)
         self.reduce_4 = ConvBatchNorm(in_channels=2048, out_channels=384, activation='ReLU', dilation=1, padding=0)
@@ -227,6 +226,9 @@ class Cross_unet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
+        e2 = self.reduce_2(e2)
+        e3 = self.reduce_3(e3)
+        e4 = self.reduce_4(e4)
 
         t = self.knitt(x2, x3, x4, e2, e3, e4)
 
