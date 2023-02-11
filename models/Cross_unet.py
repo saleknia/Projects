@@ -264,6 +264,14 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)
 
+        x1 = x1.detach()
+        x2 = x2.detach()
+        x3 = x3.detach()
+
+        e1 = e1.detach()
+        e2 = e2.detach()
+        e3 = e3.detach()      
+
         x = self.up2_x(x3, x2)
         x = self.up1_x(x , x1)
 
