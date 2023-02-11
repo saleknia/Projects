@@ -179,9 +179,9 @@ class Cross_unet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
-        self.reduce_2 = ConvBatchNorm(in_channels=128, out_channels=96 , kernel_size=3, activation='ReLU', dilation=1, padding=1)        
-        self.reduce_3 = ConvBatchNorm(in_channels=256, out_channels=192, kernel_size=3, activation='ReLU', dilation=1, padding=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=512, out_channels=384, kernel_size=3, activation='ReLU', dilation=1, padding=1)
+        self.reduce_2 = _make_nConv(in_channels=128, out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)      
+        self.reduce_3 = _make_nConv(in_channels=256, out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_4 = _make_nConv(in_channels=512, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
