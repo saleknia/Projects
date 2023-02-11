@@ -170,63 +170,63 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_2 = DAT(
-                            img_size=224,
-                            patch_size=4,
-                            num_classes=1000,
-                            expansion=4,
-                            dim_stem=96,
-                            dims=[96, 192, 384, 768],
-                            depths=[2, 2, 6, 2],
-                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-                            heads=[3, 6, 12, 24],
-                            window_sizes=[7, 7, 7, 7] ,
-                            groups=[-1, -1, 3, 6],
-                            use_pes=[False, False, True, True],
-                            dwc_pes=[False, False, False, False],
-                            strides=[-1, -1, 1, 1],
-                            sr_ratios=[-1, -1, -1, -1],
-                            offset_range_factor=[-1, -1, 2, 2],
-                            no_offs=[False, False, False, False],
-                            fixed_pes=[False, False, False, False],
-                            use_dwc_mlps=[False, False, False, False],
-                            use_conv_patches=False,
-                            drop_rate=0.0,
-                            attn_drop_rate=0.0,
-                            drop_path_rate=0.2,
-                        )
+        # self.encoder_2 = DAT(
+        #                     img_size=224,
+        #                     patch_size=4,
+        #                     num_classes=1000,
+        #                     expansion=4,
+        #                     dim_stem=96,
+        #                     dims=[96, 192, 384, 768],
+        #                     depths=[2, 2, 6, 2],
+        #                     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #                     heads=[3, 6, 12, 24],
+        #                     window_sizes=[7, 7, 7, 7] ,
+        #                     groups=[-1, -1, 3, 6],
+        #                     use_pes=[False, False, True, True],
+        #                     dwc_pes=[False, False, False, False],
+        #                     strides=[-1, -1, 1, 1],
+        #                     sr_ratios=[-1, -1, -1, -1],
+        #                     offset_range_factor=[-1, -1, 2, 2],
+        #                     no_offs=[False, False, False, False],
+        #                     fixed_pes=[False, False, False, False],
+        #                     use_dwc_mlps=[False, False, False, False],
+        #                     use_conv_patches=False,
+        #                     drop_rate=0.0,
+        #                     attn_drop_rate=0.0,
+        #                     drop_path_rate=0.2,
+        #                 )
 
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        self.norm_3_2 = LayerNormProxy(dim=384)
-        self.norm_2_2 = LayerNormProxy(dim=192)
-        self.norm_1_2 = LayerNormProxy(dim=96)
+        # self.norm_3_2 = LayerNormProxy(dim=384)
+        # self.norm_2_2 = LayerNormProxy(dim=192)
+        # self.norm_1_2 = LayerNormProxy(dim=96)
 
-        self.knitt = knitt()
+        # self.knitt = knitt()
 
-        self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
         self.up2_x = UpBlock(384, 192, nb_Conv=2)
         self.up1_x = UpBlock(192, 96 , nb_Conv=2)
 
-        self.up2_e = UpBlock(384, 192, nb_Conv=2)
-        self.up1_e = UpBlock(192, 96 , nb_Conv=2)
+        # self.up2_e = UpBlock(384, 192, nb_Conv=2)
+        # self.up1_e = UpBlock(192, 96 , nb_Conv=2)
 
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
         self.classifier_x = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -243,33 +243,35 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        # outputs_2 = self.encoder_2(x_input)
 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        e3 = self.norm_3_2(outputs_2[2]) 
-        e2 = self.norm_2_2(outputs_2[1]) 
-        e1 = self.norm_1_2(outputs_2[0])
+        # e3 = self.norm_3_2(outputs_2[2]) 
+        # e2 = self.norm_2_2(outputs_2[1]) 
+        # e1 = self.norm_1_2(outputs_2[0])
 
-        t = self.knitt(x1, x2, x3, e1, e2, e3)
+        # t = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        t = self.classifier(t)  
+        # t = self.classifier(t)  
 
         x = self.up2_x(x3, x2)
         x = self.up1_x(x , x1)
 
-        e = self.up2_e(e3, e2)
-        e = self.up1_e(e , e1)
+        # e = self.up2_e(e3, e2)
+        # e = self.up1_e(e , e1)
 
         x = self.classifier_x(x)
-        e = self.classifier_e(e)
+        # e = self.classifier_e(e)
 
-        if self.training:
-            return t, x, e
-        else:    
-            return (t+x+e) / 3.0
+        # if self.training:
+        #     return t, x, e
+        # else:    
+        #     return (t+x+e) / 3.0
+
+        return x
 
 import math
 import torch
