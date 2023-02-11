@@ -305,16 +305,16 @@ class Cross_unet(nn.Module):
 
         t = self.classifier(t)  
 
-        x = self.up3_x(x4, x3)
-        x = self.up2_x(x , x2)
-        x = self.up1_x(x , x1)
+        x3 = self.up3_x(x4) + x3
+        x2 = self.up2_x(x3) + x2
+        x1 = self.up1_x(x2) + x1
 
-        e = self.up3_e(e4, e3)
-        e = self.up2_e(e , e2)
-        e = self.up1_e(e , e1)
+        e3 = self.up3_e(e4) + e3
+        e2 = self.up2_e(e3) + e2
+        e1 = self.up1_e(e2) + e1
 
-        x = self.classifier_x(x)
-        e = self.classifier_e(e)
+        x = self.classifier_x(x1)
+        e = self.classifier_e(e1)
 
         if self.training:
             return t, x, e
