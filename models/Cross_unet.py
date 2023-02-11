@@ -156,15 +156,15 @@ class Cross_unet(nn.Module):
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
-                                    embed_dim=96,
-                                    depths=[2, 2, 6, 2],
-                                    num_heads=[3, 6, 12, 24],
+                                    embed_dim=64,
+                                    depths=[1, 1, 8, 6],
+                                    num_heads=[2, 4, 8, 16],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
                                     qkv_bias=True,
                                     qk_scale=None,
                                     drop_rate=0.0,
-                                    drop_path_rate=0.2,
+                                    drop_path_rate=0.1,
                                     ape=False,
                                     patch_norm=True,
                                     use_checkpoint=False,
@@ -196,9 +196,9 @@ class Cross_unet(nn.Module):
         #                     drop_path_rate=0.2,
         #                 )
 
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.norm_3_1 = LayerNormProxy(dim=256)
+        self.norm_2_1 = LayerNormProxy(dim=128)
+        self.norm_1_1 = LayerNormProxy(dim=64)
 
         # self.norm_3_2 = LayerNormProxy(dim=384)
         # self.norm_2_2 = LayerNormProxy(dim=192)
@@ -214,8 +214,8 @@ class Cross_unet(nn.Module):
         #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         # )
 
-        self.up2_x = UpBlock(384, 192, nb_Conv=2)
-        self.up1_x = UpBlock(192, 96 , nb_Conv=2)
+        self.up2_x = UpBlock(256, 128, nb_Conv=2)
+        self.up1_x = UpBlock(128, 64 , nb_Conv=2)
 
         # self.up2_e = UpBlock(384, 192, nb_Conv=2)
         # self.up1_e = UpBlock(192, 96 , nb_Conv=2)
@@ -229,11 +229,11 @@ class Cross_unet(nn.Module):
         # )
 
         self.classifier_x = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ConvTranspose2d(64, 64, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
+            nn.Conv2d(64, 32, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
         )
 
 
@@ -871,7 +871,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
