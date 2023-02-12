@@ -114,7 +114,7 @@ class knitt(nn.Module):
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
-        # self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
@@ -123,16 +123,15 @@ class knitt(nn.Module):
         e3 = self.conv_e(self.se_e(s))
         x3 = self.conv_x(self.se_x(s))
 
-        e = self.fusion_e2(e3, e2)
-        e = self.fusion_e1(e , e1)
+        e2 = self.fusion_e2(x3, e2)
+        x2 = self.fusion_x2(e3, x2)
 
-        x = self.fusion_x2(x3, x2)
-        x = self.fusion_x1(x , x1)
+        e1 = self.fusion_e1(x2, e1)
+        x1 = self.fusion_x1(e2, x1)
 
-        # x = self.combine(torch.cat([e, x], dim=1))
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
-
-        return x, e
+        return x
 
 import torch
 import torch.nn as nn
@@ -168,7 +167,6 @@ class Cross_unet(nn.Module):
                                     patch_norm=True,
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
-
 
         self.encoder_2 = DAT(
                             img_size=224,
@@ -215,24 +213,6 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.classifier_x = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(48, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
-
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            # nn.Conv2d(48, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
-
         # self.up3 = UpBlock(768, 384)
         # self.up2 = UpBlock(384, 192)
         # self.up1 = UpBlock(192, 96)
@@ -244,7 +224,6 @@ class Cross_unet(nn.Module):
         #     nn.ReLU(inplace=True),
         #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         # )
-
 
     def forward(self, x):
         # # Question here
@@ -262,16 +241,11 @@ class Cross_unet(nn.Module):
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
 
-        x, e = self.knitt(x1, x2, x3, e1, e2, e3)
+        x = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        t = self.classifier(x+e)
-        e = self.classifier_e(e)
-        x = self.classifier_x(x)
+        x = self.classifier(x)
 
-        if self.training:
-            return t, x, e
-        else:
-            return t
+        return x
 
 
 
