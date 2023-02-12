@@ -156,54 +156,56 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-
-        self.encoder_tf =  CrossFormer(img_size=224,
-                                    patch_size=[4, 8, 16, 32],
-                                    in_chans= 3,
-                                    num_classes=1000,
-                                    embed_dim=96,
-                                    depths=[2, 2, 6, 2],
-                                    num_heads=[3, 6, 12, 24],
-                                    group_size=[7, 7, 7, 7],
-                                    mlp_ratio=4.,
-                                    qkv_bias=True,
-                                    qk_scale=None,
-                                    drop_rate=0.0,
-                                    drop_path_rate=0.2,
-                                    ape=False,
-                                    patch_norm=True,
-                                    use_checkpoint=False,
-                                    merge_size=[[2, 4], [2,4], [2, 4]])
+        # self.encoder_tf =  CrossFormer(img_size=224,
+        #                             patch_size=[4, 8, 16, 32],
+        #                             in_chans= 3,
+        #                             num_classes=1000,
+        #                             embed_dim=96,
+        #                             depths=[2, 2, 6, 2],
+        #                             num_heads=[3, 6, 12, 24],
+        #                             group_size=[7, 7, 7, 7],
+        #                             mlp_ratio=4.,
+        #                             qkv_bias=True,
+        #                             qk_scale=None,
+        #                             drop_rate=0.0,
+        #                             drop_path_rate=0.2,
+        #                             ape=False,
+        #                             patch_norm=True,
+        #                             use_checkpoint=False,
+        #                             merge_size=[[2, 4], [2,4], [2, 4]])
 
         self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
         self.encoder_cnn.incre_modules = None
         self.encoder_cnn.stage4 = None
 
-        self.expand_1 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.expand_2 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.expand_3 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_1 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_2 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        # self.expand_3 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+        # self.norm_3 = LayerNormProxy(dim=384)
+        # self.norm_2 = LayerNormProxy(dim=192)
+        # self.norm_1 = LayerNormProxy(dim=96)
 
-        self.knitt = knitt()
+        # self.knitt = knitt()
 
-        self.classifier_x = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
+            nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(24, n_classes, kernel_size=2, stride=2)
         )
 
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        self.up2 = UpBlock(192, 96)
+        self.up1 = UpBlock(96 , 48)
+
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
 
     def forward(self, x):
@@ -225,21 +227,14 @@ class Cross_unet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
         yl = self.encoder_cnn.stage3(xl)
 
-        outputs = self.encoder_tf(x0)
 
-        x3 = self.norm_3(outputs[2]) 
-        x2 = self.norm_2(outputs[1]) 
-        x1 = self.norm_1(outputs[0])
+        x1, x2, x3 = yl[0], yl[1], yl[2]
+        x = self.up2(x3, x2)
+        x = self.up1(x , x1)
 
-        yl[2] = self.expand_3(yl[2])
-        yl[1] = self.expand_2(yl[1])
-        yl[0] = self.expand_1(yl[0])
+        x = self.classifier(x)
 
-        x, e = self.knitt(x1, x2, x3, yl[0], yl[1], yl[2])
-
-        x, e = self.classifier_x(x), self.classifier_e(e)
-
-        return x, e
+        return x
 
 
 # class Cross_unet(nn.Module):
