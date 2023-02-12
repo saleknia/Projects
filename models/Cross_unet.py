@@ -218,6 +218,7 @@ class Cross_unet(nn.Module):
         # self.expand_3 = _make_nConv(in_channels=72 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.expand_4 = _make_nConv(in_channels=144, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
+        self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
@@ -233,9 +234,9 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.up3 = UpBlock(384, 192)
-        self.up2 = UpBlock(192, 96)
-        self.up1 = UpBlock(96 , 48)
+        self.up3 = UpBlock(768, 384)
+        self.up2 = UpBlock(384, 192)
+        self.up1 = UpBlock(192, 96)
 
         # self.classifier_e = nn.Sequential(
         #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -253,6 +254,7 @@ class Cross_unet(nn.Module):
 
         outputs = self.encoder_tf(x0)
 
+        x4 = self.norm_4(outputs[3])
         x3 = self.norm_3(outputs[2])
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
