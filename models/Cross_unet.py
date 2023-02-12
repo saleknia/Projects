@@ -38,14 +38,14 @@ class SEBlock(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, x, skip_x):
+    def forward(self, x):
         b, c, _, _ = x.size()
         # Squeeze
         y = self.avg_pool(x).view(b, c)
         # Excitation
         y = self.fc(y).view(b, c, 1, 1)
         # Fusion
-        y = torch.mul(skip_x, y)
+        y = torch.mul(x, y)
         return y
 
 class UpBlock(nn.Module):
