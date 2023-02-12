@@ -54,13 +54,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        return x + skip_x
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
+        return x 
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -149,8 +149,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models as resnet
 
-
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -164,61 +162,41 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
 
-        self.encoder_1 =  CrossFormer(img_size=224,
-                                    patch_size=[4, 8, 16, 32],
-                                    in_chans= 3,
-                                    num_classes=1000,
-                                    embed_dim=96,
-                                    depths=[2, 2, 6, 2],
-                                    num_heads=[3, 6, 12, 24],
-                                    group_size=[7, 7, 7, 7],
-                                    mlp_ratio=4.,
-                                    qkv_bias=True,
-                                    qk_scale=None,
-                                    drop_rate=0.0,
-                                    drop_path_rate=0.2,
-                                    ape=False,
-                                    patch_norm=True,
-                                    use_checkpoint=False,
-                                    merge_size=[[2, 4], [2,4], [2, 4]])
+        # self.encoder_1 =  CrossFormer(img_size=224,
+        #                             patch_size=[4, 8, 16, 32],
+        #                             in_chans= 3,
+        #                             num_classes=1000,
+        #                             embed_dim=96,
+        #                             depths=[2, 2, 6, 2],
+        #                             num_heads=[3, 6, 12, 24],
+        #                             group_size=[7, 7, 7, 7],
+        #                             mlp_ratio=4.,
+        #                             qkv_bias=True,
+        #                             qk_scale=None,
+        #                             drop_rate=0.0,
+        #                             drop_path_rate=0.2,
+        #                             ape=False,
+        #                             patch_norm=True,
+        #                             use_checkpoint=False,
+        #                             merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_2 = DAT(
-                            img_size=224,
-                            patch_size=4,
-                            num_classes=1000,
-                            expansion=4,
-                            dim_stem=96,
-                            dims=[96, 192, 384, 768],
-                            depths=[2, 2, 6, 2],
-                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-                            heads=[3, 6, 12, 24],
-                            window_sizes=[7, 7, 7, 7] ,
-                            groups=[-1, -1, 3, 6],
-                            use_pes=[False, False, True, True],
-                            dwc_pes=[False, False, False, False],
-                            strides=[-1, -1, 1, 1],
-                            sr_ratios=[-1, -1, -1, -1],
-                            offset_range_factor=[-1, -1, 2, 2],
-                            no_offs=[False, False, False, False],
-                            fixed_pes=[False, False, False, False],
-                            use_dwc_mlps=[False, False, False, False],
-                            use_conv_patches=False,
-                            drop_rate=0.0,
-                            attn_drop_rate=0.0,
-                            drop_path_rate=0.2,
-                        )
+        self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
+        self.encoder_cnn.incre_modules = None
+        self.encoder_cnn.stage4 = None
 
-        self.norm_4_1 = LayerNormProxy(dim=768)
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.expand_1 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.expand_2 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.expand_3 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.norm_4_2 = LayerNormProxy(dim=768)
-        self.norm_3_2 = LayerNormProxy(dim=384)
-        self.norm_2_2 = LayerNormProxy(dim=192)
-        self.norm_1_2 = LayerNormProxy(dim=96)
+        self.up2 = UpBlock(384, 192)
+        self.up1 = UpBlock(192, 96)
 
-        self.knitt = knitt()
+        # self.norm_4 = LayerNormProxy(dim=768)
+        # self.norm_3 = LayerNormProxy(dim=384)
+        # self.norm_2 = LayerNormProxy(dim=192)
+        # self.norm_1 = LayerNormProxy(dim=96)
+
+        # self.knitt = knitt()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -231,27 +209,136 @@ class Cross_unet(nn.Module):
 
     def forward(self, x):
         # # Question here
-        x_input = x.float()
-        B, C, H, W = x.shape
+        x0 = x.float()
+        b, c, h, w = x.shape
 
-        outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        x = self.encoder.conv1(x0)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        x = self.encoder.conv2(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
 
-        x4 = self.norm_4_1(outputs_1[3]) 
-        x3 = self.norm_3_1(outputs_1[2]) 
-        x2 = self.norm_2_1(outputs_1[1]) 
-        x1 = self.norm_1_1(outputs_1[0])
+        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        yl = self.encoder.stage2(xl)
 
-        e4 = self.norm_4_2(outputs_2[3]) 
-        e3 = self.norm_3_2(outputs_2[2]) 
-        e2 = self.norm_2_2(outputs_2[1]) 
-        e1 = self.norm_1_2(outputs_2[0])
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        yl = self.encoder.stage3(xl)
 
-        t = self.knitt(x1, x2, x3, x4, e1, e2, e3, e4)
+        yl[2] = self.expand_3(yl[2])
+        yl[1] = self.expand_2(yl[1])
+        yl[0] = self.expand_1(yl[0])
 
-        t = self.classifier(t)
+        x = self.up2(yl[2], yl[1])
+        x = self.up1(x    , yl[0])
 
-        return t
+        x = self.classifier(x)
+
+        return x
+
+
+# class Cross_unet(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
+
+
+#         self.encoder_1 =  CrossFormer(img_size=224,
+#                                     patch_size=[4, 8, 16, 32],
+#                                     in_chans= 3,
+#                                     num_classes=1000,
+#                                     embed_dim=96,
+#                                     depths=[2, 2, 6, 2],
+#                                     num_heads=[3, 6, 12, 24],
+#                                     group_size=[7, 7, 7, 7],
+#                                     mlp_ratio=4.,
+#                                     qkv_bias=True,
+#                                     qk_scale=None,
+#                                     drop_rate=0.0,
+#                                     drop_path_rate=0.2,
+#                                     ape=False,
+#                                     patch_norm=True,
+#                                     use_checkpoint=False,
+#                                     merge_size=[[2, 4], [2,4], [2, 4]])
+
+#         self.encoder_2 = DAT(
+#                             img_size=224,
+#                             patch_size=4,
+#                             num_classes=1000,
+#                             expansion=4,
+#                             dim_stem=96,
+#                             dims=[96, 192, 384, 768],
+#                             depths=[2, 2, 6, 2],
+#                             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+#                             heads=[3, 6, 12, 24],
+#                             window_sizes=[7, 7, 7, 7] ,
+#                             groups=[-1, -1, 3, 6],
+#                             use_pes=[False, False, True, True],
+#                             dwc_pes=[False, False, False, False],
+#                             strides=[-1, -1, 1, 1],
+#                             sr_ratios=[-1, -1, -1, -1],
+#                             offset_range_factor=[-1, -1, 2, 2],
+#                             no_offs=[False, False, False, False],
+#                             fixed_pes=[False, False, False, False],
+#                             use_dwc_mlps=[False, False, False, False],
+#                             use_conv_patches=False,
+#                             drop_rate=0.0,
+#                             attn_drop_rate=0.0,
+#                             drop_path_rate=0.2,
+#                         )
+
+#         self.norm_4_1 = LayerNormProxy(dim=768)
+#         self.norm_3_1 = LayerNormProxy(dim=384)
+#         self.norm_2_1 = LayerNormProxy(dim=192)
+#         self.norm_1_1 = LayerNormProxy(dim=96)
+
+#         self.norm_4_2 = LayerNormProxy(dim=768)
+#         self.norm_3_2 = LayerNormProxy(dim=384)
+#         self.norm_2_2 = LayerNormProxy(dim=192)
+#         self.norm_1_2 = LayerNormProxy(dim=96)
+
+#         self.knitt = knitt()
+
+#         self.classifier = nn.Sequential(
+#             nn.ConvTranspose2d(96, 96, 4, 2, 1),
+#             nn.ReLU(inplace=True),
+#             nn.Conv2d(96, 48, 3, padding=1),
+#             nn.ReLU(inplace=True),
+#             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+#         )
+
+
+#     def forward(self, x):
+#         # # Question here
+#         x_input = x.float()
+#         B, C, H, W = x.shape
+
+#         outputs_1 = self.encoder_1(x_input)
+#         outputs_2 = self.encoder_2(x_input)
+
+#         x4 = self.norm_4_1(outputs_1[3]) 
+#         x3 = self.norm_3_1(outputs_1[2]) 
+#         x2 = self.norm_2_1(outputs_1[1]) 
+#         x1 = self.norm_1_1(outputs_1[0])
+
+#         e4 = self.norm_4_2(outputs_2[3]) 
+#         e3 = self.norm_3_2(outputs_2[2]) 
+#         e2 = self.norm_2_2(outputs_2[1]) 
+#         e1 = self.norm_1_2(outputs_2[0])
+
+#         t = self.knitt(x1, x2, x3, x4, e1, e2, e3, e4)
+
+#         t = self.classifier(t)
+
+#         return t
 
 import math
 import torch
