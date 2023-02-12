@@ -183,9 +183,9 @@ class Cross_unet(nn.Module):
         self.expand_3 = _make_nConv(in_channels=72 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.expand_4 = _make_nConv(in_channels=144, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=384)
+        self.norm_3 = LayerNormProxy(dim=192)
+        self.norm_2 = LayerNormProxy(dim=96)
 
         self.knitt = knitt()
 
