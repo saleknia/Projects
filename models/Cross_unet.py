@@ -28,7 +28,7 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 class SEBlock(nn.Module):
-    def __init__(self, channel, r=16):
+    def __init__(self, channel, r=8):
         super(SEBlock, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
