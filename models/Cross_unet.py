@@ -102,11 +102,8 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.se_e = SEBlock(channel=768)
-        self.conv_e = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
-
-        self.se_x = SEBlock(channel=768)
-        self.conv_x = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
+        self.se   = SEBlock(channel=768)
+        self.conv = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
 
         self.fusion_e2 = UpBlock(384, 192)
         self.fusion_e1 = UpBlock(192, 96)
@@ -120,11 +117,10 @@ class knitt(nn.Module):
 
         s = torch.cat([e3, x3], dim=1)
 
-        e3 = self.conv_e(self.se_e(s))
-        x3 = self.conv_x(self.se_x(s))
+        s = self.conv(self.se(s))
 
-        e2 = self.fusion_e2(x3, e2)
-        x2 = self.fusion_x2(e3, x2)
+        e2 = self.fusion_e2(s , e2)
+        x2 = self.fusion_x2(s , x2)
 
         e1 = self.fusion_e1(x2, e1)
         x1 = self.fusion_x1(e2, x1)
