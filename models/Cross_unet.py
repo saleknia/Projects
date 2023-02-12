@@ -102,7 +102,7 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
+        # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
         self.fusion_e2 = UpBlock(384, 192)
         self.fusion_e1 = UpBlock(192, 96)
@@ -114,7 +114,7 @@ class knitt(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        s = self.fuse(e3+x3)
+        s = e3+x3
 
         e2 = self.fusion_e2(s , e2)
         x2 = self.fusion_x2(s , x2)
