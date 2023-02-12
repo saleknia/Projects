@@ -114,10 +114,8 @@ class knitt(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        s = e3+x3
-
-        e2 = self.fusion_e2(s , e2)
-        x2 = self.fusion_x2(s , x2)
+        e2 = self.fusion_e2(x3, e2)
+        x2 = self.fusion_x2(e3, x2)
 
         e1 = self.fusion_e1(x2, e1)
         x1 = self.fusion_x1(e2, x1)
