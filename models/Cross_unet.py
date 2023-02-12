@@ -124,6 +124,93 @@ class knitt(nn.Module):
 
         return x
 
+import numpy as np
+import torch.nn as nn
+import torch
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+class SegFormerHead():
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
+
+        embedding_dim = 96
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
+        )
+
+        self.up_4 = nn.Upsample(scale_factor=8.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+
+    def forward(self, c1, c2, c3, c4):
+
+        ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c4.shape
+
+        _c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        _c4 = self.up_4(_c4)
+
+        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        _c3 = self.up_3(_c3)
+
+        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        _c2 = self.up_2(_c2)
+
+        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        _c = self.linear_fuse(torch.cat([_c4, _c3, _c2, _c1], dim=1))
+
+        x = self.classifier(_c)
+
+        return x
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -185,15 +272,20 @@ class Cross_unet(nn.Module):
                             drop_path_rate=0.2,
                         )
 
+        self.norm_4_1 = LayerNormProxy(dim=768)
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
+        self.norm_4_2 = LayerNormProxy(dim=768)
         self.norm_3_2 = LayerNormProxy(dim=384)
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
 
         self.knitt = knitt()
+
+        self.head_1 = SegFormerHead()
+        self.head_2 = SegFormerHead()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -224,10 +316,12 @@ class Cross_unet(nn.Module):
         outputs_1 = self.encoder_1(x0)
         outputs_2 = self.encoder_2(x0)
 
+        x4 = self.norm_4_1(outputs_1[3])
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
+        e4 = self.norm_4_2(outputs_2[3])
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
@@ -235,8 +329,13 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
+        e = self.head_1(x1, x2, x3, x4)
+        t = self.head_2(e1, e2, e3, e4)
 
-        return x
+        if self.training:
+            return x, e, t
+        else:
+            return (x + e + t) / 3.0
 
 
 
