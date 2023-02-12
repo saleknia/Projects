@@ -102,7 +102,7 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
         self.fusion_e2 = UpBlock(384, 192)
         self.fusion_e1 = UpBlock(192, 96)
