@@ -266,7 +266,7 @@ class Cross_unet(nn.Module):
 
         _, e1, e2, e3, e4 = self.encoder_cnn(x0)
 
-        # x1, x2, x3, x4 = self.expand_1(x1), self.expand_2(x2), self.expand_3(x3), self.expand_4(x4)
+        e1, e2, e3, e4 = self.expand_1(e1), self.expand_2(e2), self.expand_3(e3), self.expand_4(e4)
 
         x = self.knitt(x1, x2, x3, x4, e1, e2, e3, e4)
 
