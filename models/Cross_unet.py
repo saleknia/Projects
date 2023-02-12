@@ -131,9 +131,8 @@ class knitt(nn.Module):
 
         # x = self.combine(torch.cat([e, x], dim=1))
 
-        x = x + e
-        
-        return x
+
+        return x, e
 
 import torch
 import torch.nn as nn
@@ -216,6 +215,23 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
+        self.classifier_x = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
+
+        self.classifier_e = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
 
         # self.up3 = UpBlock(768, 384)
         # self.up2 = UpBlock(384, 192)
@@ -246,16 +262,17 @@ class Cross_unet(nn.Module):
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
 
-        x = self.knitt(x1, x2, x3, e1, e2, e3)
+        x, e = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        x = self.classifier(x)
+        t = self.classifier(x+e)
+        e = self.classifier_e(e)
+        x = self.classifier_x(x)
 
-        # if self.training:
-        #     return x, e
-        # else:
-        #     return (x + e) / 2.0
+        if self.training:
+            return t, x, e
+        else:
+            return t
 
-        return x
 
 
 # class Cross_unet(nn.Module):
