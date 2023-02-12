@@ -214,26 +214,9 @@ class Cross_unet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
-        x = self.encoder_cnn.conv1(x0)
-        x = self.encoder_cnn.bn1(x)
-        x = self.encoder_cnn.act1(x)
-        x = self.encoder_cnn.conv2(x)
-        x = self.encoder_cnn.bn2(x)
-        x = self.encoder_cnn.act2(x)
-        x = self.encoder_cnn.layer1(x)
+        _, x1, x2, x3, x4 = self.encoder_cnn(x0)
 
-        xl = [t(x) for i, t in enumerate(self.encoder_cnn.transition1)]
-        yl = self.encoder_cnn.stage2(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
-        yl = self.encoder_cnn.stage3(xl)
-
-        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition3)]
-        yl = self.encoder_cnn.stage4(xl)
-
-        yl = self.encoder_cnn.incre_modules(yl)
-
-        x1, x2, x3, x4 = self.reduce_1(yl[0]), self.reduce_2(yl[1]), self.reduce_3(yl[2]), self.reduce_4(yl[3])
+        x1, x2, x3, x4 = self.reduce_1(x1), self.reduce_2(x2), self.reduce_3(x3), self.reduce_4(x4)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
