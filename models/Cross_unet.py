@@ -119,20 +119,15 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.fusion_e3 = UpBlock(768, 384)
         self.fusion_e2 = UpBlock(384, 192)
         self.fusion_e1 = UpBlock(192, 96)
 
-        self.fusion_x3 = UpBlock(768, 384)
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
         self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-    def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
-
-        e3 = self.fusion_e3(x4, e3)
-        x3 = self.fusion_x3(e4, x3)
+    def forward(self, x1, x2, x3, e1, e2, e3):
 
         e2 = self.fusion_e2(x3, e2)
         x2 = self.fusion_x2(e3, x2)
@@ -162,23 +157,23 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
 
-        # self.encoder_1 =  CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.2,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
+        self.encoder_tf =  CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.2,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
         self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
         self.encoder_cnn.incre_modules = None
@@ -188,15 +183,11 @@ class Cross_unet(nn.Module):
         self.expand_2 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.expand_3 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.up2 = UpBlock(384, 192)
-        self.up1 = UpBlock(192, 96)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
-        # self.norm_4 = LayerNormProxy(dim=768)
-        # self.norm_3 = LayerNormProxy(dim=384)
-        # self.norm_2 = LayerNormProxy(dim=192)
-        # self.norm_1 = LayerNormProxy(dim=96)
-
-        # self.knitt = knitt()
+        self.knitt = knitt()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -226,12 +217,17 @@ class Cross_unet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
         yl = self.encoder_cnn.stage3(xl)
 
+        outputs = self.encoder_tf(x0)
+
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0])
+
         yl[2] = self.expand_3(yl[2])
         yl[1] = self.expand_2(yl[1])
         yl[0] = self.expand_1(yl[0])
 
-        x = self.up2(yl[2], yl[1])
-        x = self.up1(x    , yl[0])
+        x = self.knitt(x1, x2, x3, yl[0], yl[1], yl[2])
 
         x = self.classifier(x)
 
