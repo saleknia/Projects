@@ -189,6 +189,7 @@ class SegFormerHead(nn.Module):
     def forward(self, c1, c2, c3):
 
         ############## MLP decoder on C1-C4 ###########
+        n, _, h, w = c3.shape
 
         _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         _c3 = self.up_3(_c3)
@@ -1031,7 +1032,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        # self.layers[3] = None
+        self.layers[3] = None
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -1055,8 +1056,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        # for i, layer in enumerate(self.layers[0:3]):
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers[0:3]):
+        # for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
@@ -1560,7 +1561,7 @@ class DAT(nn.Module):
             checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
             state_dict = checkpoint['model']
             self.load_pretrained(state_dict)
-        # self.stages[3] = None
+        self.stages[3] = None
 
     def reset_parameters(self):
 
@@ -1624,10 +1625,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(4):
+        for i in range(3):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 3:
+            if i < 2:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
