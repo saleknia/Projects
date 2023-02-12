@@ -102,8 +102,7 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        self.se   = SEBlock(channel=768)
-        self.conv = nn.Conv2d(in_channels=768, out_channels=384, kernel_size=1, padding=0)
+        self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.fusion_e2 = UpBlock(384, 192)
         self.fusion_e1 = UpBlock(192, 96)
@@ -115,9 +114,7 @@ class knitt(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        s = torch.cat([e3, x3], dim=1)
-
-        s = self.conv(self.se(s))
+        s = self.fuse(e3+x3)
 
         e2 = self.fusion_e2(s , e2)
         x2 = self.fusion_x2(s , x2)
