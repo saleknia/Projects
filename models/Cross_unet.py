@@ -174,13 +174,13 @@ class Cross_unet(nn.Module):
         #                             use_checkpoint=False,
         #                             merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_cnn = timm.create_model('hrnet_w48', pretrained=True, features_only=True)
-        self.encoder_cnn.incre_modules = None
-        self.encoder_cnn.stage4 = None
+        self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder_cnn.conv1.stride = (1, 1)
 
-        # self.expand_1 = _make_nConv(in_channels=48 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.expand_2 = _make_nConv(in_channels=96 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        # self.expand_3 = _make_nConv(in_channels=192, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_1 = ConvBatchNorm(in_channels=128 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=256 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_3 = ConvBatchNorm(in_channels=512 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_4 = ConvBatchNorm(in_channels=1024, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # self.norm_3 = LayerNormProxy(dim=384)
         # self.norm_2 = LayerNormProxy(dim=192)
@@ -196,6 +196,7 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(24, n_classes, kernel_size=2, stride=2)
         )
 
+        self.up3 = UpBlock(384, 192)
         self.up2 = UpBlock(192, 96)
         self.up1 = UpBlock(96 , 48)
 
@@ -227,9 +228,15 @@ class Cross_unet(nn.Module):
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder_cnn.transition2)]
         yl = self.encoder_cnn.stage3(xl)
 
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder_cnn.stage4(xl)
 
-        x1, x2, x3 = yl[0], yl[1], yl[2]
-        x = self.up2(x3, x2)
+        yl = self.encoder_cnn.incre_modules(yl)
+
+        x1, x2, x3, x4 = self.reduce_1(yl[0]), self.reduce_2(yl[1]), self.reduce_3(yl[2]), self.reduce_4(yl[3])
+
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2)
         x = self.up1(x , x1)
 
         x = self.classifier(x)
