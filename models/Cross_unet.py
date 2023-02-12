@@ -943,7 +943,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        self.layers[3] = None
+        # self.layers[3] = None
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
@@ -967,8 +967,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        for i, layer in enumerate(self.layers[0:3]):
-        # for i, layer in enumerate(self.layers):
+        # for i, layer in enumerate(self.layers[0:3]):
+        for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
@@ -1472,7 +1472,7 @@ class DAT(nn.Module):
             checkpoint = torch.load('/content/drive/MyDrive/dat_tiny_in1k_224.pth', map_location='cpu') 
             state_dict = checkpoint['model']
             self.load_pretrained(state_dict)
-        self.stages[3] = None
+        # self.stages[3] = None
 
     def reset_parameters(self):
 
@@ -1536,10 +1536,10 @@ class DAT(nn.Module):
         positions = []
         references = []
         outputs = []
-        for i in range(3):
+        for i in range(4):
             x, pos, ref = self.stages[i](x)
             outputs.append(x)
-            if i < 2:
+            if i < 3:
                 x = self.down_projs[i](x)
             positions.append(pos)
             references.append(ref)
