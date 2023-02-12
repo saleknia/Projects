@@ -174,32 +174,32 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
-        self.encoder_cnn.conv1.stride = (1, 1)
-        self.encoder_cnn.incre_modules = None
+        # self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        # self.encoder_cnn.conv1.stride = (1, 1)
+        # self.encoder_cnn.incre_modules = None
 
-        self.expand_1 = _make_nConv(in_channels=18 , out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.expand_2 = _make_nConv(in_channels=36 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.expand_3 = _make_nConv(in_channels=72 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.expand_4 = _make_nConv(in_channels=144, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_1 = _make_nConv(in_channels=18 , out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_2 = _make_nConv(in_channels=36 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_3 = _make_nConv(in_channels=72 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.expand_4 = _make_nConv(in_channels=144, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.norm_4 = LayerNormProxy(dim=384)
         self.norm_3 = LayerNormProxy(dim=192)
         self.norm_2 = LayerNormProxy(dim=96)
 
-        self.knitt = knitt()
+        # self.knitt = knitt()
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
+            nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1),
-            # nn.ConvTranspose2d(24, n_classes, kernel_size=2, stride=2)
+            # nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        # self.up3 = UpBlock(384, 192)
-        # self.up2 = UpBlock(192, 96)
+        self.up3 = UpBlock(384, 192)
+        self.up2 = UpBlock(192, 96)
         self.up1 = UpBlock(96 , 48)
 
         # self.classifier_e = nn.Sequential(
@@ -218,18 +218,18 @@ class Cross_unet(nn.Module):
 
         outputs = self.encoder_tf(x0)
 
-        e4 = self.norm_4(outputs[2])
-        e3 = self.norm_3(outputs[1])
-        e2 = self.norm_2(outputs[0])
+        x4 = self.norm_4(outputs[2])
+        x3 = self.norm_3(outputs[1])
+        x2 = self.norm_2(outputs[0])
 
-        _, x1, x2, x3, x4 = self.encoder_cnn(x0)
+        # _, x1, x2, x3, x4 = self.encoder_cnn(x0)
 
-        x1, x2, x3, x4 = self.expand_1(x1), self.expand_2(x2), self.expand_3(x3), self.expand_4(x4)
+        # x1, x2, x3, x4 = self.expand_1(x1), self.expand_2(x2), self.expand_3(x3), self.expand_4(x4)
 
-        x = self.knitt(x2, x3, x4, e2, e3, e4)
+        # x = self.knitt(x2, x3, x4, e2, e3, e4)
 
-        # x = self.up3(x4, x3)
-        # x = self.up2(x , x2)
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2)
         x = self.up1(x , x1)
 
         x = self.classifier(x)
