@@ -193,7 +193,7 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 3, padding=1),
+            nn.Conv2d(24, n_classes, 1, padding=0),
             # nn.ConvTranspose2d(24, n_classes, kernel_size=2, stride=2)
         )
 
