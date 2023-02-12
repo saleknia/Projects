@@ -176,11 +176,12 @@ class Cross_unet(nn.Module):
 
         self.encoder_cnn = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
         self.encoder_cnn.conv1.stride = (1, 1)
+        self.encoder_cnn.incre_modules = None
 
-        self.reduce_1 = ConvBatchNorm(in_channels=128 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_2 = ConvBatchNorm(in_channels=256 , out_channels=96 , activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_3 = ConvBatchNorm(in_channels=512 , out_channels=192, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_4 = ConvBatchNorm(in_channels=1024, out_channels=384, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand_1 = _make_nConv(in_channels=18 , out_channels=48 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.expand_2 = _make_nConv(in_channels=36 , out_channels=96 , nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.expand_3 = _make_nConv(in_channels=72 , out_channels=192, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.expand_4 = _make_nConv(in_channels=144, out_channels=384, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         # self.norm_3 = LayerNormProxy(dim=384)
         # self.norm_2 = LayerNormProxy(dim=192)
@@ -193,7 +194,7 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(24, n_classes, 1, padding=0),
+            nn.Conv2d(24, n_classes, 3, padding=1),
             # nn.ConvTranspose2d(24, n_classes, kernel_size=2, stride=2)
         )
 
@@ -217,7 +218,7 @@ class Cross_unet(nn.Module):
 
         _, x1, x2, x3, x4 = self.encoder_cnn(x0)
 
-        x1, x2, x3, x4 = self.reduce_1(x1), self.reduce_2(x2), self.reduce_3(x3), self.reduce_4(x4)
+        x1, x2, x3, x4 = self.expand_1(x1), self.expand_2(x2), self.expand_3(x3), self.expand_4(x4)
 
         x = self.up3(x4, x3)
         x = self.up2(x , x2)
