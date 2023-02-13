@@ -167,7 +167,7 @@ class SegFormerHead(nn.Module):
 
         c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
-        embedding_dim = 96
+        embedding_dim = 48
 
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
@@ -176,11 +176,11 @@ class SegFormerHead(nn.Module):
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
+            nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(24, 1, kernel_size=2, stride=2)
         )
 
         self.up_3 = nn.Upsample(scale_factor=4.0)
