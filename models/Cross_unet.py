@@ -158,6 +158,23 @@ class MLP(nn.Module):
         x = self.proj(x)
         return x
 
+from .CTrans import ChannelTransformer
+import ml_collections
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 288  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 96 # base channel of U-Net
+    config.n_classes = 1
+    return config
+
 class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
@@ -167,7 +184,7 @@ class SegFormerHead(nn.Module):
 
         c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
-        embedding_dim = 48
+        embedding_dim = 96
 
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
@@ -175,12 +192,14 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
+            nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(24, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
         )
 
         self.up_3 = nn.Upsample(scale_factor=4.0)
@@ -191,17 +210,19 @@ class SegFormerHead(nn.Module):
         ############## MLP decoder on C1-C4 ###########
         n, _, h, w = c3.shape
 
-        _c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        _c3 = self.up_3(_c3)
+        c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        c3 = self.up_3(c3)
 
-        _c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        _c2 = self.up_2(_c2)
+        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        c2 = self.up_2(c2)
 
-        _c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        _c = self.linear_fuse(torch.cat([_c3, _c2, _c1], dim=1))
+        c1, c2, c3 = self.mtc(c1, c2, c3)
 
-        x = self.classifier(_c)
+        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
+
+        x = self.classifier(c)
 
         return x
 
