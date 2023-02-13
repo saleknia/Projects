@@ -139,7 +139,7 @@ def importance_maps_distillation(s, t, exp=4):
 
 def distillation(outputs, labels):
     unique = torch.unique(labels)
-    temp   = torch.zeros((len(unique),1280), device='cuda')
+    temp   = torch.zeros((len(unique),40), device='cuda')
     for i, v in enumerate(unique):
         temp[i] = torch.mean(outputs[labels==v], dim=0)
     distances = torch.cdist(temp, temp, p=2.0)
