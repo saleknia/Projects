@@ -202,8 +202,8 @@ class SegFormerHead(nn.Module):
             nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
         )
 
-        self.up_3 = nn.Upsample(scale_factor=4.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
 
     def forward(self, c1, c2, c3):
 
@@ -211,14 +211,16 @@ class SegFormerHead(nn.Module):
         n, _, h, w = c3.shape
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        c3 = self.up_3(c3)
 
         c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c2 = self.up_2(c2)
 
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         c1, c2, c3 = self.mtc(c1, c2, c3)
+
+        c2 = self.up_2(c2)
+
+        c3 = self.up_3(c3)
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
