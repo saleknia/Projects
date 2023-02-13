@@ -85,7 +85,7 @@ class Mobile_netV2(nn.Module):
         x4 = self.classifier(x3)
         
         if self.training:
-            return x4, x3
+            return x4, x3, x2, x1, x0
         else:
             return x4
 
