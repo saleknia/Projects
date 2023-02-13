@@ -163,12 +163,12 @@ import ml_collections
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 288  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 144  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.embeddings_dropout_rate = 0.0
+    config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0
     config.patch_sizes = [4,2,1]
     config.base_channel = 96 # base channel of U-Net
@@ -184,7 +184,7 @@ class SegFormerHead(nn.Module):
 
         c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
-        embedding_dim = 96
+        embedding_dim = 48
 
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
@@ -192,14 +192,14 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48], patchSize=[4, 2, 1])
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
+            nn.Conv2d(48, 24, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(24, 1, kernel_size=2, stride=2)
         )
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
