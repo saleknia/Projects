@@ -80,11 +80,14 @@ class Mobile_netV2(nn.Module):
         x2 = self.features_3(x1)
         x3 = self.features_4(x2)
 
-        x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        x3 = self.avgpool(x3)
+        x3 = x3.view(x3.size(0), -1)
+        x4 = self.classifier(x3)
         
-        return x
+        if self.training:
+            return x4, x3
+        else:
+            return x4
 
 
 
