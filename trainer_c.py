@@ -135,7 +135,7 @@ def distillation(outputs, labels):
     distances = torch.cdist(temp, temp, p=2.0)
     loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
     loss = torch.mean(loss)
-    return loss * 0.05
+    return loss * 0.01
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
@@ -172,7 +172,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        outputs, x0, x1, x2, x3 = model(inputs)
+        outputs = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
