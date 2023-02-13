@@ -193,11 +193,11 @@ class SegFormerHead(nn.Module):
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, 24, 3, padding=1),
+            nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(24, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
         )
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
@@ -210,9 +210,11 @@ class SegFormerHead(nn.Module):
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         c3 = self.up_3(c3)
+
         c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
         c2 = self.up_2(c2)
-        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3]
+
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
