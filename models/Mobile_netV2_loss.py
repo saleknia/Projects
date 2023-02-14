@@ -99,7 +99,7 @@ class Mobile_netV2_loss(nn.Module):
         self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=120, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
@@ -137,7 +137,7 @@ class Mobile_netV2_loss(nn.Module):
         x = self.avgpool(x_fuse)
         x = x.view(x.size(0), -1)
 
-        x = self.drop_1(x_fuse)
+        x = self.drop_1(x)
         x = self.dense_1(x)
 
         x = self.drop_2(x)
