@@ -59,10 +59,7 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
-        self.features_1 = model.features[0:3]
-        self.features_2 = model.features[3:4]
-        self.features_3 = model.features[4:6]
-        self.features_4 = model.features[6:]
+        self.features = model.features
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -70,24 +67,18 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
+            nn.Linear(in_features=256, out_features=num_classes, bias=True),
         )
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.features_1(x)
-        x1 = self.features_2(x0)
-        x2 = self.features_3(x1)
-        x3 = self.features_4(x2)
+        x = self.features(x)
 
-        x3 = self.avgpool(x3)
-        x3 = x3.view(x3.size(0), -1)
-        x4 = self.classifier(x3)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
         
-        if self.training:
-            return x4, x3, x2, x1, x0
-        else:
-            return x4
+        return x
 
 
 
