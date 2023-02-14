@@ -29,7 +29,7 @@ class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.encoder_angry = Mobile_netV2()
         loaded_data_angry = torch.load('/content/drive/MyDrive/checkpoint_angry/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -37,7 +37,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_angry.load_state_dict(pretrained_angry)
 
         for param in self.encoder_angry.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.encoder_disgust = Mobile_netV2()
         loaded_data_disgust = torch.load('/content/drive/MyDrive/checkpoint_disgust/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -45,7 +45,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_disgust.load_state_dict(pretrained_disgust)
 
         for param in self.encoder_disgust.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.encoder_fear = Mobile_netV2()
         loaded_data_fear = torch.load('/content/drive/MyDrive/checkpoint_fear/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -53,7 +53,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_fear.load_state_dict(pretrained_fear)
 
         for param in self.encoder_fear.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.encoder_happy = Mobile_netV2()
         loaded_data_happy = torch.load('/content/drive/MyDrive/checkpoint_happy/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -61,7 +61,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_happy.load_state_dict(pretrained_happy)
 
         for param in self.encoder_happy.parameters():
-            param.requires_grad = True       
+            param.requires_grad = False       
 
         self.encoder_neutral = Mobile_netV2()
         loaded_data_neutral = torch.load('/content/drive/MyDrive/checkpoint_neutral/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -69,7 +69,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_neutral.load_state_dict(pretrained_neutral)
 
         for param in self.encoder_neutral.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.encoder_sad = Mobile_netV2()
         loaded_data_sad = torch.load('/content/drive/MyDrive/checkpoint_sad/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -77,7 +77,7 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_sad.load_state_dict(pretrained_sad)
 
         for param in self.encoder_sad.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         self.encoder_surprise = Mobile_netV2()
         loaded_data_surprise = torch.load('/content/drive/MyDrive/checkpoint_surprise/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -85,19 +85,19 @@ class Mobile_netV2_loss(nn.Module):
         self.encoder_surprise.load_state_dict(pretrained_surprise)
 
         for param in self.encoder_surprise.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
-        self.reduce_angry    = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_disgust  = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_fear     = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_happy    = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_neutral  = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_sad      = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.reduce_surprise = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_angry    = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_disgust  = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_fear     = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_happy    = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_neutral  = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_sad      = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.reduce_surprise = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        # self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
         self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
@@ -113,26 +113,26 @@ class Mobile_netV2_loss(nn.Module):
         b, c, h, w = x.shape
 
         x_angry    = self.encoder_angry(x)
-        x_disgust  = self.encoder_disgust(x)
-        x_fear     = self.encoder_fear(x)
-        x_happy    = self.encoder_happy(x)
-        x_neutral  = self.encoder_neutral(x)
-        x_sad      = self.encoder_sad(x)
-        x_surprise = self.encoder_surprise(x)
+        # x_disgust  = self.encoder_disgust(x)
+        # x_fear     = self.encoder_fear(x)
+        # x_happy    = self.encoder_happy(x)
+        # x_neutral  = self.encoder_neutral(x)
+        # x_sad      = self.encoder_sad(x)
+        # x_surprise = self.encoder_surprise(x)
 
-        x_angry    = self.reduce_angry(x_angry)
-        x_disgust  = self.reduce_disgust(x_disgust)
-        x_fear     = self.reduce_fear(x_fear)
-        x_happy    = self.reduce_happy(x_happy)
-        x_neutral  = self.reduce_neutral(x_neutral)
-        x_sad      = self.reduce_sad(x_sad)
-        x_surprise = self.reduce_surprise(x_surprise)
+        # x_angry    = self.reduce_angry(x_angry)
+        # x_disgust  = self.reduce_disgust(x_disgust)
+        # x_fear     = self.reduce_fear(x_fear)
+        # x_happy    = self.reduce_happy(x_happy)
+        # x_neutral  = self.reduce_neutral(x_neutral)
+        # x_sad      = self.reduce_sad(x_sad)
+        # x_surprise = self.reduce_surprise(x_surprise)
 
-        x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
-        x = self.avgpool(x_fuse)
-        x = x.view(x.size(0), -1)
+        # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
+        # x = self.avgpool(x_fuse)
+        # x = x.view(x.size(0), -1)
 
-        x = self.drop_1(x)
+        x = self.drop_1(x_angry)
         x = self.dense_1(x)
 
         x = self.drop_2(x)
@@ -182,8 +182,8 @@ class Mobile_netV2(nn.Module):
 
         x = self.features(x)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
         # # x = self.classifier(x)
 
         # x1 = self.drop_1(x)
