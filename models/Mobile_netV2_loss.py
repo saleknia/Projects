@@ -96,7 +96,7 @@ class Mobile_netV2_loss(nn.Module):
         self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.avgpool = model.avgpool
-        
+
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
         self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
@@ -146,7 +146,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
 class Mobile_netV2(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=2, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
