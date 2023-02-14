@@ -95,11 +95,52 @@ class Mobile_netV2_loss(nn.Module):
 
         self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
+        self.avgpool = model.avgpool
+        
+        self.drop_1  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
+        self.drop_2  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
+        self.drop_3  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
+        self.drop_4  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
+
     def forward(self, x):
         b, c, h, w = x.shape
 
+        x_angry    = self.encoder_angry(x)
+        x_disgust  = self.encoder_disgust(x)
+        x_fear     = self.encoder_fear(x)
+        x_happy    = self.encoder_happy(x)
+        x_neutral  = self.encoder_neutral(x)
+        x_sad      = self.encoder_sad(x)
+        x_surprise = self.encoder_surprise(x)
 
-        x = self.model_a(x)
+        x_angry    = self.reduce_angry(x_angry)
+        x_disgust  = self.reduce_disgust(x_disgust)
+        x_fear     = self.reduce_fear(x_fear)
+        x_happy    = self.reduce_happy(x_happy)
+        x_neutral  = self.reduce_neutral(x_neutral)
+        x_sad      = self.reduce_sad(x_sad)
+        x_surprise = self.reduce_surprise(x_surprise)
+
+        x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
+
+        x = self.avgpool(x_fuse)
+        x = x.view(x.size(0), -1)
+
+        x = self.drop_1(x)
+        x = self.dense_1(x)
+
+        x = self.drop_2(x)
+        x = self.dense_2(x)        
+        
+        x = self.drop_3(x)
+        x = self.dense_3(x)
+
+        x = self.drop_4(x)
+        x = self.dense_4(x)
 
         return x
 
