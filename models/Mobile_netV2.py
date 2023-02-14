@@ -63,14 +63,14 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
 
-        self.drop_1  = nn.Dropout(p=0.5, inplace=True),
-        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True),
-        self.drop_2  = nn.Dropout(p=0.5, inplace=True),
-        self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True),
-        self.drop_3  = nn.Dropout(p=0.5, inplace=True),
-        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True),
-        self.drop_4  = nn.Dropout(p=0.5, inplace=True),
-        self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True),
+        self.drop_1  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
+        self.drop_2  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
+        self.drop_3  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
+        self.drop_4  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
