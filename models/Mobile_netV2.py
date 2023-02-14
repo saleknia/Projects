@@ -82,6 +82,7 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=128, out_features=num_classes, bias=True),
         # )
+        
     def forward(self, x):
         b, c, w, h = x.shape
 
