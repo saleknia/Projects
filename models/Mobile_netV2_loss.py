@@ -28,7 +28,8 @@ class ConvBatchNorm(nn.Module):
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.encoder_angry = Mobile_netV2()
         loaded_data_angry = torch.load('/content/drive/MyDrive/checkpoint_angry/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -96,18 +97,17 @@ class Mobile_netV2_loss(nn.Module):
 
         # self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
-        self.drop_2  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
-        self.drop_3  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
-        self.drop_4  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
+        # self.drop_1  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_1 = nn.Linear(in_features=14, out_features=7, bias=True)
+        # self.drop_2  = nn.Dropout(p=0.5, inplace=True)
+        # self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
+        # self.drop_3  = nn.Dropout(p=0.5, inplace=True)
+        # self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
+        # self.drop_4  = nn.Dropout(p=0.5, inplace=True)
+        # self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
 
-        self.position_embeddings = nn.Parameter(torch.zeros(1, 7))
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -131,23 +131,23 @@ class Mobile_netV2_loss(nn.Module):
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
 
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1)
+        x = self.dense_1(x_fuse)
 
-        x_fuse = x_angry + x_disgust + x_fear + x_happy + x_neutral + x_sad + x_surprise
+        # x = self.avgpool(x_fuse)
+        # x = x.view(x.size(0), -1)
 
-        x = self.avgpool(x_fuse)
-        x = x.view(x.size(0), -1)
+        # x = self.drop_1(x)
+        # x = self.dense_1(x)
 
-        x = self.drop_1(x)
-        x = self.dense_1(x)
-
-        x = self.drop_2(x)
-        x = self.dense_2(x)        
+        # x = self.drop_2(x)
+        # x = self.dense_2(x)        
         
-        x = self.drop_3(x)
-        x = self.dense_3(x)
+        # x = self.drop_3(x)
+        # x = self.dense_3(x)
 
-        x = self.drop_4(x)
-        x = self.dense_4(x)
+        # x = self.drop_4(x)
+        # x = self.dense_4(x)
 
         return x
 
@@ -185,25 +185,25 @@ class Mobile_netV2(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.features(x)
+        x = self.features(x)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # # x = self.classifier(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
-        # x1 = self.drop_1(x)
-        # x1 = self.dense_1(x1)
+        x1 = self.drop_1(x)
+        x1 = self.dense_1(x1)
 
-        # x2 = self.drop_2(x1)
-        # x2 = self.dense_2(x2)        
+        x2 = self.drop_2(x1)
+        x2 = self.dense_2(x2)        
         
-        # x3 = self.drop_3(x2)
-        # x3 = self.dense_3(x3)
+        x3 = self.drop_3(x2)
+        x3 = self.dense_3(x3)
 
-        # x4 = self.drop_4(x3)
-        # x4 = self.dense_4(x4)
+        x4 = self.drop_4(x3)
+        x4 = self.dense_4(x4)
 
-        return x0
+        return x4
 
 
 
