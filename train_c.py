@@ -413,6 +413,29 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':test_loader}
 
+    elif TASK_NAME=='FER2013':
+
+        transform_train = transforms.Compose([
+            transforms.Resize((48, 48)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomVerticalFlip(),
+            transforms.ToTensor(),
+        ])
+
+
+        transform_test = transforms.Compose([
+            transforms.Resize((48, 48)),
+            transforms.ToTensor(),
+        ])
+
+
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/', transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        testset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/test/', transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':train_loader,'valid':test_loader}
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
