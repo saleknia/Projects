@@ -16,6 +16,7 @@ from torch.nn.functional import mse_loss as MSE
 from utils import importance_maps_distillation as imd
 import os
 import numpy as np
+from config import class_index
 warnings.filterwarnings("ignore")
 
 general_labels = np.load('/content/UNet_V2/labels.npy')
@@ -168,7 +169,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     # disparity_loss = loss_function
     ##################################################################
 
@@ -185,9 +186,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
         
-        # targets[targets!=0.00] = 10.0
-        # targets[targets==0.00] = 1.00
-        # targets[targets==10.0] = 0.00
+        targets[targets!=class_index] = 10.0
+        targets[targets==class_index] = 1.00
+        targets[targets==10.0]        = 0.00
 
         outputs = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)

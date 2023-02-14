@@ -9,6 +9,7 @@ import medpy
 import numpy as np
 import pickle
 from utils import proto
+from config import class_index
 warnings.filterwarnings("ignore")
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
@@ -26,9 +27,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
-            # targets[targets!=0.00] = 10.0
-            # targets[targets==0.00] = 1.00
-            # targets[targets==10.0] = 0.00
+            targets[targets!=class_index] = 10.0
+            targets[targets==class_index] = 1.00
+            targets[targets==10.0]        = 0.00
 
             outputs = model(inputs)
 
