@@ -28,6 +28,7 @@ class ConvBatchNorm(nn.Module):
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.encoder_angry = Mobile_netV2()
         loaded_data_angry = torch.load('/content/drive/MyDrive/checkpoint_angry/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
