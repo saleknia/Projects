@@ -28,7 +28,7 @@ class ConvBatchNorm(nn.Module):
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_loss, self).__init__()
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.encoder_angry = Mobile_netV2()
         loaded_data_angry = torch.load('/content/drive/MyDrive/checkpoint_angry/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -96,10 +96,10 @@ class Mobile_netV2_loss(nn.Module):
 
         # self.extend = ConvBatchNorm(in_channels=896, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=896, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=120, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
@@ -130,10 +130,12 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
-        # x = self.avgpool(x_fuse)
-        # x = x.view(x.size(0), -1)
 
-        x_fuse = torch.cat([x_angry+0.1, x_disgust+0.2, x_fear+0.3, x_happy+0.4, x_neutral+0.5, x_sad+0.6, x_surprise+0.7], dim=1)
+
+        x_fuse = x_angry + x_disgust + x_fear + x_happy + x_neutral + x_sad + x_surprise
+
+        x = self.avgpool(x_fuse)
+        x = x.view(x.size(0), -1)
 
         x = self.drop_1(x_fuse)
         x = self.dense_1(x)
@@ -183,25 +185,25 @@ class Mobile_netV2(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x = self.features(x)
+        x0 = self.features(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # # x = self.classifier(x)
 
-        x1 = self.drop_1(x)
-        x1 = self.dense_1(x1)
+        # x1 = self.drop_1(x)
+        # x1 = self.dense_1(x1)
 
-        x2 = self.drop_2(x1)
-        x2 = self.dense_2(x2)        
+        # x2 = self.drop_2(x1)
+        # x2 = self.dense_2(x2)        
         
-        x3 = self.drop_3(x2)
-        x3 = self.dense_3(x3)
+        # x3 = self.drop_3(x2)
+        # x3 = self.dense_3(x3)
 
         # x4 = self.drop_4(x3)
         # x4 = self.dense_4(x4)
 
-        return x3
+        return x0
 
 
 
