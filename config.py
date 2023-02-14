@@ -53,7 +53,7 @@ IMAGE_WIDTH = 224
 PIN_MEMORY = True
 early_stopping = 200
 
-class_index = 1.0
+class_index = 2.0
 
 # LEARNING_RATE = 5e-5
 # DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
