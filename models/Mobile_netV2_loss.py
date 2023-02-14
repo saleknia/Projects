@@ -107,6 +107,8 @@ class Mobile_netV2_loss(nn.Module):
         self.drop_4  = nn.Dropout(p=0.5, inplace=True)
         self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
 
+        self.position_embeddings = nn.Parameter(torch.zeros(1, 7))
+
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -131,7 +133,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.avgpool(x_fuse)
         # x = x.view(x.size(0), -1)
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1)
+        x_fuse = torch.cat([x_angry+self.position_embeddings[1,0], x_disgust+self.position_embeddings[1,1], x_fear+self.position_embeddings[1,2], x_happy+self.position_embeddings[1,3], x_neutral+self.position_embeddings[1,4], x_sad+self.position_embeddings[1,5], x_surprise+self.position_embeddings[1,6]], dim=1)
 
         x = self.drop_1(x_fuse)
         x = self.dense_1(x)
