@@ -213,7 +213,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
 
             loss_ce = ce_loss(outputs, targets.long())
-            weights = loss_ce
+            weights = loss_ce * -1.0
             weights = torch.nn.functional.softmax(weights)
             weights = weights.detach()
             loss_ce = ce_loss(outputs, targets.long()) * (1.0 / weights)
