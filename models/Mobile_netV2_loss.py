@@ -119,10 +119,10 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
-        # x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
+        x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
 
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
+        # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
         x_fuse = self.combine(x_fuse)
 
 
