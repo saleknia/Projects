@@ -152,7 +152,7 @@ class Mobile_netV2_loss(nn.Module):
         x = self.drop_4(x)
         x = self.dense_4(x)
 
-        return x_fuse
+        return x
 
 
 class Mobile_netV2(nn.Module):
