@@ -67,7 +67,7 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_neutral = loaded_data_neutral['net']
         self.encoder_neutral.load_state_dict(pretrained_neutral)
 
-        for param in self.encoder_sad.parameters():
+        for param in self.encoder_neutral.parameters():
             param.requires_grad = False
 
         # self.encoder_sad = Mobile_netV2()
