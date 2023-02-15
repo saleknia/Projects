@@ -129,7 +129,7 @@ class Mobile_netV2_loss(nn.Module):
         x = self.avgpool(x_fuse)
         x = x.view(x.size(0), -1)
 
-        x = self.drop_1(x_fuse)
+        x = self.drop_1(x)
         x = self.dense_1(x)
 
         x = self.drop_2(x)
