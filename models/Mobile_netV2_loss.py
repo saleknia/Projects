@@ -62,6 +62,14 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_happy.parameters():
             param.requires_grad = False       
 
+        self.encoder_neutral = Mobile_netV2()
+        loaded_data_neutral = torch.load('/content/drive/MyDrive/checkpoint_neutral/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
+        pretrained_neutral = loaded_data_neutral['net']
+        self.encoder_neutral.load_state_dict(pretrained_neutral)
+
+        for param in self.encoder_sad.parameters():
+            param.requires_grad = False
+
         # self.encoder_sad = Mobile_netV2()
         # loaded_data_sad = torch.load('/content/drive/MyDrive/checkpoint_sad/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
         # pretrained_sad = loaded_data_sad['net']
@@ -105,6 +113,7 @@ class Mobile_netV2_loss(nn.Module):
         x_disgust   = self.encoder_disgust(x)
         x_fear      = self.encoder_fear(x)
         x_happy     = self.encoder_happy(x)
+        x_neutral     = self.encoder_neutral(x)
 
         # x_happy    = self.encoder_happy(x)
         # x_sad      = self.encoder_sad(x)
@@ -121,7 +130,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy], dim=1)
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral], dim=1)
 
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
