@@ -101,12 +101,12 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x_angry    = self.encoder_angry(x)
-        x_disgust  = self.encoder_disgust(x)
-        x_fear     = self.encoder_fear(x)
-        x_happy    = self.encoder_happy(x)
-        x_sad      = self.encoder_sad(x)
-        x_surprise = self.encoder_surprise(x)
+        # x_angry    = self.encoder_angry(x)
+        # x_disgust  = self.encoder_disgust(x)
+        # x_fear     = self.encoder_fear(x)
+        # x_happy    = self.encoder_happy(x)
+        # x_sad      = self.encoder_sad(x)
+        # x_surprise = self.encoder_surprise(x)
 
         # x_angry    = self.reduce_angry(x_angry)
         # x_disgust  = self.reduce_disgust(x_disgust)
@@ -117,27 +117,38 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
+        # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
         # x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
+
+        x_angry     , x_neutral_0 = self.encoder_angry(x)
+        x_disgust   , x_neutral_1 = self.encoder_disgust(x)
+        x_fear      , x_neutral_2 = self.encoder_fear(x)
+        x_happy     , x_neutral_3 = self.encoder_happy(x)
+        x_sad       , x_neutral_4 = self.encoder_sad(x)
+        x_surprise  , x_neutral_5 = self.encoder_surprise(x)
+
+        x_neutral   = (x_neutral_1 + x_neutral_2 + x_neutral_3 + x_neutral_4 + x_neutral_5) / 5.0
+
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1)
 
 
         # x = self.avgpool(x_fuse)
         # x = x.view(x.size(0), -1)
 
-        x = self.drop_1(x)
-        x = self.dense_1(x)
+        # x = self.drop_1(x_fuse)
+        # x = self.dense_1(x)
 
-        x = self.drop_2(x)
-        x = self.dense_2(x)        
+        # x = self.drop_2(x)
+        # x = self.dense_2(x)        
         
-        x = self.drop_3(x)
-        x = self.dense_3(x)
+        # x = self.drop_3(x)
+        # x = self.dense_3(x)
 
-        x = self.drop_4(x)
-        x = self.dense_4(x)
+        # x = self.drop_4(x)
+        # x = self.dense_4(x)
 
-        return x
+        return x_fuse
 
 
 class Mobile_netV2(nn.Module):
@@ -188,12 +199,14 @@ class Mobile_netV2(nn.Module):
         x3 = self.drop_3(x2)
         x3 = self.dense_3(x3)
 
-        # x4 = self.drop_4(x3)
-        # x4 = self.dense_4(x4)
+        x4 = self.drop_4(x3)
+        x4 = self.dense_4(x4)
 
-        # x4 = torch.softmax(x4, dim=1)[:, 1:]
+        x4 = torch.softmax(x4, dim=1)
 
-        return x3
+        print(x4[:,0:1].shape)
+
+        return x4[:,1:], x4[:,0:1]
 
 
 
