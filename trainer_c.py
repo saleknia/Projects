@@ -194,7 +194,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
-        accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+        # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+
+        if 0.0 < torch.sum(targets):
+            accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
 
         if teacher_model is not None:
             with torch.no_grad():
