@@ -128,7 +128,7 @@ class Mobile_netV2_loss(nn.Module):
         x_sad       , x_neutral_4 = self.encoder_sad(x)
         x_surprise  , x_neutral_5 = self.encoder_surprise(x)
 
-        x_neutral   = (x_neutral_1 + x_neutral_2 + x_neutral_3 + x_neutral_4 + x_neutral_5) / 6.0
+        x_neutral   = (x_neutral_0 + x_neutral_1 + x_neutral_2 + x_neutral_3 + x_neutral_4 + x_neutral_5) / 6.0
 
         x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1)
 
