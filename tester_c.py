@@ -27,9 +27,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
-            targets[targets!=class_index] = 10.0
-            targets[targets==class_index] = 1.00
-            targets[targets==10.0]        = 0.00
+            # targets[targets!=class_index] = 10.0
+            # targets[targets==class_index] = 1.00
+            # targets[targets==10.0]        = 0.00
 
             outputs = model(inputs)
 
