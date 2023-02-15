@@ -90,7 +90,7 @@ class Mobile_netV2_loss(nn.Module):
         self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=768, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
@@ -117,13 +117,13 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
-        # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
-        x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
+        # x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
 
 
-        x = self.avgpool(x_fuse)
-        x = x.view(x.size(0), -1)
+        # x = self.avgpool(x_fuse)
+        # x = x.view(x.size(0), -1)
 
         x = self.drop_1(x)
         x = self.dense_1(x)
@@ -175,25 +175,25 @@ class Mobile_netV2(nn.Module):
 
         x = self.features(x)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # # x = self.classifier(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
-        # x1 = self.drop_1(x)
-        # x1 = self.dense_1(x1)
+        x1 = self.drop_1(x)
+        x1 = self.dense_1(x1)
 
-        # x2 = self.drop_2(x1)
-        # x2 = self.dense_2(x2)        
+        x2 = self.drop_2(x1)
+        x2 = self.dense_2(x2)        
         
-        # x3 = self.drop_3(x2)
-        # x3 = self.dense_3(x3)
+        x3 = self.drop_3(x2)
+        x3 = self.dense_3(x3)
 
         # x4 = self.drop_4(x3)
         # x4 = self.dense_4(x4)
 
         # x4 = torch.softmax(x4, dim=1)[:, 1:]
 
-        return x
+        return x3
 
 
 
