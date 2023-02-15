@@ -506,9 +506,9 @@ def main(args):
                             lr_scheduler=None,
                             early_stopping=None)
 
-                    logger.info(50*'*')
-                    logger.info(50*'*')
-                    logger.info('\n')
+    logger.info(50*'*')
+    logger.info(50*'*')
+    logger.info('\n')
         # loss_function.save()
     if tensorboard:
         writer.close()
