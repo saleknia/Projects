@@ -98,7 +98,7 @@ class Mobile_netV2_loss(nn.Module):
         # self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=768, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
@@ -140,17 +140,17 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.avgpool(x_fuse)
         # x = x.view(x.size(0), -1)
 
-        # x = self.drop_1(x)
-        # x = self.dense_1(x)
+        x = self.drop_1(x_fuse)
+        x = self.dense_1(x)
 
-        # x = self.drop_2(x)
-        # x = self.dense_2(x)        
+        x = self.drop_2(x)
+        x = self.dense_2(x)        
         
-        # x = self.drop_3(x)
-        # x = self.dense_3(x)
+        x = self.drop_3(x)
+        x = self.dense_3(x)
 
-        # x = self.drop_4(x)
-        # x = self.dense_4(x)
+        x = self.drop_4(x)
+        x = self.dense_4(x)
 
         return x_fuse
 
@@ -203,12 +203,12 @@ class Mobile_netV2(nn.Module):
         x3 = self.drop_3(x2)
         x3 = self.dense_3(x3)
 
-        x4 = self.drop_4(x3)
-        x4 = self.dense_4(x4)
+        # x4 = self.drop_4(x3)
+        # x4 = self.dense_4(x4)
 
-        x4 = torch.softmax(x4, dim=1)[:, 1:]
+        # x4 = torch.softmax(x4, dim=1)[:, 1:]
 
-        return x4
+        return x3
 
 
 
