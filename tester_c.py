@@ -40,13 +40,13 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            # accuracy.update(torch.sum(targets[targets==1.0]==predictions[predictions==1.0])/torch.sum(targets==targets))
+            accuracy.update(torch.sum(targets[targets==1.0]==predictions[predictions==1.0])/torch.sum(targets==targets))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
 
-            if 0.0 < torch.sum(targets):
-                accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
+            # if 0.0 < torch.sum(targets):
+            #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
 
             print_progress(
                 iteration=batch_idx+1,
