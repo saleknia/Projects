@@ -105,7 +105,6 @@ class Mobile_netV2_loss(nn.Module):
         x_disgust  = self.encoder_disgust(x)
         x_fear     = self.encoder_fear(x)
         x_happy    = self.encoder_happy(x)
-        x_neutral  = self.encoder_neutral(x)
         x_sad      = self.encoder_sad(x)
         x_surprise = self.encoder_surprise(x)
 
@@ -113,13 +112,12 @@ class Mobile_netV2_loss(nn.Module):
         x_disgust  = self.reduce_disgust(x_disgust)
         x_fear     = self.reduce_fear(x_fear)
         x_happy    = self.reduce_happy(x_happy)
-        x_neutral  = self.reduce_neutral(x_neutral)
         x_sad      = self.reduce_sad(x_sad)
         x_surprise = self.reduce_surprise(x_surprise)
 
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1)
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
 
         x = self.avgpool(x_fuse)
