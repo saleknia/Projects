@@ -54,13 +54,13 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_fear.parameters():
             param.requires_grad = False
 
-        # self.encoder_happy = Mobile_netV2()
-        # loaded_data_happy = torch.load('/content/drive/MyDrive/checkpoint_happy/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        # pretrained_happy = loaded_data_happy['net']
-        # self.encoder_happy.load_state_dict(pretrained_happy)
+        self.encoder_happy = Mobile_netV2()
+        loaded_data_happy = torch.load('/content/drive/MyDrive/checkpoint_happy/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
+        pretrained_happy = loaded_data_happy['net']
+        self.encoder_happy.load_state_dict(pretrained_happy)
 
-        # for param in self.encoder_happy.parameters():
-        #     param.requires_grad = False       
+        for param in self.encoder_happy.parameters():
+            param.requires_grad = False       
 
         # self.encoder_sad = Mobile_netV2()
         # loaded_data_sad = torch.load('/content/drive/MyDrive/checkpoint_sad/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -101,9 +101,11 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x_angry    = self.encoder_angry(x)
-        x_disgust  = self.encoder_disgust(x)
-        x_fear     = self.encoder_fear(x)
+        x_angry     = self.encoder_angry(x)
+        x_disgust   = self.encoder_disgust(x)
+        x_fear      = self.encoder_fear(x)
+        x_happy     = self.encoder_happy(x)
+
         # x_happy    = self.encoder_happy(x)
         # x_sad      = self.encoder_sad(x)
         # x_surprise = self.encoder_surprise(x)
@@ -119,7 +121,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear], dim=1)
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy], dim=1)
 
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
