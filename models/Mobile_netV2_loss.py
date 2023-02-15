@@ -90,7 +90,7 @@ class Mobile_netV2_loss(nn.Module):
         self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=1536, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
@@ -108,16 +108,18 @@ class Mobile_netV2_loss(nn.Module):
         x_sad      = self.encoder_sad(x)
         x_surprise = self.encoder_surprise(x)
 
-        x_angry    = self.reduce_angry(x_angry)
-        x_disgust  = self.reduce_disgust(x_disgust)
-        x_fear     = self.reduce_fear(x_fear)
-        x_happy    = self.reduce_happy(x_happy)
-        x_sad      = self.reduce_sad(x_sad)
-        x_surprise = self.reduce_surprise(x_surprise)
+        # x_angry    = self.reduce_angry(x_angry)
+        # x_disgust  = self.reduce_disgust(x_disgust)
+        # x_fear     = self.reduce_fear(x_fear)
+        # x_happy    = self.reduce_happy(x_happy)
+        # x_sad      = self.reduce_sad(x_sad)
+        # x_surprise = self.reduce_surprise(x_surprise)
 
         # x_fuse = self.extend(torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad, x_surprise], dim=1))
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
+        # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
+
+        x_fuse = x_angry + x_disgust + x_fear + x_happy + x_sad + x_surprise
 
 
         x = self.avgpool(x_fuse)
