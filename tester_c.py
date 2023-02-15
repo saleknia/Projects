@@ -27,9 +27,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
-            targets[targets!=class_index] = 10.0
-            targets[targets==class_index] = 1.00
-            targets[targets==10.0]        = 0.00
+            # targets[targets!=class_index] = 10.0
+            # targets[targets==class_index] = 1.00
+            # targets[targets==10.0]        = 0.00
 
             outputs = model(inputs)
 
@@ -40,7 +40,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            accuracy.update(torch.sum(targets[targets==1.0]==predictions[predictions==1.0])/torch.sum(targets==targets))
+            accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
