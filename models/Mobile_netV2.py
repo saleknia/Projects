@@ -23,13 +23,13 @@ class Mobile_netV2(nn.Module):
         # self.features = model.features
         # self.avgpool = model.avgpool
 
-        model = efficientnet_b4(weights=EfficientNet_B4_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         model.features[0][0].stride = (1, 1)
         self.features = model.features
         self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
-        self.dense_1 = nn.Linear(in_features=1792, out_features=512, bias=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
         self.drop_2  = nn.Dropout(p=0.5, inplace=True)
         self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
         self.drop_3  = nn.Dropout(p=0.5, inplace=True)
