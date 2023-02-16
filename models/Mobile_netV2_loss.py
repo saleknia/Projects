@@ -30,7 +30,7 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.encoder_group_1 = Mobile_netV2(num_classes=4)
+        self.encoder_group_1 = Mobile_netV2(num_classes=3)
         loaded_data_group_1 = torch.load('/content/drive/MyDrive/checkpoint_group_1/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
         pretrained_group_1 = loaded_data_group_1['net']
         self.encoder_group_1.load_state_dict(pretrained_group_1)
