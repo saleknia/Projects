@@ -52,7 +52,6 @@ from models.DATUNet import DATUNet
 from models.Cross_unet import Cross_unet
 from models.Cross import Cross
 # from models.original_UNet import original_UNet
-from torch.utils.data import WeightedRandomSampler
 import utils
 from utils import color
 from utils import Save_Checkpoint
@@ -434,31 +433,12 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
+
         trainset = torchvision.datasets.ImageFolder(root='/content/FER2013/train/', transform=transform_train)
-
-        subdirectories = trainset.classes
-        class_weights = []
-
-        # loop through each subdirectory and calculate the class weight
-        # that is 1 / len(files) in that subdirectory
-        for subdir in subdirectories:
-            files = os.listdir(os.path.join('/content/FER2013/train/', subdir))
-            class_weights.append(1 / len(files))
-
-        sample_weights = [0] * len(trainset)
-
-        for idx, (data, label) in enumerate(trainset):
-            class_weight = class_weights[label]
-            sample_weights[idx] = class_weight
-
-        sampler = WeightedRandomSampler(
-            sample_weights, num_samples=len(sample_weights), replacement=True
-        )
-
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, num_workers=NUM_WORKERS, sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         testset = torchvision.datasets.ImageFolder(root='/content/FER2013/test/', transform=transform_test)
-        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, num_workers=NUM_WORKERS)
+        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
