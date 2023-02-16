@@ -49,7 +49,6 @@ class Mobile_netV2_loss(nn.Module):
 
         self.classifier = Mobile_netV2_classifier(num_classes=2)
 
-        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
         self.drop_4  = nn.Dropout(p=0.5, inplace=True)
         self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
 
@@ -62,8 +61,6 @@ class Mobile_netV2_loss(nn.Module):
         alpha, beta = self.classifier(x)
 
         x_fuse = torch.cat([x_group_1*alpha, x_group_2*beta], dim=1)
-
-        x = self.dense_3(x_fuse)
 
         x = self.drop_4(x)
         x = self.dense_4(x)
@@ -109,12 +106,12 @@ class Mobile_netV2(nn.Module):
         x3 = self.drop_3(x2)
         x3 = self.dense_3(x3)
 
-        x4 = self.drop_4(x3)
+        # x4 = self.drop_4(x3)
         # x4 = self.dense_4(x4)
 
         # x4 = torch.softmax(x4, dim=1)[:, 1:]
 
-        return x4
+        return x3
 
 class Mobile_netV2_classifier(nn.Module):
     def __init__(self, num_classes=2, pretrained=True):
