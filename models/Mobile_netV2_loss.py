@@ -57,7 +57,7 @@ class Mobile_netV2_loss(nn.Module):
         x_group_2 = self.encoder_group_1(x)
 
 
-        x_fuse = torch.cat([x_group_1*alpha, x_group_2*beta], dim=1)
+        x_fuse = torch.cat([x_group_1, x_group_2], dim=1)
 
         x = self.dense_3(x_fuse)
 
