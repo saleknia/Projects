@@ -191,7 +191,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==class_index] = 1.00
         # targets[targets==10.0]        = 0.00
 
-        outputs, outputs_teacher = model(inputs)
+        outputs, outputs_t = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
