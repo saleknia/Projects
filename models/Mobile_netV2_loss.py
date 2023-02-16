@@ -46,9 +46,6 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_group_2.parameters():
             param.requires_grad = False
 
-
-        self.classifier = Mobile_netV2_classifier(num_classes=2)
-
         self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
         self.drop_4  = nn.Dropout(p=0.5, inplace=True)
         self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
@@ -59,7 +56,6 @@ class Mobile_netV2_loss(nn.Module):
         x_group_1 = self.encoder_group_1(x)
         x_group_2 = self.encoder_group_1(x)
 
-        alpha, beta = self.classifier(x)
 
         x_fuse = torch.cat([x_group_1*alpha, x_group_2*beta], dim=1)
 
