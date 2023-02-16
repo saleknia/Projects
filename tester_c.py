@@ -11,9 +11,12 @@ import pickle
 from utils import proto
 from config import class_index
 warnings.filterwarnings("ignore")
+import ttach as tta
+
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model.eval()
+
     loss_total = utils.AverageMeter()
     accuracy = utils.AverageMeter()
     ce_loss = CrossEntropyLoss()
