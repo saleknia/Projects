@@ -19,7 +19,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
     loss_total = utils.AverageMeter()
     accuracy = utils.AverageMeter()
-    ce_loss = CrossEntropyLoss()
+    ce_loss = CrossEntropyLoss(reduce=False)
     total_batchs = len(dataloader)
     loader = dataloader
 
@@ -37,6 +37,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())
+            print(loss_ce)
+            loss_ce = loss_ce.mean()
             loss = loss_ce
             loss_total.update(loss)
 
