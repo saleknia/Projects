@@ -46,13 +46,15 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_group_2.parameters():
             param.requires_grad = False
 
-        self.encoder_classifier = Mobile_netV2(num_classes=2)
+        self.encoder_classifier = Mobile_netV2_classifier(num_classes=2)
         loaded_data_classifier = torch.load('/content/drive/MyDrive/checkpoint_classifier/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
         pretrained_classifier = loaded_data_classifier['net']
         self.encoder_classifier.load_state_dict(pretrained_classifier)
 
         for param in self.encoder_classifier.parameters():
             param.requires_grad = False
+
+        self.avgpool = model.avgpool
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
         self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
@@ -69,15 +71,27 @@ class Mobile_netV2_loss(nn.Module):
         x_group_1 = self.encoder_group_1(x)
         x_group_2 = self.encoder_group_1(x)
 
+        alpha, beta = self.encoder_classifier(x)
 
-        x_fuse = torch.cat([x_group_1, x_group_2], dim=1)
 
-        x = self.dense_3(x_fuse)
+        x_fuse = torch.cat([alpha * x_group_1, beta * x_group_2], dim=1)
 
-        x = self.drop_4(x)
-        x = self.dense_4(x)
+        x = self.avgpool(x_fuse)
+        x = x.view(x.size(0), -1)
 
-        return x
+        x1 = self.drop_1(x)
+        x1 = self.dense_1(x1)
+
+        x2 = self.drop_2(x1)
+        x2 = self.dense_2(x2)        
+        
+        x3 = self.drop_3(x2)
+        x3 = self.dense_3(x3)
+
+        x4 = self.drop_4(x3)
+        x4 = self.dense_4(x4)
+
+        return x4
 
 
 class Mobile_netV2(nn.Module):
@@ -105,25 +119,25 @@ class Mobile_netV2(nn.Module):
 
         x = self.features(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x1 = self.drop_1(x)
-        x1 = self.dense_1(x1)
+        # x1 = self.drop_1(x)
+        # x1 = self.dense_1(x1)
 
-        x2 = self.drop_2(x1)
-        x2 = self.dense_2(x2)        
+        # x2 = self.drop_2(x1)
+        # x2 = self.dense_2(x2)        
         
-        x3 = self.drop_3(x2)
-        x3 = self.dense_3(x3)
+        # x3 = self.drop_3(x2)
+        # x3 = self.dense_3(x3)
 
         # x4 = self.drop_4(x3)
         # x4 = self.dense_4(x4)
 
         # x4 = torch.softmax(x4, dim=1)[:, 1:]
 
-        return x3
+        return x
 
 class Mobile_netV2_classifier(nn.Module):
     def __init__(self, num_classes=2, pretrained=True):
