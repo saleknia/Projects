@@ -58,22 +58,7 @@ class Mobile_netV2_loss(nn.Module):
         x_group_2 = self.encoder_group_1(x)
 
         alpha, beta = self.classifier(x)
-
-        if alpha.shape != beta.shape:
-            print('fuck')
-            alpha.shape
-            beta.shape
-
-        if x_group_1.shape != x_group_2.shape:
-            print('you')
-            print(x_group_1.shape)
-            print(x_group_2.shape)
-
-        if (x_group_1*alpha).shape != (x_group_2*beta).shape:
-            print('baby')
-            print((x_group_1*alpha).shape)
-            print((x_group_2*beta).shape)
-
+        
         x_fuse = (x_group_1*alpha) + (x_group_2*beta)
 
         x = self.dense(x_fuse)
