@@ -73,7 +73,7 @@ class Mobile_netV2(nn.Module):
             return x4
 
 class Mobile_netV2_teacher(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=7, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
