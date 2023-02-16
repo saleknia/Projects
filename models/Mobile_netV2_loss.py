@@ -62,12 +62,12 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_classifier.parameters():
             param.requires_grad = False
 
-        # self.reduce_1 = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        # self.reduce_2 = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_1 = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.reduce_2 = ConvBatchNorm(in_channels=1280, out_channels=128, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
-        # self.conv     = _make_nConv(in_channels=256, out_channels=256, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv     = _make_nConv(in_channels=256, out_channels=256, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        # self.expand   = ConvBatchNorm(in_channels=256, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.expand   = ConvBatchNorm(in_channels=256, out_channels=1280, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         self.avgpool = model.avgpool
 
@@ -87,21 +87,21 @@ class Mobile_netV2_loss(nn.Module):
         x_group_2 = self.encoder_group_1(x)
 
 
-        # x_group_1 = self.reduce_1(x_group_1)
-        # x_group_2 = self.reduce_2(x_group_2)
+        x_group_1 = self.reduce_1(x_group_1)
+        x_group_2 = self.reduce_2(x_group_2)
 
-        # x_fuse = self.conv(torch.cat([x_group_1, x_group_2], dim=1))
-        # x_fuse = self.expand(x_fuse)
+        x_fuse = self.conv(torch.cat([x_group_1, x_group_2], dim=1))
+        x_fuse = self.expand(x_fuse)
 
-        alpha, beta = self.encoder_classifier(x)
+        # alpha, beta = self.encoder_classifier(x)
 
 
         # x_fuse = torch.cat([alpha.expand_as(x_group_1)* x_group_1, beta.expand_as(x_group_2) * x_group_2], dim=1)
 
-        alpha = alpha.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        beta  = beta.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # alpha = alpha.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # beta  = beta.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
 
-        x_fuse = (alpha.expand_as(x_group_1)* x_group_1) + (beta.expand_as(x_group_2) * x_group_2)
+        # x_fuse = (alpha.expand_as(x_group_1)* x_group_1) + (beta.expand_as(x_group_2) * x_group_2)
 
         x = self.avgpool(x_fuse)
         x = x.view(x.size(0), -1)
