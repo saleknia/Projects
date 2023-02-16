@@ -15,7 +15,7 @@ class Mobile_netV2(nn.Module):
         pretrained_teacher = loaded_data_teacher['net']
         self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.encoder_teacher.parameters():
+        for param in self.teacher.parameters():
             param.requires_grad = False
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
