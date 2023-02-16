@@ -46,6 +46,19 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_group_2.parameters():
             param.requires_grad = False
 
+        self.encoder_classifier = Mobile_netV2(num_classes=2)
+        loaded_data_classifier = torch.load('/content/drive/MyDrive/checkpoint_classifier/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
+        pretrained_classifier = loaded_data_classifier['net']
+        self.encoder_classifier.load_state_dict(pretrained_classifier)
+
+        for param in self.encoder_classifier.parameters():
+            param.requires_grad = False
+
+        self.drop_1  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_1 = nn.Linear(in_features=1280, out_features=512, bias=True)
+        self.drop_2  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_2 = nn.Linear(in_features=512, out_features=256, bias=True)
+        self.drop_3  = nn.Dropout(p=0.5, inplace=True)
         self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
         self.drop_4  = nn.Dropout(p=0.5, inplace=True)
         self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
