@@ -74,7 +74,9 @@ class Mobile_netV2_loss(nn.Module):
         alpha, beta = self.encoder_classifier(x)
 
 
-        x_fuse = torch.cat([alpha * x_group_1, beta * x_group_2], dim=1)
+        # x_fuse = torch.cat([alpha.expand_as(x_group_1)* x_group_1, beta.expand_as(x_group_2) * x_group_2], dim=1)
+
+        x_fuse = (alpha.expand_as(x_group_1)* x_group_1) + (beta.expand_as(x_group_2) * x_group_2)
 
         x = self.avgpool(x_fuse)
         x = x.view(x.size(0), -1)
