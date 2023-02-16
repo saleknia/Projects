@@ -51,8 +51,6 @@ class Mobile_netV2(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x4_teacher = self.teacher(x)
-
         x = self.features(x)
 
         x = self.avgpool(x)
