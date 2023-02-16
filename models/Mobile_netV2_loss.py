@@ -49,7 +49,9 @@ class Mobile_netV2_loss(nn.Module):
 
         self.classifier = Mobile_netV2_classifier(num_classes=2)
 
-        self.dense = nn.Linear(in_features=128, out_features=num_classes, bias=True)
+        self.dense_3 = nn.Linear(in_features=256, out_features=128, bias=True)
+        self.drop_4  = nn.Dropout(p=0.5, inplace=True)
+        self.dense_4 = nn.Linear(in_features=128, out_features=num_classes, bias=True)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -58,10 +60,13 @@ class Mobile_netV2_loss(nn.Module):
         x_group_2 = self.encoder_group_1(x)
 
         alpha, beta = self.classifier(x)
-        
-        x_fuse = (x_group_1*alpha) + (x_group_2*beta)
 
-        x = self.dense(x_fuse)
+        x_fuse = torch.cat([x_group_1*alpha, x_group_2*beta], dim=1)
+
+        x = self.dense_3(x_fuse)
+
+        x = self.drop_4(x)
+        x = self.dense_4(x)
 
         return x
 
