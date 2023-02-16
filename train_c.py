@@ -455,10 +455,10 @@ def main(args):
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
 
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, num_workers=NUM_WORKERS, sampler=sampler)
 
         testset = torchvision.datasets.ImageFolder(root='/content/FER2013/test/', transform=transform_test)
-        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
