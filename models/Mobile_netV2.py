@@ -13,7 +13,7 @@ class Mobile_netV2(nn.Module):
         self.teacher = Mobile_netV2_teacher()
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
-        self.encoder_teacher.load_state_dict(pretrained_teacher)
+        self.teacher.load_state_dict(pretrained_teacher)
 
         for param in self.encoder_teacher.parameters():
             param.requires_grad = False
