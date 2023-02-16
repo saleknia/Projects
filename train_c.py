@@ -433,9 +433,28 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-
         trainset = torchvision.datasets.ImageFolder(root='/content/FER2013/train/', transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        subdirectories = trainset.classes
+        class_weights = []
+
+        # loop through each subdirectory and calculate the class weight
+        # that is 1 / len(files) in that subdirectory
+        for subdir in subdirectories:
+            files = os.listdir(os.path.join('/content/FER2013/train/', subdir))
+            class_weights.append(1 / len(files))
+
+        sample_weights = [0] * len(trainset)
+
+        for idx, (data, label) in enumerate(trainset):
+            class_weight = class_weights[label]
+            sample_weights[idx] = class_weight
+
+        sampler = WeightedRandomSampler(
+            sample_weights, num_samples=len(sample_weights), replacement=True
+        )
+
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
 
         testset = torchvision.datasets.ImageFolder(root='/content/FER2013/test/', transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
