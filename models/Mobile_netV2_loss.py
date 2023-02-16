@@ -76,6 +76,9 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = torch.cat([alpha.expand_as(x_group_1)* x_group_1, beta.expand_as(x_group_2) * x_group_2], dim=1)
 
+        alpha = alpha.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        beta  = beta.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+
         x_fuse = (alpha.expand_as(x_group_1)* x_group_1) + (beta.expand_as(x_group_2) * x_group_2)
 
         x = self.avgpool(x_fuse)
