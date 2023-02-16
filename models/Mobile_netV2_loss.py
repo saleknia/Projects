@@ -70,13 +70,13 @@ class Mobile_netV2_loss(nn.Module):
         for param in self.encoder_neutral.parameters():
             param.requires_grad = False
 
-        self.encoder_sad = Mobile_netV2()
-        loaded_data_sad = torch.load('/content/drive/MyDrive/checkpoint_sad/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        pretrained_sad = loaded_data_sad['net']
-        self.encoder_sad.load_state_dict(pretrained_sad)
+        # self.encoder_sad = Mobile_netV2()
+        # loaded_data_sad = torch.load('/content/drive/MyDrive/checkpoint_sad/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
+        # pretrained_sad = loaded_data_sad['net']
+        # self.encoder_sad.load_state_dict(pretrained_sad)
 
-        for param in self.encoder_sad.parameters():
-            param.requires_grad = False
+        # for param in self.encoder_sad.parameters():
+        #     param.requires_grad = False
 
         # self.encoder_surprise = Mobile_netV2()
         # loaded_data_surprise = torch.load('/content/drive/MyDrive/checkpoint_surprise/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
@@ -114,7 +114,7 @@ class Mobile_netV2_loss(nn.Module):
         x_fear      = self.encoder_fear(x)
         x_happy     = self.encoder_happy(x)
         x_neutral   = self.encoder_neutral(x)
-        x_sad       = self.encoder_sad(x)
+        # x_sad       = self.encoder_sad(x)
 
         # x_happy    = self.encoder_happy(x)
         # x_surprise = self.encoder_surprise(x)
@@ -130,7 +130,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
 
-        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral, x_sad], dim=1)
+        x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_neutral], dim=1)
 
 
         # x_fuse = torch.cat([x_angry, x_disgust, x_fear, x_happy, x_sad, x_surprise], dim=1)
@@ -140,19 +140,19 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.avgpool(x_fuse)
         # x = x.view(x.size(0), -1)
 
-        x = self.drop_1(x_fuse)
-        x = self.dense_1(x)
+        # x = self.drop_1(x_fuse)
+        # x = self.dense_1(x)
 
-        x = self.drop_2(x)
-        x = self.dense_2(x)        
+        # x = self.drop_2(x)
+        # x = self.dense_2(x)        
         
-        x = self.drop_3(x)
-        x = self.dense_3(x)
+        # x = self.drop_3(x)
+        # x = self.dense_3(x)
 
-        x = self.drop_4(x)
-        x = self.dense_4(x)
+        # x = self.drop_4(x)
+        # x = self.dense_4(x)
 
-        return x
+        return x_fuse
 
 
 class Mobile_netV2(nn.Module):
@@ -160,7 +160,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
         self.features = model.features
         self.avgpool = model.avgpool
 
@@ -203,12 +203,12 @@ class Mobile_netV2(nn.Module):
         x3 = self.drop_3(x2)
         x3 = self.dense_3(x3)
 
-        # x4 = self.drop_4(x3)
-        # x4 = self.dense_4(x4)
+        x4 = self.drop_4(x3)
+        x4 = self.dense_4(x4)
 
-        # x4 = torch.softmax(x4, dim=1)[:, 1:]
+        x4 = torch.softmax(x4, dim=1)[:, 1:]
 
-        return x3
+        return x4
 
 
 
