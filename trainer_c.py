@@ -169,8 +169,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(reduce=False)
-    # weight=torch.tensor([1.0, 4965.0/3995.0], device='cuda')
+        ce_loss = CrossEntropyLoss()
     # disparity_loss = loss_function
     ##################################################################
 
@@ -212,11 +211,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
         else:
             loss_ce = ce_loss(outputs, targets.long())
-            weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
-            weights = torch.abs((weights-weights.min()))
-            weights = weights / weights.max()
-            weights = weights + 1.0
-            loss_ce = torch.mean(loss_ce * weights)
+            # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
+            # weights = torch.abs((weights-weights.min()))
+            # weights = weights / weights.max()
+            # weights = weights + 1.0
+            # loss_ce = torch.mean(loss_ce * weights)
             # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
             # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 

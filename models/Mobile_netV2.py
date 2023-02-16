@@ -10,18 +10,18 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = Mobile_netV2_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        model.features[0][0].stride = (1, 1)
-        self.features = model.features
-        self.avgpool = model.avgpool
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model.features[0][0].stride = (1, 1)
+        # self.features = model.features
+        # self.avgpool = model.avgpool
 
 
         self.drop_1  = nn.Dropout(p=0.5, inplace=True)
@@ -67,10 +67,7 @@ class Mobile_netV2(nn.Module):
         x4 = self.drop_4(x3)
         x4 = self.dense_4(x4)
 
-        if self.training:
-            return x4, x4_teacher
-        else:
-            return x4
+        return x4
 
 class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=7, pretrained=True):
