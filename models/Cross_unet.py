@@ -518,6 +518,9 @@ class Cross_unet(nn.Module):
         t = self.up_2t(x3) + x2
         t = self.up_1t(t)  + x1
 
+        t = self.classifier_t(t)
+        e = self.classifier_e(e)
+
         if self.training:
             return x, e, t
         else:
