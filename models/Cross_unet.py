@@ -141,12 +141,12 @@ class CSFR(nn.Module):
 
     def forward(self, x_high, x_low):
 
-        x_high_l = self.down_1(x_high)
-        x_low_h  = self.up_1(x_low)
+        x_high_h = self.up_1(x_high)
+        x_low_l  = self.down_1(x_low)
 
-        x_h = self.fusion_up_1(x_high + x_low_h)
-        x_l = self.fusion_down_1(x_high_l + x_low)
+        x_l = self.fusion_down_1(x_high + x_low_l)
         x_l = self.up_2(x_l)
+        x_h = self.fusion_up_1(x_high_h + x_low)
 
         x = self.fusion_up_2(x_l + x_h)
 
