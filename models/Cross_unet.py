@@ -124,7 +124,6 @@ class knitt(nn.Module):
 
         return x
 
-
 import numpy as np
 import torch.nn as nn
 import torch
@@ -176,15 +175,128 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
+class Conv(nn.Module):
+    def __init__(self, nIn, nOut, kSize, stride, padding, dilation=(1, 1), groups=1, bn_acti=False, bias=False):
+        super().__init__()
+        
+        self.bn_acti = bn_acti
+        
+        self.conv = nn.Conv2d(nIn, nOut, kernel_size = kSize,
+                              stride=stride, padding=padding,
+                              dilation=dilation,groups=groups,bias=bias)
+        
+        if self.bn_acti:
+            self.bn_relu = BNPReLU(nOut)
+            
+    def forward(self, input):
+        output = self.conv(input)
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        if self.bn_acti:
+            output = self.bn_relu(output)
 
-    def forward(self, x):
-        return self.nConvs(x)
+        return output  
+    
+    
+class BNPReLU(nn.Module):
+    def __init__(self, nIn):
+        super().__init__()
+        self.bn = nn.BatchNorm2d(nIn, eps=1e-3)
+        self.acti = nn.PReLU(nIn)
+
+    def forward(self, input):
+        output = self.bn(input)
+        output = self.acti(output)
+        
+        return output
+
+class CFPModule(nn.Module):
+    def __init__(self, nIn, d=1, KSize=3,dkSize=3):
+        super().__init__()
+        
+        self.bn_relu_1 = BNPReLU(nIn)
+        self.bn_relu_2 = BNPReLU(nIn)
+        self.conv1x1_1 = Conv(nIn, nIn // 4, KSize, 1, padding=1, bn_acti=True)
+        
+        self.dconv_4_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_4_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_4_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (1*d+1,1*d+1),
+                            dilation=(d+1,d+1), groups = nIn //16, bn_acti=True)
+        
+        
+        
+        self.dconv_1_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_1_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_1_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (1,1),
+                            dilation=(1,1), groups = nIn //16, bn_acti=True)
+        
+        
+        
+        self.dconv_2_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_2_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_2_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (int(d/4+1),int(d/4+1)),
+                            dilation=(int(d/4+1),int(d/4+1)), groups = nIn //16, bn_acti=True)
+        
+        
+        self.dconv_3_1 = Conv(nIn //4, nIn //16, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_3_2 = Conv(nIn //16, nIn //16, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+        self.dconv_3_3 = Conv(nIn //16, nIn //8, (dkSize,dkSize),1,padding = (int(d/2+1),int(d/2+1)),
+                            dilation=(int(d/2+1),int(d/2+1)), groups = nIn //16, bn_acti=True)
+        
+                      
+        
+        self.conv1x1 = Conv(nIn, nIn, 1, 1, padding=0,bn_acti=False)  
+        
+    def forward(self, input):
+        inp = self.bn_relu_1(input)
+        inp = self.conv1x1_1(inp)
+        
+        o1_1 = self.dconv_1_1(inp)
+        o1_2 = self.dconv_1_2(o1_1)
+        o1_3 = self.dconv_1_3(o1_2)
+        
+        o2_1 = self.dconv_2_1(inp)
+        o2_2 = self.dconv_2_2(o2_1)
+        o2_3 = self.dconv_2_3(o2_2)
+        
+        o3_1 = self.dconv_3_1(inp)
+        o3_2 = self.dconv_3_2(o3_1)
+        o3_3 = self.dconv_3_3(o3_2)
+        
+        o4_1 = self.dconv_4_1(inp)
+        o4_2 = self.dconv_4_2(o4_1)
+        o4_3 = self.dconv_4_3(o4_2)
+        
+        output_1 = torch.cat([o1_1,o1_2,o1_3], 1)
+        output_2 = torch.cat([o2_1,o2_2,o2_3], 1)      
+        output_3 = torch.cat([o3_1,o3_2,o3_3], 1)       
+        output_4 = torch.cat([o4_1,o4_2,o4_3], 1)   
+        
+        
+        ad1 = output_1
+        ad2 = ad1 + output_2
+        ad3 = ad2 + output_3
+        ad4 = ad3 + output_4
+        output = torch.cat([ad1,ad2,ad3,ad4],1)
+        output = self.bn_relu_2(output)
+        output = self.conv1x1(output)
+        
+        return output+input
 
 class SegFormerHead(nn.Module):
     """
@@ -195,22 +307,23 @@ class SegFormerHead(nn.Module):
 
         c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
+        embedding_dim = 96
 
-        embedding_dim = 18
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim*4)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim*2)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim*1)
+        self.CFP_1 = CFPModule(96 , 8)
+        self.CFP_2 = CFPModule(192, 8)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*7, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(18, 18, 4, 2, 1),
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(18, 18, 3, padding=1),
+            nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(18, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
         )
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
@@ -222,13 +335,14 @@ class SegFormerHead(nn.Module):
         n, _, h, w = c3.shape
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-
-        c1, c2, c3 = self.encoder([c1, c2, c3])
-
         c3 = self.up_3(c3)
+
+        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        c2 = self.CFP_2(c2)
         c2 = self.up_2(c2)
+
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+        c1 = self.CFP_1(c1)
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
