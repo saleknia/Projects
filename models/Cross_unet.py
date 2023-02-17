@@ -195,9 +195,9 @@ class SegFormerHead(nn.Module):
 
         c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
-        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True).stage3
+        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
 
-        embedding_dim = 32
+        embedding_dim = 18
 
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim*4)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim*2)
@@ -206,11 +206,11 @@ class SegFormerHead(nn.Module):
         self.linear_fuse = BasicConv2d(embedding_dim*7, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(32, 32, 4, 2, 1),
+            nn.ConvTranspose2d(18, 18, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 16, 3, padding=1),
+            nn.Conv2d(18, 18, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(16, 1, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(18, 1, kernel_size=2, stride=2)
         )
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
