@@ -348,6 +348,39 @@ class SegFormerHead(nn.Module):
 
         return x
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -431,17 +464,27 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        # self.up3 = UpBlock(768, 384)
-        # self.up2 = UpBlock(384, 192)
-        # self.up1 = UpBlock(192, 96)
+        self.up_2e = DecoderBottleneckLayer(384, 192)
+        self.up_1e = DecoderBottleneckLayer(192, 96)
 
-        # self.classifier_e = nn.Sequential(
-        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(96, 48, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        # )
+        self.up_2t = DecoderBottleneckLayer(384, 192)
+        self.up_1t = DecoderBottleneckLayer(192, 96)
+
+        self.classifier_e = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
+
+        self.classifier_t = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
 
     def forward(self, x):
         # # Question here
@@ -469,12 +512,18 @@ class Cross_unet(nn.Module):
         # e = self.head_1(x1, x2, x3)
         # t = self.head_2(e1, e2, e3)
 
-        # if self.training:
-        #     return x, e, t
-        # else:
-        #     return t#(x + e + t) / 3.0
+        e = self.up_2e(e3) + e2
+        e = self.up_1e(e)  + e1
 
-        return x 
+        t = self.up_2t(x3) + x2
+        t = self.up_1t(x)  + x1
+
+        if self.training:
+            return x, e, t
+        else:
+            return (x + e + t) / 3.0
+
+        # return x 
 
 
 
