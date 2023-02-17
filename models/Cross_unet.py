@@ -133,11 +133,11 @@ class CSFR(nn.Module):
         self.up_1   = nn.Upsample(scale_factor=2.0)
         self.down_1 = nn.Upsample(scale_factor=0.5)
 
-        self.up_2   = nn.Upsample(scale_factor=2.0)
+        self.down_2   = nn.Upsample(scale_factor=0.5)
 
         self.fusion_up_1   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.fusion_down_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.fusion_up_2   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.fusion_down_2   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x_high, x_low):
 
@@ -145,10 +145,10 @@ class CSFR(nn.Module):
         x_low_l  = self.down_1(x_low)
 
         x_l = self.fusion_down_1(x_high + x_low_l)
-        x_l = self.up_2(x_l)
         x_h = self.fusion_up_1(x_high_h + x_low)
+        x_h = self.down_2(x_h)
 
-        x = self.fusion_up_2(x_l + x_h)
+        x = self.fusion_down_2(x_l + x_h)
 
         return x
 
@@ -243,8 +243,8 @@ class SegFormerHead(nn.Module):
         c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        c2 = self.CSFR_2(c3, c2)
-        c1 = self.CSFR_1(c2, c1)
+        c2 = self.CSFR_2(c2, c1)
+        c3 = self.CSFR_1(c2, c3)
 
         c3 = self.up_3(c3)
         c2 = self.up_2(c2)
@@ -369,8 +369,8 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
-        e = self.head_1(x1.clone().detach(), x2.clone().detach(), x3.clone().detach())
-        t = self.head_2(e1.clone().detach(), e2.clone().detach(), e3.clone().detach())
+        e = self.head_1(x1, x2, x3)
+        t = self.head_2(e1, e2, e3)
 
         if self.training:
             return x, e, t
