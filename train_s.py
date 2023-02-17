@@ -57,7 +57,7 @@ from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
 from tester_s import tester_s
-from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018
+from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018, CreateDataset
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
 from tabulate import tabulate
@@ -500,6 +500,18 @@ def main(args):
         print(50 * '*')
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
+    elif TASK_NAME=='TNUI':
+        trainset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/train/images/', label_paths='/content/TNUI-2021/thyroid_data/train/masks/', resize=224, phase='train', aug=True)
+        train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
+
+        valset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/val/images', label_paths='/content/TNUI-2021/thyroid_data/val/masks', resize=224, phase='val', aug=False)
+        valid_loader = DataLoader(valset, batch_size=46, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
+
+        testset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/test/images', label_paths='/content/TNUI-2021/thyroid_data/test/masks',resize=224, phase='val', aug=False)
+        test_loader = DataLoader(testset, batch_size=1, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
+        
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
+
     elif TASK_NAME=='TCIA':
 
         train_dataset = TCIA(split='train', joint_transform=train_tf)
@@ -546,6 +558,8 @@ def main(args):
 
         datas, test_loader = build_dataset_test('camvid', NUM_WORKERS)
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+
 
 
     if SAVE_MODEL:

@@ -313,9 +313,6 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.CFP_1 = CFPModule(96 , 8)
-        self.CFP_2 = CFPModule(96, 8)
-
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
@@ -338,11 +335,9 @@ class SegFormerHead(nn.Module):
         c3 = self.up_3(c3)
 
         c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c2 = self.CFP_2(c2)
         c2 = self.up_2(c2)
 
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-        c1 = self.CFP_1(c1)
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
