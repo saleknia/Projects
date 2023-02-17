@@ -244,7 +244,7 @@ class SegFormerHead(nn.Module):
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         c2 = self.CSFR_2(c2, c1)
-        c3 = self.CSFR_1(c2, c3)
+        c3 = self.CSFR_1(c3, c2)
 
         c3 = self.up_3(c3)
         c2 = self.up_2(c2)
