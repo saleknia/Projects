@@ -317,18 +317,21 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
 
     #     inputs, targets = inputs.to(device), targets.to(device)
     #     targets = targets.float()
+
     #     inputs = inputs.float()
-    #     outputs = model(inputs)
-    #     if type(outputs)==tuple:
-    #         loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
-    #         loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
-    #         loss_att = 0.0
-    #         loss = loss_ce + loss_dice         
-    #     else:
-    #         loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-    #         loss_dice = dice_loss(inputs=outputs, targets=targets)
-    #         loss_att = 0.0
-    #         loss = loss_ce + loss_dice
+    #     alpha = 0.6
+    #     with torch.autocast(device_type=device, dtype=torch.float16):
+    #         outputs = model(inputs)
+    #         if type(outputs)==tuple:
+    #             loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1))
+    #             loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
+    #             loss_att = 0.0
+    #             loss = loss_ce + loss_dice 
+    #         else:
+    #             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1))
+    #             loss_dice = dice_loss(inputs=outputs, targets=targets)
+    #             loss_att = 0.0
+    #             loss = loss_ce + loss_dice + loss_att  
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 

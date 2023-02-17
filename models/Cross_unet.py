@@ -416,8 +416,8 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
-        self.head_1 = SegFormerHead()
-        self.head_2 = SegFormerHead()
+        # self.head_1 = SegFormerHead()
+        # self.head_2 = SegFormerHead()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -459,13 +459,15 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
-        e = self.head_1(x1, x2, x3)
-        t = self.head_2(e1, e2, e3)
+        # e = self.head_1(x1, x2, x3)
+        # t = self.head_2(e1, e2, e3)
 
-        if self.training:
-            return x, e, t
-        else:
-            return (x + e + t) / 3.0
+        # if self.training:
+        #     return x, e, t
+        # else:
+        #     return (x + e + t) / 3.0
+
+        return x
 
 
 
