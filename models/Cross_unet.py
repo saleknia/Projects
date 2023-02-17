@@ -62,20 +62,6 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x 
 
-class fusion(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
-        super(fusion, self).__init__()
-        self.up   = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=out_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-    
-    def forward(self, x, skip_x):
-        x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.conv(x)
-        return x 
-        
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -118,13 +104,13 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = fusion(512, 192)
-        self.fusion_e1 = fusion(256, 96)
+        self.fusion_e2 = UpBlock(384, 192)
+        self.fusion_e1 = UpBlock(192, 96)
 
-        self.fusion_x2 = fusion(384, 256)
-        self.fusion_x1 = fusion(192, 128)
+        self.fusion_x2 = UpBlock(384, 192)
+        self.fusion_x1 = UpBlock(192, 96)
 
-        self.combine = _make_nConv(in_channels=224, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
@@ -135,6 +121,34 @@ class knitt(nn.Module):
         x1 = self.fusion_x1(e2, x1)
 
         x = self.combine(torch.cat([e1, x1], dim=1))
+
+        return x
+
+
+class CSFR(nn.Module):
+
+    def __init__(self):
+        super(CSFR, self).__init__()
+
+        self.up_1   = nn.Upsample(scale_factor=2.0)
+        self.down_1 = nn.Upsample(scale_factor=0.5)
+
+        self.up_2   = nn.Upsample(scale_factor=2.0)
+
+        self.fusion_up_1   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.fusion_down_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.fusion_up_2   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+    def forward(self, x_high, x_low):
+
+        x_high_l = self.down_1(x_high)
+        x_low_h  = self.up_1(x_low)
+
+        x_h = self.fusion_up_1(x_high + x_low_h)
+        x_l = self.fusion_down_1(x_high_l + x_low)
+        x_l = self.up_2(x_l)
+
+        x = self.fusion_up_2(x_l + x_h)
 
         return x
 
@@ -204,6 +218,9 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
+        self.CSFR_1 = CSFR()
+        self.CSFR_2 = CSFR()
+
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
@@ -223,12 +240,14 @@ class SegFormerHead(nn.Module):
         n, _, h, w = c3.shape
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        c3 = self.up_3(c3)
-
         c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c2 = self.up_2(c2)
-
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        c2 = self.CSFR_2(c3, c2)
+        c1 = self.CSFR_1(c2, c1)
+
+        c3 = self.up_3(c3)
+        c2 = self.up_2(c2)
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
@@ -253,7 +272,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_tf =  CrossFormer(img_size=224,
+        self.encoder_1 =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -271,51 +290,93 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        self.encoder_2 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
 
-        self.firstconv = resnet.conv1
-        self.firstbn = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1 = resnet.layer1
-        self.encoder2 = resnet.layer2
-        self.encoder3 = resnet.layer3
-        self.encoder4 = resnet.layer4
+        self.norm_3_1 = LayerNormProxy(dim=384)
+        self.norm_2_1 = LayerNormProxy(dim=192)
+        self.norm_1_1 = LayerNormProxy(dim=96)
+
+        self.norm_3_2 = LayerNormProxy(dim=384)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_1_2 = LayerNormProxy(dim=96)
 
         self.knitt = knitt()
+
+        self.head_1 = SegFormerHead()
+        self.head_2 = SegFormerHead()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
+            # nn.Conv2d(48, n_classes, 3, padding=1),
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
+        # self.up3 = UpBlock(768, 384)
+        # self.up2 = UpBlock(384, 192)
+        # self.up1 = UpBlock(192, 96)
+
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
+
     def forward(self, x):
         # # Question here
-        x_input = x.float()
-        b, c, h, w = x_input.shape
+        x0 = x.float()
+        b, c, h, w = x.shape
 
-        x = self.firstconv(x_input)
-        x = self.firstbn(x)
-        x = self.firstrelu(x)
+        outputs_1 = self.encoder_1(x0)
+        outputs_2 = self.encoder_2(x0)
 
-        x0 = self.encoder1(x)
-        x1 = self.encoder2(x0)
-        x2 = self.encoder3(x1)
-        x3 = self.encoder4(x2)
+        x3 = self.norm_3_1(outputs_1[2])
+        x2 = self.norm_2_1(outputs_1[1])
+        x1 = self.norm_1_1(outputs_1[0])
 
-        outputs_tf = self.encoder_tf(x_input)
-
-        e3 = outputs_tf[2]
-        e2 = outputs_tf[1]
-        e1 = outputs_tf[0]
+        e3 = self.norm_3_2(outputs_2[2])
+        e2 = self.norm_2_2(outputs_2[1])
+        e1 = self.norm_1_2(outputs_2[0])
 
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
+        e = self.head_1(x1, x2, x3)
+        t = self.head_2(e1, e2, e3)
 
-        return x
+        if self.training:
+            return x, e, t
+        else:
+            return (x + e + t) / 3.0
+
 
 
 # class Cross_unet(nn.Module):
