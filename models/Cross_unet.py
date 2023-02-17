@@ -314,7 +314,7 @@ class SegFormerHead(nn.Module):
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
         self.CFP_1 = CFPModule(96 , 8)
-        self.CFP_2 = CFPModule(192, 8)
+        self.CFP_2 = CFPModule(96, 8)
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
