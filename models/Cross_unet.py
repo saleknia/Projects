@@ -369,8 +369,8 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
-        e = self.head_1(x1, x2, x3)
-        t = self.head_2(e1, e2, e3)
+        e = self.head_1(x1.clone().detach(), x2.clone().detach(), x3.clone().detach())
+        t = self.head_2(e1.clone().detach(), e2.clone().detach(), e3.clone().detach())
 
         if self.training:
             return x, e, t
