@@ -286,11 +286,11 @@ class Cross_unet(nn.Module):
         self.knitt = knitt()
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ConvTranspose2d(64, 64, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
+            nn.Conv2d(64, 32, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.Conv2d(32, n_classes, 3, padding=1),
         )
 
     def forward(self, x):
@@ -314,6 +314,8 @@ class Cross_unet(nn.Module):
         e1 = outputs_tf[0]
 
         x = self.knitt(x0, x1, x2, x3, e1, e2, e3)
+
+        x = self.classifier(x)
 
         return x
 
