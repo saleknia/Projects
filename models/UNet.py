@@ -354,7 +354,7 @@ class SEBlock(nn.Module):
         y = self.fc(y).view(b, c, 1, 1)
         # Fusion
         y = torch.mul(x, y)
-        return 
+        return y
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
