@@ -118,14 +118,14 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = UpBlock(512, 192)
-        self.fusion_e1 = UpBlock(256, 96)
+        self.fusion_e2 = fusion(512, 192)
+        self.fusion_e1 = fusion(256, 96)
 
-        self.fusion_x2 = UpBlock(384, 256)
-        self.fusion_x1 = UpBlock(192, 128)
+        self.fusion_x2 = fusion(384, 256)
+        self.fusion_x1 = fusion(192, 128)
 
         self.combine = _make_nConv(in_channels=224, out_channels=128, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.fusion_final = UpBlock(128, 64)
+        self.fusion_final = fusion(128, 64)
 
     def forward(self, x0, x1, x2, x3, e1, e2, e3):
 
