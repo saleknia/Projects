@@ -125,33 +125,6 @@ class knitt(nn.Module):
         return x
 
 
-class CSFR(nn.Module):
-
-    def __init__(self):
-        super(CSFR, self).__init__()
-
-        self.up_1   = nn.Upsample(scale_factor=2.0)
-        self.down_1 = nn.Upsample(scale_factor=0.5)
-
-        self.up_2   = nn.Upsample(scale_factor=2.0)
-
-        self.fusion_up_1   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.fusion_down_1 = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.fusion_up_2   = _make_nConv(in_channels=96, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-    def forward(self, x_high, x_low):
-
-        x_high_h = self.up_1(x_high)
-        x_low_l  = self.down_1(x_low)
-
-        x_l = self.fusion_down_1(x_high + x_low_l)
-        x_l = self.up_2(x_l)
-        x_h = self.fusion_up_1(x_high_h + x_low)
-
-        x = self.fusion_up_2(x_l + x_h)
-
-        return x
-
 import numpy as np
 import torch.nn as nn
 import torch
@@ -203,6 +176,16 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class DownBlock(nn.Module):
+    """Downscaling with maxpool convolution"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(DownBlock, self).__init__()
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+    def forward(self, x):
+        return self.nConvs(x)
+        
 class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
@@ -217,9 +200,6 @@ class SegFormerHead(nn.Module):
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
-
-        self.CSFR_1 = CSFR()
-        self.CSFR_2 = CSFR()
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
@@ -240,14 +220,10 @@ class SegFormerHead(nn.Module):
         n, _, h, w = c3.shape
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-
-        c2 = self.CSFR_2(c3, c2)
-        c1 = self.CSFR_1(c2, c1)
-
         c3 = self.up_3(c3)
+        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
         c2 = self.up_2(c2)
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
