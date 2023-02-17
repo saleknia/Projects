@@ -445,7 +445,7 @@ class UNet(nn.Module):
         """
         super(UNet, self).__init__()
 
-        base = resnet.resnet18(pretrained=True)
+        base = resnet.resnet34(pretrained=True)
 
         self.in_block = nn.Sequential(
             base.conv1,
