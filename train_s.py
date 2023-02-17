@@ -510,7 +510,7 @@ def main(args):
         testset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/test/images/', label_paths='/content/TNUI-2021/thyroid_data/test/masks/',resize=224, phase='val', aug=False)
         test_loader = DataLoader(testset, batch_size=1, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
         
-        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':1.0}
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
     elif TASK_NAME=='TCIA':
 

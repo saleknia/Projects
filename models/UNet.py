@@ -223,8 +223,6 @@ class UNet(nn.Module):
         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-        self.CCA_3 = CCA(72)
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -274,7 +272,6 @@ class UNet(nn.Module):
         z3 = self.up1_3(z3  , k31) 
 
         z4 = self.up3_4(k44, k43) 
-        z4 = self.CCA_3(z4)
         z4 = self.up2_4(z4 , k42) 
         z4 = self.up1_4(z4 , k41)
 
