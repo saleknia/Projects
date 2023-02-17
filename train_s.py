@@ -501,13 +501,13 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':pos_weight}
 
     elif TASK_NAME=='TNUI':
-        trainset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/train/images/', label_paths='/content/TNUI-2021/thyroid_data/train/masks/', resize=224, phase='train', aug=True)
+        trainset = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/train/images/', label_paths='/content/TNUI-2021--main/thyroid_data/train/masks', resize=224, phase='train', aug=True)
         train_loader = DataLoader(trainset, batch_size=BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
 
-        valset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/val/images/', label_paths='/content/TNUI-2021/thyroid_data/val/masks/', resize=224, phase='val', aug=False)
+        valset = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/val/images/', label_paths='/content/TNUI-2021--main/thyroid_data/val/masks', resize=224, phase='val', aug=False)
         valid_loader = DataLoader(valset, batch_size=46, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
 
-        testset = CreateDataset(img_paths='/content/TNUI-2021/thyroid_data/test/images/', label_paths='/content/TNUI-2021/thyroid_data/test/masks/',resize=224, phase='val', aug=False)
+        testset = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/test/images/', label_paths='/content/TNUI-2021--main/thyroid_data/test/masks',resize=224, phase='val', aug=False)
         test_loader = DataLoader(testset, batch_size=1, shuffle=True, num_workers=NUM_WORKERS, pin_memory=True)
         
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader, 'pos_weight':1.0}
