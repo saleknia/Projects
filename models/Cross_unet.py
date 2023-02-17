@@ -449,7 +449,7 @@ class Cross_unet(nn.Module):
         b, c, h, w = x.shape
 
         outputs_1 = self.encoder_1(x0)
-        # outputs_2 = self.encoder_2(x0)
+        outputs_2 = self.encoder_2(x0)
 
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
