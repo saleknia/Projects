@@ -203,7 +203,7 @@ class SegFormerHead(nn.Module):
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim*2)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim*1)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*7, embedding_dim, 1)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(32, 32, 4, 2, 1),
