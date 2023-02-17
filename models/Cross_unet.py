@@ -474,7 +474,7 @@ class Cross_unet(nn.Module):
         # else:
         #     return t#(x + e + t) / 3.0
 
-        return x
+        return x 
 
 
 
