@@ -124,9 +124,9 @@ class knitt(nn.Module):
         self.fusion_x2 = fusion(384, 256)
         self.fusion_x1 = fusion(192, 128)
 
-        self.combine = _make_nConv(in_channels=224, out_channels=128, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine = _make_nConv(in_channels=224, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-    def forward(self, x0, x1, x2, x3, e1, e2, e3):
+    def forward(self, x1, x2, x3, e1, e2, e3):
 
         e2 = self.fusion_e2(x3, e2)
         x2 = self.fusion_x2(e3, x2)
@@ -284,11 +284,11 @@ class Cross_unet(nn.Module):
         self.knitt = knitt()
 
         self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(64, 64, 4, 2, 1),
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(64, 32, 3, padding=1),
+            nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
     def forward(self, x):
