@@ -504,27 +504,27 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.up_2e = DecoderBottleneckLayer(384, 192)
-        self.up_1e = DecoderBottleneckLayer(192, 96)
+        # self.up_2e = DecoderBottleneckLayer(384, 192)
+        # self.up_1e = DecoderBottleneckLayer(192, 96)
 
-        self.up_2t = DecoderBottleneckLayer(384, 192)
-        self.up_1t = DecoderBottleneckLayer(192, 96)
+        # self.up_2t = DecoderBottleneckLayer(384, 192)
+        # self.up_1t = DecoderBottleneckLayer(192, 96)
 
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier_e = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
-        self.classifier_t = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
+        # self.classifier_t = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 96, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(96, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        # )
 
     def forward(self, x):
         # # Question here
@@ -549,24 +549,25 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
         x = self.classifier(x)
+        
         # e = self.head_1(x1, x2, x3)
         # t = self.head_2(e1, e2, e3)
 
-        e = self.up_2e(e3) + e2
-        e = self.up_1e(e)  + e1
+        # e = self.up_2e(e3) + e2
+        # e = self.up_1e(e)  + e1
 
-        t = self.up_2t(x3) + x2
-        t = self.up_1t(t)  + x1
+        # t = self.up_2t(x3) + x2
+        # t = self.up_1t(t)  + x1
 
-        t = self.classifier_t(t)
-        e = self.classifier_e(e)
+        # t = self.classifier_t(t)
+        # e = self.classifier_e(e)
 
-        if self.training:
-            return x, e, t
-        else:
-            return (x + e + t) / 3.0
+        # if self.training:
+        #     return x, e, t
+        # else:
+        #     return (x + e + t) / 3.0
 
-        # return x 
+        return x 
 
 
 
