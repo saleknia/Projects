@@ -498,27 +498,6 @@ class Cross_unet(nn.Module):
             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
-        self.fusion_e2 = UpBlock(384, 192)
-        self.fusion_e1 = UpBlock(192, 96)
-
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
-
-        self.classifier_e = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
-
-        self.classifier_t = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        )
 
     def forward(self, x):
         # # Question here
@@ -544,21 +523,7 @@ class Cross_unet(nn.Module):
 
         x = self.classifier(x)
 
-        e = self.fusion_e2(e3, e2)
-        e = self.fusion_e1(e , e1)
-
-        t = self.fusion_x2(x3, x2)
-        t = self.fusion_x1(t , x1)
-
-        t = self.classifier_t(t)
-        e = self.classifier_e(e)
-
-        if self.training:
-            return x, e, t
-        else:
-            return (x + e + t) / 3.0
-
-        # return x 
+        return x 
 
 
 
