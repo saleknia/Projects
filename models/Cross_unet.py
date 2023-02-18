@@ -154,9 +154,7 @@ class knitt(nn.Module):
         e1 = self.fusion_e1(x2, e1)
         x1 = self.fusion_x1(e2, x1)
 
-        # x = self.combine(torch.cat([e1, x1], dim=1))
-
-        x = e1 + x1
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
         # x = self.fusion_x2(x3, x2)
         # x = self.fusion_x1(x , x1)
@@ -488,8 +486,8 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
-        # self.head_1 = SegFormerHead()
-        # self.head_2 = SegFormerHead()
+        self.head_1 = SegFormerHead()
+        self.head_2 = SegFormerHead()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -525,7 +523,13 @@ class Cross_unet(nn.Module):
 
         x = self.classifier(x)
 
-        return x 
+        e = self.head_1(e1, e2, e3)
+        t = self.head_2(x1, x2, x3)
+
+        if self.training:
+            return x, e, t
+        else:
+            return x
 
 
 
