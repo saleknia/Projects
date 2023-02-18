@@ -420,6 +420,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision import models as resnet
 
+def make_fuse_layers():
+    num_branches = 3
+    num_in_chs = [96, 192, 384]
+    fuse_layers = []
+    for i in range(num_branches):
+        fuse_layer = []
+        for j in range(num_branches):
+            if j > i:
+                fuse_layer.append(nn.Sequential(
+                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(num_in_chs[i]),
+                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+            elif j == i:
+                fuse_layer.append(nn.Identity())
+            else:
+                conv3x3s = []
+                for k in range(i - j):
+                    if k == i - j - 1:
+                        num_outchannels_conv3x3 = num_in_chs[i]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3)))
+                    else:
+                        num_outchannels_conv3x3 = num_in_chs[j]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3),
+                            nn.ReLU(False)))
+                fuse_layer.append(nn.Sequential(*conv3x3s))
+        fuse_layers.append(nn.ModuleList(fuse_layer))
+
+    return nn.ModuleList(fuse_layers)
+
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -476,6 +509,12 @@ class Cross_unet(nn.Module):
                             drop_path_rate=0.2,
                         )
 
+        self.fuse_layers_1 = make_fuse_layers()
+        self.fuse_act_1    = nn.ReLU()
+
+        self.fuse_layers_2 = make_fuse_layers()
+        self.fuse_act_2    = nn.ReLU()
+
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
@@ -494,8 +533,8 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            # nn.Conv2d(48, n_classes, 3, padding=1),
-            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+            nn.Conv2d(48, n_classes, 3, padding=1),
+            # nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
 
@@ -514,6 +553,38 @@ class Cross_unet(nn.Module):
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
+
+        x = [x1, x2, x3]
+        x_fuse = []
+        num_branches = 3
+        for i, fuse_outer in enumerate(self.fuse_layers_1):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act_1(y))
+
+        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
+        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
+        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
+
+        e = [e1, e2, e3]
+        e_fuse = []
+        num_branches = 3
+        for i, fuse_outer in enumerate(self.fuse_layers_2):
+            y = e[0] if i == 0 else fuse_outer[0](e[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + e[j]
+                else:
+                    y = y + fuse_outer[j](e[j])
+            e_fuse.append(self.fuse_act_2(y))
+
+        e1 = e_fuse[0] + (e1*(1.0-self.sigmoid_1(e_fuse[0])))
+        e2 = e_fuse[1] + (e2*(1.0-self.sigmoid_2(e_fuse[1]))) 
+        e3 = e_fuse[2] + (e3*(1.0-self.sigmoid_3(e_fuse[2])))
 
         # e3 = None
         # e2 = None
