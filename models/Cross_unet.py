@@ -527,7 +527,7 @@ class Cross_unet(nn.Module):
         self.sigmoid_2 = nn.Sigmoid()
         self.sigmoid_3 = nn.Sigmoid()
         self.sigmoid_4 = nn.Sigmoid()
-        
+
         self.knitt = knitt()
 
         self.head_1 = SegFormerHead()
@@ -538,8 +538,8 @@ class Cross_unet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(96, 48, 3, padding=1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, n_classes, 3, padding=1),
-            # nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+            # nn.Conv2d(48, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         )
 
 
