@@ -97,6 +97,40 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
+
+
 class knitt(nn.Module):
 
     def __init__(self):
@@ -104,21 +138,27 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = UpBlock(384, 192)
-        self.fusion_e1 = UpBlock(192, 96)
+        self.fusion_e2 = DecoderBottleneckLayer(384, 192) #UpBlock(384, 192)
+        self.fusion_e1 = DecoderBottleneckLayer(192, 96) #UpBlock(192, 96)
 
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
+        self.fusion_x2 = DecoderBottleneckLayer(384, 192) #UpBlock(384, 192)
+        self.fusion_x1 = DecoderBottleneckLayer(192, 96) #UpBlock(192, 96)
 
         self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        e2 = self.fusion_e2(x3, e2)
-        x2 = self.fusion_x2(e3, x2)
+        # e2 = self.fusion_e2(x3, e2)
+        # x2 = self.fusion_x2(e3, x2)
 
-        e1 = self.fusion_e1(x2, e1)
-        x1 = self.fusion_x1(e2, x1)
+        # e1 = self.fusion_e1(x2, e1)
+        # x1 = self.fusion_x1(e2, x1)
+
+        e2 = self.fusion_e2(x3) + e2
+        x2 = self.fusion_x2(e3) + x2
+
+        e1 = self.fusion_e1(x2) + e1
+        x1 = self.fusion_x1(e2) + x1
 
         x = self.combine(torch.cat([e1, x1], dim=1))
 
