@@ -523,6 +523,11 @@ class Cross_unet(nn.Module):
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
 
+        self.sigmoid_1 = nn.Sigmoid()
+        self.sigmoid_2 = nn.Sigmoid()
+        self.sigmoid_3 = nn.Sigmoid()
+        self.sigmoid_4 = nn.Sigmoid()
+        
         self.knitt = knitt()
 
         self.head_1 = SegFormerHead()
