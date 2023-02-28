@@ -209,6 +209,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         if teacher_model is not None:
             loss_ce = ce_loss(outputs, targets.long()) * weights
             loss_ce = torch.mean(loss_ce)
+            
         else:
             loss_ce = ce_loss(outputs, targets.long())
             # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
@@ -230,7 +231,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9     
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
