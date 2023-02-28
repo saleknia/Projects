@@ -30,9 +30,10 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
-        model.features[0][0].in_channels = 4
+        # model.features[0][0].in_channels = 4
 
         self.features = model.features
+        self.features[0][0].in_channels = 4
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
