@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights, EfficientNet_B6_Weights, efficientnet_b6
-from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights
+from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 
 
@@ -24,7 +24,9 @@ class Mobile_netV2(nn.Module):
         # self.features = model.features
         # self.avgpool = model.avgpool
 
-        self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
+        # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
+        self.segmentation = torchvision.models.segmentation.DEEPLABV3_MOBILENET_V3_LARGE(weights=DeepLabV3_MobileNet_V3_Large_Weights)
+
         for param in self.segmentation.parameters():
             param.requires_grad = False
 
@@ -51,7 +53,7 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         seg = self.segmentation(x)['out']
-        output_predictions = seg.argmax(1, keepdim=True)
+        output_predictions = seg.argmax(1, keepdim=True) / 20.0
 
         # print(x.shape)
         # print(seg.shape)
