@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights, EfficientNet_B6_Weights, efficientnet_b6
 import torchvision
+from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights, EfficientNet_B6_Weights, efficientnet_b6
+from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights
 import random
 
 
@@ -23,8 +24,14 @@ class Mobile_netV2(nn.Module):
         # self.features = model.features
         # self.avgpool = model.avgpool
 
+        self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
+        for param in self.segmentation.parameters():
+            param.requires_grad = False
+
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model.features[0][0].stride = (1, 1)
+        model.features[0][0].in_channels = 4
+
         self.features = model.features
         self.avgpool = model.avgpool
 
@@ -41,6 +48,11 @@ class Mobile_netV2(nn.Module):
         
     def forward(self, x):
         b, c, w, h = x.shape
+
+        seg = self.segmentation(x)['out'][0]
+        output_predictions = seg.argmax(0)
+
+        x = torch.cat([x, output_predictions], dim=1)
 
         x = self.features(x)
 
