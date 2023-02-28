@@ -25,22 +25,24 @@ class Mobile_netV2(nn.Module):
         # self.avgpool = model.avgpool
 
         # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
+        # self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
 
-        for param in self.segmentation.parameters():
-            param.requires_grad = False
+        # for param in self.segmentation.parameters():
+        #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        model = efficientnet_b6(weights=EfficientNet_B6_Weights)
+
         # model.features[0][0].stride = (1, 1)
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0] = nn.Conv2d(4, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Linear(in_features=2560, out_features=512, bias=True),
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.5, inplace=True),
@@ -51,15 +53,6 @@ class Mobile_netV2(nn.Module):
         
     def forward(self, x):
         b, c, w, h = x.shape
-
-        seg = self.segmentation(x)['out']
-        output_predictions = seg.argmax(1, keepdim=True) / 20.0
-
-        # print(x.shape)
-        # print(seg.shape)
-        # print(output_predictions.shape)
-
-        x = torch.cat([x, output_predictions], dim=1)
 
         x = self.features(x)
 
