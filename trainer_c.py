@@ -198,7 +198,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax(outputs, dim=1), torch.nn.functional.one_hot(targets, num_classes=40))
+        accuracy.add(torch.softmax(outputs, dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
