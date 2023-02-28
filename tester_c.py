@@ -11,13 +11,16 @@ import pickle
 from utils import proto
 warnings.filterwarnings("ignore")
 import ttach as tta
+from torchnet.meter import APMeter
 
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model.eval()
 
     loss_total = utils.AverageMeter()
-    accuracy = utils.AverageMeter()
+    # accuracy = utils.AverageMeter()
+    accuracy = APMeter()
+
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
     loader = dataloader
@@ -42,7 +45,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+            # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+            accuracy.add(torch.softmax(predictions, dim=1), torch.nn.functional.one_hot(targets, num_classes=40))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
@@ -54,11 +58,14 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
+                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value()*100:.2f} ',
                 bar_length=45
             )  
 
-        acc = 100*accuracy.avg
+        # acc = 100*accuracy.avg
+        acc = 100*accuracy.value()
+
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , Accuracy: {acc:.2f}') 
 
