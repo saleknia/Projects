@@ -33,7 +33,7 @@ class Mobile_netV2(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0].in_channels = 4
+        self.features[0][0] = nn.Conv2d(4, 32, kernel_size=(3, 3), stride=(2, 2), padding=(1, 1), bias=False)
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
