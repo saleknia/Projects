@@ -30,9 +30,9 @@ class Mobile_netV2(nn.Module):
         # for param in self.segmentation.parameters():
         #     param.requires_grad = False
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = efficientnet_b5(weights=EfficientNet_B5_Weights)
+        # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
         # model.features[0][0].stride = (1, 1)
         # model.features[0][0].in_channels = 4
@@ -41,14 +41,14 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=512, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=256, out_features=128, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=128, out_features=num_classes, bias=True),
+            # nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True),
+            # nn.Dropout(p=0.5, inplace=True),
+            # nn.Linear(in_features=512, out_features=256, bias=True),
+            # nn.Dropout(p=0.5, inplace=True),
+            # nn.Linear(in_features=256, out_features=128, bias=True),
+            # nn.Dropout(p=0.5, inplace=True),
+            # nn.Linear(in_features=128, out_features=num_classes, bias=True),
         )
         
     def forward(self, x):
