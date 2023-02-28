@@ -54,8 +54,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # if 0.0 < torch.sum(targets):
             #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
 
-            print(accuracy.value())
-
             print_progress(
                 iteration=batch_idx+1,
                 total=total_batchs,
