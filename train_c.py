@@ -385,8 +385,8 @@ def main(args):
     elif TASK_NAME=='Standford40':
 
         transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            # transforms.Resize((224, 224)),
+            # transforms.RandomResizedCrop(224),
+            transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
