@@ -11,7 +11,7 @@ import pickle
 from utils import proto
 warnings.filterwarnings("ignore")
 import ttach as tta
-from torchnet.meter import APMeter
+from torchnet.meter import mAPMeter
 
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
@@ -19,7 +19,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
     loss_total = utils.AverageMeter()
     # accuracy = utils.AverageMeter()
-    accuracy = APMeter()
+    accuracy = mAPMeter()
 
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
@@ -54,17 +54,19 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # if 0.0 < torch.sum(targets):
             #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
 
+            print(accuracy.value())
+
             print_progress(
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
                 # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value()*100:.2f} ',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
                 bar_length=45
             )  
 
         # acc = 100*accuracy.avg
-        acc = 100*accuracy.value()
+        acc = 100*accuracy.value().item()
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , Accuracy: {acc:.2f}') 
