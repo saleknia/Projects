@@ -49,8 +49,12 @@ class Mobile_netV2(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        seg = self.segmentation(x)['out'][0]
-        output_predictions = seg.argmax(0)
+        seg = self.segmentation(x)['out']
+        output_predictions = seg.argmax(1, keepdim=True)
+
+        # print(x.shape)
+        # print(seg.shape)
+        # print(output_predictions.shape)
 
         x = torch.cat([x, output_predictions], dim=1)
 
