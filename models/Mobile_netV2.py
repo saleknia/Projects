@@ -25,7 +25,7 @@ class Mobile_netV2(nn.Module):
         # self.avgpool = model.avgpool
 
         # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        self.segmentation = torchvision.models.segmentation.DEEPLABV3_MOBILENET_V3_LARGE(weights=DeepLabV3_MobileNet_V3_Large_Weights)
+        self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
 
         for param in self.segmentation.parameters():
             param.requires_grad = False
