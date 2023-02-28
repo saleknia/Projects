@@ -9,7 +9,6 @@ import medpy
 import numpy as np
 import pickle
 from utils import proto
-from config import class_index
 warnings.filterwarnings("ignore")
 import ttach as tta
 
