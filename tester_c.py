@@ -13,9 +13,16 @@ warnings.filterwarnings("ignore")
 import ttach as tta
 from torchnet.meter import mAPMeter
 
+transforms = tta.Compose(
+    [
+        tta.Scale(scales=[1, 2, 4]),
+    ]
+)
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model.eval()
+
+    model = tta.ClassificationTTAWrapper(model, transforms, merge_mode='mean')
 
     loss_total = utils.AverageMeter()
     # accuracy = utils.AverageMeter()
@@ -37,6 +44,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # targets[targets==10.0]        = 0.00
 
             outputs = model(inputs)
+            # outputs = torch.softmax(outputs, dim=1)
 
             loss_ce = ce_loss(outputs, targets[:].long())
             loss = loss_ce
@@ -46,7 +54,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             predictions = torch.argmax(input=outputs,dim=1).long()
             # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-            accuracy.add(torch.softmax(outputs, dim=1), torch.nn.functional.one_hot(targets, num_classes=40))
+            accuracy.add(outputs, torch.nn.functional.one_hot(targets, num_classes=40))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
