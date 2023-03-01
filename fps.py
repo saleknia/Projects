@@ -2,7 +2,7 @@ import time
 import torch
 import torch.backends.cudnn as cudnn
 from models.UNet import UNet
-
+from models.att_unet import AttentionUNet
 from argparse import ArgumentParser
 
 
@@ -50,6 +50,8 @@ if __name__ == '__main__':
 
     h, w = map(int, args.size.split(','))
     model = UNet(n_channels=3, n_classes=1).to('cuda')
+    # model = AttentionUNet(img_ch=3, output_ch=1).to('cuda')
+
     compute_speed(model, (args.batch_size, args.num_channels, h, w), int(args.gpus), iteration=args.iter)
 
 
