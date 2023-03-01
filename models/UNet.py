@@ -53,48 +53,6 @@ class DownBlock(nn.Module):
     def forward(self, x):
         return self.nConvs(x)
 
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-from collections import OrderedDict
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        V=(attention_weights*feats)
-        V=feats[0] + feats[1] + x + y
-        return V
-
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
@@ -177,15 +135,24 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
-class CCA(nn.Module):
-    def __init__(self, in_channels):
-        super(CCA, self).__init__()
-        self.CCA_1 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 8, dim_heads = None, dim_index = 1, sum_axial_out = True)
-        self.CCA_2 = AxialAttention(dim=in_channels, num_dimensions = 2, heads = 8, dim_heads = None, dim_index = 1, sum_axial_out = True)
+class GCN(nn.Module):
+    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
+        super(GCN, self).__init__()
+        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
+        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
+        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
+        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
+        
     def forward(self, x):
-        x = self.CCA_2(self.CCA_1(x))+x
+        x_l = self.conv_l1(x)
+        x_l = self.conv_l2(x_l)
+        
+        x_r = self.conv_r1(x)
+        x_r = self.conv_r2(x_r)
+        
+        x = x_l + x_r
+        
         return x
-
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -220,8 +187,9 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
-        self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
+        self.ESP_4 = DilatedParllelResidualBlockB(18, 18)
+        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
+        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -256,7 +224,7 @@ class UNet(nn.Module):
 
         k31 = yl[0]
         k32 = yl[1]
-        k33 = yl[2]        
+        k33 = yl[2]
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
@@ -273,7 +241,8 @@ class UNet(nn.Module):
 
         z4 = self.up3_4(k44, k43) 
         z4 = self.up2_4(z4 , k42) 
-        z4 = self.up1_4(z4 , k41)
+        z4 = self.up1_4(z4 , k41) 
+        z4 = self.ESP_4(z4)
 
         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
@@ -335,169 +304,6 @@ class CrissCrossAttention(nn.Module):
         #print(out_H.size(),out_W.size())
         return (out_H + out_W) + x
 
-class SEBlock(nn.Module):
-    def __init__(self, channel, r=16):
-        super(SEBlock, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        # Squeeze
-        y = self.avg_pool(x).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        y = torch.mul(x, y)
-        return y
-
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
-from torchvision.models import resnet
-
-
-class BasicBlock(nn.Module):
-
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, groups=1, bias=False):
-        super(BasicBlock, self).__init__()
-        self.conv1 = nn.Conv2d(in_planes, out_planes, kernel_size, stride, padding, groups=groups, bias=bias)
-        self.bn1 = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(out_planes, out_planes, kernel_size, 1, padding, groups=groups, bias=bias)
-        self.bn2 = nn.BatchNorm2d(out_planes)
-        self.downsample = None
-        if stride > 1:
-            self.downsample = nn.Sequential(nn.Conv2d(in_planes, out_planes, kernel_size=1, stride=stride, bias=False),
-                            nn.BatchNorm2d(out_planes),)
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
-class Encoder(nn.Module):
-
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, groups=1, bias=False):
-        super(Encoder, self).__init__()
-        self.block1 = BasicBlock(in_planes, out_planes, kernel_size, stride, padding, groups, bias)
-        self.block2 = BasicBlock(out_planes, out_planes, kernel_size, 1, padding, groups, bias)
-
-    def forward(self, x):
-        x = self.block1(x)
-        x = self.block2(x)
-
-        return x
-
-
-class Decoder(nn.Module):
-
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, output_padding=0, groups=1, bias=False):
-        # TODO bias=True
-        super(Decoder, self).__init__()
-        self.conv1 = nn.Sequential(nn.Conv2d(in_planes, in_planes//4, 1, 1, 0, bias=bias),
-                                nn.BatchNorm2d(in_planes//4),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv = nn.Sequential(nn.ConvTranspose2d(in_planes//4, in_planes//4, kernel_size, stride, padding, output_padding, bias=bias),
-                                nn.BatchNorm2d(in_planes//4),
-                                nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(in_planes//4, out_planes, 1, 1, 0, bias=bias),
-                                nn.BatchNorm2d(out_planes),
-                                nn.ReLU(inplace=True),)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.tp_conv(x)
-        x = self.conv2(x)
-
-        return x
-
-
-# class UNet(nn.Module):
-#     """
-#     Generate Model Architecture
-#     """
-
-#     def __init__(self, n_channels=3, n_classes=1):
-#         """
-#         Model initialization
-#         :param x_n: number of input neurons
-#         :type x_n: int
-#         """
-#         super(UNet, self).__init__()
-
-#         base = resnet.resnet34(pretrained=True)
-
-#         self.in_block = nn.Sequential(
-#             base.conv1,
-#             base.bn1,
-#             base.relu,
-#             base.maxpool
-#         )
-
-#         self.encoder1 = base.layer1
-#         self.encoder2 = base.layer2
-#         self.encoder3 = base.layer3
-#         self.encoder4 = base.layer4
-
-#         self.decoder1 = Decoder(64, 64, 3, 1, 1, 0)
-#         self.decoder2 = Decoder(128, 64, 3, 2, 1, 1)
-#         self.decoder3 = Decoder(256, 128, 3, 2, 1, 1)
-#         self.decoder4 = Decoder(512, 256, 3, 2, 1, 1)
-
-#         # Classifier
-#         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-#                                       nn.BatchNorm2d(32),
-#                                       nn.ReLU(inplace=True),)
-#         self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-#                                 nn.BatchNorm2d(32),
-#                                 nn.ReLU(inplace=True),)
-#         self.tp_conv2 = nn.ConvTranspose2d(32, n_classes, 2, 2, 0)
-
-
-#     def forward(self, x):
-#         # Initial block
-#         x = self.in_block(x)
-
-#         # Encoder blocks
-#         e1 = self.encoder1(x)
-#         e2 = self.encoder2(e1)
-#         e3 = self.encoder3(e2)
-#         e4 = self.encoder4(e3)
-
-#         # Decoder blocks
-#         #d4 = e3 + self.decoder4(e4)
-#         d4 = e3 + self.decoder4(e4)
-#         d3 = e2 + self.decoder3(d4)
-#         d2 = e1 + self.decoder2(d3)
-#         d1 = x + self.decoder1(d2)
-
-#         # Classifier
-#         y = self.tp_conv1(d1)
-#         y = self.conv2(y)
-#         y = self.tp_conv2(y)
-
-#         return y
-
 
 # class UNet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
@@ -555,16 +361,16 @@ class Decoder(nn.Module):
 #         e3 = self.encoder3(e2)
 #         feature_cnn = self.encoder4(e3)
 
-#         # emb = self.patch_embed(x)
-#         # for i in range(12):
-#         #     emb = self.transformers[i](emb)
-#         # feature_tf = emb.permute(0, 2, 1)
-#         # feature_tf = feature_tf.view(b, 192, 14, 14)
-#         # feature_tf = self.conv_seq_img(feature_tf)
+#         emb = self.patch_embed(x)
+#         for i in range(12):
+#             emb = self.transformers[i](emb)
+#         feature_tf = emb.permute(0, 2, 1)
+#         feature_tf = feature_tf.view(b, 192, 14, 14)
+#         feature_tf = self.conv_seq_img(feature_tf)
 
-#         # feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
-#         # feature_att = self.se(feature_cat)
-#         # feature_out = self.conv2d(feature_att)
+#         feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
+#         feature_att = self.se(feature_cat)
+#         feature_out = self.conv2d(feature_att)
 
 #         for i in range(2):
 #             e3 = self.FAM3[i](e3)
@@ -572,7 +378,7 @@ class Decoder(nn.Module):
 #             e2 = self.FAM2[i](e2)
 #         for i in range(6):
 #             e1 = self.FAM1[i](e1)
-#         d4 = self.decoder4(feature_cnn) + e3
+#         d4 = self.decoder4(feature_out) + e3
 #         d3 = self.decoder3(d4) + e2
 #         d2 = self.decoder2(d3) + e1
 
@@ -1441,7 +1247,7 @@ class DilatedParllelResidualBlockB(nn.Module):
                 increase the module complexity
         '''
         super().__init__()
-        n = int(nOut // 3)  # K=3,
+        n = int(nOut / 3)  # K=3,
         n1 = nOut - 2 * n  # (N-(K-1)INT(N/K)) for dilation rate of 2^0, for producing an output feature map of channel=nOut
         self.c1 = C(nIn, n, 1, 1)  # the point-wise convolutions with 1x1 help in reducing the computation, channel=c
 
@@ -2808,4 +2614,3 @@ class DAT(nn.Module):
             references.append(ref)
         
         return outputs
-
