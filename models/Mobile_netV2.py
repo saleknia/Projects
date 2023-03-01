@@ -38,8 +38,11 @@ class Mobile_netV2(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
+        # self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
+
+        for param in self.features[0:6]:
+            param.requires_grad = False
 
         self.classifier = nn.Sequential(
             # nn.Dropout(p=0.5, inplace=True),
