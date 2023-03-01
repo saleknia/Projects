@@ -187,109 +187,109 @@ class CCA(nn.Module):
         return x
 
 
-# class UNet(nn.Module):
-#     def __init__(self, n_channels=3, n_classes=1):
-#         '''
-#         n_channels : number of channels of the input.
-#                         By default 3, because we have RGB images
-#         n_labels : number of channels of the ouput.
-#                       By default 3 (2 labels + 1 for the background)
-#         '''
-#         super().__init__()
-#         self.n_channels = n_channels
-#         self.n_classes = n_classes
+class UNet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
 
-#         channel = 18
+        channel = 18
 
-#         self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
-#         self.encoder.incre_modules = None
+        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
+        self.encoder.incre_modules = None
 
-#         # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
-#         # self.up2 = UpBlock(channel*4, channel*2, nb_Conv=2)
-#         # self.up1 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
+        # self.up2 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        # self.up1 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-#         self.up3_4 = UpBlock(channel*8, channel*4, nb_Conv=2)
-#         self.up2_4 = UpBlock(channel*4, channel*2, nb_Conv=2)
-#         self.up1_4 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        self.up3_4 = UpBlock(channel*8, channel*4, nb_Conv=2)
+        self.up2_4 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        self.up1_4 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-#         self.up2_3 = UpBlock(channel*4, channel*2, nb_Conv=2)
-#         self.up1_3 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        self.up2_3 = UpBlock(channel*4, channel*2, nb_Conv=2)
+        self.up1_3 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-#         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
+        self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-#         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-#         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
+        self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-#         self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
-#         self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
+        self.ESP_3 = DilatedParllelResidualBlockB(channel, channel)
+        self.ESP_2 = DilatedParllelResidualBlockB(channel, channel)
 
-#         self.classifier = nn.Sequential(
-#             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(channel, channel, 3, padding=1),
-#             nn.ReLU(inplace=True),
-#             # nn.Conv2d(channel, n_classes, 3, padding=1),
-#             nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
-#         )
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(channel, channel, 3, padding=1),
+            nn.ReLU(inplace=True),
+            # nn.Conv2d(channel, n_classes, 3, padding=1),
+            nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        )
 
-#     def forward(self, x):
-#         # Question here
-#         x0 = x.float()
-#         b, c, h, w = x.shape
+    def forward(self, x):
+        # Question here
+        x0 = x.float()
+        b, c, h, w = x.shape
 
-#         x = self.encoder.conv1(x0)
-#         x = self.encoder.bn1(x)
-#         x = self.encoder.act1(x)
-#         x = self.encoder.conv2(x)
-#         x = self.encoder.bn2(x)
-#         x = self.encoder.act2(x)
-#         x = self.encoder.layer1(x)
+        x = self.encoder.conv1(x0)
+        x = self.encoder.bn1(x)
+        x = self.encoder.act1(x)
+        x = self.encoder.conv2(x)
+        x = self.encoder.bn2(x)
+        x = self.encoder.act2(x)
+        x = self.encoder.layer1(x)
 
-#         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
-#         yl = self.encoder.stage2(xl)
+        xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
+        yl = self.encoder.stage2(xl)
 
-#         k21 = yl[0]
-#         k22 = yl[1]
+        k21 = yl[0]
+        k22 = yl[1]
 
-#         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
-#         yl = self.encoder.stage3(xl)
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
+        yl = self.encoder.stage3(xl)
 
-#         k31 = yl[0]
-#         k32 = yl[1]
-#         k33 = yl[2]        
+        k31 = yl[0]
+        k32 = yl[1]
+        k33 = yl[2]        
 
-#         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
-#         yl = self.encoder.stage4(xl)
+        xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
+        yl = self.encoder.stage4(xl)
 
-#         k41 = yl[0]
-#         k42 = yl[1]
-#         k43 = yl[2]
-#         k44 = yl[3]
+        k41 = yl[0]
+        k42 = yl[1]
+        k43 = yl[2]
+        k44 = yl[3]
 
-#         z2 = self.up1_2(k22, k21)  
+        z2 = self.up1_2(k22, k21)  
 
-#         z3 = self.up2_3(k33 , k32) 
-#         z3 = self.up1_3(z3  , k31) 
+        z3 = self.up2_3(k33 , k32) 
+        z3 = self.up1_3(z3  , k31) 
 
-#         z4 = self.up3_4(k44, k43) 
-#         z4 = self.up2_4(z4 , k42) 
-#         z4 = self.up1_4(z4 , k41)
+        z4 = self.up3_4(k44, k43) 
+        z4 = self.up2_4(z4 , k42) 
+        z4 = self.up1_4(z4 , k41)
 
-#         # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
+        # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
 
-#         # x = self.up3(x4, x3) 
-#         # x = self.up2(x , x2) 
-#         # x = self.up1(x , x1) 
+        # x = self.up3(x4, x3) 
+        # x = self.up2(x , x2) 
+        # x = self.up1(x , x1) 
 
-#         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-#         z3 = self.ESP_3(z3)
+        z3 = self.conv_4(torch.cat([z4, z3], dim=1))
+        z3 = self.ESP_3(z3)
 
-#         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-#         z2 = self.ESP_2(z2)
+        z2 = self.conv_3(torch.cat([z3, z2], dim=1))
+        z2 = self.ESP_2(z2)
 
-#         z = self.classifier(z2)
+        z = self.classifier(z2)
 
-#         return z
+        return z
 
 import torch
 import torch.nn as nn
@@ -432,71 +432,71 @@ class Decoder(nn.Module):
         return x
 
 
-class UNet(nn.Module):
-    """
-    Generate Model Architecture
-    """
+# class UNet(nn.Module):
+#     """
+#     Generate Model Architecture
+#     """
 
-    def __init__(self, n_channels=3, n_classes=1):
-        """
-        Model initialization
-        :param x_n: number of input neurons
-        :type x_n: int
-        """
-        super(UNet, self).__init__()
+#     def __init__(self, n_channels=3, n_classes=1):
+#         """
+#         Model initialization
+#         :param x_n: number of input neurons
+#         :type x_n: int
+#         """
+#         super(UNet, self).__init__()
 
-        base = resnet.resnet34(pretrained=True)
+#         base = resnet.resnet34(pretrained=True)
 
-        self.in_block = nn.Sequential(
-            base.conv1,
-            base.bn1,
-            base.relu,
-            base.maxpool
-        )
+#         self.in_block = nn.Sequential(
+#             base.conv1,
+#             base.bn1,
+#             base.relu,
+#             base.maxpool
+#         )
 
-        self.encoder1 = base.layer1
-        self.encoder2 = base.layer2
-        self.encoder3 = base.layer3
-        self.encoder4 = base.layer4
+#         self.encoder1 = base.layer1
+#         self.encoder2 = base.layer2
+#         self.encoder3 = base.layer3
+#         self.encoder4 = base.layer4
 
-        self.decoder1 = Decoder(64, 64, 3, 1, 1, 0)
-        self.decoder2 = Decoder(128, 64, 3, 2, 1, 1)
-        self.decoder3 = Decoder(256, 128, 3, 2, 1, 1)
-        self.decoder4 = Decoder(512, 256, 3, 2, 1, 1)
+#         self.decoder1 = Decoder(64, 64, 3, 1, 1, 0)
+#         self.decoder2 = Decoder(128, 64, 3, 2, 1, 1)
+#         self.decoder3 = Decoder(256, 128, 3, 2, 1, 1)
+#         self.decoder4 = Decoder(512, 256, 3, 2, 1, 1)
 
-        # Classifier
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, n_classes, 2, 2, 0)
+#         # Classifier
+#         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+#                                       nn.BatchNorm2d(32),
+#                                       nn.ReLU(inplace=True),)
+#         self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+#                                 nn.BatchNorm2d(32),
+#                                 nn.ReLU(inplace=True),)
+#         self.tp_conv2 = nn.ConvTranspose2d(32, n_classes, 2, 2, 0)
 
 
-    def forward(self, x):
-        # Initial block
-        x = self.in_block(x)
+#     def forward(self, x):
+#         # Initial block
+#         x = self.in_block(x)
 
-        # Encoder blocks
-        e1 = self.encoder1(x)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+#         # Encoder blocks
+#         e1 = self.encoder1(x)
+#         e2 = self.encoder2(e1)
+#         e3 = self.encoder3(e2)
+#         e4 = self.encoder4(e3)
 
-        # Decoder blocks
-        #d4 = e3 + self.decoder4(e4)
-        d4 = e3 + self.decoder4(e4)
-        d3 = e2 + self.decoder3(d4)
-        d2 = e1 + self.decoder2(d3)
-        d1 = x + self.decoder1(d2)
+#         # Decoder blocks
+#         #d4 = e3 + self.decoder4(e4)
+#         d4 = e3 + self.decoder4(e4)
+#         d3 = e2 + self.decoder3(d4)
+#         d2 = e1 + self.decoder2(d3)
+#         d1 = x + self.decoder1(d2)
 
-        # Classifier
-        y = self.tp_conv1(d1)
-        y = self.conv2(y)
-        y = self.tp_conv2(y)
+#         # Classifier
+#         y = self.tp_conv1(d1)
+#         y = self.conv2(y)
+#         y = self.tp_conv2(y)
 
-        return y
+#         return y
 
 
 # class UNet(nn.Module):
