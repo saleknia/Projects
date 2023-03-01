@@ -293,11 +293,11 @@ class ISIC2017(Dataset):
             img = self.img_transform(transformed['image'])
             seg = self.gt_transform(transformed['mask'])
         else:
-            pic = img
+            # pic = img
             img = self.img_transform(img)
             seg = self.gt_transform(seg)
 
-        return img, seg[0], pic
+        return img, seg[0]#, pic
                
 
     def apply_augmentation(self, img, seg):
