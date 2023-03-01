@@ -4,7 +4,6 @@ import torch.backends.cudnn as cudnn
 from models.UNet import UNet
 
 from argparse import ArgumentParser
-from builders.model_builder import build_model
 
 
 def compute_speed(model, input_size, device, iteration=100):
