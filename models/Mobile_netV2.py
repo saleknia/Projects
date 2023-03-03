@@ -26,7 +26,7 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1536, out_features=4, bias=True),
+            nn.Linear(in_features=1536, out_features=40, bias=True),
         )
 
 
