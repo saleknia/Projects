@@ -205,9 +205,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         outputs, coarse = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
-        predictions = torch.argmax(input=outputs*coarse,dim=1).long()
+        predictions = torch.argmax(input=outputs*torch.repeat_interleave(torch.softmax(coarse, dim=1), 10, dim=1),dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax((outputs*coarse).clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+        accuracy.add(torch.softmax((outputs*torch.repeat_interleave(torch.softmax(coarse, dim=1), 10, dim=1)).clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
