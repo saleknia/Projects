@@ -188,26 +188,24 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-
-        coarse_t = targets
         
-        coarse_t[coarse_t<10.00] = 40.00            
-        coarse_t[coarse_t<20.00] = 41.00
-        coarse_t[coarse_t<30.00] = 42.00        
-        coarse_t[coarse_t<40.00] = 43.00
+        targets[targets<10.00] = 40.00            
+        targets[targets<20.00] = 41.00
+        targets[targets<30.00] = 42.00        
+        targets[targets<40.00] = 43.00
 
-        coarse_t[coarse_t==40.00] = 0.00            
-        coarse_t[coarse_t==41.00] = 1.00            
-        coarse_t[coarse_t==42.00] = 2.00            
-        coarse_t[coarse_t==43.00] = 3.00            
+        targets[targets==40.00] = 0.00            
+        targets[targets==41.00] = 1.00            
+        targets[targets==42.00] = 2.00            
+        targets[targets==43.00] = 3.00            
 
 
-        outputs, coarse = model(inputs)
+        outputs = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
-        predictions = torch.argmax(input=outputs*torch.repeat_interleave(torch.softmax(coarse, dim=1), 10, dim=1),dim=1).long()
+        predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax((outputs*torch.repeat_interleave(torch.softmax(coarse, dim=1), 10, dim=1)).clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=4))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
@@ -224,7 +222,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
         else:
-            loss_ce = ce_loss(outputs, targets.long()) + ce_loss(coarse, coarse_t.long()) 
+            loss_ce = ce_loss(outputs, targets.long())
             # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
             # weights = torch.abs((weights-weights.min()))
             # weights = weights / weights.max()

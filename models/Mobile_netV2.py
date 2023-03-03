@@ -13,7 +13,7 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # model.features[0][0].stride = (1, 1)
         # model.features[0][0].in_channels = 4
@@ -26,12 +26,9 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=40, bias=True),
+            nn.Linear(in_features=1536, out_features=4, bias=True),
         )
 
-        self.coarse = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=4, bias=True),
-        )
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.4, inplace=True),
@@ -50,15 +47,12 @@ class Mobile_netV2(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
 
-        coarse = self.coarse(x)
         x = self.classifier(x)
 
         if self.training:
-            return x, coarse 
+            return x 
         else:
-            coarse = torch.softmax(coarse, dim=1)
-            coarse = torch.repeat_interleave(coarse, 10, dim=1)
-            return torch.softmax(x*coarse, dim=1)
+            return torch.softmax(x, dim=1)
 
 class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=7, pretrained=True):
