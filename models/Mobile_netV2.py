@@ -27,7 +27,6 @@ class Mobile_netV2(nn.Module):
             nn.Linear(in_features=1280, out_features=40, bias=True),
         )
 
-
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.4, inplace=True),
         #     nn.Linear(in_features=1280, out_features=512, bias=True),
@@ -42,7 +41,8 @@ class Mobile_netV2(nn.Module):
 
         x = self.features(x)
 
-        x = self.avgpool(x)
+        x = self.avgpool(x) 
+        
         x = x.view(x.size(0), -1)
 
         x = self.classifier(x)
