@@ -189,15 +189,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
         
-        targets[targets<10.00] = 40.00            
-        targets[targets<20.00] = 41.00
-        targets[targets<30.00] = 42.00        
-        targets[targets<40.00] = 43.00
+        # targets[targets<10.00] = 40.00            
+        # targets[targets<20.00] = 41.00
+        # targets[targets<30.00] = 42.00        
+        # targets[targets<40.00] = 43.00
 
-        targets[targets==40.00] = 0.00            
-        targets[targets==41.00] = 1.00            
-        targets[targets==42.00] = 2.00            
-        targets[targets==43.00] = 3.00            
+        # targets[targets==40.00] = 0.00            
+        # targets[targets==41.00] = 1.00            
+        # targets[targets==42.00] = 2.00            
+        # targets[targets==43.00] = 3.00            
 
 
         outputs = model(inputs)
@@ -205,7 +205,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=4))
+        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
