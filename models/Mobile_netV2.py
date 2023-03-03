@@ -5,7 +5,7 @@ import torchvision
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b5
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
-
+from fightingcv_attention.attention.Axial_attention import AxialImageTransformer
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -22,6 +22,8 @@ class Mobile_netV2(nn.Module):
 
         # for param in self.features[0:8].parameters():
         #     param.requires_grad = False
+
+        self.AXT = AxialImageTransformer(dim = 1280, depth = 12, reversible = True)
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=1280, out_features=40, bias=True),
@@ -40,6 +42,7 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.features(x)
+        x = self.AXT(x)
 
         x = self.avgpool(x) 
         
