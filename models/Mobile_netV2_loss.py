@@ -28,16 +28,29 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_3 = loaded_data_b_3['net']
         self.b_3.load_state_dict(pretrained_b_3)
 
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        self.features = model.features
+        self.avgpool = model.avgpool
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=1280, out_features=4, bias=True),
+            nn.Softmax()
+        )
+
 
     def forward(self, x):
         b, c, w, h = x.shape
+
+        y = self.features(x)
+        y = self.avgpool(y)
+        y = y.view(y.size(0), -1)
+        y = self.classifier(y)
 
         x0 = self.b_0(x)
         x1 = self.b_1(x)
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
-        x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+        x = y[:,0] * x0 + y[:,1] * x1 + y[:,2] * x2 + y[:,3] * x3
 
         if self.training:
             return x
