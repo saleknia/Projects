@@ -42,10 +42,15 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
-            targets[targets<10.00]        = 0.00
-            targets[10.00<=targets<20.00] = 1.00
-            targets[20.00<=targets<30.00] = 2.00
-            targets[30.00<=targets]       = 3.00
+            targets[targets<10.00] = 40.00            
+            targets[targets<20.00] = 41.00
+            targets[targets<30.00] = 42.00        
+            targets[targets<40.00] = 43.00
+
+            targets[targets==40.00] = 0.00            
+            targets[targets==41.00] = 1.00            
+            targets[targets==42.00] = 2.00            
+            targets[targets==43.00] = 3.00  
 
             outputs = model(inputs)
             # outputs = torch.softmax(outputs, dim=1)
