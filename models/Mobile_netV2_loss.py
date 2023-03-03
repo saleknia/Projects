@@ -36,16 +36,16 @@ class Mobile_netV2_loss(nn.Module):
             nn.Softmax()
         )
 
-        for param in self.b_0:
+        for param in self.b_0.parameters():
             param.requires_grad = False
 
-        for param in self.b_1:
+        for param in self.b_1.parameters():
             param.requires_grad = False
 
-        for param in self.b_2:
+        for param in self.b_2.parameters():
             param.requires_grad = False
 
-        for param in self.b_3:
+        for param in self.b_3.parameters():
             param.requires_grad = False
 
     def forward(self, x):
