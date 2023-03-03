@@ -29,6 +29,82 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_3 = loaded_data_b_3['net']
         self.b_3.load_state_dict(pretrained_b_3)
 
+        self.b_combine = Mobile_netV2_combine()
+        loaded_data_b_combine = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_combine = loaded_data_b_combine['net']
+        self.b_combine.load_state_dict(pretrained_b_combine)
+
+        self.combine = nn.Sequential(
+            nn.Conv2d(1376, 1536, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            nn.BatchNorm2d(1536, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.SiLU(inplace=True)
+        )
+
+        for param in self.b_0.parameters():
+            param.requires_grad = False
+
+        for param in self.b_1.parameters():
+            param.requires_grad = False
+
+        for param in self.b_2.parameters():
+            param.requires_grad = False
+
+        for param in self.b_3.parameters():
+            param.requires_grad = False
+
+        for param in self.b_combine.parameters():
+            param.requires_grad = False
+
+        self.avgpool = model.avgpool
+
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=1536, out_features=40, bias=True),
+        )
+
+    def forward(self, x):
+        b, c, w, h = x.shape
+
+        _ , x0 = self.b_0(x)
+        _ , x1 = self.b_1(x)
+        _ , x2 = self.b_2(x)
+        _ , x3 = self.b_3(x)
+        x4 = self.b_combine(x)
+        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+
+        x = x0 + x1 + x2 + x3 + x4
+
+
+
+        if self.training:
+            return x
+        else:
+            return torch.softmax(x, dim=1)
+
+class Mobile_netV2_combine(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2_combine, self).__init__()
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        self.b_0 = Mobile_netV2_0()
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_83_92/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_0 = loaded_data_b_0['net']
+        self.b_0.load_state_dict(pretrained_b_0)
+
+        self.b_1 = Mobile_netV2_1()
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_84_51/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_1 = loaded_data_b_1['net']
+        self.b_1.load_state_dict(pretrained_b_1)        
+        
+        self.b_2 = Mobile_netV2_2()
+        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_86_01/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_2 = loaded_data_b_2['net']
+        self.b_2.load_state_dict(pretrained_b_2)
+
+        self.b_3 = Mobile_netV2_3()
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_3 = loaded_data_b_3['net']
+        self.b_3.load_state_dict(pretrained_b_3)
+
         self.combine = nn.Sequential(
             nn.Conv2d(1376, 1536, kernel_size=(1, 1), stride=(1, 1), bias=False),
             nn.BatchNorm2d(1536, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
@@ -56,10 +132,10 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
-        x1 = self.b_1(x)
-        x2 = self.b_2(x)
-        x3 = self.b_3(x)
+        x0 , _ = self.b_0(x)
+        x1 , _ = self.b_1(x)
+        x2 , _ = self.b_2(x)
+        x3 , _ = self.b_3(x)
 
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         x = torch.cat([x0, x1, x2, x3], dim=1)
@@ -102,15 +178,17 @@ class Mobile_netV2_3(nn.Module):
 
         x = self.features[0:8](x)
 
-        return x
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        a = x
+        x = self.features[8](x)
 
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        if self.training:
+            return x
+        else:
+            return a, torch.softmax(x, dim=1)
 
 class Mobile_netV2_2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -132,15 +210,17 @@ class Mobile_netV2_2(nn.Module):
 
         x = self.features[0:8](x)
 
-        return x
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        a = x
+        x = self.features[8](x)
 
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        if self.training:
+            return x
+        else:
+            return a, torch.softmax(x, dim=1)
 
 
 class Mobile_netV2_1(nn.Module):
@@ -160,15 +240,17 @@ class Mobile_netV2_1(nn.Module):
 
         x = self.features[0:8](x)
 
-        return x
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        a = x
+        x = self.features[8](x)
 
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        if self.training:
+            return x
+        else:
+            return a, torch.softmax(x, dim=1)
 
 class Mobile_netV2_0(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -188,15 +270,18 @@ class Mobile_netV2_0(nn.Module):
 
         x = self.features[0:8](x)
 
-        return x
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        a = x
 
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
+        x = self.features[8](x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        if self.training:
+            return x
+        else:
+            return a, torch.softmax(x, dim=1)
 
 
 
