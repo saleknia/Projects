@@ -189,10 +189,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
         
-        targets[targets<10.00]        = 0.00
-        targets[10.00<=targets<20.00] = 1.00
-        targets[20.00<=targets<30.00] = 2.00
-        targets[30.00<=targets]       = 3.00
+        targets[targets<10.00]                    = 0.00
+        targets[10.00<=targets and targets<20.00] = 1.00
+        targets[20.00<=targets and targets<30.00] = 2.00
+        targets[30.00<=targets]                   = 3.00
 
         outputs = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
