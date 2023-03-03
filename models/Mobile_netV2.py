@@ -81,7 +81,7 @@ class Mobile_netV2_teacher(nn.Module):
 
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=40, bias=True),
+            nn.Linear(in_features=1536, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
