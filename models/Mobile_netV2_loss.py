@@ -28,17 +28,17 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_3 = loaded_data_b_3['net']
         self.b_3.load_state_dict(pretrained_b_3)
 
-        for param in self.b_0.parameters():
-            param.requires_grad = False
+        # for param in self.b_0.parameters():
+        #     param.requires_grad = False
 
-        for param in self.b_1.parameters():
-            param.requires_grad = False
+        # for param in self.b_1.parameters():
+        #     param.requires_grad = False
 
-        for param in self.b_2.parameters():
-            param.requires_grad = False
+        # for param in self.b_2.parameters():
+        #     param.requires_grad = False
 
-        for param in self.b_3.parameters():
-            param.requires_grad = False
+        # for param in self.b_3.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -48,7 +48,8 @@ class Mobile_netV2_loss(nn.Module):
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
-        x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+        x = x3
 
         if self.training:
             return x
