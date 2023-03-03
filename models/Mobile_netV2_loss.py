@@ -28,6 +28,11 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_3 = loaded_data_b_3['net']
         self.b_3.load_state_dict(pretrained_b_3)
 
+        self.coarse = Mobile_netV2_coarse()
+        loaded_data_coarse = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_coarse = loaded_data_coarse['net']
+        self.coarse.load_state_dict(pretrained_coarse)
+
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
 
@@ -43,20 +48,69 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
+        coarse = self.coarse(x)
+        coarse = torch.softmax(coarse, dim=1)
+        coarse = torch.repeat_interleave(coarse, 10, dim=1)
+
         x0 = self.b_0(x)
         x1 = self.b_1(x)
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
-        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
-        x = x3
+        x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+
+        x = x0 * coarse
+  
 
         if self.training:
             return x
         else:
             return torch.softmax(x, dim=1)
 
+class Mobile_netV2_coarse(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2_coarse, self).__init__()
 
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        # model.features[0][0].stride = (1, 1)
+        # model.features[0][0].in_channels = 4
+
+        self.features = model.features
+        # self.features[0][0].stride = (1, 1)
+        self.avgpool = model.avgpool
+
+        # for param in self.features[0:8].parameters():
+        #     param.requires_grad = False
+
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=1280, out_features=4, bias=True),
+        )
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512 , out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256 , out_features=40, bias=True),
+        # )
+
+    def forward(self, x):
+        b, c, w, h = x.shape
+
+        x = self.features(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        if self.training:
+            return x
+        else:
+            return torch.softmax(x, dim=1)
 
 import torch
 import torch.nn as nn
