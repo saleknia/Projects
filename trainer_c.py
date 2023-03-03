@@ -115,7 +115,7 @@ def intra_fd(f_s):
     intra_fd_loss = F.mse_loss(f_s[:, 0:f_s.shape[1]//2, :, :], f_s[:, f_s.shape[1]//2: f_s.shape[1], :, :])
     return intra_fd_loss
 
-def importance_maps_distillation(s, t, exp=4):
+def importance_maps_distillation(s, t, exp=2):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -200,7 +200,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs = model(inputs)
+        outputs, x1_t, x2_t, x3_t, x1, x2, x3  = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -233,10 +233,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, targets.long())
 
-        # loss_disparity   = distillation(outputs, targets.long())
-        loss_disparity = 0
+        # loss_disparity = distillation(outputs, targets.long())
+        # loss_disparity = 0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        # loss_disparity = importance_maps_distillation(s=layer3, t=layer4) + importance_maps_distillation(s=layer2, t=layer3) + importance_maps_distillation(s=layer2, t=layer1)
+        loss_disparity = 100.0 * (importance_maps_distillation(s=x3, t=x3_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x1, t=x1_t))
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
