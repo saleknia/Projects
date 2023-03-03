@@ -15,7 +15,7 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -23,7 +23,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.features[0:8].parameters():
         #     param.requires_grad = False
 
-        self.AXT = AxialImageTransformer(dim = 1280, depth = 12, reversible = True)
+        self.AXT = AxialImageTransformer(dim = 192, depth = 12, reversible = True)
 
         self.classifier = nn.Sequential(
             nn.Linear(in_features=1280, out_features=40, bias=True),
@@ -41,8 +41,9 @@ class Mobile_netV2(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x = self.features(x)
+        x = self.features[0:7](x)
         x = self.AXT(x)
+        x = self.features[7:](x)
 
         x = self.avgpool(x) 
         
