@@ -28,11 +28,6 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_3 = loaded_data_b_3['net']
         self.b_3.load_state_dict(pretrained_b_3)
 
-        # self.coarse = Mobile_netV2_coarse()
-        # loaded_data_coarse = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_coarse = loaded_data_coarse['net']
-        # self.coarse.load_state_dict(pretrained_coarse)
-
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
 
@@ -53,9 +48,7 @@ class Mobile_netV2_loss(nn.Module):
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
-        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
-
-        x = x0 + x1 + x2  
+        x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
 
         if self.training:
             return x
@@ -68,7 +61,7 @@ class Mobile_netV2_coarse(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # model.features[0][0].stride = (1, 1)
         # model.features[0][0].in_channels = 4
@@ -81,7 +74,7 @@ class Mobile_netV2_coarse(nn.Module):
         #     param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=4, bias=True),
+            nn.Linear(in_features=1536, out_features=4, bias=True),
         )
 
         # self.classifier = nn.Sequential(
