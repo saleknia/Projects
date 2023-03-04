@@ -20,7 +20,7 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # model.features[0][0].stride = (1, 1)
         model.features[6][0].block[1][0].stride = (1, 1)
