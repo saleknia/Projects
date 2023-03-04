@@ -236,7 +236,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        loss_disparity = (importance_maps_distillation(s=x3, t=x3_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x1, t=x1_t))
+        loss_disparity = 0.5 * (importance_maps_distillation(s=x3, t=x3_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x1, t=x1_t))
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
