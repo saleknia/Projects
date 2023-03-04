@@ -22,7 +22,7 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
