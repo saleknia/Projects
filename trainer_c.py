@@ -203,10 +203,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
-        optimizer.zero_grad()
+        if not torch.isnan(loss):
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
+            optimizer.zero_grad()
 
     # for batch_idx, (inputs, targets) in enumerate(loader):
 
