@@ -50,8 +50,6 @@ class Mobile_netV2(nn.Module):
 
         x = self.features(x0)
 
-        x = self.att(x)
-
         x = self.avgpool(x) 
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
