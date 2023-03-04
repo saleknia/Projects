@@ -194,7 +194,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
+        outputs, x1, x2, x1_t, x2_t = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -230,7 +230,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t))
+        loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t))
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
