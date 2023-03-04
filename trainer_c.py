@@ -172,7 +172,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.1)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.5)
     # disparity_loss = loss_function
     ##################################################################
 
@@ -183,91 +183,79 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-    scaler = torch.cuda.amp.GradScaler()
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
-        targets = targets.float()
 
-        with torch.autocast(device_type=device, dtype=torch.float16):
-            outputs = model(inputs)
-            predictions = torch.argmax(input=outputs,dim=1).long()
-            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+        targets = targets.float()
+        
+        # targets[targets<10.00] = 40.00            
+        # targets[targets<20.00] = 41.00
+        # targets[targets<30.00] = 42.00        
+        # targets[targets<40.00] = 43.00
+
+        # targets[targets==40.00] = 0.00            
+        # targets[targets==41.00] = 1.00            
+        # targets[targets==42.00] = 2.00            
+        # targets[targets==43.00] = 3.00            
+
+
+        outputs, x1_t, x2_t, x3_t, x1, x2, x3  = model(inputs)
+        # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
+
+        predictions = torch.argmax(input=outputs,dim=1).long()
+        # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+
+        # if 0.0 < torch.sum(targets):
+        #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
+
+        if teacher_model is not None:
+            with torch.no_grad():
+                outputs_t = teacher_model(inputs)
+                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
+                weights = torch.nn.functional.softmax(weights)
+                weights = weights.detach()
+
+        if teacher_model is not None:
+            loss_ce = ce_loss(outputs, targets.long()) * weights
+            loss_ce = torch.mean(loss_ce)
+
+        else:
             loss_ce = ce_loss(outputs, targets.long())
-            loss_disparity = 0.0
-            loss = loss_ce + loss_disparity
+            # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
+            # weights = torch.abs((weights-weights.min()))
+            # weights = weights / weights.max()
+            # weights = weights + 1.0
+            # loss_ce = torch.mean(loss_ce * weights)
+            # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
+            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+
+        # loss_ce = ce_loss(outputs, targets.long())
+
+        # loss_disparity = distillation(outputs, targets.long())
+        # loss_disparity = 0
+        # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
+        loss_disparity = (importance_maps_distillation(s=x3, t=x3_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x1, t=x1_t))
+        # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
+        ###############################################
+        loss = loss_ce + loss_disparity
+        ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
 
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
+        # iter_num = iter_num + 1 
+        # if iter_num % (total_batchs*10)==0:
+        #     for param_group in optimizer.param_groups:
+        #         param_group['lr'] = param_group['lr'] * 0.1
+
+
         optimizer.zero_grad()
-
-    # for batch_idx, (inputs, targets) in enumerate(loader):
-
-    #     inputs, targets = inputs.to(device), targets.to(device)
-
-    #     targets = targets.float()
-
-    #     outputs = model(inputs)
-
-    #     predictions = torch.argmax(input=outputs,dim=1).long()
-    #     # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-    #     accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
-
-    #     # if 0.0 < torch.sum(targets):
-    #     #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
-
-    #     if teacher_model is not None:
-    #         with torch.no_grad():
-    #             outputs_t = teacher_model(inputs)
-    #             weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
-    #             weights = torch.nn.functional.softmax(weights)
-    #             weights = weights.detach()
-
-    #     if teacher_model is not None:
-    #         loss_ce = ce_loss(outputs, targets.long()) * weights
-    #         loss_ce = torch.mean(loss_ce)
-
-    #     else:
-    #         loss_ce = ce_loss(outputs, targets.long())
-    #         # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
-    #         # weights = torch.abs((weights-weights.min()))
-    #         # weights = weights / weights.max()
-    #         # weights = weights + 1.0
-    #         # loss_ce = torch.mean(loss_ce * weights)
-    #         # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
-    #         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
-
-    #     # loss_ce = ce_loss(outputs, targets.long())
-
-    #     # loss_disparity = distillation(outputs, targets.long())
-    #     loss_disparity = 0
-    #     # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-    #     # loss_disparity = 0.5 * (importance_maps_distillation(s=x3, t=x3_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x1, t=x1_t))
-    #     # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
-    #     ###############################################
-    #     loss = loss_ce + loss_disparity
-    #     ###############################################
-
-    #     lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
-    #     for param_group in optimizer.param_groups:
-    #         param_group['lr'] = lr_
-    #     iter_num = iter_num + 1   
-
-    #     # iter_num = iter_num + 1 
-    #     # if iter_num % (total_batchs*10)==0:
-    #     #     for param_group in optimizer.param_groups:
-    #     #         param_group['lr'] = param_group['lr'] * 0.1
-
-
-    #     optimizer.zero_grad()
-    #     loss.backward()
-    #     optimizer.step()
+        loss.backward()
+        optimizer.step()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
