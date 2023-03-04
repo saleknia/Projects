@@ -19,12 +19,12 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = torchvision.models.convnext_tiny()
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
         # model.features[0][0].stride = (1, 1)
-        # model.features[6][0].block[1][0].stride = (1, 1)
 
         # for param in model.features[0:5].parameters():
         #     param.requires_grad = False
@@ -33,7 +33,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=40, bias=True),
+            nn.Linear(in_features=768, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
