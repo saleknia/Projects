@@ -20,7 +20,7 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         model.features[0][0].stride = (1, 1)
 
@@ -28,7 +28,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1536, out_features=40, bias=True),
+            nn.Linear(in_features=1408, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
