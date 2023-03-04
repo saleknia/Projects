@@ -109,12 +109,6 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
-def intra_fd(f_s):
-    sorted_s, indices_s = torch.sort(F.normalize(f_s, p=2, dim=(2,3)).mean([0, 2, 3]), dim=0, descending=True)
-    f_s = torch.index_select(f_s, 1, indices_s)
-    intra_fd_loss = F.mse_loss(f_s[:, 0:f_s.shape[1]//2, :, :], f_s[:, f_s.shape[1]//2: f_s.shape[1], :, :])
-    return intra_fd_loss
-
 def importance_maps_distillation(s, t, exp=2):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
@@ -125,8 +119,8 @@ def importance_maps_distillation(s, t, exp=2):
     :param t: teacher feature maps
     :return: imd loss value
     """
-    if s.shape[2] != t.shape[2]:
-        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    # if s.shape[2] != t.shape[2]:
+    #     s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 # def distillation(outputs, labels):
@@ -200,7 +194,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs, x1, x2, x1_t, x2_t = model(inputs)
+        outputs, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
@@ -236,7 +230,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t))
+        loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t))
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity

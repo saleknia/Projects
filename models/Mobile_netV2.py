@@ -25,8 +25,8 @@ class Mobile_netV2(nn.Module):
         model.features[0][0].stride = (1, 1)
         # model.features[6][0].block[1][0].stride = (1, 1)
 
-        for param in model.features[0:5].parameters():
-            param.requires_grad = False
+        # for param in model.features[0:5].parameters():
+        #     param.requires_grad = False
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -47,17 +47,18 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1_t, x2_t = self.teacher(x0)
+        x1_t, x2_t, x3_t = self.teacher(x0)
 
-        x1 = self.features[0:7](x0)
-        x2 = self.features[7:9](x1)
+        x1 = self.features[0:5](x0)
+        x2 = self.features[5:7](x1)
+        x3 = self.features[7:9](x2)
 
         x = self.avgpool(x2) 
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
         if self.training:
-            return x, x1, x2, x1_t, x2_t
+            return x, x1, x2, x3, x1_t, x2_t, x3_t
         else:
             return torch.softmax(x, dim=1)
 
@@ -114,10 +115,11 @@ class Mobile_netV2_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1 = self.features[0:7](x0)
-        x2 = self.features[7:9](x1)
+        x1 = self.features[0:5](x0)
+        x2 = self.features[5:7](x1)
+        x3 = self.features[7:9](x2)
 
-        return x1, x2
+        return x1, x2, x3
 
 
 
