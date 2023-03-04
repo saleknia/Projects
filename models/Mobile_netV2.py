@@ -25,6 +25,9 @@ class Mobile_netV2(nn.Module):
         model.features[0][0].stride = (1, 1)
         # model.features[6][0].block[1][0].stride = (1, 1)
 
+        for param in model.features[0:5].parameters():
+            param.requires_grad = False
+
         self.features = model.features
         self.avgpool = model.avgpool
 
