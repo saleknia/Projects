@@ -25,13 +25,17 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        for param in model.features[0:5].parameters():
-            param.requires_grad = False
+        # for param in model.features[0:5].parameters():
+        #     param.requires_grad = False
 
+        for param in model.features.parameters():
+            param.requires_grad = False
+            
         for i in [5, 6, 7]:
             for feature in model.features[i]:
-                channels = feature.block[2].fc1.in_channels
-                feature.block[2] = ECAAttention()
+                SE_block = feature.block[2]
+                for param in SE_block.parameters():
+                    param.requires_grad = True
 
         self.features = model.features
         self.avgpool = model.avgpool
