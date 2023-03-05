@@ -28,12 +28,12 @@ class Mobile_netV2(nn.Module):
         # for param in model.features[0:5].parameters():
         #     param.requires_grad = False
 
-        # for i in [5, 6, 7]:
-        #     for feature in model.features[i]:
-        #         feature = nn.Sequential(
-        #             feature,
-        #             TripletAttention(),
-        #         )
+        for i in [5, 6, 7]:
+            for feature in model.features[i]:
+                feature = nn.Sequential(
+                    feature,
+                    TripletAttention(),
+                )
                
         self.features = model.features
         self.avgpool = model.avgpool
