@@ -65,7 +65,7 @@ class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
@@ -82,7 +82,7 @@ class Mobile_netV2_teacher(nn.Module):
 
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=40, bias=True),
+            nn.Linear(in_features=1408, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(

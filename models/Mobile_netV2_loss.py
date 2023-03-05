@@ -9,10 +9,10 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_83_92/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_b_0 = loaded_data_b_0['net']
-        self.b_0.load_state_dict(pretrained_b_0)
+        # self.b_0 = Mobile_netV2_0()
+        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_83_92/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_b_0 = loaded_data_b_0['net']
+        # self.b_0.load_state_dict(pretrained_b_0)
 
         self.b_1 = Mobile_netV2_1()
         loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_84_51/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -24,10 +24,10 @@ class Mobile_netV2_loss(nn.Module):
         pretrained_b_2 = loaded_data_b_2['net']
         self.b_2.load_state_dict(pretrained_b_2)
 
-        self.b_3 = Mobile_netV2_3()
-        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_b_3 = loaded_data_b_3['net']
-        self.b_3.load_state_dict(pretrained_b_3)
+        # self.b_3 = Mobile_netV2_3()
+        # loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_b_3 = loaded_data_b_3['net']
+        # self.b_3.load_state_dict(pretrained_b_3)
 
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
@@ -44,13 +44,13 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
+        # x0 = self.b_0(x)
         x1 = self.b_1(x)
         x2 = self.b_2(x)
-        x3 = self.b_3(x)
+        # x3 = self.b_3(x)
 
-        x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
-        x = x0
+        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
+        x = x1 + x2
 
         if self.training:
             return x
@@ -323,7 +323,6 @@ class Mobile_netV2_0(nn.Module):
             return x
         else:
             return torch.softmax(x, dim=1)
-
 
 
 
