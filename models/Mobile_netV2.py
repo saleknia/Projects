@@ -23,28 +23,15 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         for param in model.features[0:5].parameters():
             param.requires_grad = False
 
-        for feature in model.features[5]:
-            feature = nn.Sequential(
-                feature,
-                CoordAtt(112, 112),
-            )
-
-        for feature in model.features[6]:
-            feature = nn.Sequential(
-                feature,
-                CoordAtt(192, 192),
-            )
-
-        for feature in model.features[7]:
-            feature = nn.Sequential(
-                feature,
-                CoordAtt(320, 320),
-            )
+        for i in [5, 6, 7]:
+            for feature in model.features[i]:
+                channels = feature.block[2].fc1.in_channels
+                feature.block[2] = CoordAtt(channels, channels)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -84,7 +71,7 @@ class Mobile_netV2_teacher(nn.Module):
 
         # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         for param in model.features[0:5].parameters():
             param.requires_grad = False
@@ -141,10 +128,12 @@ import torch.nn.functional as F
 class h_sigmoid(nn.Module):
     def __init__(self, inplace=True):
         super(h_sigmoid, self).__init__()
-        self.relu = nn.ReLU6(inplace=inplace)
+        # self.relu = nn.ReLU6(inplace=inplace)
+        self.relu = nn.SiLU(inplace=True)
 
     def forward(self, x):
-        return self.relu(x + 3) / 6
+        # return self.relu(x + 3) / 6
+        return self.relu(x)
 
 class h_swish(nn.Module):
     def __init__(self, inplace=True):
@@ -155,7 +144,7 @@ class h_swish(nn.Module):
         return x * self.sigmoid(x)
 
 class CoordAtt(nn.Module):
-    def __init__(self, inp, oup, reduction=32):
+    def __init__(self, inp, oup, reduction=24):
         super(CoordAtt, self).__init__()
         self.pool_h = nn.AdaptiveAvgPool2d((None, 1))
         self.pool_w = nn.AdaptiveAvgPool2d((1, None))
