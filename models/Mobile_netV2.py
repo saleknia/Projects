@@ -6,7 +6,6 @@ from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
-from fightingcv_attention.attention.DANet import DAModule
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -26,7 +25,7 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        for param in model.features[0:7].parameters():
+        for param in model.features[0:8].parameters():
             param.requires_grad = False
 
         self.features = model.features
