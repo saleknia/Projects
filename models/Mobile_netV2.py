@@ -57,7 +57,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[7:8](x1)
         # x3 = self.features[8:9](x2)
 
-        x = self.features(x)
+        x = self.features(x0)
 
         x = self.avgpool(x) 
         x = x.view(x.size(0), -1)
