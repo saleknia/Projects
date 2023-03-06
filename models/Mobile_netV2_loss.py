@@ -78,7 +78,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
-        x = x0 + x1 + x2 + x3
+        # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
 
         if self.training:
             return x
