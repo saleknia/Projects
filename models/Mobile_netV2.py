@@ -23,11 +23,11 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         # for param in model.features[0:5].parameters():
         #     param.requires_grad = False
@@ -35,18 +35,18 @@ class Mobile_netV2(nn.Module):
         self.features = model.features
         self.avgpool = model.avgpool
 
-        # self.classifier = nn.Sequential(
-        #     nn.Linear(in_features=1280, out_features=40, bias=True),
-        # )
-
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512 , out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256 , out_features=40, bias=True),
+            nn.Linear(in_features=1408, out_features=40, bias=True),
         )
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512 , out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256 , out_features=40, bias=True),
+        # )
 
     def forward(self, x0):
         b, c, w, h = x0.shape
