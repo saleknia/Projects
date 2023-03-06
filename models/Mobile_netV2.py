@@ -54,9 +54,10 @@ class Mobile_netV2(nn.Module):
         x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
-        x2 = self.features[7:9](x1)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
-        x = self.avgpool(x2) 
+        x = self.avgpool(x3) 
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
@@ -118,7 +119,7 @@ class Mobile_netV2_teacher(nn.Module):
         b, c, w, h = x0.shape
 
         x1 = self.features[0:7](x0)
-        x2 = self.features[7:9](x1)
+        x2 = self.features[7:8](x1)
 
         return x1, x2
 
