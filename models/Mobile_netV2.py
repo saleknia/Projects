@@ -12,7 +12,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_86_61/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -23,7 +23,7 @@ class Mobile_netV2(nn.Module):
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
@@ -36,7 +36,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1408, out_features=40, bias=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
@@ -70,7 +70,7 @@ class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
@@ -87,7 +87,7 @@ class Mobile_netV2_teacher(nn.Module):
 
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1536, out_features=40, bias=True),
+            nn.Linear(in_features=1408, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
