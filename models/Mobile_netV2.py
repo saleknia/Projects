@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b5
+from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b5, efficientnet_v2_m, EfficientNet_V2_M_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
@@ -23,7 +23,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b5(weights=EfficientNet_B5_Weights)
+        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
@@ -36,7 +36,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=2048, out_features=40, bias=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
@@ -53,11 +53,13 @@ class Mobile_netV2(nn.Module):
 
         # x1_t, x2_t = self.teacher(x0)
 
-        x1 = self.features[0:7](x0)
-        x2 = self.features[7:8](x1)
-        x3 = self.features[8:9](x2)
+        # x1 = self.features[0:7](x0)
+        # x2 = self.features[7:8](x1)
+        # x3 = self.features[8:9](x2)
 
-        x = self.avgpool(x3) 
+        x = self.features(x)
+
+        x = self.avgpool(x) 
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
