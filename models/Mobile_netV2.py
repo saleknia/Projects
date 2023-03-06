@@ -23,20 +23,20 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # model = efficientnet_b5(weights=EfficientNet_B5_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        # for param in model.features[0:5].parameters():
-        #     param.requires_grad = False
+        for param in model.features[0:3].parameters():
+            param.requires_grad = False
 
         self.features = model.features
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1408, out_features=40, bias=True),
+            nn.Linear(in_features=1536, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
