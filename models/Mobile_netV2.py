@@ -22,7 +22,7 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.4, inplace=True),
         #     nn.Linear(in_features=256, out_features=40, bias=True),
         # )
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         # model = efficientnet_b6(weights=EfficientNet_B6_Weights)
         # self.patch_embed = model.patch_embed
         # self.transformers = nn.ModuleList(
@@ -105,7 +105,7 @@ class Mobile_netV2(nn.Module):
         # print(emb.shape)
         # emb = self.classifier(emb)
         # out, _ = self.model(x)
-        
+
         if self.training:
             return x
         else:
