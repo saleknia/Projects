@@ -46,7 +46,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.b_3 = Mobile_netV2_3()
-        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_87_27/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_3 = loaded_data_b_3['net']
 
         a = pretrained_b_3.copy()
@@ -84,7 +84,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
-        x = x0 + x1 + x2 + 2.0 * x3
+        x = x0 + x1 + x2 + x3
 
         if self.training:
             return x
