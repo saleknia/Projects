@@ -218,7 +218,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         else:
             # loss_ce = ce_loss(outputs, targets.long())
-            loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
+            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
         # loss_disparity = distillation(outputs, targets.long())
