@@ -105,7 +105,11 @@ class Mobile_netV2(nn.Module):
         # print(emb.shape)
         # emb = self.classifier(emb)
         # out, _ = self.model(x)
-        return x
+        
+        if self.training:
+            return x
+        else:
+            return torch.softmax(x, dim=1)
 
 
 
