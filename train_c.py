@@ -223,7 +223,7 @@ def main(args):
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
     # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9, weight_decay=0.0001)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
 
     # optimizer = None
 
@@ -386,15 +386,12 @@ def main(args):
 
         transform_train = transforms.Compose([
             transforms.RandomResizedCrop(224),
-            # transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
-            transforms.RandomVerticalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
-
 
         transform_test = transforms.Compose([
             transforms.Resize((224, 224)),
