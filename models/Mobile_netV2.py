@@ -51,7 +51,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x1_t, x2_t = self.teacher(x0)
+        # x1_t, x2_t, x3_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -122,10 +122,12 @@ class Mobile_netV2_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
+
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
-        return x1, x2
+        return x1, x2, x3
 
 
 
