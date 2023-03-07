@@ -77,7 +77,7 @@ class Mobile_netV2_loss(nn.Module):
         b, c, w, h = x.shape
 
         x0 = self.b_0(x)
-        x1 = self.b_1(x)
+        x1 = self.b_1(x) * 2.0
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
