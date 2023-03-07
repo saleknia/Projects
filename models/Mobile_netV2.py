@@ -11,21 +11,21 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VS_89_46/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = Mobile_netV2_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VS_89_46/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        # model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         # model.features[0][0].stride = (1, 1)
 
@@ -36,7 +36,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1408, out_features=40, bias=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
@@ -51,7 +51,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1_t, x2_t = self.teacher(x0)
+        # x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -64,7 +64,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
 
         if self.training:
-            return x, x1, x2, x1_t, x2_t
+            return x#, x1, x2, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
