@@ -268,9 +268,19 @@ class Mobile_netV2_1(nn.Module):
         # for param in self.features[0:8].parameters():
         #     param.requires_grad = False
 
+        # self.classifier = nn.Sequential(
+        #     nn.Linear(in_features=1280, out_features=40, bias=True),
+        # )
+
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1280, out_features=40, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=256, out_features=40, bias=True),
         )
+
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
