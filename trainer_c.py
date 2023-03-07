@@ -166,7 +166,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.1)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
     # disparity_loss = loss_function
     ##################################################################
 
@@ -194,7 +194,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs, x1, x2, x1_t, x2_t = model(inputs)
+        outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         # outputs = model(inputs)
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
@@ -217,7 +217,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
         else:
-            loss_ce = ce_loss(outputs, targets.long())
+            # loss_ce = ce_loss(outputs, targets.long())
+            loss_ce = ce_loss(outputs, outputs_t)
+
             # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
             # weights = torch.abs((weights-weights.min()))
             # weights = weights / weights.max()
