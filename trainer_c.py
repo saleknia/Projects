@@ -55,7 +55,7 @@ def loss_label_smoothing(outputs, labels):
 
     return loss
 
-def label_smoothing(outputs, labels):
+def label_smoothing(labels):
     """
     loss function for label smoothing regularization
     """
