@@ -38,6 +38,7 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.cl = model.classifier
+        self.cl[0].inplace= False
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -51,6 +52,8 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
+        z = self.col(x0)
+
         # x_t, x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
@@ -60,14 +63,13 @@ class Mobile_netV2(nn.Module):
         # x = self.features(x3)
 
         x = self.avgpool(x3)
-        w = x.view(x.size(0), -1)
-        x = self.classifier(w)
-        y = self.cl(w)
+        x = x.view(x.size(0), -1)
+        k = self.classifier(x)
+        y = self.cl(x)
         
-        z = self.col(x0)
 
         if self.training:
-            return x, y, torch.softmax(z, dim=1)#, x1, x2, x_t, x1_t, x2_t
+            return k, y, torch.softmax(z, dim=1)#, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
