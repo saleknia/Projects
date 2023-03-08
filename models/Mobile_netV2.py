@@ -71,7 +71,7 @@ class Mobile_netV2_teacher(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         # for param in model.features[0:5].parameters():
         #     param.requires_grad = False
