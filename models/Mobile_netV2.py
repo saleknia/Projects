@@ -40,6 +40,9 @@ class Mobile_netV2(nn.Module):
         self.cl = model.classifier
         self.cl[0].inplace= False
 
+        for param in self.cl.parameters():
+            param.requires_grad = False
+
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=512, bias=True),
