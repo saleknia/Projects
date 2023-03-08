@@ -40,7 +40,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1_t, x2_t = self.teacher(x0)
+        x_t, x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -53,7 +53,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
 
         if self.training:
-            return x, x1, x2, x1_t, x2_t
+            return x, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
@@ -114,9 +114,9 @@ class Mobile_netV2_teacher(nn.Module):
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
-        # x3 = self.features[8:9](x2)
+        x  = self.features[8:9](x2)
 
-        return x1, x2
+        return torch.softmax(x, dim=1), x1, x2
 
 
 # class Mobile_netV2(nn.Module):

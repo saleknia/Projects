@@ -20,6 +20,16 @@ class Mobile_netV2_loss(nn.Module):
 
         self.b_0.load_state_dict(pretrained_b_0)
 
+        # self.b_1 = Mobile_netV2_0()
+        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_51/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_b_1 = loaded_data_b_1['net']
+
+        # a = pretrained_b_1.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_1.pop(key)
+
+        # self.b_1.load_state_dict(pretrained_b_1)
 
         self.b_1 = Mobile_netV2_1()
         loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -85,7 +95,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
-        x = x0 + x1 + x2 + x3
+        x = x0 + x1 #+ x2 + x3
 
         if self.training:
             return x
