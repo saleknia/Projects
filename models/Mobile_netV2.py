@@ -114,7 +114,11 @@ class Mobile_netV2_teacher(nn.Module):
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
-        x  = self.features[8:9](x2)
+        x3 = self.features[8:9](x2)
+
+        x = self.avgpool(x3)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
         return torch.softmax(x, dim=1), x1, x2
 
