@@ -89,7 +89,7 @@ class Mobile_netV2_teacher(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1480, out_features=512, bias=True),
+            nn.Linear(in_features=1408, out_features=512, bias=True),
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
