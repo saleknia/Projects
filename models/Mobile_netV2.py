@@ -12,7 +12,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B0_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
