@@ -10,7 +10,7 @@ class Mobile_netV2_loss(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_85_99/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_51/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_0 = loaded_data_b_0['net']
 
         a = pretrained_b_0.copy()
@@ -20,19 +20,8 @@ class Mobile_netV2_loss(nn.Module):
 
         self.b_0.load_state_dict(pretrained_b_0)
 
-        # self.b_1 = Mobile_netV2_0()
-        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_51/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_1 = loaded_data_b_1['net']
-
-        # a = pretrained_b_1.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_1.pop(key)
-
-        # self.b_1.load_state_dict(pretrained_b_1)
-
-        self.b_1 = Mobile_netV2_1()
-        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        self.b_1 = Mobile_netV2_0()
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B0_88_12/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_1 = loaded_data_b_1['net']
 
         a = pretrained_b_1.copy()
@@ -40,7 +29,18 @@ class Mobile_netV2_loss(nn.Module):
             if 'teacher' in key:
                 pretrained_b_1.pop(key)
 
-        self.b_1.load_state_dict(pretrained_b_1) 
+        self.b_1.load_state_dict(pretrained_b_1)
+
+        # self.b_1 = Mobile_netV2_1()
+        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_b_1 = loaded_data_b_1['net']
+
+        # a = pretrained_b_1.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_1.pop(key)
+
+        # self.b_1.load_state_dict(pretrained_b_1) 
 
 
         self.b_2 = Mobile_netV2_2()
