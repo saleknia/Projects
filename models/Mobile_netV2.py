@@ -12,7 +12,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_87_72/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -69,7 +69,7 @@ class Mobile_netV2_teacher(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = efficientnet_b2(weights=EfficientNet_B1_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # model.features[0][0].stride = (1, 1)
 
@@ -89,7 +89,7 @@ class Mobile_netV2_teacher(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1408, out_features=512, bias=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
@@ -114,7 +114,6 @@ class Mobile_netV2_teacher(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
