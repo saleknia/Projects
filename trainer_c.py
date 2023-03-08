@@ -230,7 +230,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
         else:
-            loss_ce = ce_loss(outputs, 0.5 * (outputs_t + label_smoothing))
+            loss_ce = ce_loss(outputs, 0.5 * (outputs_t + label_smoothing(targets.long())))
             # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
