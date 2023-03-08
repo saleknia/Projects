@@ -11,19 +11,24 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_86_60/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = Mobile_netV2_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B2_86_60/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        self.col = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        for param in self.col.parameters():
+            param.requires_grad = False
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -31,6 +36,8 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
         self.avgpool = model.avgpool
+
+        self.cl = model.classifier
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
@@ -44,7 +51,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_t, x1_t, x2_t = self.teacher(x0)
+        # x_t, x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -54,10 +61,12 @@ class Mobile_netV2(nn.Module):
 
         x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        x, y = self.classifier(x), self.cl(x)
+        
+        z = self.col(x0)
 
         if self.training:
-            return x, x1, x2, x_t, x1_t, x2_t
+            return x, torch.softmax(y, dim=1), torch.softmax(z, dim=1)#, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 

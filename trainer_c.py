@@ -205,9 +205,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
+        # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
         # outputs = model(inputs)
+
+        outputs, y, z = model(inputs)
 
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
@@ -230,7 +232,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
         else:
-            loss_ce = ce_loss(outputs, targets.long())
+            loss_ce = ce_loss(outputs, targets.long()) + ce_loss(y, z)
             # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
