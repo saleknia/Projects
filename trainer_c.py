@@ -204,9 +204,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
+        outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
-        outputs = model(inputs)
+        # outputs = model(inputs)
 
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
