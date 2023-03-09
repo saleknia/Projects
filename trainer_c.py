@@ -44,7 +44,7 @@ def loss_label_smoothing(outputs, labels):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.2
+    alpha = 0.1
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
@@ -206,7 +206,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
-        outputs = model(inputs)
+        outputs, x1, x2 = model(inputs)
 
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
@@ -234,8 +234,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
+        loss_disparity = 1.0 * importance_maps_distillation(s=x2, t=x1) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################

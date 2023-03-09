@@ -152,6 +152,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         x = x0 + x1 + x2
+        
 
         if self.training:
             return x
@@ -263,7 +264,7 @@ class Mobile_netV2_2(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -332,7 +333,7 @@ class Mobile_netV2_1(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -406,7 +407,7 @@ class Mobile_netV2_0(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
