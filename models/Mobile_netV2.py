@@ -57,7 +57,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         if self.training:
-            return x, x1, x2, torch.softmax(x, dim=1)(x_t), x1_t, x2_t
+            return x, x1, x2, torch.softmax(x_t, dim=1), x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
