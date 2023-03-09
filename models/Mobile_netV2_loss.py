@@ -111,16 +111,16 @@ class Mobile_netV2_loss(nn.Module):
         # self.b_2.load_state_dict(pretrained_b_2)
 
 
-        # self.b_3 = Mobile_netV2_3()
-        # loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_86_82/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_3 = loaded_data_b_3['net']
+        self.b_3 = Mobile_netV2_3()
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_48/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_3 = loaded_data_b_3['net']
 
-        # a = pretrained_b_3.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_3.pop(key)
+        a = pretrained_b_3.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_3.pop(key)
 
-        # self.b_3.load_state_dict(pretrained_b_3)
+        self.b_3.load_state_dict(pretrained_b_3)
 
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
@@ -145,13 +145,13 @@ class Mobile_netV2_loss(nn.Module):
         x0 = self.b_0(x)
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
-        # x3 = self.b_3(x)
+        x3 = self.b_3(x)
 
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
-        x = x0 + x1 + x2
+        x = x0 + x1 + x2 + x3
         
 
         if self.training:
@@ -207,7 +207,12 @@ class Mobile_netV2_3(nn.Module):
         #     param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Linear(in_features=1536, out_features=40, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=1536, out_features=512, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.4, inplace=True),
+            nn.Linear(in_features=256, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(
@@ -264,7 +269,7 @@ class Mobile_netV2_2(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
+        # self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -333,7 +338,7 @@ class Mobile_netV2_1(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
+        # self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -407,7 +412,7 @@ class Mobile_netV2_0(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
+        # self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
