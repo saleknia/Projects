@@ -150,10 +150,9 @@ def distillation(outputs, labels):
     for i, v in enumerate(unique):
         temp[i] = torch.mean(outputs[labels==v], dim=0)
     distances = torch.cdist(temp, temp, p=2.0)
-    # loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
-    # loss = torch.mean(loss)
-    loss = 1.0 / (torch.mean(distances))
-    return loss
+    loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
+    loss = torch.mean(loss)
+    return 0.01 * loss
  
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
@@ -234,8 +233,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
-        # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
+        loss_disparity = distillation(outputs, targets.long())
+        # loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
