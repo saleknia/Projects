@@ -13,6 +13,19 @@ warnings.filterwarnings("ignore")
 import ttach as tta
 from torchnet.meter import mAPMeter
 
+def label_smoothing(labels):
+    """
+    loss function for label smoothing regularization
+    """
+    alpha = 0.1
+    N = 40  # batch_size
+    C = 40  # number of classes
+    smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
+    smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
+
+    return smoothed_labels
+
+
 transforms = tta.Compose(
     [
         tta.HorizontalFlip(),
@@ -38,6 +51,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
 
+            res = 0.0
+
             inputs, targets = inputs.to(device), targets.to(device)
 
             targets = targets.float()
@@ -53,7 +68,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # targets[targets==43.00] = 3.00  
 
             outputs = model(inputs)
-            # outputs = torch.softmax(outputs, dim=1)
+            prob = torch.softmax(outputs, dim=1)
+
+            # print(prob)
 
             loss_ce = ce_loss(outputs, targets[:].long())
             loss = loss_ce
