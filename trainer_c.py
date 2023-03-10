@@ -204,9 +204,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # targets[targets==43.00] = 3.00            
 
 
-        outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
+        # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
@@ -231,16 +231,16 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         else:
             # loss_ce = ce_loss(outputs, targets.long()) 
             # loss_ce = ce_loss(outputs, outputs_t)
-            loss_ce = ce_loss(outputs, targets.long()) + 0.1 * torch.nn.functional.mse_loss(outputs, outputs_t)
+            # loss_ce = ce_loss(outputs, targets.long()) + 0.1 * torch.nn.functional.mse_loss(outputs, outputs_t)
             # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0 * 0.9)
-            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
         # loss_disparity = distillation(outputs, targets.long())
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x2, t=x1) 
-        loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t)) 
+        # loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         loss = loss_ce + loss_disparity
