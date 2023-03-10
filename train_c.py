@@ -245,7 +245,7 @@ def main(args):
     current_num_epoch = 0
     last_num_epoch = 0
     if LOAD_MODEL:
-        checkpoint_path = '/content/drive/MyDrive/checkpoint_B4_89_38/'+CKPT_NAME+'_last.pth'
+        checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
         logger.info('Loading Checkpoint...')
         if os.path.isfile(checkpoint_path):
 
