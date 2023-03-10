@@ -229,11 +229,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
         else:
-            loss_ce = ce_loss(outputs, targets.long()) 
+            # loss_ce = ce_loss(outputs, targets.long()) 
             # loss_ce = ce_loss(outputs, outputs_t)
             # loss_ce = ce_loss(outputs, targets.long()) + 0.1 * torch.nn.functional.mse_loss(outputs, outputs_t)
             # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0 * 0.9)
-            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+            loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
 
         # loss_disparity = distillation(outputs, targets.long())
@@ -247,18 +247,18 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ###############################################
 
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
-        # iter_num = iter_num + 1   
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
+        iter_num = iter_num + 1   
 
-        iter_num = iter_num + 1 
-        if iter_num <= total_batchs*10:
-            param_group['lr'] = 0.01 + ((iter_num/(total_batchs*10))*0.099)
-        else:
-            if iter_num % (total_batchs*10)==0:
-                for param_group in optimizer.param_groups:
-                    param_group['lr'] = param_group['lr'] * 0.5
+        # iter_num = iter_num + 1 
+        # if iter_num <= total_batchs*10:
+        #     param_group['lr'] = 0.01 + ((iter_num/(total_batchs*10))*0.099)
+        # else:
+        #     if iter_num % (total_batchs*10)==0:
+        #         for param_group in optimizer.param_groups:
+        #             param_group['lr'] = param_group['lr'] * 0.5
 
 
         optimizer.zero_grad()
