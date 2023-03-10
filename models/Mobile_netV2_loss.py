@@ -9,52 +9,8 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_b_0 = loaded_data_b_0['net']
-
-        a = pretrained_b_0.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_0.pop(key)
-
-        self.b_0.load_state_dict(pretrained_b_0)
-
-        # self.b_1 = Mobile_netV2_0()
-        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_84/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_1 = loaded_data_b_1['net']
-
-        # a = pretrained_b_1.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_1.pop(key)
-
-        # self.b_1.load_state_dict(pretrained_b_1)
-
-        # self.b_2 = Mobile_netV2_0()
-        # loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_99/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_2 = loaded_data_b_2['net']
-
-        # a = pretrained_b_2.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_2.pop(key)
-
-        # self.b_2.load_state_dict(pretrained_b_2)
-
-        # self.b_3 = Mobile_netV2_0()
-        # loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B0_85_99/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_3 = loaded_data_b_3['net']
-
-        # a = pretrained_b_3.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_3.pop(key)
-
-        # self.b_3.load_state_dict(pretrained_b_3)
-
-        # self.b_0 = Mobile_netV2_1()
-        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # self.b_0 = Mobile_netV2_0()
+        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         # pretrained_b_0 = loaded_data_b_0['net']
 
         # a = pretrained_b_0.copy()
@@ -66,7 +22,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.b_1 = Mobile_netV2_1()
-        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_86_60/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_1 = loaded_data_b_1['net']
 
         a = pretrained_b_1.copy()
@@ -74,10 +30,9 @@ class Mobile_netV2_loss(nn.Module):
             if 'teacher' in key:
                 pretrained_b_1.pop(key)
 
-        self.b_1.load_state_dict(pretrained_b_1)
 
         self.b_2 = Mobile_netV2_2()
-        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_87_72/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_86_60/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_2 = loaded_data_b_2['net']
 
         a = pretrained_b_2.copy()
@@ -87,32 +42,9 @@ class Mobile_netV2_loss(nn.Module):
 
         self.b_2.load_state_dict(pretrained_b_2)
 
-        # self.b_1 = Mobile_netV2_1()
-        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_87_38/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_1 = loaded_data_b_1['net']
-
-        # a = pretrained_b_1.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_1.pop(key)
-
-        # self.b_1.load_state_dict(pretrained_b_1) 
-
-
-        # self.b_2 = Mobile_netV2_2()
-        # loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_86_01/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_2 = loaded_data_b_2['net']
-
-        # a = pretrained_b_2.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_2.pop(key)
-
-        # self.b_2.load_state_dict(pretrained_b_2)
-
 
         self.b_3 = Mobile_netV2_3()
-        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_48/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_88_87/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_3 = loaded_data_b_3['net']
 
         a = pretrained_b_3.copy()
@@ -142,17 +74,17 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
-        # x1 = self.b_1(x) 
-        # x2 = self.b_2(x)
-        # x3 = self.b_3(x)
+        # x0 = self.b_0(x)
+        x1 = self.b_1(x) 
+        x2 = self.b_2(x)
+        x3 = self.b_3(x)
 
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         # x = x0 + x1 + x2 + x3
-        x = x0
+        x = x1 + x2 + x3
         
 
         if self.training:
