@@ -253,9 +253,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # iter_num = iter_num + 1   
 
         iter_num = iter_num + 1 
-        if iter_num % (total_batchs*10)==0:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = param_group['lr'] * 0.5
+        if iter_num <= total_batchs*10:
+            param_group['lr'] = 0.01 + ((iter_num/(total_batchs*10))*0.099)
+        else:
+            if iter_num % (total_batchs*10)==0:
+                for param_group in optimizer.param_groups:
+                    param_group['lr'] = param_group['lr'] * 0.5
 
 
         optimizer.zero_grad()
