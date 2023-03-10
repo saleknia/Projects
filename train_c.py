@@ -486,24 +486,24 @@ def main(args):
                     # logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
                     logger.info(f'Epoch Number: {best_epoch}')
 
-                    if args.inference=='True':
-                        logger.info(50*'*')
-                        logger.info('Inference Phase')
-                        # logger.info(50*'*')
-                        # inference(model=model,logger=logger)
-                        tester(
-                            end_epoch=1,
-                            epoch_num=1,
-                            model=copy.deepcopy(model),
-                            dataloader=data_loader['valid'],
-                            device=DEVICE,
-                            ckpt=None,
-                            num_class=NUM_CLASS,
-                            writer=writer,
-                            logger=logger,
-                            optimizer=None,
-                            lr_scheduler=None,
-                            early_stopping=None)
+        if args.inference=='True':
+            logger.info(50*'*')
+            logger.info('Inference Phase')
+            # logger.info(50*'*')
+            # inference(model=model,logger=logger)
+            tester(
+                end_epoch=1,
+                epoch_num=1,
+                model=copy.deepcopy(model),
+                dataloader=data_loader['valid'],
+                device=DEVICE,
+                ckpt=None,
+                num_class=NUM_CLASS,
+                writer=writer,
+                logger=logger,
+                optimizer=None,
+                lr_scheduler=None,
+                early_stopping=None)
 
     logger.info(50*'*')
     logger.info(50*'*')
