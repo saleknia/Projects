@@ -88,11 +88,12 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         # x = x0 + x1 + x2 + x3
-        # x = x0 + x1 + x2 #+ x3
+
         x = (x0 + x1 + x2 + x3) / 4.0
         
 
-        return x
+        return torch.softmax(x, dim=1)
+
         # if self.training:
         #     return x
         # else:
