@@ -74,8 +74,8 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
-        x1 = self.b_1(x) 
+        # x0 = self.b_0(x)
+        # x1 = self.b_1(x) 
         x2 = self.b_2(x)
         x3 = self.b_3(x)
 
@@ -84,7 +84,8 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         # x = x0 + x1 + x2 + x3
-        x = x0 + x1 + x2 + x3
+        # x = x0 + x1 + x2 #+ x3
+        x = x2 + x3
         
 
         if self.training:

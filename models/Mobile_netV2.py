@@ -23,7 +23,7 @@ class Mobile_netV2(nn.Module):
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -44,7 +44,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_t, x1_t, x2_t = self.teacher(x0)
+        # x_t, x1_t, x2_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -57,7 +57,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         if self.training:
-            return x, x1, x2, x_t, x1_t, x2_t
+            return x#, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
