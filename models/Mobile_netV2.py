@@ -54,7 +54,7 @@ class Mobile_netV2(nn.Module):
 
         x_t = self.teacher(x0)
 
-        print(x_t)
+        # print(x_t)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
