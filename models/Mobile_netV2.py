@@ -6,6 +6,7 @@ from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
+from Mobile_netV2_loss import Mobile_netV2_loss
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -23,7 +24,9 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        self.teacher = Mobile_netV2_loss()
+
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -34,7 +37,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1408, out_features=512, bias=True),
+            nn.Linear(in_features=1536, out_features=512, bias=True),
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
@@ -45,6 +48,8 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x0.shape
 
         # x_t, x1_t, x2_t = self.teacher(x0)
+
+        x_t = self.teacher(x0)
 
         x1 = self.features[0:7](x0)
         x2 = self.features[7:8](x1)
@@ -57,7 +62,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         if self.training:
-            return x#, x1, x2, x_t, x1_t, x2_t
+            return x, x_t#, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
