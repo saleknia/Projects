@@ -25,6 +25,8 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = False
 
         self.teacher = Mobile_netV2_loss()
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
