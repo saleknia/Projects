@@ -19,7 +19,7 @@ class Mobile_netV2_loss(nn.Module):
                 pretrained_b_0.pop(key)
 
         self.b_0.load_state_dict(pretrained_b_0)
-        self.b_0.eval()
+        self.b_0 = self.b_0.eval()
 
 
         self.b_1 = Mobile_netV2_1()
@@ -32,7 +32,7 @@ class Mobile_netV2_loss(nn.Module):
                 pretrained_b_1.pop(key)
 
         self.b_1.load_state_dict(pretrained_b_1)
-        self.b_1.eval()
+        self.b_1 = self.b_1.eval()
 
         self.b_2 = Mobile_netV2_2()
         loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_87_72/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -44,7 +44,7 @@ class Mobile_netV2_loss(nn.Module):
                 pretrained_b_2.pop(key)
 
         self.b_2.load_state_dict(pretrained_b_2)
-        self.b_2.eval()
+        self.b_2 = self.b_2.eval()
 
         self.b_3 = Mobile_netV2_3()
         loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_50/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
@@ -56,7 +56,7 @@ class Mobile_netV2_loss(nn.Module):
                 pretrained_b_3.pop(key)
 
         self.b_3.load_state_dict(pretrained_b_3)
-        self.b_3.eval()
+        self.b_3 = self.b_3.eval()
 
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
@@ -172,10 +172,11 @@ class Mobile_netV2_3(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        if self.training:
-            return x
-        else:
-            return torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
+        # if self.training:
+        #     return x
+        # else:
+        #     return torch.softmax(x, dim=1)
 
 class Mobile_netV2_2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -240,10 +241,11 @@ class Mobile_netV2_2(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        if self.training:
-            return x
-        else:
-            return torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
+        # if self.training:
+        #     return x
+        # else:
+        #     return torch.softmax(x, dim=1)
 
 
 class Mobile_netV2_1(nn.Module):
@@ -315,10 +317,11 @@ class Mobile_netV2_1(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        if self.training:
-            return x
-        else:
-            return torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
+        # if self.training:
+        #     return x
+        # else:
+        #     return torch.softmax(x, dim=1)
 
 class Mobile_netV2_0(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -384,10 +387,11 @@ class Mobile_netV2_0(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        if self.training:
-            return x
-        else:
-            return torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
+        # if self.training:
+        #     return x
+        # else:
+        #     return torch.softmax(x, dim=1)
 
 
 
