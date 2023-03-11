@@ -6,7 +6,7 @@ from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
-from Mobile_netV2_loss import Mobile_netV2_loss
+from .Mobile_netV2_loss import Mobile_netV2_loss
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
