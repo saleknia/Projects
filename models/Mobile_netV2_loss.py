@@ -172,7 +172,8 @@ class Mobile_netV2_3(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return torch.softmax(x, dim=1)
+        return x
+        # return torch.softmax(x, dim=1)
         # if self.training:
         #     return x
         # else:
@@ -241,7 +242,8 @@ class Mobile_netV2_2(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return torch.softmax(x, dim=1)
+        return x
+        # return torch.softmax(x, dim=1)
         # if self.training:
         #     return x
         # else:
@@ -317,7 +319,8 @@ class Mobile_netV2_1(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return torch.softmax(x, dim=1)
+        return x
+        # return torch.softmax(x, dim=1)
         # if self.training:
         #     return x
         # else:
@@ -387,7 +390,8 @@ class Mobile_netV2_0(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return torch.softmax(x, dim=1)
+        return x
+        # return torch.softmax(x, dim=1)
         # if self.training:
         #     return x
         # else:
