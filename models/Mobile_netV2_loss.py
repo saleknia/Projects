@@ -9,16 +9,16 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # self.b_0 = Mobile_netV2_0()
-        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_86_14/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_0 = loaded_data_b_0['net']
+        self.b_0 = Mobile_netV2_0()
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_84_90/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_b_0 = loaded_data_b_0['net']
 
-        # a = pretrained_b_0.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_0.pop(key)
+        a = pretrained_b_0.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_0.pop(key)
 
-        # self.b_0.load_state_dict(pretrained_b_0)
+        self.b_0.load_state_dict(pretrained_b_0)
 
 
         self.b_1 = Mobile_netV2_1()
@@ -74,7 +74,7 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        # x0 = self.b_0(x)
+        x0 = self.b_0(x)
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
         x3 = self.b_3(x)
@@ -84,7 +84,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         # x = x0 + x1 + x2 + x3
-        x = x1 + x2 + x3
+        x = x0 + x1 + x2 + x3
         
 
         if self.training:
