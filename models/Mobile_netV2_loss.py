@@ -46,17 +46,17 @@ class Mobile_netV2_loss(nn.Module):
         self.b_2.load_state_dict(pretrained_b_2)
         self.b_2 = self.b_2.eval()
 
-        self.b_3 = Mobile_netV2_3()
-        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_50/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_b_3 = loaded_data_b_3['net']
+        # self.b_3 = Mobile_netV2_3()
+        # loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_50/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_b_3 = loaded_data_b_3['net']
 
-        a = pretrained_b_3.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_3.pop(key)
+        # a = pretrained_b_3.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_3.pop(key)
 
-        self.b_3.load_state_dict(pretrained_b_3)
-        self.b_3 = self.b_3.eval()
+        # self.b_3.load_state_dict(pretrained_b_3)
+        # self.b_3 = self.b_3.eval()
 
         # for param in self.b_0.parameters():
         #     param.requires_grad = False
@@ -81,7 +81,7 @@ class Mobile_netV2_loss(nn.Module):
         x0 = self.b_0(x)
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
-        x3 = self.b_3(x)
+        # x3 = self.b_3(x)
 
         # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
         # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
@@ -89,7 +89,8 @@ class Mobile_netV2_loss(nn.Module):
         # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
         # x = x0 + x1 + x2 + x3
 
-        x = (x0 + x1 + x2 + x3) / 4.0
+        # x = (x0 + x1 + x2 + x3) / 4.0
+        x = (x0 + x1 + x2) / 3.0
         
 
         return torch.softmax(x, dim=1)
@@ -211,7 +212,7 @@ class Mobile_netV2_2(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -282,7 +283,7 @@ class Mobile_netV2_1(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
@@ -358,7 +359,7 @@ class Mobile_netV2_0(nn.Module):
         # model.features[0][0].in_channels = 4
 
         self.features = model.features
-        # self.features[0][0].stride = (1, 1)
+        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
         # for param in self.features[0:8].parameters():
