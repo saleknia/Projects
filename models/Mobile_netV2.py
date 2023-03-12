@@ -36,6 +36,10 @@ class Mobile_netV2(nn.Module):
         model.features[0][0].stride = (1, 1)
 
         self.features = model.features
+
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
+
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
