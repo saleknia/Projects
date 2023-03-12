@@ -24,16 +24,16 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        self.teacher = Mobile_netV2_loss()
-        self.teacher.eval()
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # self.teacher = Mobile_netV2_loss()
+        # self.teacher.eval()
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -52,7 +52,7 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t = self.teacher(x0)
 
-        x_t = self.teacher(x0)
+        # x_t = self.teacher(x0)
 
         # print(x_t)
 
@@ -67,7 +67,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
         
         if self.training:
-            return x, x_t#, x1, x2, x_t, x1_t, x2_t
+            return x#, x_t#, x1, x2, x_t, x1_t, x2_t
         else:
             return torch.softmax(x, dim=1)
 
