@@ -368,7 +368,7 @@ def main(args):
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
 
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_B0_90_00/Mobile_NetV2_Standford40_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_B0_90_95/Mobile_NetV2_Standford40_best.pth'
 
 
     print('Loading Checkpoint...')
