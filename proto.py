@@ -201,10 +201,14 @@ def extract_prototype(model,dataloader,device='cuda', method='TSNE'):
             # labels.append(targets) 
 
             protos.append(np.array(outputs.detach().cpu()))
-            labels.append(np.array(targets.item().detach().cpu())) 
+            labels.append(np.array(targets.detach().cpu())) 
 
-        protos = np.array(protos) 
+        protos = np.array(protos)
+        protos = np.squeeze(protos, axis=1) 
         labels = np.array(labels)
+
+        print(protos.shape)
+        print(labels.shape)
 
         if method=='PCA':
             # pca = PCA(n_components = des_shapes[k])
