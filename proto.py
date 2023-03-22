@@ -58,7 +58,7 @@ from tabulate import tabulate
 from tensorboardX import SummaryWriter
 import warnings
 warnings.filterwarnings('ignore')
-from sklearn.decomposition import PCA  
+from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 
 BATCH_SIZE = 1
@@ -200,7 +200,7 @@ def extract_prototype(model,dataloader,device='cuda', method='TSNE'):
             # protos.append(np.array(outputs.detach().cpu()))
             # labels.append(targets) 
 
-            protos.append(np.array(temp.detach().cpu()))
+            protos.append(np.array(outputs.detach().cpu()))
             labels.append(np.array(targets.item().detach().cpu())) 
 
         protos = np.array(protos) 
