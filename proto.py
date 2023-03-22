@@ -173,7 +173,7 @@ def worker_init(worker_id):
 #     torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
     
 def extract_prototype(model,dataloader,device='cuda', method='TSNE'):
-    model.train()
+    model.eval()
     model.to(device)
 
     num_class = 40
@@ -205,6 +205,8 @@ def extract_prototype(model,dataloader,device='cuda', method='TSNE'):
 
         protos = np.array(protos)
         protos = np.squeeze(protos, axis=1) 
+        protos = np.squeeze(protos, axis=2) 
+        protos = np.squeeze(protos, axis=2) 
         labels = np.array(labels)
 
         print(protos.shape)
@@ -366,7 +368,7 @@ def main(args):
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
 
-    checkpoint_path = '/content/drive/MyDrive/checkpoint_B0_90_95/Mobile_NetV2_Standford40_best.pth'
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_B0_90_00/Mobile_NetV2_Standford40_best.pth'
 
 
     print('Loading Checkpoint...')
@@ -447,7 +449,7 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',transform=transform_train)
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/test/',transform=transform_train)
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader}

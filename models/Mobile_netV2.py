@@ -73,7 +73,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x#, x_t#, x1, x2, x_t, x1_t, x2_t
         else:
-            return torch.softmax(x, dim=1)
+            return self.avgpool(x3) # torch.softmax(x, dim=1)
 
 class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
