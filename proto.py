@@ -67,109 +67,167 @@ SEED = 666
 def worker_init(worker_id):
     random.seed(SEED + worker_id)
 
+# def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128], method='TSNE'):
+#     model.train()
+#     model.to(device)
+#     # down_scales = [1.0,0.5,0.25,0.125]
+#     # down_scales = [1.0,0.5,0.5,0.25,0.125]
+#     down_scales = [0.5,0.25,0.125,0.125]
+
+#     num_class = 8
+#     loader = dataloader['train']
+#     total_batchs = len(loader)
+
+#     # ESPNet
+#     # proto_des_0 = torch.zeros(num_class, 13 )
+#     # proto_des_1 = torch.zeros(num_class, 16 )
+#     # proto_des_2 = torch.zeros(num_class, 13 )
+#     # proto_des_3 = torch.zeros(num_class, 64 )
+#     # proto_des_4 = torch.zeros(num_class, 128)
+
+#     # ENet
+#     proto_des_1 = torch.zeros(num_class, 16 )
+#     proto_des_2 = torch.zeros(num_class, 64 )
+#     proto_des_3 = torch.zeros(num_class, 128)
+#     proto_des_4 = torch.zeros(num_class, 128)
+#     protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
+#     protos_out = []
+#     with torch.no_grad():
+#         for k in range(5):
+#             protos=[]
+#             labels=[]
+#             for batch_idx, (inputs, targets) in enumerate(loader):
+#                 inputs, targets = inputs.to(device), targets.to(device)
+#                 targets = targets.float()
+#                 outputs, up4, up3, up2, up1 = model(inputs)
+
+#                 print_progress(
+#                     iteration=batch_idx+1,
+#                     total=total_batchs,
+#                     prefix=f'Extract Proto / Level {k} : Batch {batch_idx+1}/{total_batchs} ',
+#                     suffix=f'',
+#                     bar_length=45
+#                 )  
+#                 masks=targets.clone()
+#                 up = [outputs, up1, up2, up3, up4]
+
+#                 B,C,H,W = up[k].shape
+                
+#                 temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=down_scales[k], mode='nearest')
+#                 temp_masks = temp_masks.squeeze(dim=1)
+
+#                 mask_unique_value = torch.unique(temp_masks)
+#                 mask_unique_value = mask_unique_value[1:]
+#                 unique_num = len(mask_unique_value)
+                
+#                 if unique_num<2:
+#                     continue
+
+#                 for count,p in enumerate(mask_unique_value):
+#                     p = p.long()
+#                     bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
+#                     bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
+#                     temp = 0.0
+#                     batch_counter = 0
+#                     for t in range(B):
+#                         if torch.sum(bin_mask[t])!=0:
+#                             v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
+#                             # temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
+#                             temp = v
+#                             batch_counter = batch_counter + 1
+#                     temp = temp / batch_counter
+#                     protos.append(np.array(temp.detach().cpu()))
+#                     labels.append(p.item()) 
+    
+#             protos = np.array(protos) 
+#             labels = np.array(labels)
+
+#             if method=='PCA':
+#                 # pca = PCA(n_components = des_shapes[k])
+#                 pca = PCA(n_components = 2)
+#                 pca.fit(protos)
+#                 protos = pca.transform(protos)
+#                 protos = torch.tensor(protos)
+
+#                 protos = torch.tensor(protos) 
+#                 labels = torch.tensor(labels)
+#                 protos_out.append([protos,labels])
+#                 # for i in range(1, num_class+1):
+#                 #     indexs = (labels==i)
+#                 #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+#             elif method=='TSNE':
+#                 # protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+#                 protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+#                 protos = torch.tensor(protos) 
+#                 labels = torch.tensor(labels)
+#                 protos_out.append([protos,labels])
+#                 # for i in range(1, num_class+1):
+#                 #     indexs = (labels==i)
+#                 #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+#             else:
+#                 assert f"{method} method hasn't been implemented."
+    
+#     # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
+#     torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
+    
 def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128], method='TSNE'):
     model.train()
     model.to(device)
-    # down_scales = [1.0,0.5,0.25,0.125]
-    # down_scales = [1.0,0.5,0.5,0.25,0.125]
-    down_scales = [0.5,0.25,0.125,0.125]
 
-    num_class = 8
+    num_class = 40
     loader = dataloader['train']
     total_batchs = len(loader)
 
-    # ESPNet
-    # proto_des_0 = torch.zeros(num_class, 13 )
-    # proto_des_1 = torch.zeros(num_class, 16 )
-    # proto_des_2 = torch.zeros(num_class, 13 )
-    # proto_des_3 = torch.zeros(num_class, 64 )
-    # proto_des_4 = torch.zeros(num_class, 128)
-
-    # ENet
-    proto_des_1 = torch.zeros(num_class, 16 )
-    proto_des_2 = torch.zeros(num_class, 64 )
-    proto_des_3 = torch.zeros(num_class, 128)
-    proto_des_4 = torch.zeros(num_class, 128)
-    protos_des = [proto_des_1, proto_des_2, proto_des_3, proto_des_4]
     protos_out = []
     with torch.no_grad():
-        for k in range(5):
-            protos=[]
-            labels=[]
-            for batch_idx, (inputs, targets) in enumerate(loader):
-                inputs, targets = inputs.to(device), targets.to(device)
-                targets = targets.float()
-                outputs, up4, up3, up2, up1 = model(inputs)
+        protos=[]
+        labels=[]
+        for batch_idx, (inputs, targets) in enumerate(loader):
+            inputs, targets = inputs.to(device), targets.to(device)
+            targets = targets.float()
+            outputs = model(inputs)
 
-                print_progress(
-                    iteration=batch_idx+1,
-                    total=total_batchs,
-                    prefix=f'Extract Proto / Level {k} : Batch {batch_idx+1}/{total_batchs} ',
-                    suffix=f'',
-                    bar_length=45
-                )  
-                masks=targets.clone()
-                up = [outputs, up1, up2, up3, up4]
+            print_progress(
+                iteration=batch_idx+1,
+                total=total_batchs,
+                prefix=f'Batch {batch_idx+1}/{total_batchs} ',
+                suffix=f'',
+                bar_length=45
+            )  
 
-                B,C,H,W = up[k].shape
-                
-                temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=down_scales[k], mode='nearest')
-                temp_masks = temp_masks.squeeze(dim=1)
-
-                mask_unique_value = torch.unique(temp_masks)
-                mask_unique_value = mask_unique_value[1:]
-                unique_num = len(mask_unique_value)
-                
-                if unique_num<2:
-                    continue
-
-                for count,p in enumerate(mask_unique_value):
-                    p = p.long()
-                    bin_mask = torch.tensor(temp_masks==p,dtype=torch.int8)
-                    bin_mask = bin_mask.unsqueeze(dim=1).expand_as(up[k])
-                    temp = 0.0
-                    batch_counter = 0
-                    for t in range(B):
-                        if torch.sum(bin_mask[t])!=0:
-                            v = torch.sum(bin_mask[t]*up[k][t],dim=[1,2])/torch.sum(bin_mask[t],dim=[1,2])
-                            # temp = temp + nn.functional.normalize(v, p=2.0, dim=0, eps=1e-12, out=None)
-                            temp = v
-                            batch_counter = batch_counter + 1
-                    temp = temp / batch_counter
-                    protos.append(np.array(temp.detach().cpu()))
-                    labels.append(p.item()) 
+            protos.append(np.array(outputs.detach().cpu()))
+            labels.append(targets) 
     
-            protos = np.array(protos) 
-            labels = np.array(labels)
+        protos = np.array(protos) 
+        labels = np.array(labels)
 
-            if method=='PCA':
-                # pca = PCA(n_components = des_shapes[k])
-                pca = PCA(n_components = 2)
-                pca.fit(protos)
-                protos = pca.transform(protos)
-                protos = torch.tensor(protos)
+        if method=='PCA':
+            # pca = PCA(n_components = des_shapes[k])
+            pca = PCA(n_components = 2)
+            pca.fit(protos)
+            protos = pca.transform(protos)
+            protos = torch.tensor(protos)
 
-                protos = torch.tensor(protos) 
-                labels = torch.tensor(labels)
-                protos_out.append([protos,labels])
-                # for i in range(1, num_class+1):
-                #     indexs = (labels==i)
-                #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
-            elif method=='TSNE':
-                # protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
-                protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
-                protos = torch.tensor(protos) 
-                labels = torch.tensor(labels)
-                protos_out.append([protos,labels])
-                # for i in range(1, num_class+1):
-                #     indexs = (labels==i)
-                #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
-            else:
-                assert f"{method} method hasn't been implemented."
+            protos = torch.tensor(protos) 
+            labels = torch.tensor(labels)
+            protos_out.append([protos,labels])
+            # for i in range(1, num_class+1):
+            #     indexs = (labels==i)
+            #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+        elif method=='TSNE':
+            # protos = TSNE(n_components=des_shapes[k], learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+            protos = TSNE(n_components=2, learning_rate='auto', init='random', random_state=42).fit_transform(protos)
+            protos = torch.tensor(protos) 
+            labels = torch.tensor(labels)
+            protos_out.append([protos,labels])
+            # for i in range(1, num_class+1):
+            #     indexs = (labels==i)
+            #     protos_des[k][i-1] = nn.functional.normalize(protos[indexs].mean(dim=0), p=2.0, dim=0, eps=1e-12, out=None)
+        else:
+            assert f"{method} method hasn't been implemented."
     
     # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
-    torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
-    
+    torch.save(protos_out, '/content/protos_out_file.pth')
 
 def get_CTranS_config(NUM_CLASS=None):
     config = ml_collections.ConfigDict()
@@ -297,7 +355,8 @@ def main(args):
     # checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_72_12/'+CKPT_NAME+'_best.pth'
     # checkpoint_path = '/content/drive/MyDrive/checkpoint_81_74/'+CKPT_NAME+'_best.pth'
-    checkpoint_path = '/content/drive/MyDrive/checkpoint/ESPNet_loss_CT-1K_best.pth'
+
+    checkpoint_path = '/content/drive/MyDrive/checkpoint_B0_90_95/Mobile_NetV2_Standford40_best.pth'
 
 
     print('Loading Checkpoint...')
@@ -325,7 +384,7 @@ def main(args):
 
     if TASK_NAME=='Synapse':
 
-        train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
+        train_dataset = Synapse_dataset(split='train', joint_transform=train_tf)
 
         train_loader = DataLoader(
                                 train_dataset,
@@ -369,7 +428,20 @@ def main(args):
                                 )
 
         data_loader={'train':train_loader}
-    
+
+    elif TASK_NAME=='Standford40':
+
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':train_loader}
+
     extract_prototype(model,data_loader)
 
 
@@ -378,11 +450,11 @@ def main(args):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--model_name', type=str, default='AttUNet_loss')
+parser.add_argument('--model_name', type=str, default='Mobile_NetV2')
 parser.add_argument('--device', type=str, default='cuda')
-parser.add_argument('--image_size', default=256)
-parser.add_argument('--task_name',type=str, default='Synapse')
-parser.add_argument('--num_class', default=9)
+parser.add_argument('--image_size', default=224)
+parser.add_argument('--task_name',type=str, default='Standford40')
+parser.add_argument('--num_class', default=40)
 args = parser.parse_args()
 
 
