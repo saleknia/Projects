@@ -44,6 +44,8 @@ from models.ESPNet import ESPNet
 from models.ESPNet_loss import ESPNet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
+from models.Mobile_netV2 import Mobile_netV2
+from models.Mobile_netV2_loss import Mobile_netV2_loss
 import ml_collections
 import utils
 from utils import color, print_progress
@@ -170,7 +172,7 @@ def worker_init(worker_id):
 #     # torch.save(protos_des, '/content/UNet_V2/protos_file.pth')
 #     torch.save(protos_out, '/content/UNet_V2/protos_out_file.pth')
     
-def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 128], method='TSNE'):
+def extract_prototype(model,dataloader,device='cuda', method='TSNE'):
     model.train()
     model.to(device)
 
@@ -195,9 +197,12 @@ def extract_prototype(model,dataloader,device='cuda',des_shapes=[16, 64, 128, 12
                 bar_length=45
             )  
 
-            protos.append(np.array(outputs.detach().cpu()))
-            labels.append(targets) 
-    
+            # protos.append(np.array(outputs.detach().cpu()))
+            # labels.append(targets) 
+
+            protos.append(np.array(temp.detach().cpu()))
+            labels.append(np.array(targets.item().detach().cpu())) 
+
         protos = np.array(protos) 
         labels = np.array(labels)
 
@@ -254,10 +259,11 @@ def main(args):
     IMAGE_WIDTH = args.image_size
     DEVICE = args.device
 
-    train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
+    # train_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
     # train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
-    val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
-# LOAD_MODEL
+    # val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
+
+    # LOAD_MODEL
 
     if MODEL_NAME=='UNet':
         model = UNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
