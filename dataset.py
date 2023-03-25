@@ -681,16 +681,30 @@ class Synapse_dataset(Dataset):
         if self.joint_transform:
             self.transform = joint_transform
 
-        elif split=='train':
-            to_tensor = T.ToTensor()
-            self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+        # elif split=='train':
 
-        elif split=='val':
-            to_tensor = T.ToTensor()
-            self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+        to_tensor = T.ToTensor()
+        self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.0, 0.0, 0.0],
+                                 [1.0, 1.0, 1.0])
+        ])
 
-        elif split=='val_test':
-            self.transform = lambda x, y: (torch.tensor(x), torch.tensor(y))
+        self.gt_transform = transforms.Compose([
+            transforms.ToTensor()])
+
+        # elif split=='val':
+            # to_tensor = T.ToTensor()
+            # self.img_transform = transforms.Compose([
+            #     transforms.ToTensor(),
+            #     transforms.Normalize([0.0, 0.0, 0.0],
+            #                          [1.0, 1.0, 1.0])
+            # ])
+            # self.gt_transform = transforms.Compose([
+            #     transforms.ToTensor()])
+
+        # elif split=='val_test':
+        #     self.transform = lambda x, y: (torch.tensor(x), torch.tensor(y))
 
         self.split = split
         self.sample_list = os.listdir(path=base_dir)
@@ -731,8 +745,10 @@ class Synapse_dataset(Dataset):
         # Data Augmentation
         if self.joint_transform:
             sample = self.transform(sample) 
-        else:
-            sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+        # else:
+            # sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+
+        sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_tansform(sample['label'])
 
         image,mask = sample['image'],sample['label'] 
 
@@ -893,9 +909,16 @@ class CT_1K(Dataset):
 
         if self.joint_transform:
             self.transform = joint_transform
-        else:
-            to_tensor = T.ToTensor()
-            self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+        # else:
+        #     to_tensor = T.ToTensor()
+        #     self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+
+        to_tensor = T.ToTensor()
+        self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize([0.0, 0.0, 0.0],
+                                 [1.0, 1.0, 1.0])
+        ])
 
         self.split = split
         self.sample_list = os.listdir(path=base_dir)
@@ -917,8 +940,10 @@ class CT_1K(Dataset):
         # Data Augmentation
         if self.joint_transform:
             sample = self.transform(sample) 
-        else:
-            sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+        # else:
+        #     sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+
+        sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_tansform(sample['label'])
 
         image,mask = sample['image'],sample['label'] 
 

@@ -15,7 +15,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     model.eval()
     loss_total = utils.AverageMeter()
     hd95_total = utils.AverageMeter()
-    Eval = utils.Evaluator(num_class=2)
+    Eval = utils.Evaluator(num_class=num_class)
     mIOU = 0.0
     Dice = 0.0
     accuracy = utils.AverageMeter()
