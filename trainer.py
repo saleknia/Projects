@@ -182,23 +182,26 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
+    scaler = torch.cuda.amp.GradScaler()
+
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
 
-        outputs = model(inputs)
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
 
-        if teacher_model is not None:
-            with torch.no_grad():
-                outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
+            if teacher_model is not None:
+                with torch.no_grad():
+                    outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
 
-        loss_ce = ce_loss(outputs, targets[:].long())
-        loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
-        loss_disparity = disparity_loss(outputs, targets)
-        # loss_disparity = 0.0
+            loss_ce = ce_loss(outputs, targets[:].long())
+            loss_dice = dice_loss(inputs=outputs, target=targets, softmax=True)
+            # loss_disparity = disparity_loss(outputs, targets)
+            loss_disparity = 0.0
 
         ###############################################
         alpha = 0.5
@@ -206,7 +209,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         theta = 0.01
 
         loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
-
         ###############################################
 
         lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
@@ -215,10 +217,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             param_group['lr'] = lr_
 
         iter_num = iter_num + 1       
-        
+
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
         loss_total.update(loss)
         loss_dice_total.update(loss_dice)
