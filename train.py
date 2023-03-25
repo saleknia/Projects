@@ -281,7 +281,7 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':valid_loader}
 
-    elif TASK_NAME=='Synaps':
+    elif TASK_NAME=='Synapse':
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
         valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
 
@@ -372,7 +372,7 @@ def main(args):
         data_loader={'train':train_loader, 'valid':test_loader}
 
 
-    elif TASK_NAME=='Synapse':
+    elif TASK_NAME=='CT-1K':
 
         train_dataset=CT_1K(split='train', joint_transform=train_tf)
         valid_dataset=CT_1K(split='test', joint_transform=val_tf)

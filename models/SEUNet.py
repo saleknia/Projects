@@ -83,7 +83,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1

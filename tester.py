@@ -15,7 +15,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     model.eval()
     loss_total = utils.AverageMeter()
     hd95_total = utils.AverageMeter()
-    Eval = utils.Evaluator(num_class=2)
+    Eval = utils.Evaluator(num_class=num_class)
     mIOU = 0.0
     Dice = 0.0
     accuracy = utils.AverageMeter()
@@ -34,8 +34,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.float()
             targets = targets[:, 0, :, :]
 
-            targets[targets!=4.0] = 0.0
-            targets[targets==4.0] = 1.0
+            # targets[targets!=4.0] = 0.0
+            # targets[targets==4.0] = 1.0
 
             outputs = model(inputs)
 
@@ -50,8 +50,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             predictions = torch.argmax(input=outputs,dim=1).long()
 
-            predictions[predictions!=6.0] = 0.0
-            predictions[predictions==6.0] = 1.0
+            # predictions[predictions!=6.0] = 0.0
+            # predictions[predictions==6.0] = 1.0
 
             Eval.add_batch(gt_image=targets,pre_image=predictions)
             hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
