@@ -44,6 +44,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
+            predictions[predictions!=6.0] = 0.0
 
             Eval.add_batch(gt_image=targets,pre_image=predictions)
             hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)

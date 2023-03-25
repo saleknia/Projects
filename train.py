@@ -337,26 +337,26 @@ def main(args):
 
     elif TASK_NAME=='TCIA':
 
-        train_dataset = TCIA(split='train', joint_transform=train_tf)
-        valid_dataset = TCIA(split='valid', joint_transform=val_tf)
+        # train_dataset = TCIA(split='train', joint_transform=train_tf)
+        # valid_dataset = TCIA(split='valid', joint_transform=val_tf)
         test_dataset  = TCIA(split='test' , joint_transform=val_tf)
 
-        train_loader = DataLoader(train_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=True,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
-        valid_loader = DataLoader(valid_dataset,
-                                batch_size=BATCH_SIZE,
-                                shuffle=False,
-                                worker_init_fn=worker_init,
-                                num_workers=NUM_WORKERS,
-                                pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                )
+        # train_loader = DataLoader(train_dataset,
+        #                         batch_size=BATCH_SIZE,
+        #                         shuffle=True,
+        #                         worker_init_fn=worker_init,
+        #                         num_workers=NUM_WORKERS,
+        #                         pin_memory=PIN_MEMORY,
+        #                         drop_last=True,
+        #                         )
+        # valid_loader = DataLoader(valid_dataset,
+        #                         batch_size=BATCH_SIZE,
+        #                         shuffle=False,
+        #                         worker_init_fn=worker_init,
+        #                         num_workers=NUM_WORKERS,
+        #                         pin_memory=PIN_MEMORY,
+        #                         drop_last=True,
+        #                         )
         test_loader = DataLoader(test_dataset,
                                 batch_size=1,
                                 shuffle=False,
@@ -367,7 +367,9 @@ def main(args):
                                 )
         
 
-        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+        # data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+        data_loader={'test':test_loader}
+
 
     elif TASK_NAME=='CT-1K':
 
@@ -400,66 +402,66 @@ def main(args):
     else:
         checkpoint = None
 
-    if args.train=='True':
-        logger.info(50*'*')
-        logger.info('Training Phase')
-        logger.info(50*'*')
-        loss_function = proto()
-        for epoch in range(start_epoch,end_epoch+1):
-            trainer(
-                end_epoch=end_epoch,
-                epoch_num=epoch,
-                model=model,
-                teacher_model = teacher_model,
-                dataloader=data_loader['train'],
-                optimizer=optimizer,
-                device=DEVICE,
-                ckpt=checkpoint,                
-                num_class=NUM_CLASS,
-                lr_scheduler=lr_scheduler,
-                writer=writer,
-                logger=logger,
-                loss_function=loss_function)
+    # if args.train=='True':
+    #     logger.info(50*'*')
+    #     logger.info('Training Phase')
+    #     logger.info(50*'*')
+    #     loss_function = proto()
+    #     for epoch in range(start_epoch,end_epoch+1):
+    #         trainer(
+    #             end_epoch=end_epoch,
+    #             epoch_num=epoch,
+    #             model=model,
+    #             teacher_model = teacher_model,
+    #             dataloader=data_loader['train'],
+    #             optimizer=optimizer,
+    #             device=DEVICE,
+    #             ckpt=checkpoint,                
+    #             num_class=NUM_CLASS,
+    #             lr_scheduler=lr_scheduler,
+    #             writer=writer,
+    #             logger=logger,
+    #             loss_function=loss_function)
             
-            if epoch==end_epoch:
-                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-                    pretrained = loaded_data['net']
-                    model2_dict = model.state_dict()
-                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-                    # logger.info(state_dict.keys())
-                    model2_dict.update(state_dict)
-                    model.load_state_dict(model2_dict)
+    #         if epoch==end_epoch:
+    #             if SAVE_MODEL and 0 < checkpoint.best_accuracy():
+    #                 pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+    #                 loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+    #                 pretrained = loaded_data['net']
+    #                 model2_dict = model.state_dict()
+    #                 state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+    #                 # logger.info(state_dict.keys())
+    #                 model2_dict.update(state_dict)
+    #                 model.load_state_dict(model2_dict)
 
-                    acc=loaded_data['acc']
-                    acc_per_class=loaded_data['acc_per_class'].tolist()
-                    acc_per_class=[round(x,2) for x in acc_per_class]
-                    best_epoch=loaded_data['best_epoch']
+    #                 acc=loaded_data['acc']
+    #                 acc_per_class=loaded_data['acc_per_class'].tolist()
+    #                 acc_per_class=[round(x,2) for x in acc_per_class]
+    #                 best_epoch=loaded_data['best_epoch']
 
-                    logger.info(50*'*')
-                    logger.info(f'Best Accuracy over training: {acc:.2f}')
-                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
-                    logger.info(f'Epoch Number: {best_epoch}')
+    #                 logger.info(50*'*')
+    #                 logger.info(f'Best Accuracy over training: {acc:.2f}')
+    #                 logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+    #                 logger.info(f'Epoch Number: {best_epoch}')
 
-                    if args.inference=='True':
-                        logger.info(50*'*')
-                        logger.info('Inference Phase')
-                        # logger.info(50*'*')
-                        # inference(model=model,logger=logger)
-                        tester(
-                            end_epoch=1,
-                            epoch_num=1,
-                            model=copy.deepcopy(model),
-                            dataloader=data_loader['valid'],
-                            device=DEVICE,
-                            ckpt=None,
-                            num_class=NUM_CLASS,
-                            writer=writer,
-                            logger=logger,
-                            optimizer=None,
-                            lr_scheduler=None,
-                            early_stopping=None)
+    if args.inference=='True':
+        logger.info(50*'*')
+        logger.info('Inference Phase')
+        # logger.info(50*'*')
+        # inference(model=model,logger=logger)
+        tester(
+            end_epoch=1,
+            epoch_num=1,
+            model=copy.deepcopy(model),
+            dataloader=data_loader['valid'],
+            device=DEVICE,
+            ckpt=None,
+            num_class=NUM_CLASS,
+            writer=writer,
+            logger=logger,
+            optimizer=None,
+            lr_scheduler=None,
+            early_stopping=None)
 
     logger.info(50*'*')
     logger.info(50*'*')

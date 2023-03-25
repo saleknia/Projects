@@ -35,9 +35,15 @@ def TCIA_kaggle_download(supervised=True):
 def TCIA_extract(train_index, valid_index, test_index, supervised=True):
 
     if supervised:
-        os.system('mkdir /content/UNet_V2/TCIA/train')
-        os.system('mkdir /content/UNet_V2/TCIA/valid')
-        os.system('mkdir /content/UNet_V2/TCIA/test')
+
+        if train_index is not None:
+            os.system('mkdir /content/UNet_V2/TCIA/train')
+
+        if valid_index is not None:
+            os.system('mkdir /content/UNet_V2/TCIA/valid')
+
+        if test_index is not None:
+            os.system('mkdir /content/UNet_V2/TCIA/test')
     else:
         os.system('mkdir /content/UNet_V2/TCIA/train')
 
@@ -55,27 +61,27 @@ def TCIA_extract(train_index, valid_index, test_index, supervised=True):
         if supervised:
             label = np.load('/content/UNet_V2/TCIA/labels/' + f)
             for index in range(num_sample_slices):
-                if count in train_index:
-                    pwd = os.getcwd()
-                    os.chdir(path='/content/UNet_V2/TCIA/train')
-                    slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
-                    slice_2d = sample[:,:,index]
-                    slice_2d = slice_2d.astype(dtype=np.float32)
-                    label_2d = label[:,:,index]
-                    label_2d = label_2d.astype(dtype=np.float32)
-                    np.savez(file=slice_name,image=slice_2d,label=label_2d)
-                    os.chdir(path=pwd)
-                elif count in valid_index:
-                    pwd = os.getcwd()
-                    os.chdir(path='/content/UNet_V2/TCIA/valid')
-                    slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
-                    slice_2d = sample[:,:,index]
-                    slice_2d = slice_2d.astype(dtype=np.float32)
-                    label_2d = label[:,:,index]
-                    label_2d = label_2d.astype(dtype=np.float32)
-                    np.savez(file=slice_name,image=slice_2d,label=label_2d)
-                    os.chdir(path=pwd)
-                elif count in test_index:
+                # if count in train_index:
+                #     pwd = os.getcwd()
+                #     os.chdir(path='/content/UNet_V2/TCIA/train')
+                #     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
+                #     slice_2d = sample[:,:,index]
+                #     slice_2d = slice_2d.astype(dtype=np.float32)
+                #     label_2d = label[:,:,index]
+                #     label_2d = label_2d.astype(dtype=np.float32)
+                #     np.savez(file=slice_name,image=slice_2d,label=label_2d)
+                #     os.chdir(path=pwd)
+                # elif count in valid_index:
+                #     pwd = os.getcwd()
+                #     os.chdir(path='/content/UNet_V2/TCIA/valid')
+                #     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
+                #     slice_2d = sample[:,:,index]
+                #     slice_2d = slice_2d.astype(dtype=np.float32)
+                #     label_2d = label[:,:,index]
+                #     label_2d = label_2d.astype(dtype=np.float32)
+                #     np.savez(file=slice_name,image=slice_2d,label=label_2d)
+                #     os.chdir(path=pwd)
+                if count in test_index:
                     pwd = os.getcwd()
                     os.chdir(path='/content/UNet_V2/TCIA/test')
                     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
@@ -121,12 +127,20 @@ if __name__ == "__main__":
     else:
         supervised = False
 
-    train_index = np.arange(41)
-    valid_index = np.arange(41,61)
-    test_index  = np.arange(61,81)
+    # train_index = np.arange(50)
+    train_index = None
+
+    # valid_index = np.arange(41,61)
+    valid_index = None
+
+    test_index  = np.arange(81)
+    # test_index = None
 
     TCIA_kaggle_download(supervised=supervised)
     TCIA_extract(train_index=train_index, valid_index=valid_index, test_index=test_index, supervised=supervised)
+
+
+
 
 
 
