@@ -464,8 +464,8 @@ class RandomGenerator(object):
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
             label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
 
-        image = F.to_tensor(image)
-        label = to_long_tensor(label)
+        # image = F.to_tensor(image)
+        # label = to_long_tensor(label)
         sample = {'image': image, 'label': label}
         return sample
 
@@ -685,8 +685,8 @@ class Synapse_dataset(Dataset):
 
         to_tensor = T.ToTensor()
         self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
             transforms.Normalize(0.0, 1.0),
-            transforms.ToTensor()
         ])
 
         self.gt_transform = transforms.Compose([
@@ -746,6 +746,9 @@ class Synapse_dataset(Dataset):
             sample = self.transform(sample) 
         # else:
             # sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+        
+        # print(type(sample['image']))
+        # print(type(sample['label']))
 
         sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_tansform(sample['label'])
 
@@ -914,8 +917,8 @@ class CT_1K(Dataset):
 
         to_tensor = T.ToTensor()
         self.img_transform = transforms.Compose([
+            transforms.ToTensor(),
             transforms.Normalize(0.0, 1.0),
-            transforms.ToTensor()
         ])
 
         self.split = split
