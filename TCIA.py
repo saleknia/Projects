@@ -61,16 +61,16 @@ def TCIA_extract(train_index, valid_index, test_index, supervised=True):
         if supervised:
             label = np.load('/content/UNet_V2/TCIA/labels/' + f)
             for index in range(num_sample_slices):
-                # if count in train_index:
-                #     pwd = os.getcwd()
-                #     os.chdir(path='/content/UNet_V2/TCIA/train')
-                #     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
-                #     slice_2d = sample[:,:,index]
-                #     slice_2d = slice_2d.astype(dtype=np.float32)
-                #     label_2d = label[:,:,index]
-                #     label_2d = label_2d.astype(dtype=np.float32)
-                #     np.savez(file=slice_name,image=slice_2d,label=label_2d)
-                #     os.chdir(path=pwd)
+                if count in train_index:
+                    pwd = os.getcwd()
+                    os.chdir(path='/content/UNet_V2/TCIA/train')
+                    slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
+                    slice_2d = sample[:,:,index]
+                    slice_2d = slice_2d.astype(dtype=np.float32)
+                    label_2d = label[:,:,index]
+                    label_2d = label_2d.astype(dtype=np.float32)
+                    np.savez(file=slice_name,image=slice_2d,label=label_2d)
+                    os.chdir(path=pwd)
                 # elif count in valid_index:
                 #     pwd = os.getcwd()
                 #     os.chdir(path='/content/UNet_V2/TCIA/valid')
@@ -81,7 +81,7 @@ def TCIA_extract(train_index, valid_index, test_index, supervised=True):
                 #     label_2d = label_2d.astype(dtype=np.float32)
                 #     np.savez(file=slice_name,image=slice_2d,label=label_2d)
                 #     os.chdir(path=pwd)
-                if count in test_index:
+                elif count in test_index:
                     pwd = os.getcwd()
                     os.chdir(path='/content/UNet_V2/TCIA/test')
                     slice_name = 'case'+f'_{formal(count,2)}'+'_slice'+f'{formal(index,3)}'+'.npz'
@@ -127,13 +127,13 @@ if __name__ == "__main__":
     else:
         supervised = False
 
-    # train_index = np.arange(50)
-    train_index = None
+    train_index = np.arange(50)
+    # train_index = None
 
     # valid_index = np.arange(41,61)
     valid_index = None
 
-    test_index  = np.arange(81)
+    test_index  = np.arange(50,81)
     # test_index = None
 
     TCIA_kaggle_download(supervised=supervised)

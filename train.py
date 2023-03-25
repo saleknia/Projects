@@ -336,18 +336,19 @@ def main(args):
 
     elif TASK_NAME=='TCIA':
 
-        # train_dataset = TCIA(split='train', joint_transform=train_tf)
+        train_dataset = TCIA(split='train', joint_transform=train_tf)
         # valid_dataset = TCIA(split='valid', joint_transform=val_tf)
         test_dataset  = TCIA(split='test' , joint_transform=val_tf)
 
-        # train_loader = DataLoader(train_dataset,
-        #                         batch_size=BATCH_SIZE,
-        #                         shuffle=True,
-        #                         worker_init_fn=worker_init,
-        #                         num_workers=NUM_WORKERS,
-        #                         pin_memory=PIN_MEMORY,
-        #                         drop_last=True,
-        #                         )
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+
         # valid_loader = DataLoader(valid_dataset,
         #                         batch_size=BATCH_SIZE,
         #                         shuffle=False,
@@ -356,6 +357,7 @@ def main(args):
         #                         pin_memory=PIN_MEMORY,
         #                         drop_last=True,
         #                         )
+
         test_loader = DataLoader(test_dataset,
                                 batch_size=1,
                                 shuffle=False,
@@ -367,7 +369,7 @@ def main(args):
         
 
         # data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
-        data_loader={'valid':test_loader}
+        data_loader={'train':train_loader, 'valid':test_loader}
 
 
     elif TASK_NAME=='CT-1K':
@@ -462,11 +464,11 @@ def main(args):
                             lr_scheduler=None,
                             early_stopping=None)
 
-                    logger.info(50*'*')
-                    logger.info(50*'*')
-                    logger.info('\n')
-                    if tensorboard:
-                        writer.close()
+                        logger.info(50*'*')
+                        logger.info(50*'*')
+                        logger.info('\n')
+                        if tensorboard:
+                            writer.close()
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--inference', type=str,default='False')
