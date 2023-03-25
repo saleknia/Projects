@@ -684,6 +684,7 @@ class Synapse_dataset(Dataset):
         # elif split=='train':
 
         to_tensor = T.ToTensor()
+
         if split=='train':
             self.img_transform = transforms.Compose([
                 transforms.ToTensor(),
@@ -920,10 +921,18 @@ class CT_1K(Dataset):
         #     self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
 
         to_tensor = T.ToTensor()
-        self.img_transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(0.0, 1.0),
-        ])
+
+        if split=='train':
+            self.img_transform = transforms.Compose([
+                transforms.ToTensor(),
+                transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
+            ])
+        else:
+            self.img_transform = transforms.Compose([
+                transforms.ToTensor(),
+            ])
+        self.gt_transform = transforms.Compose([
+            transforms.ToTensor()])
 
         self.split = split
         self.sample_list = os.listdir(path=base_dir)
@@ -948,7 +957,7 @@ class CT_1K(Dataset):
         # else:
         #     sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
 
-        sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_tansform(sample['label'])
+        sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_transform(sample['label'])
 
         image,mask = sample['image'],sample['label'] 
 
