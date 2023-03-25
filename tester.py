@@ -33,6 +33,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
+            targets[targets!=4.0] = 0.0
+            targets[targets==4.0] = 1.0
+
             outputs = model(inputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())
@@ -51,7 +54,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             Eval.add_batch(gt_image=targets,pre_image=predictions)
             hd95_acc = hd95(masks=targets,preds=predictions,num_class=num_class)
-            
+
             # hd95_acc = 0.0
             if not np.isnan(hd95_acc):
                 hd95_total.update(hd95_acc)
