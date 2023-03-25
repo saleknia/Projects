@@ -121,9 +121,9 @@ if __name__ == "__main__":
     else:
         supervised = False
 
-    train_index = np.arange(50)
-    valid_index = np.arange(50,65)
-    test_index  = np.arange(65,80)
+    train_index = np.arange(41)
+    valid_index = np.arange(41,61)
+    test_index  = np.arange(61,81)
 
     TCIA_kaggle_download(supervised=supervised)
     TCIA_extract(train_index=train_index, valid_index=valid_index, test_index=test_index, supervised=supervised)
