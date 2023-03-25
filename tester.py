@@ -46,6 +46,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             loss_total.update(loss)
 
             targets = targets.long()
+            targets = targets[:, 0, :, :]
 
             predictions = torch.argmax(input=outputs,dim=1).long()
 
