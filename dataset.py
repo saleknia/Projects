@@ -685,7 +685,7 @@ class Synapse_dataset(Dataset):
 
         to_tensor = T.ToTensor()
         self.img_transform = transforms.Compose([
-            transforms.Normalize([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
+            transforms.Normalize(0.0, 1.0),
             transforms.ToTensor()
         ])
 
@@ -914,7 +914,7 @@ class CT_1K(Dataset):
 
         to_tensor = T.ToTensor()
         self.img_transform = transforms.Compose([
-            transforms.Normalize([0.0, 0.0, 0.0],[1.0, 1.0, 1.0]),
+            transforms.Normalize(0.0, 1.0),
             transforms.ToTensor()
         ])
 
