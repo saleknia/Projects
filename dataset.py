@@ -686,6 +686,7 @@ class Synapse_dataset(Dataset):
         to_tensor = T.ToTensor()
         if split=='train':
             self.img_transform = transforms.Compose([
+                transforms.ToPILImage(),
                 transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
                 transforms.ToTensor(),
             ])
