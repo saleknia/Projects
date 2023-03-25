@@ -680,9 +680,15 @@ class Synapse_dataset(Dataset):
 
         if self.joint_transform:
             self.transform = joint_transform
-        elif split=='val' or split=='train':
+
+        elif split=='train':
             to_tensor = T.ToTensor()
             self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+
+        elif split=='val':
+            to_tensor = T.ToTensor()
+            self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+
         elif split=='val_test':
             self.transform = lambda x, y: (torch.tensor(x), torch.tensor(y))
 

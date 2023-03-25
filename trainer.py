@@ -182,8 +182,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-    scaler = torch.cuda.amp.GradScaler()
-
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
