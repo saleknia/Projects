@@ -58,52 +58,52 @@ class DownBlock(nn.Module):
         out = self.maxpool(x)
         return self.nConvs(out)
 
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', reduce=False, reduction_rate=1):
-#         super(UpBlock, self).__init__()
-
-#         self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-#         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
-
-#     def forward(self, x, skip_x):
-#         out = self.up(x)
-#         x = (torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
-#         return self.nConvs(x)
-
 class UpBlock(nn.Module):
-    def __init__(self, in_channels, out_channels, use_transpose=True):
+    """Upscaling then conv"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', reduce=False, reduction_rate=1):
         super(UpBlock, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
+        self.up = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation, reduce=reduce, reduction_rate=reduction_rate)
 
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+    def forward(self, x, skip_x):
+        out = self.up(x)
+        x = (torch.cat([out, skip_x], dim=1))  # dim 1 is the channel dimension
+        return self.nConvs(x)
 
-        self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
-        self.norm3 = nn.BatchNorm2d(out_channels)
-        self.relu3 = nn.ReLU(inplace=True)
+# class UpBlock(nn.Module):
+#     def __init__(self, in_channels, out_channels, use_transpose=True):
+#         super(UpBlock, self).__init__()
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
+#         self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+#         self.norm1 = nn.BatchNorm2d(in_channels // 4)
+#         self.relu1 = nn.ReLU(inplace=True)
+
+#         if use_transpose:
+#             self.up = nn.Sequential(
+#                 nn.ConvTranspose2d(
+#                     in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+#                 ),
+#                 nn.BatchNorm2d(in_channels // 4),
+#                 nn.ReLU(inplace=True)
+#             )
+#         else:
+#             self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+#         self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
+#         self.norm3 = nn.BatchNorm2d(out_channels)
+#         self.relu3 = nn.ReLU(inplace=True)
+
+#     def forward(self, x):
+#         x = self.conv1(x)
+#         x = self.norm1(x)
+#         x = self.relu1(x)
+#         x = self.up(x)
+#         x = self.conv3(x)
+#         x = self.norm3(x)
+#         x = self.relu3(x)
+#         return x
         
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
@@ -128,13 +128,13 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3[0]
         self.encoder4  = resnet.layer4[0]
 
-        # self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        # self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        # self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
 
-        self.up3 = UpBlock(in_channels=512, out_channels=256)
-        self.up2 = UpBlock(in_channels=256, out_channels=128)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 )
+        # self.up3 = UpBlock(in_channels=512, out_channels=256)
+        # self.up2 = UpBlock(in_channels=256, out_channels=128)
+        # self.up1 = UpBlock(in_channels=128, out_channels=64 )
         
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -157,13 +157,13 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        # e = self.up3(e4, e3)
-        # e = self.up2(e , e2)
-        # e = self.up1(e , e1)
+        e = self.up3(e4, e3)
+        e = self.up2(e , e2)
+        e = self.up1(e , e1)
 
-        e3 = self.up3(e4) + e3
-        e2 = self.up2(e3) + e2
-        e1 = self.up1(e2) + e1
+        # e3 = self.up3(e4) + e3
+        # e2 = self.up2(e3) + e2
+        # e1 = self.up1(e2) + e1
 
         e = self.final_conv1(e1)
         e = self.final_relu1(e)
