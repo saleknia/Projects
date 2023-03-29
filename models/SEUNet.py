@@ -84,19 +84,16 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet18(pretrained=True)
-        resnet = torchvision.models.quantization.resnet18(weights=torchvision.models.ResNet18_Weights, quantize = True) 
-
-
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
         self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        self.encoder1  = resnet.layer1[0]
+        self.encoder2  = resnet.layer2[0]
+        self.encoder3  = resnet.layer3[0]
+        self.encoder4  = resnet.layer4[0]
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
