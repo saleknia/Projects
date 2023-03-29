@@ -161,9 +161,9 @@ class SEUNet(nn.Module):
         # e = self.up2(e , e2)
         # e = self.up1(e , e1)
 
-        e3 = self.decoder3(e4) + e3
-        e2 = self.decoder2(e3) + e2
-        e1 = self.decoder1(e2) + e1
+        e3 = self.up3(e4) + e3
+        e2 = self.up2(e3) + e2
+        e1 = self.up1(e2) + e1
 
         e = self.final_conv1(e1)
         e = self.final_relu1(e)
