@@ -1,4 +1,5 @@
 from torchvision import models as resnet_model
+import torchvision
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
@@ -83,7 +84,10 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet18(pretrained=True)
+        # resnet = resnet_model.resnet18(pretrained=True)
+        resnet = torchvision.models.quantization.resnet18(weights=torchvision.models.ResNet18_Weights, quantize = True) 
+
+
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
