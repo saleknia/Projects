@@ -36,6 +36,7 @@ class DiceLoss(nn.Module):
 
 
 from torchmetrics.classification import BinaryConfusionMatrix
+
 class Evaluator(object):
     ''' For using this evaluator target and prediction
         dims should be [B,H,W] '''
@@ -60,9 +61,19 @@ class Evaluator(object):
         
         for i in range(gt_image.shape[0]):
             tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
-            Acc = (tp + tn) / (tp + tn + fp + fn)
-            IoU = (tp) / (tp + fp + fn)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+            Acc_F  = (tp + tn) / (tp + tn + fp + fn)
+            IoU_F  = (tp) / (tp + fp + fn)
+            Dice_F =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            tn, fp, fn, tp = self.metric((~pre_image[i]).reshape(-1), (~gt_image[i]).reshape(-1)).ravel()
+            Acc_B  = (tp + tn) / (tp + tn + fp + fn)
+            IoU_B  = (tp) / (tp + fp + fn)
+            Dice_B =  (2 * tp) / ((2 * tp) + fp + fn)
+
+            Acc  = 0.5 * (Acc_F  + Acc_B)
+            IoU  = 0.5 * (IoU_B  + IoU_F)
+            Dice = 0.5 * (Dice_B + Dice_F)
+
             self.acc.append(Acc)
             self.iou.append(IoU)
             self.dice.append(Dice)
@@ -71,6 +82,42 @@ class Evaluator(object):
         self.acc = []
         self.iou = []
         self.dice = []
+
+# class Evaluator(object):
+#     ''' For using this evaluator target and prediction
+#         dims should be [B,H,W] '''
+#     def __init__(self):
+#         self.reset()
+#         self.metric = BinaryConfusionMatrix().to('cuda')
+#     def Pixel_Accuracy(self):
+#         Acc = torch.tensor(self.acc).mean()
+#         return Acc
+
+#     def Mean_Intersection_over_Union(self,per_class=False,show=False):
+#         IoU = torch.tensor(self.iou).mean()
+#         return IoU
+
+#     def Dice(self,per_class=False,show=False):
+#         Dice = torch.tensor(self.dice).mean()
+#         return Dice
+
+#     def add_batch(self, gt_image, pre_image):
+#         gt_image = gt_image.int()
+#         pre_image = pre_image.int()
+        
+#         for i in range(gt_image.shape[0]):
+#             tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
+#             Acc = (tp + tn) / (tp + tn + fp + fn)
+#             IoU = (tp) / (tp + fp + fn)
+#             Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+#             self.acc.append(Acc)
+#             self.iou.append(IoU)
+#             self.dice.append(Dice)
+
+#     def reset(self):
+#         self.acc = []
+#         self.iou = []
+#         self.dice = []
 
 
 # class Evaluator(object):
