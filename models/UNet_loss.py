@@ -1,474 +1,41 @@
-import torch.nn as nn
-import torch
-import torch.nn.functional as F
-from .CTrans import ChannelTransformer
-from .GT_UNet import *
-from .GT_UNet import _make_bot_layer 
-import numpy as np
-from torch.nn import init
-from torch.nn import Softmax
 import math
-from torch.nn import Module, Sequential, Conv2d, ReLU,AdaptiveMaxPool2d, AdaptiveAvgPool2d,NLLLoss, BCELoss, CrossEntropyLoss, AvgPool2d, MaxPool2d, Parameter, Linear, Sigmoid, Softmax, Dropout, Embedding
-from torch.nn import functional as F
-from torch.autograd import Variable
+import torch
+import torch.nn as nn
 import torchvision
-from einops import rearrange
-
-
-class ParallelPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
-
-
-class SequentialPolarizedSelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, decoder, encoder):
-        b, c, h, w = encoder.size()
-
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(encoder) #bs,c//2,h,w
-        channel_wq=self.ch_wq(decoder) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*encoder
-        channel_out=channel_out + encoder
-
-        return channel_out
-
-# class SEAttention(nn.Module):
-
-#     def __init__(self, channel=512,reduction=16):
-#         super().__init__()
-#         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-#         self.fc = nn.Sequential(
-#             nn.Linear(channel, channel // reduction, bias=False),
-#             nn.ReLU(inplace=True),
-#             nn.Linear(channel // reduction, channel, bias=False),
-#             nn.Sigmoid()
-#         )
-
-
-#     def init_weights(self):
-#         for m in self.modules():
-#             if isinstance(m, nn.Conv2d):
-#                 init.kaiming_normal_(m.weight, mode='fan_out')
-#                 if m.bias is not None:
-#                     init.constant_(m.bias, 0)
-#             elif isinstance(m, nn.BatchNorm2d):
-#                 init.constant_(m.weight, 1)
-#                 init.constant_(m.bias, 0)
-#             elif isinstance(m, nn.Linear):
-#                 init.normal_(m.weight, std=0.001)
-#                 if m.bias is not None:
-#                     init.constant_(m.bias, 0)
-
-#     def forward(self, skip_x_att , skip_x):
-#         b, c, _, _ = skip_x_att.size()
-#         y = self.avg_pool(skip_x_att).view(b, c)
-#         y = self.fc(y).view(b, c, 1, 1)
-#         return skip_x * y.expand_as(skip_x)
-
-class SEAttention(nn.Module):
-
-    def __init__(self, channel=512,reduction=8):
-        super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // reduction, channel, bias=False),
-            nn.Sigmoid()
-        )
-
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-
-class UpConv(nn.Module):
-
-    def __init__(self, in_channels, out_channels):
-        super(UpConv, self).__init__()
-
-        self.up = nn.Sequential(
-            nn.Conv2d(in_channels, out_channels, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
-
-    def forward(self, x):
-        x = self.up(x)
-        return x
-
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out
-
-
-
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
-    else:
-        return nn.ReLU()
-
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', kernel_size=3, padding=1):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation, kernel_size=kernel_size, padding=padding))
-
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
-    return nn.Sequential(*layers)
-
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
-
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-
-    def forward(self, x):
-        out = self.maxpool(x)
-        return self.nConvs(out)
-
-class BatchNorm(nn.Module):
-    """([BN] => ReLU)"""
-
-    def __init__(self, in_channels, activation='ReLU'):
-        super(BatchNorm, self).__init__()
-        self.norm = nn.BatchNorm2d(in_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.norm(x)
-        return self.activation(out)
-
-class Conv(nn.Module):
-    """(convolution)"""
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, stride=1, dilation=1):
-        super(Conv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding, stride=stride, dilation=dilation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        return out
-
-# class DownBlock_BN(nn.Module):
-#     """Downscaling with maxpool convolution"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU', dilations=[2,3]):
-#         super(DownBlock_BN, self).__init__()
-#         self.maxpool = nn.MaxPool2d(2)
-#         self.shortcut = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-#         self.mhsa = MHSA(in_channels=in_channels, heads=4, curr_h=8, curr_w=8,pos_enc_type='relative')
-#         # self.bottleneck_dimension = out_channels // 2
-
-#         # self.conv1 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=1, stride=1, dilation=1)
-#         # self.conv2 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=dilations[0], stride=1, dilation=dilations[0])
-#         # self.conv3 = Conv(in_channels, self.bottleneck_dimension ,kernel_size=3, padding=dilations[1], stride=1, dilation=dilations[1])
-
-#         # self.conv4 = Conv(self.bottleneck_dimension*2, out_channels, kernel_size=1, padding=0, stride=1)
-#         # self.conv5 = Conv(out_channels*2 ,out_channels , kernel_size=1, padding=0, stride=1)
-#         # self.BN_1 = BatchNorm(in_channels=out_channels, activation='ReLU')
-#         # self.BN_2 = BatchNorm(in_channels=out_channels, activation='ReLU')
-
-#     def forward(self, x):
-#         x = self.maxpool(x)
-#         out = self.shortcut(x)
-
-#         Q_h = Q_w = 8
-#         N, C, H, W = out.shape
-#         P_h, P_w = H // Q_h, W // Q_w
-
-#         out = out.reshape(N * P_h * P_w, C, Q_h, Q_w)
-
-#         out = self.mhsa(out)
-#         out = out.permute(0, 3, 1, 2)  # back to pytorch dim order
-#         N1, C1, H1, W1 = out.shape
-#         out = out.reshape(N, C1, int(H), int(W))
-
-
-#         # out = torch.cat((self.conv2(x),self.conv3(x)),dim=1)
-#         # out = self.conv4(out)
-#         # out = self.BN_1(out)
-
-#         # out = torch.cat((out,shortcut),dim=1)
-#         # out = self.conv5(out)
-#         # out = self.BN_2(out)
-#         # out = out + shortcut
-
-#         return out
-
-class PAM_Module(Module):
-    """ Position attention module"""
-    #Ref from SAGAN
-    def __init__(self, in_dim):
-        super(PAM_Module, self).__init__()
-        self.chanel_in = in_dim
-
-        self.query_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.key_conv = Conv2d(in_channels=in_dim, out_channels=in_dim//8, kernel_size=1)
-        self.value_conv = Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
-        self.gamma = Parameter(torch.zeros(1))
-
-        self.softmax = Softmax(dim=-1)
-    def forward(self, x):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W)
-            returns :
-                out : attention value + input feature
-                attention: B X (HxW) X (HxW)
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = self.query_conv(x).view(m_batchsize, -1, width*height).permute(0, 2, 1)
-        proj_key = self.key_conv(x).view(m_batchsize, -1, width*height)
-        energy = torch.bmm(proj_query, proj_key)
-        attention = self.softmax(energy)
-        proj_value = self.value_conv(x).view(m_batchsize, -1, width*height)
-
-        out = torch.bmm(proj_value, attention.permute(0, 2, 1))
-        out = out.view(m_batchsize, C, height, width)
-
-        out = self.gamma*out + x
-        return out
-
-class CAM_Module(nn.Module):
-    """ Channel attention module"""
-    def __init__(self):
-        super(CAM_Module, self).__init__()
-        # self.chanel_in = in_dim
-        self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.softmax  = Softmax(dim=-1)
-
-    def forward(self,x,y):
-        """
-            inputs :
-                x : input feature maps( B X C X H X W) --- encoder
-                y : input feature maps( B X C X H X W) --- decoder
-            returns :
-                out : attention value + input feature
-                attention: B X C X C
-        """
-        m_batchsize, C, height, width = x.size()
-        proj_query = x.view(m_batchsize, C, -1)
-        proj_key = y.view(m_batchsize, C, -1).permute(0, 2, 1)
-        energy = torch.bmm(proj_query, proj_key)
-        energy_new = torch.max(energy, -1, keepdim=True)[0].expand_as(energy)-energy
-        attention = self.softmax(energy_new)
-        proj_value = x.view(m_batchsize, C, -1)
-
-        out = torch.bmm(attention, proj_value)
-        out = out.view(m_batchsize, C, height, width)
-
-        out = out + x
-        return out
-
-class Indentity(nn.Module):
-
-    def __init__(self):
-        super(Indentity, self).__init__()
-    def forward(self, x):
-        return x
-
-
-class seg_head(nn.Module):
-    def __init__(self, in_channels):
-        super().__init__()
-        self.scale_4 = nn.Upsample(scale_factor=2)
-        self.scale_3 = nn.Upsample(scale_factor=2)
-        self.scale_2 = nn.Upsample(scale_factor=2)
-        self.conv_4 =  nn.Conv2d(in_channels*4, in_channels*2, kernel_size=(1,1), stride=(1,1))
-        self.conv_3 =  nn.Conv2d(in_channels*2, in_channels , kernel_size=(1,1), stride=(1,1))
-        self.conv_2 =  nn.Conv2d(in_channels , in_channels , kernel_size=(1,1), stride=(1,1))
-
-        self.conv = nn.Conv2d(in_channels, in_channels, kernel_size=(1,1), stride=(1,1))
-        self.BN_out = nn.BatchNorm2d(in_channels)
-        self.RELU6_out = nn.ReLU6()
-
-        self.out = nn.Conv2d(in_channels, 9, kernel_size=(1,1), stride=(1,1))
-
-    def forward(self, up4, up3, up2, up1):
-        # p = 0.5
-        # up2 = torchvision.ops.stochastic_depth(input=up2, p=p, mode='batch')
-        # up3 = torchvision.ops.stochastic_depth(input=up3, p=p, mode='batch')
-        # up4 = torchvision.ops.stochastic_depth(input=up4, p=p, mode='batch')
-        up4 = self.scale_4(self.conv_4(up4))
-        up3 = up3 + up4
-        up3 = self.scale_3(self.conv_3(up3))
-        up2 = up3 + up2
-        up2 = self.scale_2(self.conv_2(up2))
-        up = up2 + up1
-        
-        up = self.conv(up)
-        up = self.BN_out(up)
-        up = self.RELU6_out(up)
-
-        return up
+import torch.nn.functional as F
+import einops
+import timm
+from torchvision import models as resnet_model
+from timm.models.layers import to_2tuple, trunc_normal_
+from timm.models.layers import DropPath, to_2tuple
 
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv, up_scale, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.Upsample(scale_factor=2)
-        # self.up_scale = nn.Upsample(scale_factor=up_scale)
-        # self.cosine = torch.nn.CosineSimilarity(dim=0)
-        # self.up_2 = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
-        # self.gamma = nn.parameter.Parameter(torch.zeros(1))
-        self.nConvs = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU')
-        # self.att = AttentionBlock(F_g=in_channels//2, F_l=in_channels//2, n_coefficients=in_channels//4)
-        # self.se = SEAttention(channel=in_channels, reduction=8)
-        # self.CA_skip = CAM_Module()
-        # self.PA = PA
-        # if self.PA:
-        #     self.PA = PAM_Module(in_dim=in_channels//2)
-
-        self.att = ParallelPolarizedSelfAttention(channel = in_channels//2)
-        # self.nConvs_out = _make_nConv(in_channels=out_channels , out_channels=out_channels, nb_Conv=1, activation='ReLU')
-
+        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+    
     def forward(self, x, skip_x):
-        # if self.PA:
-        #     out = self.PA(x)
-        #     out = self.up(out)
-        # else:
-        #     out = self.up(x)
-        # out = self.up_1(x) * self.gamma + self.up_2(x)
-        out = self.up(x)
-        # out = self.att(out)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = self.nConvs(x)   
+        x = self.up(x) 
+        x = x + skip_x
+        return x 
+
+class LayerNormProxy(nn.Module):
+    
+    def __init__(self, dim):
         
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
 
-        return x
+    def forward(self, x):
 
-class UNet_loss(nn.Module):
-    def __init__(self, n_channels=3, n_classes=9):
+        x = einops.rearrange(x, 'b c h w -> b h w c')
+        x = self.norm(x)
+        return einops.rearrange(x, 'b h w c -> b c h w')
+
+class Cross_unet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
                         By default 3, because we have RGB images
@@ -478,238 +45,700 @@ class UNet_loss(nn.Module):
         super().__init__()
         self.n_channels = n_channels
         self.n_classes = n_classes
-        self.Maxpool = nn.MaxPool2d(kernel_size=2,stride=2)
-        # Question here
-        in_channels = 64
 
-        self.inc = ConvBatchNorm(n_channels, in_channels)
-        self.down1 = DownBlock(in_channels, in_channels*2, nb_Conv=2)
-        self.down2 = DownBlock(in_channels*2, in_channels*4, nb_Conv=2)
-        self.down3 = DownBlock(in_channels*4, in_channels*8, nb_Conv=2)
-        self.down4 = DownBlock(in_channels*8, in_channels*8, nb_Conv=2)
+        self.encoder =  CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.2,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.Conv1 = _make_bot_layer(ch_in=n_channels,ch_out=64)
-        # self.Conv2 = _make_bot_layer(ch_in=64, ch_out=128)
-        # self.Conv3 = _make_bot_layer(ch_in=128, ch_out=256)
-        # self.Conv4 = _make_bot_layer(ch_in=256, ch_out=512)
-        # self.Conv5 = _make_bot_layer(ch_in=512, ch_out=512) # original ch_out was 1024.
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
+        self.up3 = UpBlock(768, 384)
+        self.up2 = UpBlock(384, 192)
+        self.up1 = UpBlock(192, 96 )
 
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
+        )
 
-        self.up4 = UpBlock(in_channels*16, in_channels*4, nb_Conv=2, up_scale=1)
-        self.up3 = UpBlock(in_channels*8, in_channels*2, nb_Conv=2, up_scale=2)
-        self.up2 = UpBlock(in_channels*4, in_channels, nb_Conv=2, up_scale=4)
-        self.up1 = UpBlock(in_channels*2, in_channels, nb_Conv=2, up_scale=8)
-        self.outc = nn.Conv2d(in_channels, n_classes, kernel_size=(1,1))
-        self.head = seg_head(in_channels)
-        if n_classes == 1:
-            self.last_activation = nn.Sigmoid()
-        else:
-            self.last_activation = None
 
     def forward(self, x):
-        # Question here
-        x = x.float()
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
 
-        # x1 = self.Conv1(x)
+        outputs = self.encoder(x_input)
 
-        # x2 = self.Maxpool(x1)
-        # x2 = self.Conv2(x2)
+        x4 = self.norm_4(outputs[3]) 
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0])
+
+        x3 = self.up3(x4, x3)
+        x2 = self.up2(x3, x2)
+        x1 = self.up1(x2, x1)
+
+        x1 = self.classifier(x1)
+
+        return x1
+
+import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.utils.checkpoint as checkpoint
+from timm.models.layers import DropPath, to_2tuple, trunc_normal_
+
+NEG_INF = -1000000
+
+class Mlp(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x):
+        x = self.fc1(x)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
+
+class DynamicPosBias(nn.Module):
+    def __init__(self, dim, num_heads, residual):
+        super().__init__()
+        self.residual = residual
+        self.num_heads = num_heads
+        self.pos_dim = dim // 4
+        self.pos_proj = nn.Linear(2, self.pos_dim)
+        self.pos1 = nn.Sequential(
+            nn.LayerNorm(self.pos_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.pos_dim, self.pos_dim),
+        )
+        self.pos2 = nn.Sequential(
+            nn.LayerNorm(self.pos_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.pos_dim, self.pos_dim)
+        )
+        self.pos3 = nn.Sequential(
+            nn.LayerNorm(self.pos_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(self.pos_dim, self.num_heads)
+        )
+    def forward(self, biases):
+        if self.residual:
+            pos = self.pos_proj(biases) # 2Gh-1 * 2Gw-1, heads
+            pos = pos + self.pos1(pos)
+            pos = pos + self.pos2(pos)
+            pos = self.pos3(pos)
+        else:
+            pos = self.pos3(self.pos2(self.pos1(self.pos_proj(biases))))
+        return pos
+
+    def flops(self, N):
+        flops = N * 2 * self.pos_dim
+        flops += N * self.pos_dim * self.pos_dim
+        flops += N * self.pos_dim * self.pos_dim
+        flops += N * self.pos_dim * self.num_heads
+        return flops
+
+class Attention(nn.Module):
+    r""" Multi-head self attention module with relative position bias.
+
+    Args:
+        dim (int): Number of input channels.
+        num_heads (int): Number of attention heads.
+        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
+        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
+        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
+        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+    """
+
+    def __init__(self, dim, num_heads, qkv_bias=True, qk_scale=None, attn_drop=0., proj_drop=0.,
+                 position_bias=True):
+
+        super().__init__()
+        self.dim = dim
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = qk_scale or head_dim ** -0.5
+        self.position_bias = position_bias
+        if self.position_bias:
+            self.pos = DynamicPosBias(self.dim // 4, self.num_heads, residual=False)
+
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, x, H, W, mask=None):
+        """
+        Args:
+            x: input features with shape of (num_windows*B, N, C)
+            mask: (0/-inf) mask with shape of (num_windows, Gh*Gw, Gh*Gw) or None
+        """
+        group_size = (H, W)
+        B_, N, C = x.shape
+        assert H*W == N
+        qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4).contiguous()
+        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
+
+        q = q * self.scale
+        attn = (q @ k.transpose(-2, -1)) # (B, self.num_heads, N, N), N = H*W
+
+        if self.position_bias:
+            # generate mother-set
+            position_bias_h = torch.arange(1 - group_size[0], group_size[0], device=attn.device)
+            position_bias_w = torch.arange(1 - group_size[1], group_size[1], device=attn.device)
+            biases = torch.stack(torch.meshgrid([position_bias_h, position_bias_w]))  # 2, 2Gh-1, 2W2-1
+            biases = biases.flatten(1).transpose(0, 1).contiguous().float()
+
+            # get pair-wise relative position index for each token inside the window
+            coords_h = torch.arange(group_size[0], device=attn.device)
+            coords_w = torch.arange(group_size[1], device=attn.device)
+            coords = torch.stack(torch.meshgrid([coords_h, coords_w]))  # 2, Gh, Gw
+            coords_flatten = torch.flatten(coords, 1)  # 2, Gh*Gw
+            relative_coords = coords_flatten[:, :, None] - coords_flatten[:, None, :]  # 2, Gh*Gw, Gh*Gw
+            relative_coords = relative_coords.permute(1, 2, 0).contiguous()  # Gh*Gw, Gh*Gw, 2
+            relative_coords[:, :, 0] += group_size[0] - 1  # shift to start from 0
+            relative_coords[:, :, 1] += group_size[1] - 1
+            relative_coords[:, :, 0] *= 2 * group_size[1] - 1
+            relative_position_index = relative_coords.sum(-1)  # Gh*Gw, Gh*Gw
+
+            pos = self.pos(biases) # 2Gh-1 * 2Gw-1, heads
+            # select position bias
+            relative_position_bias = pos[relative_position_index.view(-1)].view( 
+                group_size[0] * group_size[1], group_size[0] * group_size[1], -1)  # Gh*Gw,Gh*Gw,nH
+            relative_position_bias = relative_position_bias.permute(2, 0, 1).contiguous()  # nH, Gh*Gw, Gh*Gw
+            attn = attn + relative_position_bias.unsqueeze(0)
+
+        if mask is not None:
+            nG = mask.shape[0]
+            attn = attn.view(B_ // nG, nG, self.num_heads, N, N) + mask.unsqueeze(1).unsqueeze(0) # (B, nG, nHead, N, N)
+            attn = attn.view(-1, self.num_heads, N, N)
+            attn = self.softmax(attn)
+        else:
+            attn = self.softmax(attn)
+
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x
+
+    def extra_repr(self) -> str:
+        return f'dim={self.dim}, num_heads={self.num_heads}'
+
+    def flops(self, N):
+        # calculate flops for 1 window with token length of N
+        flops = 0
+        excluded_flops = 0
+        # qkv = self.qkv(x)
+        flops += N * self.dim * 3 * self.dim
+        # attn = (q @ k.transpose(-2, -1))
+        flops += self.num_heads * N * (self.dim // self.num_heads) * N
+        excluded_flops += self.num_heads * N * (self.dim // self.num_heads) * N
+        #  x = (attn @ v)
+        flops += self.num_heads * N * N * (self.dim // self.num_heads)
+        excluded_flops += self.num_heads * N * N * (self.dim // self.num_heads)
+        # x = self.proj(x)
+        flops += N * self.dim * self.dim
+        if self.position_bias:
+            flops += self.pos.flops(N)
+        return flops, excluded_flops
+
+
+class CrossFormerBlock(nn.Module):
+    r""" CrossFormer Block.
+
+    Args:
+        dim (int): Number of input channels.
+        input_resolution (tuple[int]): Input resulotion.
+        num_heads (int): Number of attention heads.
+        group_size (int): Window size.
+        lsda_flag (int): use SDA or LDA, 0 for SDA and 1 for LDA.
+        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
+        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
+        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
+        drop (float, optional): Dropout rate. Default: 0.0
+        attn_drop (float, optional): Attention dropout rate. Default: 0.0
+        drop_path (float, optional): Stochastic depth rate. Default: 0.0
+        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
+        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+    """
+
+    def __init__(self, dim, input_resolution, num_heads, group_size=7, interval=8, lsda_flag=0,
+                 mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0., drop_path=0.,
+                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, num_patch_size=1):
+        super().__init__()
+        self.dim = dim
+        self.input_resolution = input_resolution
+        self.num_heads = num_heads
+        self.group_size = group_size
+        self.interval = interval
+        self.lsda_flag = lsda_flag
+        self.mlp_ratio = mlp_ratio
+        self.num_patch_size = num_patch_size
+
+        self.norm1 = norm_layer(dim)
+
+        self.attn = Attention(
+            dim, num_heads=num_heads,
+            qkv_bias=qkv_bias, qk_scale=qk_scale, attn_drop=attn_drop, proj_drop=drop,
+            position_bias=True)
+
+        self.drop_path = DropPath(drop_path) if drop_path > 0. else nn.Identity()
+        self.norm2 = norm_layer(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+
+    def forward(self, x, H, W):
+        B, L, C = x.shape
+        assert L == H * W, "input feature has wrong size %d, %d, %d" % (L, H, W)
+
+        if min(H, W) <= self.group_size:
+            # if window size is larger than input resolution, we don't partition windows
+            self.lsda_flag = 0
+            self.group_size = min(H, W)
+
+        shortcut = x
+        x = self.norm1(x)
+        x = x.view(B, H, W, C)
+
+        # padding
+        size_div = self.interval if self.lsda_flag == 1 else self.group_size
+        pad_l = pad_t = 0
+        pad_r = (size_div - W % size_div) % size_div
+        pad_b = (size_div - H % size_div) % size_div
+        x = F.pad(x, (0, 0, pad_l, pad_r, pad_t, pad_b))
+        _, Hp, Wp, _ = x.shape
+
+        mask = torch.zeros((1, Hp, Wp, 1), device=x.device)
+        if pad_b > 0:
+            mask[:, -pad_b:, :, :] = -1
+        if pad_r > 0:
+            mask[:, :, -pad_r:, :] = -1
+
+        # group embeddings and generate attn_mask
+        if self.lsda_flag == 0: # SDA
+            G = Gh = Gw = self.group_size
+            x = x.reshape(B, Hp // G, G, Wp // G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous()
+            x = x.reshape(B * Hp * Wp // G**2, G**2, C)
+            nG = Hp * Wp // G**2
+            # attn_mask
+            if pad_r > 0 or pad_b > 0:
+                mask = mask.reshape(1, Hp // G, G, Wp // G, G, 1).permute(0, 1, 3, 2, 4, 5).contiguous()
+                mask = mask.reshape(nG, 1, G * G)
+                attn_mask = torch.zeros((nG, G * G, G * G), device=x.device)
+                attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
+            else:
+                attn_mask = None
+        else: # LDA
+            I, Gh, Gw = self.interval, Hp // self.interval, Wp // self.interval
+            x = x.reshape(B, Gh, I, Gw, I, C).permute(0, 2, 4, 1, 3, 5).contiguous()
+            x = x.reshape(B * I * I, Gh * Gw, C)
+            nG = I ** 2
+            # attn_mask
+            if pad_r > 0 or pad_b > 0:
+                mask = mask.reshape(1, Gh, I, Gw, I, 1).permute(0, 2, 4, 1, 3, 5).contiguous()
+                mask = mask.reshape(nG, 1, Gh * Gw)
+                attn_mask = torch.zeros((nG, Gh * Gw, Gh * Gw), device=x.device)
+                attn_mask = attn_mask.masked_fill(mask < 0, NEG_INF)
+            else:
+                attn_mask = None
+
+        # multi-head self-attention
+        x = self.attn(x, Gh, Gw, mask=attn_mask)  # nG*B, G*G, C
         
-        # x3 = self.Maxpool(x2)
-        # x3 = self.Conv3(x3)
-
-        # x4 = self.Maxpool(x3)
-        # x4 = self.Conv4(x4)
-
-        # x5 = self.Maxpool(x4)
-        # x5 = self.Conv5(x5)
-
-
-        x1 = self.inc(x)
-        x2 = self.down1(x1) 
-        x3 = self.down2(x2) 
-        x4 = self.down3(x3) 
-        x5 = self.down4(x4) 
-        
-        up4 = self.up4(x5, x4)
-        up3 = self.up3(up4, x3)
-        up2 = self.up2(up3, x2)
-        up1 = self.up1(up2, x1)
-
-        logits = self.outc(up1)
-        # logits = self.outc(self.head(up4, up3, up2, up1))
-        # if self.last_activation is not None:
-        #     logits = self.last_activation(self.outc(up1))
-        # else:
-        #     logits = self.outc(up1)
-
-        if self.training:
-            return logits, x4, x3, x2, x1
+        # ungroup embeddings
+        if self.lsda_flag == 0:
+            x = x.reshape(B, Hp // G, Wp // G, G, G, C).permute(0, 1, 3, 2, 4, 5).contiguous() # B, Hp//G, G, Wp//G, G, C
         else:
-            return logits
+            x = x.reshape(B, I, I, Gh, Gw, C).permute(0, 3, 1, 4, 2, 5).contiguous() # B, Gh, I, Gw, I, C
+        x = x.reshape(B, Hp, Wp, C)
 
+        # remove padding
+        if pad_r > 0 or pad_b > 0:
+            x = x[:, :H, :W, :].contiguous()
+        x = x.view(B, H * W, C)
 
+        # FFN
+        x = shortcut + self.drop_path(x)
+        x = x + self.drop_path(self.mlp(self.norm2(x)))
 
+        return x
 
-class RelPosSelfAttention(nn.Module):
-    """Relative Position Self Attention"""
+    def extra_repr(self) -> str:
+        return f"dim={self.dim}, input_resolution={self.input_resolution}, num_heads={self.num_heads}, " \
+               f"group_size={self.group_size}, lsda_flag={self.lsda_flag}, mlp_ratio={self.mlp_ratio}"
 
-    def __init__(self, h, w, dim, relative=True, fold_heads=False):
-        super(RelPosSelfAttention, self).__init__()
-        self.relative = relative
-        self.fold_heads = fold_heads
-        self.rel_emb_w = nn.Parameter(torch.Tensor(2 * w - 1, dim))
-        self.rel_emb_h = nn.Parameter(torch.Tensor(2 * h - 1, dim))
+    def flops(self):
+        flops = 0
+        H, W = self.input_resolution
+        # norm1
+        flops += self.dim * H * W
+        # Attention
+        size_div = self.interval if self.lsda_flag == 1 else self.group_size
+        Hp = math.ceil(H / size_div) * size_div
+        Wp = math.ceil(W / size_div) * size_div
+        Gh = Hp / size_div if self.lsda_flag == 1 else self.group_size
+        Gw = Wp / size_div if self.lsda_flag == 1 else self.group_size
+        nG = Hp * Wp / Gh / Gw
+        attn_flops, attn_excluded_flops = self.attn.flops(Gh * Gw)
+        flops += nG * attn_flops
+        excluded_flops = nG * attn_excluded_flops
+        # mlp
+        flops += 2 * H * W * self.dim * self.dim * self.mlp_ratio
+        # norm2
+        flops += self.dim * H * W
+        return flops, excluded_flops
 
-        nn.init.normal_(self.rel_emb_w, std=dim ** -0.5)
-        nn.init.normal_(self.rel_emb_h, std=dim ** -0.5)
+class PatchMerging(nn.Module):
+    r""" Patch Merging Layer.
 
-    def forward(self, q, k, v):
-        """2D self-attention with rel-pos. Add option to fold heads."""
-        bs, heads, h, w, dim = q.shape
-        q = q * (dim ** -0.5)  # scaled dot-product
-        logits = torch.einsum('bnhwd,bnpqd->bnhwpq', q, k)
-        if self.relative:
-            logits += self.relative_logits(q)
-        weights = torch.reshape(logits, [-1, heads, h, w, h * w])
-        weights = F.softmax(weights, dim=-1)
-        weights = torch.reshape(weights, [-1, heads, h, w, h, w])
-        attn_out = torch.einsum('bnhwpq,bnpqd->bhwnd', weights, v)
-        if self.fold_heads:
-            attn_out = torch.reshape(attn_out, [-1, h, w, heads * dim])
-        return attn_out
+    Args:
+        input_resolution (tuple[int]): Resolution of input feature.
+        dim (int): Number of input channels.
+        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+    """
 
-    def relative_logits(self, q):
-        # Relative logits in width dimension.
-        rel_logits_w = self.relative_logits_1d(q, self.rel_emb_w, transpose_mask=[0, 1, 2, 4, 3, 5])
-        # Relative logits in height dimension
-        rel_logits_h = self.relative_logits_1d(q.permute(0, 1, 3, 2, 4), self.rel_emb_h,
-                                               transpose_mask=[0, 1, 4, 2, 5, 3])
-        return rel_logits_h + rel_logits_w
+    def __init__(self, input_resolution, dim, norm_layer=nn.LayerNorm, patch_size=[2], num_input_patch_size=1):
+        super().__init__()
+        self.input_resolution = input_resolution
+        self.dim = dim
+        self.reductions = nn.ModuleList()
+        self.patch_size = patch_size
+        self.norm = norm_layer(dim)
 
-    def relative_logits_1d(self, q, rel_k, transpose_mask):
-        bs, heads, h, w, dim = q.shape
-        rel_logits = torch.einsum('bhxyd,md->bhxym', q, rel_k)
-        rel_logits = torch.reshape(rel_logits, [-1, heads * h, w, 2 * w - 1])
-        rel_logits = self.rel_to_abs(rel_logits)
-        rel_logits = torch.reshape(rel_logits, [-1, heads, h, w, w])
-        rel_logits = torch.unsqueeze(rel_logits, dim=3)
-        rel_logits = rel_logits.repeat(1, 1, 1, h, 1, 1)
-        rel_logits = rel_logits.permute(*transpose_mask)
-        return rel_logits
+        for i, ps in enumerate(patch_size):
+            if i == len(patch_size) - 1:
+                out_dim = 2 * dim // 2 ** i
+            else:
+                out_dim = 2 * dim // 2 ** (i + 1)
+            stride = 2
+            padding = (ps - stride) // 2
+            self.reductions.append(nn.Conv2d(dim, out_dim, kernel_size=ps, 
+                                                stride=stride, padding=padding))
 
-    def rel_to_abs(self, x):
+    def forward(self, x, H, W):
         """
-        Converts relative indexing to absolute.
-        Input: [bs, heads, length, 2*length - 1]
-        Output: [bs, heads, length, length]
+        x: B, H*W, C
         """
-        bs, heads, length, _ = x.shape
-        col_pad = torch.zeros((bs, heads, length, 1), dtype=x.dtype).cuda()
-        x = torch.cat([x, col_pad], dim=3)
-        flat_x = torch.reshape(x, [bs, heads, -1]).cuda()
-        flat_pad = torch.zeros((bs, heads, length - 1), dtype=x.dtype).cuda()
-        flat_x_padded = torch.cat([flat_x, flat_pad], dim=2)
-        final_x = torch.reshape(
-            flat_x_padded, [bs, heads, length + 1, 2 * length - 1])
-        final_x = final_x[:, :, :length, length - 1:]
-        return final_x
+        B, L, C = x.shape
+        assert L == H * W, "input feature has wrong size"
+        assert H % 2 == 0 and W % 2 == 0, f"x size ({H}*{W}) are not even."
+
+        x = self.norm(x)
+        x = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+
+        xs = []
+        for i in range(len(self.reductions)):
+            tmp_x = self.reductions[i](x).flatten(2).transpose(1, 2).contiguous()
+            xs.append(tmp_x)
+        x = torch.cat(xs, dim=2)
+        return x
+
+    def extra_repr(self) -> str:
+        return f"input_resolution={self.input_resolution}, dim={self.dim}"
+
+    def flops(self):
+        H, W = self.input_resolution
+        flops = H * W * self.dim
+        for i, ps in enumerate(self.patch_size):
+            if i == len(self.patch_size) - 1:
+                out_dim = 2 * self.dim // 2 ** i
+            else:
+                out_dim = 2 * self.dim // 2 ** (i + 1)
+            flops += (H // 2) * (W // 2) * ps * ps * out_dim * self.dim
+        return flops
 
 
-class AbsPosSelfAttention(nn.Module):
+class Stage(nn.Module):
+    """ CrossFormer blocks for one stage.
 
-    def __init__(self, W, H, dkh, absolute=True, fold_heads=False):
-        super(AbsPosSelfAttention, self).__init__()
-        self.absolute = absolute
-        self.fold_heads = fold_heads
+    Args:
+        dim (int): Number of input channels.
+        input_resolution (tuple[int]): Input resolution.
+        depth (int): Number of blocks.
+        num_heads (int): Number of attention heads.
+        group_size (int): Group size.
+        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
+        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
+        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
+        drop (float, optional): Dropout rate. Default: 0.0
+        attn_drop (float, optional): Attention dropout rate. Default: 0.0
+        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
+        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
+        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
+        use_checkpoint (bool): Ghether to use checkpointing to save memory. Default: False.
+    """
 
-        self.emb_w = nn.Parameter(torch.Tensor(W, dkh))
-        self.emb_h = nn.Parameter(torch.Tensor(H, dkh))
-        nn.init.normal_(self.emb_w, dkh ** -0.5)
-        nn.init.normal_(self.emb_h, dkh ** -0.5)
+    def __init__(self, dim, input_resolution, depth, num_heads, group_size, interval,
+                 mlp_ratio=4., qkv_bias=True, qk_scale=None, drop=0., attn_drop=0.,
+                 drop_path=0., norm_layer=nn.LayerNorm, downsample=None, use_checkpoint=False,
+                 patch_size_end=[4], num_patch_size=None):
 
-    def forward(self, q, k, v):
-        bs, heads, h, w, dim = q.shape
-        q = q * (dim ** -0.5)  # scaled dot-product
-        logits = torch.einsum('bnhwd,bnpqd->bnhwpq', q, k)
-        abs_logits = self.absolute_logits(q)
-        if self.absolute:
-            logits += abs_logits
-        weights = torch.reshape(logits, [-1, heads, h, w, h * w])
-        weights = F.softmax(weights, dim=-1)
-        weights = torch.reshape(weights, [-1, heads, h, w, h, w])
-        attn_out = torch.einsum('bnhwpq,bnpqd->bhwnd', weights, v)
-        if self.fold_heads:
-            attn_out = torch.reshape(attn_out, [-1, h, w, heads * dim])
-        return attn_out
+        super().__init__()
+        self.dim = dim
+        self.depth = depth
+        self.use_checkpoint = use_checkpoint
 
-    def absolute_logits(self, q):
-        """Compute absolute position enc logits."""
-        emb_h = self.emb_h[:, None, :]
-        emb_w = self.emb_w[None, :, :]
-        emb = emb_h + emb_w
-        abs_logits = torch.einsum('bhxyd,pqd->bhxypq', q, emb)
-        return abs_logits
+        # build blocks
+        self.blocks = nn.ModuleList()
+        for i in range(depth):
+            lsda_flag = 0 if (i % 2 == 0) else 1
+            self.blocks.append(CrossFormerBlock(dim=dim, input_resolution=input_resolution,
+                                 num_heads=num_heads, group_size=group_size, interval=interval,
+                                 lsda_flag=lsda_flag,
+                                 mlp_ratio=mlp_ratio,
+                                 qkv_bias=qkv_bias, qk_scale=qk_scale,
+                                 drop=drop, attn_drop=attn_drop,
+                                 drop_path=drop_path[i] if isinstance(drop_path, list) else drop_path,
+                                 norm_layer=norm_layer,
+                                 num_patch_size=num_patch_size))
 
-
-class GroupPointWise(nn.Module):
-    """"""
-
-    def __init__(self, in_channels, heads=4, proj_factor=1, target_dimension=None):
-        super(GroupPointWise, self).__init__()
-        if target_dimension is not None:
-            proj_channels = target_dimension // proj_factor
+        # patch merging layer
+        if downsample is not None:
+            self.downsample = downsample(input_resolution, dim=dim, norm_layer=norm_layer, 
+                                         patch_size=patch_size_end, num_input_patch_size=num_patch_size)
         else:
-            proj_channels = in_channels // proj_factor
-        self.w = nn.Parameter(torch.Tensor(in_channels, heads, proj_channels // heads))
+            self.downsample = None
 
-        nn.init.normal_(self.w, std=0.01)
+    def forward(self, x, H, W):
+        for blk in self.blocks:
+            if self.use_checkpoint:
+                x = checkpoint.checkpoint(blk, x)
+            else:
+                x = blk(x, H, W)
 
-    def forward(self, input):
-        # dim order:  pytorch BCHW v.s. TensorFlow BHWC
-        input = input.permute(0, 2, 3, 1).float()
-        """
-        b: batch size
-        h, w : imput height, width
-        c: input channels
-        n: num head
-        p: proj_channel // heads
-        """
-        out = torch.einsum('bhwc,cnp->bnhwp', input, self.w)
-        return out
+        B, _, C = x.shape
+        feat = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+        if self.downsample is not None:
+            x = self.downsample(x, H, W)
+        return feat, x
+
+    def extra_repr(self) -> str:
+        return f"dim={self.dim}, depth={self.depth}"
+
+    def flops(self):
+        flops = 0
+        excluded_flops = 0
+        for blk in self.blocks:
+            blk_flops, blk_excluded_flops = blk.flops()
+            flops += blk_flops
+            excluded_flops += blk_excluded_flops
+        if self.downsample is not None:
+            flops += self.downsample.flops()
+        return flops, excluded_flops
 
 
-class MHSA(nn.Module):
+class PatchEmbed(nn.Module):
+    r""" Image to Patch Embedding
 
+    Args:
+        img_size (int): Image size.  Default: 224.
+        patch_size (int): Patch token size. Default: 4.
+        in_chans (int): Number of input image channels. Default: 3.
+        embed_dim (int): Number of linear projection output channels. Default: 96.
+        norm_layer (nn.Module, optional): Normalization layer. Default: None
+    """
 
-    def __init__(self, in_channels, heads, curr_h, curr_w, pos_enc_type='relative', use_pos=True):
-        super(MHSA, self).__init__()
-        self.q_proj = GroupPointWise(in_channels, heads, proj_factor=1)
-        self.k_proj = GroupPointWise(in_channels, heads, proj_factor=1)
-        self.v_proj = GroupPointWise(in_channels, heads, proj_factor=1)
+    def __init__(self, img_size=224, patch_size=[4], in_chans=3, embed_dim=96, norm_layer=None):
+        super().__init__()
+        img_size = to_2tuple(img_size)
+        # patch_size = to_2tuple(patch_size)
+        patches_resolution = [img_size[0] // 4, img_size[1] // 4] # only for flops calculation
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.patches_resolution = patches_resolution
 
-        assert pos_enc_type in ['relative', 'absolute']
-        if pos_enc_type == 'relative':
-            self.self_attention = RelPosSelfAttention(curr_h, curr_w, in_channels // heads, fold_heads=True)
+        self.in_chans = in_chans
+        self.embed_dim = embed_dim
+
+        self.projs = nn.ModuleList()
+        for i, ps in enumerate(patch_size):
+            if i == len(patch_size) - 1:
+                dim = embed_dim // 2 ** i
+            else:
+                dim = embed_dim // 2 ** (i + 1)
+            stride = 4
+            padding = (ps - 4) // 2
+            self.projs.append(nn.Conv2d(in_chans, dim, kernel_size=ps, stride=stride, padding=padding))
+        if norm_layer is not None:
+            self.norm = norm_layer(embed_dim)
         else:
-            raise NotImplementedError
+            self.norm = None
 
-    def forward(self, input):
-        q = self.q_proj(input)
-        k = self.k_proj(input)
-        v = self.v_proj(input)
+    def forward(self, x):
+        B, C, H, W = x.shape
+        xs = []
+        for i in range(len(self.projs)):
+            tx = self.projs[i](x).flatten(2).transpose(1, 2)
+            xs.append(tx)  # B Ph*Pw C
+        x = torch.cat(xs, dim=2)
+        if self.norm is not None:
+            x = self.norm(x)
+        return x, H, W
 
-        o = self.self_attention(q=q, k=k, v=v)
-        return o
+    def flops(self):
+        Ho, Wo = self.patches_resolution
+        flops = 0
+        for i, ps in enumerate(self.patch_size):
+            if i == len(self.patch_size) - 1:
+                dim = self.embed_dim // 2 ** i
+            else:
+                dim = self.embed_dim // 2 ** (i + 1)
+            flops += Ho * Wo * dim * self.in_chans * (self.patch_size[i] * self.patch_size[i])
+        if self.norm is not None:
+            flops += Ho * Wo * self.embed_dim
+        return flops
 
 
+class CrossFormer(nn.Module):
+    r""" CrossFormer
+        A PyTorch impl of : `CrossFormer: A Versatile Vision Transformer Based on Cross-scale Attention`  -
 
+    Args:
+        img_size (int | tuple(int)): Input image size. Default 224
+        patch_size (int | tuple(int)): Patch size. Default: 4
+        in_chans (int): Number of input image channels. Default: 3
+        num_classes (int): Number of classes for classification head. Default: 1000
+        embed_dim (int): Patch embedding dimension. Default: 96
+        depths (tuple(int)): Depth of each stage.
+        num_heads (tuple(int)): Number of attention heads in different layers.
+        group_size (int): Group size. Default: 7
+        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4
+        qkv_bias (bool): If True, add a learnable bias to query, key, value. Default: True
+        qk_scale (float): Override default qk scale of head_dim ** -0.5 if set. Default: None
+        drop_rate (float): Dropout rate. Default: 0
+        attn_drop_rate (float): Attention dropout rate. Default: 0
+        drop_path_rate (float): Stochastic depth rate. Default: 0.1
+        norm_layer (nn.Module): Normalization layer. Default: nn.LayerNorm.
+        ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
+        patch_norm (bool): If True, add normalization after patch embedding. Default: True
+        use_checkpoint (bool): Ghether to use checkpointing to save memory. Default: False
+    """
 
+    def __init__(self, img_size=224, patch_size=[4], in_chans=3, num_classes=1000,
+                 embed_dim=96, depths=[2, 2, 6, 2], num_heads=[3, 6, 12, 24],
+                 group_size=7, crs_interval=[8, 4, 2, 1], mlp_ratio=4., qkv_bias=True, qk_scale=None,
+                 drop_rate=0., attn_drop_rate=0., drop_path_rate=0.1,
+                 norm_layer=nn.LayerNorm, patch_norm=True,
+                 use_checkpoint=False, merge_size=[[2], [2], [2]], **kwargs):
+        super().__init__()
 
+        self.num_classes = num_classes
+        self.num_layers = len(depths)
+        self.embed_dim = embed_dim
+        self.patch_norm = patch_norm
+        self.num_features = int(embed_dim * 2 ** (self.num_layers - 1))
+        self.mlp_ratio = mlp_ratio
 
+        # split image into non-overlapping patches
+        self.patch_embed = PatchEmbed(
+            img_size=img_size, patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
+            norm_layer=norm_layer if self.patch_norm else None)
+        patches_resolution = self.patch_embed.patches_resolution
+        self.patches_resolution = patches_resolution # [H//4, W//4] of original image size
 
+        self.pos_drop = nn.Dropout(p=drop_rate)
 
+        # stochastic depth
+        dpr = [x.item() for x in torch.linspace(0, drop_path_rate, sum(depths))]  # stochastic depth decay rule
 
+        # build layers ape
+        self.layers = nn.ModuleList()
 
+        num_patch_sizes = [len(patch_size)] + [len(m) for m in merge_size]
+        for i_layer in range(self.num_layers):
+            patch_size_end = merge_size[i_layer] if i_layer < self.num_layers - 1 else None
+            num_patch_size = num_patch_sizes[i_layer]
+            layer = Stage(dim=int(embed_dim * 2 ** i_layer),
+                               input_resolution=(patches_resolution[0] // (2 ** i_layer),
+                                                 patches_resolution[1] // (2 ** i_layer)),
+                               depth=depths[i_layer],
+                               num_heads=num_heads[i_layer],
+                               group_size=group_size[i_layer],
+                               interval=crs_interval[i_layer],
+                               mlp_ratio=self.mlp_ratio,
+                               qkv_bias=qkv_bias, qk_scale=qk_scale,
+                               drop=drop_rate, attn_drop=attn_drop_rate,
+                               drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                               norm_layer=norm_layer,
+                               downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
+                               use_checkpoint=use_checkpoint,
+                               patch_size_end=patch_size_end,
+                               num_patch_size=num_patch_size)
+            self.layers.append(layer)
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
+        state_dict = checkpoint['model']
+        self.load_state_dict(state_dict, strict=False)
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            trunc_normal_(m.weight, std=.02)
+            if isinstance(m, nn.Linear) and m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+        elif isinstance(m, nn.LayerNorm):
+            nn.init.constant_(m.bias, 0)
+            nn.init.constant_(m.weight, 1.0)
+
+    @torch.jit.ignore
+    def no_weight_decay(self):
+        return {'absolute_pos_embed'}
+
+    @torch.jit.ignore
+    def no_weight_decay_keywords(self):
+        return {'relative_position_bias_table'}
+
+    def forward(self, x):
+        x, H, W = self.patch_embed(x)
+        x = self.pos_drop(x)
+
+        outs = []
+        for i, layer in enumerate(self.layers):
+            feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
+            outs.append(feat)
+
+        return outs
+
+    def flops(self):
+        flops = 0
+        excluded_flops = 0
+        flops += self.patch_embed.flops()
+        for i, layer in enumerate(self.layers):
+            layer_flops, layer_excluded_flops = layer.flops()
+            flops += layer_flops
+            excluded_flops += layer_excluded_flops
+        return flops, excluded_flops
 
