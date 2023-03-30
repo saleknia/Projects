@@ -509,11 +509,11 @@ class Cross_unet(nn.Module):
                             drop_path_rate=0.2,
                         )
 
-        self.fuse_layers_1 = make_fuse_layers()
-        self.fuse_act_1    = nn.ReLU()
+        # self.fuse_layers_1 = make_fuse_layers()
+        # self.fuse_act_1    = nn.ReLU()
 
-        self.fuse_layers_2 = make_fuse_layers()
-        self.fuse_act_2    = nn.ReLU()
+        # self.fuse_layers_2 = make_fuse_layers()
+        # self.fuse_act_2    = nn.ReLU()
 
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
@@ -523,15 +523,15 @@ class Cross_unet(nn.Module):
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
 
-        self.sigmoid_1 = nn.Sigmoid()
-        self.sigmoid_2 = nn.Sigmoid()
-        self.sigmoid_3 = nn.Sigmoid()
-        self.sigmoid_4 = nn.Sigmoid()
+        # self.sigmoid_1 = nn.Sigmoid()
+        # self.sigmoid_2 = nn.Sigmoid()
+        # self.sigmoid_3 = nn.Sigmoid()
+        # self.sigmoid_4 = nn.Sigmoid()
 
         self.knitt = knitt()
 
-        self.head_1 = SegFormerHead()
-        self.head_2 = SegFormerHead()
+        # self.head_1 = SegFormerHead()
+        # self.head_2 = SegFormerHead()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -559,38 +559,6 @@ class Cross_unet(nn.Module):
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
 
-        x = [x1, x2, x3]
-        x_fuse = []
-        num_branches = 3
-        for i, fuse_outer in enumerate(self.fuse_layers_1):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act_1(y))
-
-        x1 = x_fuse[0] + (x1*(1.0-self.sigmoid_1(x_fuse[0])))
-        x2 = x_fuse[1] + (x2*(1.0-self.sigmoid_2(x_fuse[1]))) 
-        x3 = x_fuse[2] + (x3*(1.0-self.sigmoid_3(x_fuse[2])))
-
-        e = [e1, e2, e3]
-        e_fuse = []
-        num_branches = 3
-        for i, fuse_outer in enumerate(self.fuse_layers_2):
-            y = e[0] if i == 0 else fuse_outer[0](e[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + e[j]
-                else:
-                    y = y + fuse_outer[j](e[j])
-            e_fuse.append(self.fuse_act_2(y))
-
-        e1 = e_fuse[0] + (e1*(1.0-self.sigmoid_1(e_fuse[0])))
-        e2 = e_fuse[1] + (e2*(1.0-self.sigmoid_2(e_fuse[1]))) 
-        e3 = e_fuse[2] + (e3*(1.0-self.sigmoid_3(e_fuse[2])))
-
         # e3 = None
         # e2 = None
         # e1 = None
@@ -599,11 +567,8 @@ class Cross_unet(nn.Module):
 
         x = self.classifier(x)
 
-        e = self.head_1(e1, e2, e3)
-        t = self.head_2(x1, x2, x3)
-
         if self.training:
-            return x, e, t
+            return x
         else:
             return x
 
