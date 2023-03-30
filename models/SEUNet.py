@@ -124,7 +124,7 @@ class SEUNet(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x = torch.cat([x, x, x], dim=1)
+        # x = torch.cat([x, x, x], dim=1)
 
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
