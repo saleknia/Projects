@@ -34,7 +34,7 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-class Cross_unet(nn.Module):
+class UNet_loss(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -43,8 +43,6 @@ class Cross_unet(nn.Module):
                       By default 3 (2 labels + 1 for the background)
         '''
         super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
