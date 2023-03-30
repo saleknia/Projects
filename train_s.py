@@ -65,6 +65,7 @@ from dataset_builder import build_dataset_train, build_dataset_test
 # from testing import inference
 # from testingV2 import inferenceV2
 import warnings
+from TNUI import CreateDataset
 warnings.filterwarnings('ignore')
 
 class ConcatDataset(torch.utils.data.Dataset):
@@ -499,6 +500,40 @@ def main(args):
         train_dataset = TCIA(split='train', joint_transform=train_tf)
         valid_dataset = TCIA(split='valid', joint_transform=val_tf)
         test_dataset  = TCIA(split='test' , joint_transform=val_tf)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        
+
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+    elif TASK_NAME=='TNUI':
+
+        train_dataset = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/train/images', label_paths='/content/TNUI-2021--main/thyroid_data/train/masks', resize=224, phase='train', aug=True)
+        valid_dataset = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/val/images'  , label_paths='/content/TNUI-2021--main/thyroid_data/val/masks'  , resize=224, phase='val'  , aug=False)
+        test_dataset  = CreateDataset(img_paths='/content/TNUI-2021--main/thyroid_data/test/images' , label_paths='/content/TNUI-2021--main/thyroid_data/test/masks' , resize=224, phase='val'  , aug=False)
 
         train_loader = DataLoader(train_dataset,
                                 batch_size=BATCH_SIZE,
