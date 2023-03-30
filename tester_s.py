@@ -65,7 +65,11 @@ class Evaluator(object):
             IoU_F  = (tp) / (tp + fp + fn)
             Dice_F =  (2 * tp) / ((2 * tp) + fp + fn)
 
-            tn, fp, fn, tp = self.metric((~pre_image[i]).reshape(-1), (~gt_image[i]).reshape(-1)).ravel()
+
+            pre_image[i] = (torch.logical_not(pre_image[i].bool())).int()
+            gt_image[i]  = (torch.logical_not(gt_image[i].bool())).int()
+
+            tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
             Acc_B  = (tp + tn) / (tp + tn + fp + fn)
             IoU_B  = (tp) / (tp + fp + fn)
             Dice_B =  (2 * tp) / ((2 * tp) + fp + fn)
