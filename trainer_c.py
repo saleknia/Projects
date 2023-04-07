@@ -170,8 +170,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_ce_total = utils.AverageMeter()
     loss_disparity_total = utils.AverageMeter()
 
-    # accuracy = utils.AverageMeter()
-    accuracy = mAPMeter()
+    accuracy = utils.AverageMeter()
+    # accuracy = mAPMeter()
 
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
@@ -217,8 +217,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
-        # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=60))
+        accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+        # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=60))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
@@ -282,12 +282,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
-            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
+            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
             bar_length=45
         )  
-  
-    acc = 100*accuracy.value().item()
+
+    acc = 100*accuracy.avg
+    # acc = 100*accuracy.value().item()
 
     if lr_scheduler is not None:
         lr_scheduler.step()        

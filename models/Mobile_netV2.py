@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
+from torchvision.models import resnet18, resnet34, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
@@ -29,7 +29,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = resnet34(pretrained=True) # efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -43,13 +43,20 @@ class Mobile_netV2(nn.Module):
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=256, out_features=60, bias=True),
         )
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=60, bias=True),
+        # )
 
     def forward(self, x0):
         x0 = x0.unsqueeze(dim=1)
