@@ -33,12 +33,12 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
-        for param in self.features[0:4].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
@@ -48,7 +48,7 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
+            nn.Linear(in_features=256, out_features=60, bias=True),
         )
 
     def forward(self, x0):
@@ -69,11 +69,12 @@ class Mobile_netV2(nn.Module):
         x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-        
-        if self.training:
-            return x#, x_t#, x1, x2, x_t, x1_t, x2_t
-        else:
-            return self.avgpool(x3) # torch.softmax(x, dim=1)
+
+        return x        
+        # if self.training:
+        #     return x#, x_t#, x1, x2, x_t, x1_t, x2_t
+        # else:
+        #     return self.avgpool(x3) # torch.softmax(x, dim=1)
 
 class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
