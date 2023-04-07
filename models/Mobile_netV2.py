@@ -35,7 +35,19 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
+
+        resnet = resnet34(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
+
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
@@ -63,19 +75,29 @@ class Mobile_netV2(nn.Module):
         x0 = torch.cat([x0, x0, x0], dim=1)
         b, c, w, h = x0.shape
 
+        e = self.firstconv(x0)
+        e = self.firstbn(e)
+        e = self.firstrelu(e)
+        e = self.maxpool(e)
+
+        e = self.encoder1(e)
+        e = self.encoder2(e)
+        e = self.encoder3(e)
+        e = self.encoder4(e)
+
         # x_t, x1_t, x2_t = self.teacher(x0)
 
         # x_t = self.teacher(x0)
 
         # print(x_t)
 
-        x1 = self.features[0:7](x0)
-        x2 = self.features[7:8](x1)
-        x3 = self.features[8:9](x2)
+        # x1 = self.features[0:7](x0)
+        # x2 = self.features[7:8](x1)
+        # x3 = self.features[8:9](x2)
 
         # x = self.features(x3)
 
-        x = self.avgpool(x3)
+        x = self.avgpool(e)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
