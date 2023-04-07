@@ -192,6 +192,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
+
+        # print(targets)
         
         # targets[targets<10.00] = 40.00            
         # targets[targets<20.00] = 41.00
@@ -207,13 +209,16 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
         outputs = model(inputs)
+
+        # print(outputs.shape)
+
         # outputs, outputs_t = model(inputs)
 
         # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=60))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))

@@ -52,6 +52,7 @@ class Mobile_netV2(nn.Module):
         )
 
     def forward(self, x0):
+        x0 = x0.unsqueeze(dim=1)
         x0 = torch.cat([x0, x0, x0], dim=1)
         b, c, w, h = x0.shape
 
