@@ -58,7 +58,7 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=256, out_features=60, bias=True),
+            nn.Linear(in_features=256, out_features=40, bias=True),
         )
 
         # self.classifier = nn.Sequential(

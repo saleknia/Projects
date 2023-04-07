@@ -1047,7 +1047,7 @@ class TCIA(Dataset):
         count = int(slice_name.split('_')[1])
         x     = int(slice_name.split('_')[2].split('slice')[1][0:3])
 
-        label = torch.tensor(int((x / self.index[count]) * 60.0))
+        label = torch.tensor(int((x / self.index[count]) * 40.0))
 
         data_path = os.path.join(self.data_dir, slice_name)
         data = np.load(data_path)
