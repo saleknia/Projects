@@ -964,6 +964,51 @@ class CT_1K(Dataset):
 
         return image,mask
 
+# class TCIA(Dataset):
+#     def __init__(self, split, joint_transform: Callable = None):
+#         if split == 'train': 
+#             base_dir = '/content/UNet_V2/TCIA/train'
+#         if split == 'valid': 
+#             base_dir = '/content/UNet_V2/TCIA/valid'
+#         if split == 'test':
+#             base_dir = '/content/UNet_V2/TCIA/test'
+
+#         self.joint_transform = joint_transform
+
+#         if self.joint_transform:
+#             self.transform = joint_transform
+#         else:
+#             to_tensor = T.ToTensor()
+#             self.transform = lambda x, y: (to_tensor(x), to_tensor(y))
+
+#         self.split = split
+#         self.sample_list = os.listdir(path=base_dir)
+#         self.sample_list.sort()
+#         self.data_dir = base_dir
+
+#     def __len__(self):
+#         return len(self.sample_list)
+
+#     def __getitem__(self, idx):
+
+#         slice_name = self.sample_list[idx]
+#         data_path = os.path.join(self.data_dir, slice_name)
+#         data = np.load(data_path)
+#         image, mask = data['image'], data['label']
+
+#         sample = {'image': image, 'label': mask}
+
+#         # Data Augmentation
+#         if self.joint_transform:
+#             sample = self.transform(sample) 
+#         else:
+#             sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
+
+#         image,mask = sample['image'],sample['label'] 
+
+
+#         return image,mask
+
 class TCIA(Dataset):
     def __init__(self, split, joint_transform: Callable = None):
         if split == 'train': 
@@ -986,15 +1031,25 @@ class TCIA(Dataset):
         self.sample_list.sort()
         self.data_dir = base_dir
 
+        index = np.load('/content/UNet_V2/index.npz', allow_pickle=True)
+
+        if split == 'train':
+            self.index = index['train_files'].item()
+        if split == 'test':
+            self.index = index['test_files'].item()
+
     def __len__(self):
         return len(self.sample_list)
 
     def __getitem__(self, idx):
 
         slice_name = self.sample_list[idx]
+        count = slice_name.split('_')[1]
+        x = int(slice_name.split('_')[2].split('slice')[1][0:3])
+        label = torch.tensor(round((x / self.index[count]) * 60.0))
         data_path = os.path.join(self.data_dir, slice_name)
         data = np.load(data_path)
-        image, mask = data['image'], data['label']
+        image = data['image'], data['label']
 
         sample = {'image': image, 'label': mask}
 
@@ -1007,8 +1062,7 @@ class TCIA(Dataset):
         image,mask = sample['image'],sample['label'] 
 
 
-        return image,mask
-
+        return image, label
 
 class SSL(Dataset):
     def __init__(self, joint_transform: Callable = None):

@@ -51,12 +51,24 @@ def TCIA_extract(train_index, valid_index, test_index, supervised=True):
     files.remove('lists')
     files.sort()
     scaler = MinMaxScaler(feature_range=(0,1))
+
+    train_files = {}
+    test_files  = {}
+
     for count,f in enumerate(files):
         sample = np.load('/content/UNet_V2/TCIA/images/' + f)
         sample = np.clip(a=sample,a_min=-125,a_max=275)
         sample = scaler.fit_transform(sample.reshape(-1,sample.shape[-1])).reshape(sample.shape)
 
         num_sample_slices = sample.shape[2]
+
+        if count in train_index:
+            train_files[count] = num_sample_slices
+            print(f'Sample {count} ---> # of slices = {num_sample_slices}')
+
+        if count in test_index:
+            test_files[count]  = num_sample_slices      
+            print(f'Sample {count} ---> # of slices = {num_sample_slices}')
 
         if supervised:
             label = np.load('/content/UNet_V2/TCIA/labels/' + f)
@@ -100,6 +112,8 @@ def TCIA_extract(train_index, valid_index, test_index, supervised=True):
                 slice_2d = slice_2d.astype(dtype=np.float32)
                 np.savez(file=slice_name,image=slice_2d)
             os.chdir(path=pwd)
+    
+    np.savez(file='/content/UNet_V2/index.npz',train_files=train_files,test_files=test_files)
 
     if os.path.isdir('/content/UNet_V2/TCIA/images'):
         os.system('rm -r /content/UNet_V2/TCIA/images')
@@ -127,13 +141,13 @@ if __name__ == "__main__":
     else:
         supervised = False
 
-    train_index = np.arange(50)
+    train_index = np.arange(60)
     # train_index = None
 
     # valid_index = np.arange(41,61)
     valid_index = None
 
-    test_index  = np.arange(50,81)
+    test_index  = np.arange(60,81)
     # test_index = None
 
     TCIA_kaggle_download(supervised=supervised)
