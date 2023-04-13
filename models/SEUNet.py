@@ -57,10 +57,10 @@ class SEUNet(nn.Module):
         self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
         self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1[0]
-        self.encoder2  = resnet.layer2[0]
-        self.encoder3  = resnet.layer3[0]
-        self.encoder4  = resnet.layer4[0]
+        self.encoder1  = resnet.layer1#[0]
+        self.encoder2  = resnet.layer2#[0]
+        self.encoder3  = resnet.layer3#[0]
+        self.encoder4  = resnet.layer4#[0]
 
         self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
