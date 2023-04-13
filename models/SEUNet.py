@@ -51,7 +51,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet18(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
@@ -91,7 +91,7 @@ class SEUNet(nn.Module):
         e2 = self.up2(e3) + e2
         e1 = self.up1(e2) + e1
 
-        e = self.final_conv1(e)
+        e = self.final_conv1(e1)
         e = self.final_relu1(e)
         e = self.final_conv2(e)
         e = self.final_relu2(e)
