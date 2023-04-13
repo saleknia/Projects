@@ -2,6 +2,7 @@ import os
 # os.system('pip install --upgrade torch')
 # os.system('pip install --upgrade torchvision')
 # os.system('pip install torch==1.10.0+cu111 torchvision==0.11.0+cu111 torchaudio==0.10.0 torchtext==0.11.0 -f https://download.pytorch.org/whl/torch_stable.html')
+
 # os.system('pip install torch==0.14.0+cu11 torchvision==0.13.1+cu113 torchaudio==0.12.1 --extra-index-url https://download.pytorch.org/whl/cu113')
 
 # os.system('pip install torch==1.13.0+cu116')
@@ -35,5 +36,5 @@ os.system('pip install paddleseg')
 
 # os.system('pip install --upgrade --force-reinstall --no-deps albumentations')
 
-os.system('conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia')
+# os.system('conda install pytorch torchvision torchaudio pytorch-cuda=11.7 -c pytorch -c nvidia')
 

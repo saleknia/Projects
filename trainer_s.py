@@ -377,7 +377,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     acc =  Eval.Pixel_Accuracy() * 100.0
     mIOU = Eval.Mean_Intersection_over_Union() * 100.0
 
-    Dice = Eval.Dice() * 100.
+    Dice = Eval.Dice() * 100.0
     Dice_per_class = Dice * 100.0
 
     if lr_scheduler is not None:
