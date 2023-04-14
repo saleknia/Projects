@@ -15,7 +15,7 @@
 import cv2
 import torch
 import numpy as np
-import paddle
+# import paddle
 import torch.nn as nn
 import torch.nn.functional as F
 
