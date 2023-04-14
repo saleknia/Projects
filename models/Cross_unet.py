@@ -618,7 +618,7 @@ class Cross_unet(nn.Module):
         if self.training:
             return x, y, z
         else:
-            return x
+            return x, y, z
 
 
 
