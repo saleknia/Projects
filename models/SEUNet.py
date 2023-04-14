@@ -65,49 +65,26 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # resnet = resnet_model.resnet18(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        # self.firstconv = resnet.conv1
-        # self.firstbn   = resnet.bn1
-        # self.firstrelu = resnet.relu
-        # self.maxpool   = resnet.maxpool 
-        # self.encoder1  = resnet.layer1#[0]
-        # self.encoder2  = resnet.layer2#[0]
-        # self.encoder3  = resnet.layer3#[0]
-        # self.encoder4  = resnet.layer4#[0]
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1#[0]
+        self.encoder2  = resnet.layer2#[0]
+        self.encoder3  = resnet.layer3#[0]
+        self.encoder4  = None # resnet.layer4#[0]
 
-        self.encoder =  CrossFormer(img_size=224,
-                                    patch_size=[4, 8, 16, 32],
-                                    in_chans= 3,
-                                    num_classes=1000,
-                                    embed_dim=64,
-                                    depths=[1, 1, 8, 6],
-                                    num_heads=[2, 4, 8, 16],
-                                    group_size=[7, 7, 7, 7],
-                                    mlp_ratio=4.,
-                                    qkv_bias=True,
-                                    qk_scale=None,
-                                    drop_rate=0.0,
-                                    drop_path_rate=0.1,
-                                    ape=False,
-                                    patch_norm=True,
-                                    use_checkpoint=False,
-                                    merge_size=[[2, 4], [2,4], [2, 4]])
-
-        self.norm_4 = LayerNormProxy(dim=512)
-        self.norm_3 = LayerNormProxy(dim=256)
-        self.norm_2 = LayerNormProxy(dim=128)
-        self.norm_1 = LayerNormProxy(dim=64)
-
-        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+        # self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        # self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        # self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
         
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
     def forward(self, x):
         b, c, h, w = x.shape
