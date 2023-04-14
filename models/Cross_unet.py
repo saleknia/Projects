@@ -615,6 +615,8 @@ class Cross_unet(nn.Module):
         y = self.head_1(x1, x2, x3)
         z = self.head_2(e1, e2, e3)
 
+        # return z
+        
         if self.training:
             return x, y, z
         else:
