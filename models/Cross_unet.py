@@ -99,12 +99,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.att  = SKAttention(channel=in_channels//2)
+        self.att  = SKAttention(channel=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.att(x, skip_x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.att(x, skip_x)
         x = self.conv(x)
         return x 
 
@@ -465,8 +465,8 @@ class Cross_unet(nn.Module):
         # self.head_1 = head()
         # self.head_2 = head()
 
-        # self.meta_1 = MetaFormer()
-        # self.meta_2 = MetaFormer()
+        self.meta_1 = MetaFormer()
+        self.meta_2 = MetaFormer()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -490,13 +490,13 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        # x1, x2, x3 = self.meta_1(x1, x2, x3)
+        x1, x2, x3 = self.meta_1(x1, x2, x3)
 
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
 
-        # e1, e2, e3 = self.meta_2(e1, e2, e3)
+        e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
         # e2 = None
@@ -521,7 +521,6 @@ class MetaFormer(nn.Module):
         for i in range(num_skip):
             fuse_dim += skip_dim[i]
 
-
         self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
         self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
         self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
@@ -529,8 +528,8 @@ class MetaFormer(nn.Module):
         self.down_sample1 = nn.AvgPool2d(4)
         self.down_sample2 = nn.AvgPool2d(2)
 
-        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
-        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.up_sample1 = nn.Upsample(scale_factor=4)
+        self.up_sample2 = nn.Upsample(scale_factor=2)
 
         self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
         self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
@@ -605,7 +604,7 @@ class AttentionBlock(nn.Module):
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
         out = skip_connection * psi
-        return out
+        return out + skip_connection
 
 # class Cross_unet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):

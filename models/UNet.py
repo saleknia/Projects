@@ -142,7 +142,6 @@ class UNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(channel, channel, 3, padding=1),
             nn.ReLU(inplace=True),
-            # nn.Conv2d(channel, n_classes, 3, padding=1),
             nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         )
 
