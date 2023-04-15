@@ -66,7 +66,7 @@ class SEUNet_loss(nn.Module):
         self.n_classes = n_classes
 
         self.teacher = SEUNet()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B0_90_00/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_90_61/SEUNet_TNUI_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         self.teacher.load_state_dict(pretrained_teacher)
         self.teacher = self.teacher.eval()
