@@ -126,7 +126,7 @@ def attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t):
     loss = loss + importance_maps_distillation(e3, e3_t) 
     loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    return loss * 0.1
+    return loss * 0.5
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
