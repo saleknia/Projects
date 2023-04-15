@@ -147,7 +147,7 @@ def importance_maps_distillation(s, t, exp=4):
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t):
+def attention_loss(masks, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t):
 
     loss = 0.0
 
@@ -156,8 +156,8 @@ def attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_
     # loss = loss + importance_maps_distillation(e3, e3_t) 
     # loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    distances_t = proto(e3_t, e2_t, e1_t)
-    distances_s = proto(e3  , e2  , e1)
+    distances_t = proto(masks, e3_t, e2_t, e1_t)
+    distances_s = proto(masks, e3  , e2  , e1)
     
     loss = loss + F.mse_loss(distances_t[0], distances_s[0])
     loss = loss + F.mse_loss(distances_t[1], distances_s[1])
@@ -374,7 +374,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             # loss_att = 0.0
-            loss_att = attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
+            loss_att = attention_loss(targets, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
             loss = loss_ce + loss_dice + loss_att
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
