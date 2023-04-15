@@ -604,7 +604,7 @@ class AttentionBlock(nn.Module):
         psi = self.relu(g1 + x1)
         psi = self.psi(psi)
         out = skip_connection * psi
-        return out + skip_connection
+        return out 
 
 # class Cross_unet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
