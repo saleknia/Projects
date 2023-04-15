@@ -148,20 +148,20 @@ def attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_
 
     loss = 0.0
 
-    # loss = loss + importance_maps_distillation(e1, e1_t) 
-    # loss = loss + importance_maps_distillation(e2, e2_t) 
-    # loss = loss + importance_maps_distillation(e3, e3_t) 
-    # loss = loss + importance_maps_distillation(e4, e4_t) 
+    loss = loss + importance_maps_distillation(e1, e1_t) 
+    loss = loss + importance_maps_distillation(e2, e2_t) 
+    loss = loss + importance_maps_distillation(e3, e3_t) 
+    loss = loss + importance_maps_distillation(e4, e4_t) 
+
+    loss = loss + importance_maps_distillation(d1, d1_t) 
+    loss = loss + importance_maps_distillation(d2, d2_t) 
+    loss = loss + importance_maps_distillation(d3, d3_t) 
     
     # loss = loss + fsp(e1, e2, e1_t, e2_t) 
     # loss = loss + fsp(e2, e3, e2_t, e3_t) 
     # loss = loss + fsp(e3, e4, e3_t, e4_t) 
 
-    loss = loss + fsp(e1, d1, e1_t, d1_t) 
-    loss = loss + fsp(e2, d2, e2_t, d2_t) 
-    loss = loss + fsp(e3, d3, e3_t, d3_t) 
-
-    return loss * 0.5
+    return loss * 0.1
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
