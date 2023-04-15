@@ -381,6 +381,7 @@ def make_fuse_layers():
 
     return nn.ModuleList(fuse_layers)
 
+
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -461,8 +462,11 @@ class Cross_unet(nn.Module):
         # self.head_1 = SegFormerHead()
         # self.head_2 = SegFormerHead()
 
-        self.head_1 = head()
-        self.head_2 = head()
+        # self.head_1 = head()
+        # self.head_2 = head()
+
+        self.meta_1 = MetaFormer()
+        self.meta_2 = MetaFormer()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -486,9 +490,13 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
+        x1, x2, x3 = self.meta_1(x1, x2, x3)
+
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
+
+        e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
         # e2 = None
@@ -496,16 +504,108 @@ class Cross_unet(nn.Module):
 
         x = self.knitt(x1, x2, x3, e1, e2, e3)
         x = self.classifier(x)
-        
-        y = self.head_1(x1, x2, x3+e3)
-        z = self.head_2(e1, e2, e3+x3)
 
-        if self.training:
-            return x, y, z
-        else:
-            return x, y, z
+        return x
+
+        # if self.training:
+        #     return x, y, z
+        # else:
+        #     return x, y, z
+
+class MetaFormer(nn.Module):
+
+    def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
+        super().__init__()
+
+        fuse_dim = 0
+        for i in range(num_skip):
+            fuse_dim += skip_dim[i]
 
 
+        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+
+        self.down_sample1 = nn.AvgPool2d(4)
+        self.down_sample2 = nn.AvgPool2d(2)
+
+        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+
+        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
+        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
+        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48 )
+
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        org1 = x1
+        org2 = x2
+        org3 = x3
+
+        x1_d = self.down_sample1(x1)
+        x2_d = self.down_sample2(x2)
+
+        list1 = [x1_d, x2_d, x3]
+
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(list1, dim=1)
+
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
+
+        x1 = self.up_sample1(x1)
+        x2 = self.up_sample2(x2)
+
+        x1 = self.att_1(gate=x1, skip_connection=org1)
+        x2 = self.att_2(gate=x2, skip_connection=org2)
+        x3 = self.att_3(gate=x3, skip_connection=org3)
+
+        return x1, x2, x3
+
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out
 
 # class Cross_unet(nn.Module):
 #     def __init__(self, n_channels=3, n_classes=1):
