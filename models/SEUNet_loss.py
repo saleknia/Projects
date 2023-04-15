@@ -65,6 +65,14 @@ class SEUNet_loss(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        self.teacher = SEUNet()
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B0_90_00/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        self.teacher.load_state_dict(pretrained_teacher)
+        self.teacher = self.teacher.eval()
+        for param in self.teacher.parameters():
+            param.requires_grad = False
+
         resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
@@ -89,6 +97,9 @@ class SEUNet_loss(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
+
+        e1_t, e2_t, e3_t, e4_t = self.teacher(x)
+
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
@@ -109,7 +120,10 @@ class SEUNet_loss(nn.Module):
         e = self.final_relu2(e)
         e = self.final_conv3(e)
 
-        return e
+        if self.training:
+            return e, e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t
+        else:
+            return e
         
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
@@ -129,10 +143,10 @@ class SEUNet(nn.Module):
         self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
         self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1#[0]
-        self.encoder2  = resnet.layer2#[0]
-        self.encoder3  = resnet.layer3#[0]
-        self.encoder4  = resnet.layer4#[0]
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
 
         self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
