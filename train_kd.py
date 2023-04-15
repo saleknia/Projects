@@ -21,6 +21,7 @@ from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
 from models.SEUNet import SEUNet
+from models.SEUNet_loss import SEUNet_loss
 from models.UNet import UNet
 from models.UNet_loss import UNet_loss
 from models.UNet_plus import NestedUNet
@@ -199,6 +200,8 @@ def main(args):
     elif MODEL_NAME=='SEUNet':
         model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
+    elif MODEL_NAME=='SEUNet_loss':
+        model = SEUNet_loss(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='Cross_unet':
         model = Cross_unet().to(DEVICE)
