@@ -119,8 +119,13 @@ def importance_maps_distillation(s, t, exp=4):
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def attention_loss(x4, x3, x2):
-    loss = importance_maps_distillation(x4, x3) + importance_maps_distillation(x3, x2) 
+def attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t):
+    loss = 0.0
+    loss = loss + importance_maps_distillation(e1, e1_t) 
+    loss = loss + importance_maps_distillation(e2, e2_t) 
+    loss = loss + importance_maps_distillation(e3, e3_t) 
+    loss = loss + importance_maps_distillation(e4, e4_t) 
+
     return loss
 
 class CriterionPixelWise(nn.Module):
@@ -319,17 +324,21 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs, targets = inputs.to(device), targets.to(device)
         targets = targets.float()
         inputs = inputs.float()
+
         outputs = model(inputs)
+        # outputs, e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t = model(inputs)
+
         if type(outputs)==tuple:
             loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
             loss_att = 0.0
-            loss = loss_ce + loss_dice         
+            loss = loss_ce + loss_dice + loss_att         
         else:
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             loss_att = 0.0
-            loss = loss_ce + loss_dice
+            # loss_att = attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t)
+            loss = loss_ce + loss_dice + loss_att
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
