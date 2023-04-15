@@ -189,7 +189,8 @@ model_table = tabulate(
                         ['SEUNet',28],
                         ['Cross_unet',29],
                         ['Cross',30],
-                        ['SEUNet_loss',31]],
+                        ['SEUNet_loss',31],
+                        ['SEUNet_lite',32]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
