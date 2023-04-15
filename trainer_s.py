@@ -104,31 +104,34 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
-class FSP(nn.Module):
-	'''
-	A Gift from Knowledge Distillation: Fast Optimization, Network Minimization and Transfer Learning
-	http://openaccess.thecvf.com/content_cvpr_2017/papers/Yim_A_Gift_From_CVPR_2017_paper.pdf
-	'''
-	def __init__(self):
-		super(FSP, self).__init__()
+class prototype_loss(nn.Module):
+    def __init__(self):
+        super(prototype_loss, self).__init__()
+        self.distance = torch.nn.PairwiseDistance(p=2.0, eps=1e-06, keepdim=False)
+        self.down_scales = [0.25, 0.125, 0.0625]
+    def forward(self, masks, up3, up2, up1):
+        loss = 0.0
+        up = [up1, up2, up3]
+        distances = []
 
-	def forward(self, fm_s1, fm_s2, fm_t1, fm_t2):
-		loss = F.mse_loss(self.fsp_matrix(fm_s1,fm_s2), self.fsp_matrix(fm_t1,fm_t2))
+        for k in range(3):
+            B,C,H,W = up[k].shape
+            
+            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
+            temp_masks = temp_masks.squeeze(dim=1)
 
-		return loss
+            prototypes = torch.zeros(size=(B,C))
 
-	def fsp_matrix(self, fm1, fm2):
-		if fm1.size(2) > fm2.size(2):
-			fm1 = F.adaptive_avg_pool2d(fm1, (fm2.size(2), fm2.size(3)))
+            for count in range(B):
+                v = torch.sum(temp_masks[count]*up[k][count],dim=[1,2])/torch.sum(temp_masks[count],dim=[1,2])
+                prototypes[count] = v
 
-		fm1 = fm1.view(fm1.size(0), fm1.size(1), -1)
-		fm2 = fm2.view(fm2.size(0), fm2.size(1), -1).transpose(1,2)
+            distance = torch.cdist(prototypes, prototypes, p=2.0)
+            distances.append(distance)
 
-		fsp = torch.bmm(fm1, fm2) / fm1.size(2)
+        return distances
 
-		return fsp
-
-fsp = FSP()
+proto = prototype_loss()
 
 def importance_maps_distillation(s, t, exp=4):
     """
@@ -148,18 +151,17 @@ def attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_
 
     loss = 0.0
 
-    loss = loss + importance_maps_distillation(e1, e1_t) 
-    loss = loss + importance_maps_distillation(e2, e2_t) 
-    loss = loss + importance_maps_distillation(e3, e3_t) 
-    loss = loss + importance_maps_distillation(e4, e4_t) 
+    # loss = loss + importance_maps_distillation(e1, e1_t) 
+    # loss = loss + importance_maps_distillation(e2, e2_t) 
+    # loss = loss + importance_maps_distillation(e3, e3_t) 
+    # loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    loss = loss + importance_maps_distillation(d1, d1_t) 
-    loss = loss + importance_maps_distillation(d2, d2_t) 
-    loss = loss + importance_maps_distillation(d3, d3_t) 
+    distances_t = proto(e3_t, e2_t, e1_t)
+    distances_s = proto(e3  , e2  , e1)
     
-    # loss = loss + fsp(e1, e2, e1_t, e2_t) 
-    # loss = loss + fsp(e2, e3, e2_t, e3_t) 
-    # loss = loss + fsp(e3, e4, e3_t, e4_t) 
+    loss = loss + F.mse_loss(distances_t[0], distances_s[0])
+    loss = loss + F.mse_loss(distances_t[1], distances_s[1])
+    loss = loss + F.mse_loss(distances_t[2], distances_s[2])
 
     return loss * 0.1
 
