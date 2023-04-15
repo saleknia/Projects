@@ -99,7 +99,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att  = SKAttention(channel=in_channels//2)
+        # self.att  = SKAttention(channel=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -465,8 +465,8 @@ class Cross_unet(nn.Module):
         # self.head_1 = head()
         # self.head_2 = head()
 
-        self.meta_1 = MetaFormer()
-        self.meta_2 = MetaFormer()
+        # self.meta_1 = MetaFormer()
+        # self.meta_2 = MetaFormer()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),

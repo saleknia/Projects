@@ -153,9 +153,6 @@ def attention_loss(masks, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1
     # loss = loss + importance_maps_distillation(e3, e3_t) 
     # loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    loss = loss + region_affinity_distillation(d3, d3_t, masks)
-    loss = loss + region_affinity_distillation(d2, d2_t, masks)
-
     return loss * 0.1
 
 class CriterionPixelWise(nn.Module):
@@ -367,7 +364,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             # loss_att = 0.0
-            loss_att = attention_loss(targets, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
+            loss_att = attention_loss(targets.unsqueeze(dim=1), e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
             loss = loss_ce + loss_dice + loss_att
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
