@@ -68,7 +68,6 @@ class UpBlock(nn.Module):
         x = x + skip_x
         return x
 
-
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
         super(DecoderBottleneckLayer, self).__init__()
@@ -102,58 +101,6 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.relu3(x)
         return x
 
-def make_fuse_layers():
-    num_branches = 4
-    num_in_chs = [32, 64, 128, 256]
-    fuse_layers = []
-    for i in range(num_branches):
-        fuse_layer = []
-        for j in range(num_branches):
-            if j > i:
-                fuse_layer.append(nn.Sequential(
-                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
-                    nn.BatchNorm2d(num_in_chs[i]),
-                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
-            elif j == i:
-                fuse_layer.append(nn.Identity())
-            else:
-                conv3x3s = []
-                for k in range(i - j):
-                    if k == i - j - 1:
-                        num_outchannels_conv3x3 = num_in_chs[i]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3)))
-                    else:
-                        num_outchannels_conv3x3 = num_in_chs[j]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3),
-                            nn.ReLU(False)))
-                fuse_layer.append(nn.Sequential(*conv3x3s))
-        fuse_layers.append(nn.ModuleList(fuse_layer))
-
-    return nn.ModuleList(fuse_layers)
-
-class GCN(nn.Module):
-    def __init__(self,c,out_c,k=15): #out_Channel=21 in paper
-        super(GCN, self).__init__()
-        self.conv_l1 = nn.Conv2d(c, out_c, kernel_size=(k,1), padding =((k-1)//2,0))
-        self.conv_l2 = nn.Conv2d(out_c, out_c, kernel_size=(1,k), padding =(0,(k-1)//2))
-        self.conv_r1 = nn.Conv2d(c, out_c, kernel_size=(1,k), padding =((k-1)//2,0))
-        self.conv_r2 = nn.Conv2d(out_c, out_c, kernel_size=(k,1), padding =(0,(k-1)//2))
-        
-    def forward(self, x):
-        x_l = self.conv_l1(x)
-        x_l = self.conv_l2(x_l)
-        
-        x_r = self.conv_r1(x)
-        x_r = self.conv_r2(x_r)
-        
-        x = x_l + x_r
-        
-        return x
-
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -166,9 +113,9 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        channel = 18
+        channel = 32
 
-        self.encoder = timm.create_model('hrnet_w18_small_v2', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
         # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
@@ -187,8 +134,8 @@ class UNet(nn.Module):
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
-        self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
-        self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
+        # self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
+        # self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(channel, channel, 4, 2, 1),
@@ -215,43 +162,26 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-        k21 = yl[0]
-        k22 = yl[1]
+        z2 = self.up1_2(yl[1], yl[0])  
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
-        k31 = yl[0]
-        k32 = yl[1]
-        k33 = yl[2]
+        z3 = self.up2_3(yl[2], yl[1]) 
+        z3 = self.up1_3(z3   , yl[0]) 
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
 
-        k41 = yl[0]
-        k42 = yl[1]
-        k43 = yl[2]
-        k44 = yl[3]
-
-        z2 = self.up1_2(k22, k21)  
-
-        z3 = self.up2_3(k33 , k32) 
-        z3 = self.up1_3(z3  , k31) 
-
-        z4 = self.up3_4(k44, k43) 
-        z4 = self.up2_4(z4 , k42) 
-        z4 = self.up1_4(z4 , k41) 
-        # x1, x2, x3, x4 = yl[0], yl[1], yl[2], yl[3]
-
-        # x = self.up3(x4, x3) 
-        # x = self.up2(x , x2) 
-        # x = self.up1(x , x1) 
+        z4 = self.up3_4(yl[3], yl[2]) 
+        z4 = self.up2_4(z4   , yl[1]) 
+        z4 = self.up1_4(z4   , yl[0]) 
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
-        z3 = self.ESP_3(z3)
+        # z3 = self.ESP_3(z3)
 
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
-        z2 = self.ESP_2(z2)
+        # z2 = self.ESP_2(z2)
 
         z = self.classifier(z2)
 
