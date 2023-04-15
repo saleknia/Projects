@@ -123,7 +123,7 @@ class prototype_loss(nn.Module):
             prototypes = torch.zeros(size=(B,C))
 
             for count in range(B):
-                v = torch.sum(temp_masks[count]*up[k][count],dim=[1,2])/torch.sum(temp_masks[count],dim=[1,2])
+                v = torch.sum(temp_masks[count]*up[k][count],dim=[1,2])/torch.sum(temp_masks[count])
                 prototypes[count] = v
 
             distance = torch.cdist(prototypes, prototypes, p=2.0)
