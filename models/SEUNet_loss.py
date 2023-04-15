@@ -110,11 +110,11 @@ class SEUNet_loss(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        e3 = self.up3(e4) + e3
-        e2 = self.up2(e3) + e2
-        e1 = self.up1(e2) + e1
+        e = self.up3(e) + e3
+        e = self.up2(e) + e2
+        e = self.up1(e) + e1
 
-        e = self.final_conv1(e1)
+        e = self.final_conv1(e)
         e = self.final_relu1(e)
         e = self.final_conv2(e)
         e = self.final_relu2(e)
