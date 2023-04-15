@@ -126,7 +126,7 @@ class SEUNet_loss(nn.Module):
             return e
         
 class SEUNet(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9):
+    def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
                         By default 3, because we have RGB images
