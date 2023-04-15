@@ -202,9 +202,31 @@ class knitt(nn.Module):
 
         x = self.combine(torch.cat([e1, x1], dim=1))
 
-        # x = self.fusion_x2(x3, x2)
-        # x = self.fusion_x1(x , x1)
+        return x
 
+class head(nn.Module):
+
+    def __init__(self):
+        super(head, self).__init__()
+
+        self.fusion_x2 = UpBlock(384, 192)
+        self.fusion_x1 = UpBlock(192, 96)
+
+        self.classifier = nn.Sequential(
+            nn.ConvTranspose2d(96, 96, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(96, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
+        )
+
+    def forward(self, x1, x2, x3):
+
+        x2 = self.fusion_x2(x3, x2)
+        x1 = self.fusion_x1(x2, x1)
+
+        x = self.classifier(x1)
+        
         return x
 
 import numpy as np
@@ -436,8 +458,11 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt()
 
-        self.head_1 = SegFormerHead()
-        self.head_2 = SegFormerHead()
+        # self.head_1 = SegFormerHead()
+        # self.head_2 = SegFormerHead()
+
+        self.head_1 = head()
+        self.head_2 = head()
 
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
@@ -472,13 +497,13 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3, e1, e2, e3)
         x = self.classifier(x)
         
-        y = self.head_1(x1, x2, x3)
-        z = self.head_2(e1, e2, e3)
+        y = self.head_1(x1, x2, x3+e3)
+        z = self.head_2(e1, e2, e3+x3)
 
         if self.training:
             return x, y, z
         else:
-            return z
+            return x, y, z
 
 
 
