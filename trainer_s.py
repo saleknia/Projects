@@ -144,7 +144,7 @@ def importance_maps_distillation(s, t, exp=4):
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t):
+def attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t):
 
     loss = 0.0
 
@@ -153,9 +153,13 @@ def attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t):
     # loss = loss + importance_maps_distillation(e3, e3_t) 
     # loss = loss + importance_maps_distillation(e4, e4_t) 
     
-    loss = loss + fsp(e1, e2, e1_t, e2_t) 
-    loss = loss + fsp(e2, e3, e2_t, e3_t) 
-    loss = loss + fsp(e3, e4, e3_t, e4_t) 
+    # loss = loss + fsp(e1, e2, e1_t, e2_t) 
+    # loss = loss + fsp(e2, e3, e2_t, e3_t) 
+    # loss = loss + fsp(e3, e4, e3_t, e4_t) 
+
+    loss = loss + fsp(e1, d1, e1_t, d1_t) 
+    loss = loss + fsp(e2, d2, e2_t, d2_t) 
+    loss = loss + fsp(e3, d3, e3_t, d3_t) 
 
     return loss * 0.5
 
@@ -357,7 +361,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         inputs = inputs.float()
 
         # outputs = model(inputs)
-        outputs, e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t = model(inputs)
+        outputs, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t = model(inputs)
 
         if type(outputs)==tuple:
             loss_ce = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
@@ -368,7 +372,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_ce = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             # loss_att = 0.0
-            loss_att = attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t)
+            loss_att = attention_loss(e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
             loss = loss_ce + loss_dice + loss_att
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9

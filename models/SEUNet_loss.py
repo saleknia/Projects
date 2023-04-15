@@ -98,7 +98,7 @@ class SEUNet_loss(nn.Module):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
 
-        e1_t, e2_t, e3_t, e4_t = self.teacher(x)
+        e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t = self.teacher(x)
 
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
@@ -110,18 +110,18 @@ class SEUNet_loss(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        e = self.up3(e4) + e3
-        e = self.up2(e)  + e2
-        e = self.up1(e)  + e1
+        d3 = self.up3(e4) + e3
+        d2 = self.up2(d3) + e2
+        d1 = self.up1(d2) + e1
 
-        e = self.final_conv1(e)
+        e = self.final_conv1(d1)
         e = self.final_relu1(e)
         e = self.final_conv2(e)
         e = self.final_relu2(e)
         e = self.final_conv3(e)
 
         if self.training:
-            return e, e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t
+            return e, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t
         else:
             return e
         
@@ -171,9 +171,9 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        # e3 = self.up3(e4) + e3
-        # e2 = self.up2(e3) + e2
-        # e1 = self.up1(e2) + e1
+        d3 = self.up3(e4) + e3
+        d2 = self.up2(d3) + e2
+        d1 = self.up1(d2) + e1
 
         # e = self.final_conv1(e1)
         # e = self.final_relu1(e)
@@ -181,7 +181,7 @@ class SEUNet(nn.Module):
         # e = self.final_relu2(e)
         # e = self.final_conv3(e)
 
-        return e1, e2, e3, e4
+        return e1, e2, e3, e4, d1, d2, d3
 
 
 
