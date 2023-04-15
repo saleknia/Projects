@@ -104,6 +104,31 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
+class FSP(nn.Module):
+	'''
+	A Gift from Knowledge Distillation: Fast Optimization, Network Minimization and Transfer Learning
+	http://openaccess.thecvf.com/content_cvpr_2017/papers/Yim_A_Gift_From_CVPR_2017_paper.pdf
+	'''
+	def __init__(self):
+		super(FSP, self).__init__()
+
+	def forward(self, fm_s1, fm_s2, fm_t1, fm_t2):
+		loss = F.mse_loss(self.fsp_matrix(fm_s1,fm_s2), self.fsp_matrix(fm_t1,fm_t2))
+
+		return loss
+
+	def fsp_matrix(self, fm1, fm2):
+		if fm1.size(2) > fm2.size(2):
+			fm1 = F.adaptive_avg_pool2d(fm1, (fm2.size(2), fm2.size(3)))
+
+		fm1 = fm1.view(fm1.size(0), fm1.size(1), -1)
+		fm2 = fm2.view(fm2.size(0), fm2.size(1), -1).transpose(1,2)
+
+		fsp = torch.bmm(fm1, fm2) / fm1.size(2)
+
+		return fsp
+
+fsp = FSP()
 
 def importance_maps_distillation(s, t, exp=4):
     """
@@ -120,13 +145,19 @@ def importance_maps_distillation(s, t, exp=4):
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 def attention_loss(e1, e2, e3, e4, e1_t, e2_t, e3_t, e4_t):
-    loss = 0.0
-    loss = loss + importance_maps_distillation(e1, e1_t) 
-    loss = loss + importance_maps_distillation(e2, e2_t) 
-    loss = loss + importance_maps_distillation(e3, e3_t) 
-    loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    return loss * 0.1
+    loss = 0.0
+
+    # loss = loss + importance_maps_distillation(e1, e1_t) 
+    # loss = loss + importance_maps_distillation(e2, e2_t) 
+    # loss = loss + importance_maps_distillation(e3, e3_t) 
+    # loss = loss + importance_maps_distillation(e4, e4_t) 
+    
+    loss = loss + fsp(e1, e2, e1_t, e2_t) 
+    loss = loss + fsp(e2, e3, e2_t, e3_t) 
+    loss = loss + fsp(e3, e4, e3_t, e4_t) 
+
+    return loss * 0.5
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
