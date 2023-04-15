@@ -294,6 +294,9 @@ elif model_id==30:
 elif model_id==31:
     MODEL_NAME = 'SEUNet_loss'
 
+elif model_id==32:
+    MODEL_NAME = 'SEUNet_lite'
+
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
 
