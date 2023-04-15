@@ -104,34 +104,31 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
-class prototype_loss(nn.Module):
-    def __init__(self):
-        super(prototype_loss, self).__init__()
-        self.distance = torch.nn.PairwiseDistance(p=2.0, eps=1e-06, keepdim=False)
-        self.down_scales = [0.25, 0.125, 0.0625]
-    def forward(self, masks, up3, up2, up1):
-        loss = 0.0
-        up = [up1, up2, up3]
-        distances = []
+def region_contrast(x, gt):
+    """
+    calculate region contrast value
+    :param x: feature
+    :param gt: mask
+    :return: value
+    """
+    smooth = 1.0
+    mask0 = gt[:, 0].unsqueeze(1)
+    mask1 = gt[:, 1].unsqueeze(1)
 
-        for k in range(3):
-            B,C,H,W = up[k].shape
-            
-            temp_masks = nn.functional.interpolate(masks.unsqueeze(dim=1), scale_factor=self.down_scales[k], mode='nearest')
-            temp_masks = temp_masks.squeeze(dim=1)
+    region0 = torch.sum(x * mask0, dim=(2, 3)) / torch.sum(mask0, dim=(2, 3))
+    region1 = torch.sum(x * mask1, dim=(2, 3)) / (torch.sum(mask1, dim=(2, 3)) + smooth)
+    return F.cosine_similarity(region0, region1, dim=1)
 
-            prototypes = torch.zeros(size=(B,C))
 
-            for count in range(B):
-                v = torch.sum(temp_masks[count]*up[k][count],dim=[1,2])/torch.sum(temp_masks[count])
-                prototypes[count] = v
-
-            distance = torch.cdist(prototypes, prototypes, p=2.0)
-            distances.append(distance)
-
-        return distances
-
-proto = prototype_loss()
+def region_affinity_distillation(s, t, gt):
+    """
+    region affinity distillation KD loss
+    :param s: student feature
+    :param t: teacher feature
+    :return: loss value
+    """
+    gt = F.interpolate(gt, s.size()[2:])
+    return (region_contrast(s, gt) - region_contrast(t, gt)).pow(2).mean()
 
 def importance_maps_distillation(s, t, exp=4):
     """
@@ -156,12 +153,8 @@ def attention_loss(masks, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1
     # loss = loss + importance_maps_distillation(e3, e3_t) 
     # loss = loss + importance_maps_distillation(e4, e4_t) 
 
-    distances_t = proto(masks, e3_t, e2_t, e1_t)
-    distances_s = proto(masks, e3  , e2  , e1)
-    
-    loss = loss + F.mse_loss(distances_t[0], distances_s[0])
-    loss = loss + F.mse_loss(distances_t[1], distances_s[1])
-    loss = loss + F.mse_loss(distances_t[2], distances_s[2])
+    loss = loss + region_affinity_distillation(d3, d3_t, masks)
+    loss = loss + region_affinity_distillation(d2, d2_t, masks)
 
     return loss * 0.1
 
