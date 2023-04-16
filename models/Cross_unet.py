@@ -108,9 +108,6 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x 
 
-ConvBatchNorm(in_channels=2048, out_channels=768, kernel_size=1, padding=0)
-
-
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
