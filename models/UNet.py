@@ -54,23 +54,23 @@ class DownBlock(nn.Module):
         return self.nConvs(x)
 
 
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+#         super(UpBlock, self).__init__()
+#         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+#         # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+#     def forward(self, x, skip_x):
+#         x = self.up(x)
+#         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+#         # x = self.conv(x)
+#         x = x + skip_x
+#         return x
+
 class UpBlock(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-    def forward(self, x, skip_x):
-        x = self.up(x)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-        x = x + skip_x
-        return x
-
-class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
+        super(UpBlock, self).__init__()
 
         self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
         self.norm1 = nn.BatchNorm2d(in_channels // 4)
@@ -91,7 +91,7 @@ class DecoderBottleneckLayer(nn.Module):
         self.norm3 = nn.BatchNorm2d(n_filters)
         self.relu3 = nn.ReLU(inplace=True)
 
-    def forward(self, x):
+    def forward(self, x, skip_x):
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu1(x)
@@ -99,7 +99,7 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.conv3(x)
         x = self.norm3(x)
         x = self.relu3(x)
-        return x
+        return x + skip_x
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -113,9 +113,9 @@ class UNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        channel = 18
+        channel = 32
 
-        self.encoder = timm.create_model('hrnet_w18', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('hrnet_w32', pretrained=True, features_only=True)
         self.encoder.incre_modules = None
 
         # self.up3 = UpBlock(channel*8, channel*4, nb_Conv=2)
