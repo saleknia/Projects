@@ -19,7 +19,7 @@ class LayerNormProxy(nn.Module):
         x = einops.rearrange(x, 'b c h w -> b h w c')
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
-        
+
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, out_channels, use_transpose=True):
         super(DecoderBottleneckLayer, self).__init__()
@@ -112,9 +112,15 @@ class SEUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+
+
+        self.up3 = DecoderBottleneckLayer(in_channels=768, out_channels=384)
+        self.up2 = DecoderBottleneckLayer(in_channels=384, out_channels=192)
+        self.up1 = DecoderBottleneckLayer(in_channels=192, out_channels=96)
+
+        # self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        # self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        # self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
         
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
