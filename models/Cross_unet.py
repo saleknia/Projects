@@ -438,7 +438,7 @@ class Cross_unet(nn.Module):
         #                     drop_path_rate=0.2,
         #                 )
 
-        resnet = resnet_model.resnet50(pretrained=True)
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
@@ -449,9 +449,9 @@ class Cross_unet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.reduce_3 = ConvBatchNorm(in_channels=2048, out_channels=384, kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=1024, out_channels=192, kernel_size=1, padding=0)
-        self.reduce_1 = ConvBatchNorm(in_channels=512 , out_channels=96 , kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=96 , kernel_size=1, padding=0)
 
         # self.fuse_layers_1 = make_fuse_layers()
         # self.fuse_act_1    = nn.ReLU()
