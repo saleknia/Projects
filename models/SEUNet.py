@@ -188,7 +188,7 @@ class SEUNet(nn.Module):
         e2 = self.norm_2(outputs[1])
         e1 = self.norm_1(outputs[0])
 
-        # e1, e2, e3 = self.meta(e1, e2, e3)
+        e1, e2, e3 = self.meta(e1, e2, e3)
 
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
