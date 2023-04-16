@@ -194,16 +194,16 @@ class knitt(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        # e2 = self.fusion_e2(x3, e2)
-        # x2 = self.fusion_x2(e3, x2)
+        e2 = self.fusion_e2(x3, e2)
+        x2 = self.fusion_x2(e3, x2)
 
-        # e1 = self.fusion_e1(x2, e1)
-        # x1 = self.fusion_x1(e2, x1)
+        e1 = self.fusion_e1(x2, e1)
+        x1 = self.fusion_x1(e2, x1)
 
-        # x = self.combine(torch.cat([e1, x1], dim=1))
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
-        x = self.fusion_x2(x3, x2)
-        x = self.fusion_x1(x , x1)
+        # x = self.fusion_x2(x3, x2)
+        # x = self.fusion_x1(x , x1)
 
         return x
 
@@ -441,7 +441,7 @@ class Cross_unet(nn.Module):
         #                     drop_path_rate=0.2,
         #                 )
 
-        resnet = resnet_model.resnet18(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
@@ -505,18 +505,18 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        # e0 = self.firstconv(x0)
-        # e0 = self.firstbn(e0)
-        # e0 = self.firstrelu(e0)
+        e0 = self.firstconv(x0)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
 
-        # e0 = self.encoder1(e0)
-        # e1 = self.encoder2(e0)
-        # e2 = self.encoder3(e1)
-        # e3 = self.encoder4(e2)
+        e0 = self.encoder1(e0)
+        e1 = self.encoder2(e0)
+        e2 = self.encoder3(e1)
+        e3 = self.encoder4(e2)
 
-        # e1 = self.reduce_1(e1)
-        # e2 = self.reduce_2(e2)        
-        # e3 = self.reduce_3(e3)
+        e1 = self.reduce_1(e1)
+        e2 = self.reduce_2(e2)        
+        e3 = self.reduce_3(e3)
 
         # e3 = self.norm_3_2(outputs_2[2])
         # e2 = self.norm_2_2(outputs_2[1])
