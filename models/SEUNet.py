@@ -7,6 +7,43 @@ from torch.nn import Softmax
 import einops
 import timm
 
+class SKAttention(nn.Module):
+
+    def __init__(self, channel=512, reduction=4, group=1):
+        super().__init__()
+        self.d=channel//reduction
+        self.fc=nn.Linear(channel,self.d)
+        self.fcs=nn.ModuleList([])
+        for i in range(2):
+            self.fcs.append(nn.Linear(self.d,channel))
+        self.softmax=nn.Softmax(dim=0)
+
+    def forward(self, x, y):
+        bs, c, _, _ = x.size()
+        conv_outs=[x, y]
+        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
+
+        ### fuse
+        U=sum(conv_outs) #bs,c,h,w
+
+        ### reduction channel
+        S=U.mean(-1).mean(-1) #bs,c
+        Z=self.fc(S) #bs,d
+
+        ### calculate attention weight
+        weights=[]
+        for fc in self.fcs:
+            weight=fc(Z)
+            weights.append(weight.view(bs,c,1,1)) #bs,channel
+        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
+        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
+
+        ### fuse
+        V=(attention_weights*feats)
+        # V=torch.cat([feats[0], feats[1]], dim=1)
+        V = feats[0] + feats[1]
+        return V
+
 class LayerNormProxy(nn.Module):
     
     def __init__(self, dim):
@@ -43,7 +80,9 @@ class DecoderBottleneckLayer(nn.Module):
         self.norm3 = nn.BatchNorm2d(out_channels)
         self.relu3 = nn.ReLU(inplace=True)
 
-    def forward(self, x):
+        self.SK = SKAttention(out_channels)
+
+    def forward(self, x, skip_x):
         x = self.conv1(x)
         x = self.norm1(x)
         x = self.relu1(x)
@@ -51,7 +90,8 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.conv3(x)
         x = self.norm3(x)
         x = self.relu3(x)
-        return x
+        return self.SK(x, skip_x)
+        # return x + skip_x
 
 class LayerNormProxy(nn.Module):
     
@@ -112,8 +152,6 @@ class SEUNet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-
-
         self.up3 = DecoderBottleneckLayer(in_channels=768, out_channels=384)
         self.up2 = DecoderBottleneckLayer(in_channels=384, out_channels=192)
         self.up1 = DecoderBottleneckLayer(in_channels=192, out_channels=96)
@@ -148,9 +186,9 @@ class SEUNet(nn.Module):
         e2 = self.norm_2(outputs[1])
         e1 = self.norm_1(outputs[0])
 
-        e3 = self.up3(e4) + e3
-        e2 = self.up2(e3) + e2
-        e1 = self.up1(e2) + e1
+        e3 = self.up3(e4, e3) 
+        e2 = self.up2(e3, e2) 
+        e1 = self.up1(e2, e1)
 
         e = self.final_conv1(e1)
         e = self.final_relu1(e)
