@@ -462,7 +462,7 @@ class Cross_unet(nn.Module):
         # self.head_1 = head()
         # self.head_2 = head()
 
-        self.meta = MetaFormer()
+
         # self.meta_2 = MetaFormer()
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
@@ -473,6 +473,7 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
+        self.meta = MetaFormer()
 
     def forward(self, x):
         # # Question here
