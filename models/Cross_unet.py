@@ -465,9 +465,6 @@ class Cross_unet(nn.Module):
         # self.head_1 = head()
         # self.head_2 = head()
 
-        self.meta_1 = MetaFormer()
-        self.meta_2 = MetaFormer()
-
         self.classifier = nn.Sequential(
             nn.ConvTranspose2d(96, 96, 4, 2, 1),
             nn.ReLU(inplace=True),
@@ -490,13 +487,9 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        x1, x2, x3 = self.meta_1(x1, x2, x3)
-
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
         e1 = self.norm_1_2(outputs_2[0])
-
-        e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
         # e2 = None
