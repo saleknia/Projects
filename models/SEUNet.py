@@ -129,44 +129,17 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        # self.encoder =  CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.2,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
-
-        # self.norm_4 = LayerNormProxy(dim=768)
-        # self.norm_3 = LayerNormProxy(dim=384)
-        # self.norm_2 = LayerNormProxy(dim=192)
-        # self.norm_1 = LayerNormProxy(dim=96)
-
-        # self.up3 = DecoderBottleneckLayer(in_channels=768, out_channels=384)
-        # self.up2 = DecoderBottleneckLayer(in_channels=384, out_channels=192)
-        # self.up1 = DecoderBottleneckLayer(in_channels=192, out_channels=96)
-
         self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
         self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
 
-        # self.meta = MetaFormer()
-        
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -181,26 +154,16 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        # outputs = self.encoder(x)
-
-        # e4 = self.norm_4(outputs[3])
-        # e3 = self.norm_3(outputs[2])
-        # e2 = self.norm_2(outputs[1])
-        # e1 = self.norm_1(outputs[0])
-
-        # e1, e2, e3 = self.meta(e1, e2, e3)
 
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
         e1 = self.up1(e2, e1)
 
-        e = self.final_conv1(e1)
-        e = self.final_relu1(e)
-        e = self.final_conv2(e)
-        e = self.final_relu2(e)
-        e = self.final_conv3(e)
+        y = self.tp_conv1(e1)
+        y = self.conv2(y)
+        y = self.tp_conv2(y)
 
-        return e
+        return y
 
 class MetaFormer(nn.Module):
 
