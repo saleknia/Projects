@@ -99,12 +99,12 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.att  = SKAttention(channel=in_channels//2)
+        self.att  = AttentionBlock(F_g=out_channels, F_l=out_channels, n_coefficients=out_channels//2)
     
     def forward(self, x, skip_x):
-        x = self.up(x) 
+        x = self.up(x)
+        skip_x = self.att(x, skip_x) 
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.att(x, skip_x)
         x = self.conv(x)
         return x 
 
@@ -415,46 +415,32 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.encoder_2 = DAT(
-        #                     img_size=224,
-        #                     patch_size=4,
-        #                     num_classes=1000,
-        #                     expansion=4,
-        #                     dim_stem=96,
-        #                     dims=[96, 192, 384, 768],
-        #                     depths=[2, 2, 6, 2],
-        #                     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #                     heads=[3, 6, 12, 24],
-        #                     window_sizes=[7, 7, 7, 7] ,
-        #                     groups=[-1, -1, 3, 6],
-        #                     use_pes=[False, False, True, True],
-        #                     dwc_pes=[False, False, False, False],
-        #                     strides=[-1, -1, 1, 1],
-        #                     sr_ratios=[-1, -1, -1, -1],
-        #                     offset_range_factor=[-1, -1, 2, 2],
-        #                     no_offs=[False, False, False, False],
-        #                     fixed_pes=[False, False, False, False],
-        #                     use_dwc_mlps=[False, False, False, False],
-        #                     use_conv_patches=False,
-        #                     drop_rate=0.0,
-        #                     attn_drop_rate=0.0,
-        #                     drop_path_rate=0.2,
-        #                 )
+        self.encoder_2 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
 
-        resnet = resnet_model.resnet34(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        # self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
-
-        self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, kernel_size=1, padding=0)
-        self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=96 , kernel_size=1, padding=0)
 
         # self.fuse_layers_1 = make_fuse_layers()
         # self.fuse_act_1    = nn.ReLU()
@@ -466,9 +452,9 @@ class Cross_unet(nn.Module):
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        # self.norm_3_2 = LayerNormProxy(dim=384)
-        # self.norm_2_2 = LayerNormProxy(dim=192)
-        # self.norm_1_2 = LayerNormProxy(dim=96)
+        self.norm_3_2 = LayerNormProxy(dim=384)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_1_2 = LayerNormProxy(dim=96)
 
         # self.sigmoid_1 = nn.Sigmoid()
         # self.sigmoid_2 = nn.Sigmoid()
@@ -499,28 +485,15 @@ class Cross_unet(nn.Module):
         b, c, h, w = x.shape
 
         outputs_1 = self.encoder_1(x0)
-        # outputs_2 = self.encoder_2(x0)
+        outputs_2 = self.encoder_2(x0)
 
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        e0 = self.firstconv(x0)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-
-        e0 = self.encoder1(e0)
-        e1 = self.encoder2(e0)
-        e2 = self.encoder3(e1)
-        e3 = self.encoder4(e2)
-
-        e1 = self.reduce_1(e1)
-        e2 = self.reduce_2(e2)        
-        e3 = self.reduce_3(e3)
-
-        # e3 = self.norm_3_2(outputs_2[2])
-        # e2 = self.norm_2_2(outputs_2[1])
-        # e1 = self.norm_1_2(outputs_2[0])
+        e3 = self.norm_3_2(outputs_2[2])
+        e2 = self.norm_2_2(outputs_2[1])
+        e1 = self.norm_1_2(outputs_2[0])
 
         # e3 = None
         # e2 = None
@@ -535,58 +508,6 @@ class Cross_unet(nn.Module):
         #     return x, y, z
         # else:
         #     return x, y, z
-
-class MetaFormer(nn.Module):
-
-    def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
-        super().__init__()
-
-        fuse_dim = 0
-        for i in range(num_skip):
-            fuse_dim += skip_dim[i]
-
-        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
-
-        self.down_sample1 = nn.AvgPool2d(4)
-        self.down_sample2 = nn.AvgPool2d(2)
-
-        self.up_sample1 = nn.Upsample(scale_factor=4)
-        self.up_sample2 = nn.Upsample(scale_factor=2)
-
-        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
-        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
-        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48 )
-
-    def forward(self, x1, x2, x3):
-        """
-        x: B, H*W, C
-        """
-        org1 = x1
-        org2 = x2
-        org3 = x3
-
-        x1_d = self.down_sample1(x1)
-        x2_d = self.down_sample2(x2)
-
-        list1 = [x1_d, x2_d, x3]
-
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(list1, dim=1)
-
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-        x3 = self.fuse_conv3(fuse)
-
-        x1 = self.up_sample1(x1)
-        x2 = self.up_sample2(x2)
-
-        x1 = self.att_1(gate=x1, skip_connection=org1)
-        x2 = self.att_2(gate=x2, skip_connection=org2)
-        x3 = self.att_3(gate=x3, skip_connection=org3)
-
-        return x1, x2, x3
 
 class AttentionBlock(nn.Module):
     """Attention block with learnable parameters"""
