@@ -108,6 +108,9 @@ class UpBlock(nn.Module):
         x = self.conv(x)
         return x 
 
+ConvBatchNorm(in_channels=2048, out_channels=768, kernel_size=1, padding=0)
+
+
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -412,31 +415,46 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_2 = DAT(
-                            img_size=224,
-                            patch_size=4,
-                            num_classes=1000,
-                            expansion=4,
-                            dim_stem=96,
-                            dims=[96, 192, 384, 768],
-                            depths=[2, 2, 6, 2],
-                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-                            heads=[3, 6, 12, 24],
-                            window_sizes=[7, 7, 7, 7] ,
-                            groups=[-1, -1, 3, 6],
-                            use_pes=[False, False, True, True],
-                            dwc_pes=[False, False, False, False],
-                            strides=[-1, -1, 1, 1],
-                            sr_ratios=[-1, -1, -1, -1],
-                            offset_range_factor=[-1, -1, 2, 2],
-                            no_offs=[False, False, False, False],
-                            fixed_pes=[False, False, False, False],
-                            use_dwc_mlps=[False, False, False, False],
-                            use_conv_patches=False,
-                            drop_rate=0.0,
-                            attn_drop_rate=0.0,
-                            drop_path_rate=0.2,
-                        )
+        # self.encoder_2 = DAT(
+        #                     img_size=224,
+        #                     patch_size=4,
+        #                     num_classes=1000,
+        #                     expansion=4,
+        #                     dim_stem=96,
+        #                     dims=[96, 192, 384, 768],
+        #                     depths=[2, 2, 6, 2],
+        #                     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+        #                     heads=[3, 6, 12, 24],
+        #                     window_sizes=[7, 7, 7, 7] ,
+        #                     groups=[-1, -1, 3, 6],
+        #                     use_pes=[False, False, True, True],
+        #                     dwc_pes=[False, False, False, False],
+        #                     strides=[-1, -1, 1, 1],
+        #                     sr_ratios=[-1, -1, -1, -1],
+        #                     offset_range_factor=[-1, -1, 2, 2],
+        #                     no_offs=[False, False, False, False],
+        #                     fixed_pes=[False, False, False, False],
+        #                     use_dwc_mlps=[False, False, False, False],
+        #                     use_conv_patches=False,
+        #                     drop_rate=0.0,
+        #                     attn_drop_rate=0.0,
+        #                     drop_path_rate=0.2,
+        #                 )
+
+        resnet = resnet_model.resnet50(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        # self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
+
+        self.reduce_3 = ConvBatchNorm(in_channels=2048, out_channels=768, kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=1024, out_channels=384, kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=512 , out_channels=96 , kernel_size=1, padding=0)
 
         # self.fuse_layers_1 = make_fuse_layers()
         # self.fuse_act_1    = nn.ReLU()
@@ -448,9 +466,9 @@ class Cross_unet(nn.Module):
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        self.norm_3_2 = LayerNormProxy(dim=384)
-        self.norm_2_2 = LayerNormProxy(dim=192)
-        self.norm_1_2 = LayerNormProxy(dim=96)
+        # self.norm_3_2 = LayerNormProxy(dim=384)
+        # self.norm_2_2 = LayerNormProxy(dim=192)
+        # self.norm_1_2 = LayerNormProxy(dim=96)
 
         # self.sigmoid_1 = nn.Sigmoid()
         # self.sigmoid_2 = nn.Sigmoid()
@@ -481,15 +499,28 @@ class Cross_unet(nn.Module):
         b, c, h, w = x.shape
 
         outputs_1 = self.encoder_1(x0)
-        outputs_2 = self.encoder_2(x0)
+        # outputs_2 = self.encoder_2(x0)
 
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        e3 = self.norm_3_2(outputs_2[2])
-        e2 = self.norm_2_2(outputs_2[1])
-        e1 = self.norm_1_2(outputs_2[0])
+        e0 = self.firstconv(x0)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+
+        e0 = self.encoder1(e0)
+        e1 = self.encoder2(e0)
+        e2 = self.encoder3(e1)
+        e3 = self.encoder4(e2)
+
+        e1 = self.reduce_1(e1)
+        e2 = self.reduce_2(e2)        
+        e3 = self.reduce_3(e3)
+
+        # e3 = self.norm_3_2(outputs_2[2])
+        # e2 = self.norm_2_2(outputs_2[1])
+        # e1 = self.norm_1_2(outputs_2[0])
 
         # e3 = None
         # e2 = None
