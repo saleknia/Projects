@@ -136,9 +136,9 @@ class MetaFormer(nn.Module):
         self.up_sample1 = nn.Upsample(scale_factor=4)
         self.up_sample2 = nn.Upsample(scale_factor=2)
 
-        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
-        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
-        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48 )
+        self.att_3 = AttentionBlock(F_g=256, F_l=256, n_coefficients=128)
+        self.att_2 = AttentionBlock(F_g=128, F_l=128, n_coefficients=64)
+        self.att_1 = AttentionBlock(F_g=64 , F_l=64 , n_coefficients=32)
 
     def forward(self, x1, x2, x3):
         """
