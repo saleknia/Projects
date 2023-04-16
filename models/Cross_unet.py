@@ -194,16 +194,16 @@ class knitt(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
-        # e2 = self.fusion_e2(x3, e2)
-        # x2 = self.fusion_x2(e3, x2)
+        e2 = self.fusion_e2(x3, e2)
+        x2 = self.fusion_x2(e3, x2)
 
-        # e1 = self.fusion_e1(x2, e1)
-        # x1 = self.fusion_x1(e2, x1)
+        e1 = self.fusion_e1(x2, e1)
+        x1 = self.fusion_x1(e2, x1)
 
-        # x = self.combine(torch.cat([e1, x1], dim=1))
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
-        x = self.fusion_x2(x3, x2)
-        x = self.fusion_x1(x , x1)
+        # x = self.fusion_x2(x3, x2)
+        # x = self.fusion_x1(x , x1)
 
         return x
 
@@ -488,15 +488,15 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3 = self.meta_1(x1, x2, x3)
 
-        # e3 = self.norm_3_2(outputs_2[2])
-        # e2 = self.norm_2_2(outputs_2[1])
-        # e1 = self.norm_1_2(outputs_2[0])
+        e3 = self.norm_3_2(outputs_2[2])
+        e2 = self.norm_2_2(outputs_2[1])
+        e1 = self.norm_1_2(outputs_2[0])
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
-        e3 = None
-        e2 = None
-        e1 = None
+        # e3 = None
+        # e2 = None
+        # e1 = None
 
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
