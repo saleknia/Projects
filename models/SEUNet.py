@@ -79,6 +79,8 @@ class SEUNet(nn.Module):
         self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
         self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+
+        self.meta = MetaFormer()
         
         self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -99,6 +101,8 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
+        e1, e2, e3 = self.meta(e1, e2, e3)
+
         e3 = self.up3(e4) + e3
         e2 = self.up2(e3) + e2
         e1 = self.up1(e2) + e1
@@ -110,3 +114,100 @@ class SEUNet(nn.Module):
         e = self.final_conv3(e)
 
         return e
+
+
+
+class MetaFormer(nn.Module):
+
+    def __init__(self, num_skip=3, skip_dim=[64, 128, 256]):
+        super().__init__()
+
+        fuse_dim = 0
+        for i in range(num_skip):
+            fuse_dim += skip_dim[i]
+
+        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+
+        self.down_sample1 = nn.AvgPool2d(4)
+        self.down_sample2 = nn.AvgPool2d(2)
+
+        self.up_sample1 = nn.Upsample(scale_factor=4)
+        self.up_sample2 = nn.Upsample(scale_factor=2)
+
+        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
+        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
+        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48 )
+
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        org1 = x1
+        org2 = x2
+        org3 = x3
+
+        x1_d = self.down_sample1(x1)
+        x2_d = self.down_sample2(x2)
+
+        list1 = [x1_d, x2_d, x3]
+
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(list1, dim=1)
+
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
+
+        x1 = self.up_sample1(x1)
+        x2 = self.up_sample2(x2)
+
+        x1 = self.att_1(gate=x1, skip_connection=org1)
+        x2 = self.att_2(gate=x2, skip_connection=org2)
+        x3 = self.att_3(gate=x3, skip_connection=org3)
+
+        return x1, x2, x3
+
+class AttentionBlock(nn.Module):
+    """Attention block with learnable parameters"""
+
+    def __init__(self, F_g, F_l, n_coefficients):
+        """
+        :param F_g: number of feature maps (channels) in previous layer
+        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
+        :param n_coefficients: number of learnable multi-dimensional attention coefficients
+        """
+        super(AttentionBlock, self).__init__()
+
+        self.W_gate = nn.Sequential(
+            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.W_x = nn.Sequential(
+            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(n_coefficients)
+        )
+
+        self.psi = nn.Sequential(
+            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1),
+            nn.Sigmoid()
+        )
+
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, gate, skip_connection):
+        """
+        :param gate: gating signal from previous layer
+        :param skip_connection: activation from corresponding encoder layer
+        :return: output activations
+        """
+        g1 = self.W_gate(gate)
+        x1 = self.W_x(skip_connection)
+        psi = self.relu(g1 + x1)
+        psi = self.psi(psi)
+        out = skip_connection * psi
+        return out 
+
