@@ -133,13 +133,13 @@ class SEUNet(nn.Module):
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
         self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
     def forward(self, x):
         b, c, h, w = x.shape
