@@ -41,7 +41,7 @@ class SKAttention(nn.Module):
         ### fuse
         V=(attention_weights*feats)
         # V=torch.cat([feats[0], feats[1]], dim=1)
-        V = feats[0] + feats[1]
+        V = V[0] + V[1]
         return V
 
 class LayerNormProxy(nn.Module):
