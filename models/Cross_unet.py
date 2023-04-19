@@ -475,7 +475,7 @@ class Cross_unet(nn.Module):
         # self.meta_1 = MetaFormer()
         # self.meta_2 = MetaFormer()
 
-        self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 1), nn.Upsample(scale_factor=4.0))
+        self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
     def forward(self, x):
         # # Question here
