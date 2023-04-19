@@ -487,7 +487,7 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        x1, x2, x3 = self.meta(x1, x2, x3)
+        x1, x2, x3 = self.meta_1(x1, x2, x3)
 
         e3 = self.norm_3_2(outputs_2[2])
         e2 = self.norm_2_2(outputs_2[1])
