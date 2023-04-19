@@ -464,16 +464,18 @@ class Cross_unet(nn.Module):
 
         # self.meta_2 = MetaFormer()
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+        #                               nn.BatchNorm2d(48),
+        #                               nn.ReLU(inplace=True),)
+        # self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+        #                         nn.BatchNorm2d(48),
+        #                         nn.ReLU(inplace=True),)
+        # self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.meta_1 = MetaFormer()
-        self.meta_2 = MetaFormer()
+        # self.meta_1 = MetaFormer()
+        # self.meta_2 = MetaFormer()
+
+        self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 1), nn.Upsample(scale_factor=4.0))
 
     def forward(self, x):
         # # Question here
@@ -481,29 +483,29 @@ class Cross_unet(nn.Module):
         b, c, h, w = x.shape
 
         outputs_1 = self.encoder(x0)
-        outputs_2 = self.encoder_2(x0)
+        # outputs_2 = self.encoder_2(x0)
 
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        x1, x2, x3 = self.meta_1(x1, x2, x3)
+        # x1, x2, x3 = self.meta_1(x1, x2, x3)
 
-        e3 = self.norm_3_2(outputs_2[2])
-        e2 = self.norm_2_2(outputs_2[1])
-        e1 = self.norm_1_2(outputs_2[0])
+        # e3 = self.norm_3_2(outputs_2[2])
+        # e2 = self.norm_2_2(outputs_2[1])
+        # e1 = self.norm_1_2(outputs_2[0])
 
-        e1, e2, e3 = self.meta_2(e1, e2, e3)
+        # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
-        # e3 = None
-        # e2 = None
-        # e1 = None
+        e3 = None
+        e2 = None
+        e1 = None
 
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        y = self.tp_conv1(x)
-        y = self.conv2(y)
-        y = self.tp_conv2(y)
+        # y = self.tp_conv1(x)
+        # y = self.conv2(y)
+        # y = self.tp_conv2(y)
 
         return y
 
