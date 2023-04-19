@@ -49,7 +49,7 @@ class SKAttention(nn.Module):
 
         ### fuse
         V=(attention_weights*feats)
-        # V=torch.cat([feats[0], feats[1]], dim=1)
+        V=torch.cat([feats[0], feats[1]], dim=1)
         return V
 
 
