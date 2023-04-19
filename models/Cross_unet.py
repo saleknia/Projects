@@ -464,7 +464,7 @@ class Cross_unet(nn.Module):
         x = self.knitt(x1, x2, x3)
 
         y = self.tp_conv1(x)
-        y = self.conv2(x)
+        y = self.conv2(y)
         y = self.tp_conv2(y)
 
         return y
