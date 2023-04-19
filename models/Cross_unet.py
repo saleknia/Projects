@@ -185,15 +185,15 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = UpBlock(384, 192)
-        self.fusion_e1 = UpBlock(192, 96)
+        # self.fusion_e2 = UpBlock(384, 192)
+        # self.fusion_e1 = UpBlock(192, 96)
 
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
-        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-    def forward(self, x1, x2, x3, e1, e2, e3):
+    def forward(self, x1, x2, x3):
 
         # e2 = self.fusion_e2(x3, e2)
         # x2 = self.fusion_x2(e3, x2)
@@ -398,7 +398,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder_1 =  CrossFormer(img_size=224,
+        self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -416,23 +416,9 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
-
-        resnet = resnet_model.resnet18(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
-        
-        self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
         self.knitt = knitt()
 
@@ -444,56 +430,42 @@ class Cross_unet(nn.Module):
 
         # self.meta_2 = MetaFormer()
 
-        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-        #                               nn.BatchNorm2d(48),
-        #                               nn.ReLU(inplace=True),)
-        # self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-        #                         nn.BatchNorm2d(48),
-        #                         nn.ReLU(inplace=True),)
-        # self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
         # self.meta_1 = MetaFormer()
         # self.meta_2 = MetaFormer()
 
-        self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
+        # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
     def forward(self, x):
         # # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
-        outputs_1 = self.encoder_1(x0)
+        outputs = self.encoder(x0)
 
-        x3 = self.norm_3_1(outputs_1[2])
-        x2 = self.norm_2_1(outputs_1[1])
-        x1 = self.norm_1_1(outputs_1[0])
+        x3 = self.norm_3(outputs[2])
+        x2 = self.norm_2(outputs[1])
+        x1 = self.norm_1(outputs[0])
 
         # x1, x2, x3 = self.meta_1(x1, x2, x3)
-
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-
-        e0 = self.encoder1(e0)
-        e1 = self.encoder2(e0)
-        e2 = self.encoder3(e1)
-        e3 = self.encoder4(e2)
-
-        e1 = self.reduce_1(e1)
-        e2 = self.reduce_2(e2)
-        e3 = self.reduce_3(e3)
-
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
         # e2 = None
         # e1 = None
 
-        x = self.knitt(x1, x2, x3, e1, e2, e3)
+        x = self.knitt(x1, x2, x3)
 
-        # y = self.tp_conv1(x)
+        y = self.tp_conv1(x)
         y = self.conv2(x)
-        # y = self.tp_conv2(y)
+        y = self.tp_conv2(y)
 
         return y
 
