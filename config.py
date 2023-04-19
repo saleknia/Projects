@@ -21,7 +21,7 @@ def logger_config(log_path):
 
 # get_CTranS_config
 
-SEED = 42
+SEED = 666
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 # os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
