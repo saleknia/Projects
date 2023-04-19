@@ -397,7 +397,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.encoder =  CrossFormer(img_size=224,
+        self.encoder_1 =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -415,39 +415,39 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.encoder_2 = DAT(
-        #                     img_size=224,
-        #                     patch_size=4,
-        #                     num_classes=1000,
-        #                     expansion=4,
-        #                     dim_stem=96,
-        #                     dims=[96, 192, 384, 768],
-        #                     depths=[2, 2, 6, 2],
-        #                     stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-        #                     heads=[3, 6, 12, 24],
-        #                     window_sizes=[7, 7, 7, 7] ,
-        #                     groups=[-1, -1, 3, 6],
-        #                     use_pes=[False, False, True, True],
-        #                     dwc_pes=[False, False, False, False],
-        #                     strides=[-1, -1, 1, 1],
-        #                     sr_ratios=[-1, -1, -1, -1],
-        #                     offset_range_factor=[-1, -1, 2, 2],
-        #                     no_offs=[False, False, False, False],
-        #                     fixed_pes=[False, False, False, False],
-        #                     use_dwc_mlps=[False, False, False, False],
-        #                     use_conv_patches=False,
-        #                     drop_rate=0.0,
-        #                     attn_drop_rate=0.0,
-        #                     drop_path_rate=0.2,
-        #                 )
+        self.encoder_2 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
 
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        # self.norm_3_2 = LayerNormProxy(dim=384)
-        # self.norm_2_2 = LayerNormProxy(dim=192)
-        # self.norm_1_2 = LayerNormProxy(dim=96)
+        self.norm_3_2 = LayerNormProxy(dim=384)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_1_2 = LayerNormProxy(dim=96)
 
         # self.sigmoid_1 = nn.Sigmoid()
         # self.sigmoid_2 = nn.Sigmoid()
@@ -472,7 +472,7 @@ class Cross_unet(nn.Module):
         #                         nn.ReLU(inplace=True),)
         # self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.meta_1 = MetaFormer()
+        # self.meta_1 = MetaFormer()
         # self.meta_2 = MetaFormer()
 
         self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
@@ -482,24 +482,24 @@ class Cross_unet(nn.Module):
         x0 = x.float()
         b, c, h, w = x.shape
 
-        outputs_1 = self.encoder(x0)
-        # outputs_2 = self.encoder_2(x0)
+        outputs_1 = self.encoder_1(x0)
+        outputs_2 = self.encoder_2(x0)
 
         x3 = self.norm_3_1(outputs_1[2])
         x2 = self.norm_2_1(outputs_1[1])
         x1 = self.norm_1_1(outputs_1[0])
 
-        x1, x2, x3 = self.meta_1(x1, x2, x3)
+        # x1, x2, x3 = self.meta_1(x1, x2, x3)
 
-        # e3 = self.norm_3_2(outputs_2[2])
-        # e2 = self.norm_2_2(outputs_2[1])
-        # e1 = self.norm_1_2(outputs_2[0])
+        e3 = self.norm_3_2(outputs_2[2])
+        e2 = self.norm_2_2(outputs_2[1])
+        e1 = self.norm_1_2(outputs_2[0])
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
-        e3 = None
-        e2 = None
-        e1 = None
+        # e3 = None
+        # e2 = None
+        # e1 = None
 
         x = self.knitt(x1, x2, x3, e1, e2, e3)
 
