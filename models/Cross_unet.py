@@ -493,7 +493,7 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3 = self.meta(x1, x2, x3)
 
-        x1, x2, x3 = self.mtc(x1, x2, x3)
+        # x1, x2, x3 = self.mtc(x1, x2, x3)
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
@@ -578,9 +578,9 @@ class MetaFormer(nn.Module):
 
         fuse = self.fuse_conv(fuse)
 
-        x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) + org1
-        x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) + org2
-        x3 = self.att_3(gate=x3                   , skip_connection=org3) + org3
+        x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) 
+        x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) 
+        x3 = self.att_3(gate=x3                   , skip_connection=org3) 
 
         # x1 = self.up_sample1(x1)
         # x2 = self.up_sample2(x2)
