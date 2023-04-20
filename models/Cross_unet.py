@@ -92,13 +92,29 @@ class SEBlock(nn.Module):
         y = torch.mul(x, y)
         return y
 
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
+#         super(UpBlock, self).__init__()
+#         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+#         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         # self.att  = SKAttention(channel=in_channels//2)
+    
+#     def forward(self, x, skip_x):
+#         x = self.up(x) 
+#         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+#         # x = self.att(x, skip_x)
+#         x = self.conv(x)
+#         return x 
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.att  = SKAttention(channel=in_channels//2)
     
     def forward(self, x, skip_x):
@@ -107,7 +123,6 @@ class UpBlock(nn.Module):
         # x = self.att(x, skip_x)
         x = self.conv(x)
         return x 
-
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
