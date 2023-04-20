@@ -464,9 +464,8 @@ class Cross_unet(nn.Module):
         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-
         # self.meta = MetaFormer()
-        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         self.psa_1 = ParallelPolarizedSelfAttention(96)
         self.psa_2 = ParallelPolarizedSelfAttention(96)
@@ -487,13 +486,15 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        x3 = self.psa_3(x3)
-        x2 = self.psa_2(x2)
-        x1 = self.psa_1(x1)
+        # x3 = self.psa_3(x3)
+        # x2 = self.psa_2(x2)
+        # x1 = self.psa_1(x1)
+
+        # x1 = x1 + () * (1.0 - torch.nn.functional.sigmoid(x1))
 
         # x1, x2, x3 = self.meta(x1, x2, x3)
 
-        # x1, x2, x3 = self.mtc(x1, x2, x3)
+        x1, x2, x3 = self.mtc(x1, x2, x3)
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
