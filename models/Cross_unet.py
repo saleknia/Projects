@@ -200,29 +200,29 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        # self.fusion_e2 = UpBlock(384, 192)
-        # self.fusion_e1 = UpBlock(192, 96)
+        self.fusion_e2 = UpBlock(384, 192)
+        self.fusion_e1 = UpBlock(192, 96)
 
-        # self.fusion_x2 = UpBlock(384, 192)
-        # self.fusion_x1 = UpBlock(192, 96)
+        self.fusion_x2 = UpBlock(384, 192)
+        self.fusion_x1 = UpBlock(192, 96)
 
-        self.fusion_x2 = UpBlock(96, 96)
-        self.fusion_x1 = UpBlock(96, 96)
+        # self.fusion_x2 = UpBlock(96, 96)
+        # self.fusion_x1 = UpBlock(96, 96)
 
-        # self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x1, x2, x3, e1, e2, e3):
 
-        # e2 = self.fusion_e2(x3, e2)
-        # x2 = self.fusion_x2(e3, x2)
+        e2 = self.fusion_e2(x3, e2)
+        x2 = self.fusion_x2(e3, x2)
 
-        # e1 = self.fusion_e1(x2, e1)
-        # x1 = self.fusion_x1(e2, x1)
+        e1 = self.fusion_e1(x2, e1)
+        x1 = self.fusion_x1(e2, x1)
 
-        # x = self.combine(torch.cat([e1, x1], dim=1))
+        x = self.combine(torch.cat([e1, x1], dim=1))
 
-        x = self.fusion_x2(x3, x2)
-        x = self.fusion_x1(x , x1)
+        # x = self.fusion_x2(x3, x2)
+        # x = self.fusion_x1(x , x1)
 
         return x
 
@@ -404,134 +404,134 @@ def make_fuse_layers():
     return nn.ModuleList(fuse_layers)
 
 
-class Cross_unet(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
+# class Cross_unet(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
 
-        self.encoder =  CrossFormer(img_size=224,
-                                    patch_size=[4, 8, 16, 32],
-                                    in_chans= 3,
-                                    num_classes=1000,
-                                    embed_dim=96,
-                                    depths=[2, 2, 18, 2],
-                                    num_heads=[3, 6, 12, 24],
-                                    group_size=[7, 7, 7, 7],
-                                    mlp_ratio=4.,
-                                    qkv_bias=True,
-                                    qk_scale=None,
-                                    drop_rate=0.0,
-                                    drop_path_rate=0.2,
-                                    ape=False,
-                                    patch_norm=True,
-                                    use_checkpoint=False,
-                                    merge_size=[[2, 4], [2,4], [2, 4]])
+#         self.encoder =  CrossFormer(img_size=224,
+#                                     patch_size=[4, 8, 16, 32],
+#                                     in_chans= 3,
+#                                     num_classes=1000,
+#                                     embed_dim=96,
+#                                     depths=[2, 2, 18, 2],
+#                                     num_heads=[3, 6, 12, 24],
+#                                     group_size=[7, 7, 7, 7],
+#                                     mlp_ratio=4.,
+#                                     qkv_bias=True,
+#                                     qk_scale=None,
+#                                     drop_rate=0.0,
+#                                     drop_path_rate=0.2,
+#                                     ape=False,
+#                                     patch_norm=True,
+#                                     use_checkpoint=False,
+#                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.encoder =  CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.2,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
+#         # self.encoder =  CrossFormer(img_size=224,
+#         #                             patch_size=[4, 8, 16, 32],
+#         #                             in_chans= 3,
+#         #                             num_classes=1000,
+#         #                             embed_dim=96,
+#         #                             depths=[2, 2, 6, 2],
+#         #                             num_heads=[3, 6, 12, 24],
+#         #                             group_size=[7, 7, 7, 7],
+#         #                             mlp_ratio=4.,
+#         #                             qkv_bias=True,
+#         #                             qk_scale=None,
+#         #                             drop_rate=0.0,
+#         #                             drop_path_rate=0.2,
+#         #                             ape=False,
+#         #                             patch_norm=True,
+#         #                             use_checkpoint=False,
+#         #                             merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+#         self.norm_3 = LayerNormProxy(dim=384)
+#         self.norm_2 = LayerNormProxy(dim=192)
+#         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.knitt = knitt()
+#         self.knitt = knitt()
 
-        # self.head_1 = SegFormerHead()
-        # self.head_2 = SegFormerHead()
+#         # self.head_1 = SegFormerHead()
+#         # self.head_2 = SegFormerHead()
 
-        # self.head_1 = head()
-        # self.head_2 = head()
+#         # self.head_1 = head()
+#         # self.head_2 = head()
 
-        # self.meta_2 = MetaFormer()
+#         # self.meta_2 = MetaFormer()
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+#         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+#                                       nn.BatchNorm2d(48),
+#                                       nn.ReLU(inplace=True),)
+#         self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+#                                 nn.BatchNorm2d(48),
+#                                 nn.ReLU(inplace=True),)
+#         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        # self.meta_2 = MetaFormer()
+#         # self.meta_2 = MetaFormer()
 
-        # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
+#         # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
-        self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+#         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        # self.meta = MetaFormer()
-        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+#         # self.meta = MetaFormer()
+#         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        self.psa_1 = ParallelPolarizedSelfAttention(96)
-        self.psa_2 = ParallelPolarizedSelfAttention(96)
-        self.psa_3 = ParallelPolarizedSelfAttention(96)
+#         self.psa_1 = ParallelPolarizedSelfAttention(96)
+#         self.psa_2 = ParallelPolarizedSelfAttention(96)
+#         self.psa_3 = ParallelPolarizedSelfAttention(96)
 
-    def forward(self, x):
-        # # Question here
-        x0 = x.float()
-        b, c, h, w = x.shape
+#     def forward(self, x):
+#         # # Question here
+#         x0 = x.float()
+#         b, c, h, w = x.shape
 
-        outputs = self.encoder(x0)
+#         outputs = self.encoder(x0)
 
-        x3 = self.norm_3(outputs[2])
-        x2 = self.norm_2(outputs[1])
-        x1 = self.norm_1(outputs[0])
+#         x3 = self.norm_3(outputs[2])
+#         x2 = self.norm_2(outputs[1])
+#         x1 = self.norm_1(outputs[0])
 
-        x3 = self.conv_3(x3)
-        x2 = self.conv_2(x2)
-        x1 = self.conv_1(x1)
+#         x3 = self.conv_3(x3)
+#         x2 = self.conv_2(x2)
+#         x1 = self.conv_1(x1)
 
-        # x3 = self.psa_3(x3)
-        # x2 = self.psa_2(x2)
-        # x1 = self.psa_1(x1)
+#         # x3 = self.psa_3(x3)
+#         # x2 = self.psa_2(x2)
+#         # x1 = self.psa_1(x1)
 
-        # x1 = x1 + () * (1.0 - torch.nn.functional.sigmoid(x1))
+#         # x1 = x1 + () * (1.0 - torch.nn.functional.sigmoid(x1))
 
-        # x1, x2, x3 = self.meta(x1, x2, x3)
+#         # x1, x2, x3 = self.meta(x1, x2, x3)
 
-        # x1, x2, x3 = self.mtc(x1, x2, x3)
+#         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
-        # e1, e2, e3 = self.meta_2(e1, e2, e3)
+#         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
-        # e3 = None
-        # e2 = None
-        # e1 = None
+#         # e3 = None
+#         # e2 = None
+#         # e1 = None
 
-        x = self.knitt(x1, x2, x3)
+#         x = self.knitt(x1, x2, x3)
 
-        y = self.tp_conv1(x)
-        y = self.conv2(y)
-        y = self.tp_conv2(y)
+#         y = self.tp_conv1(x)
+#         y = self.conv2(y)
+#         y = self.tp_conv2(y)
 
-        return y
+#         return y
 
-        # if self.training:
-        #     return x, y, z
-        # else:
-        #     return x, y, z
+#         # if self.training:
+#         #     return x, y, z
+#         # else:
+#         #     return x, y, z
 
 from .CTrans import ChannelTransformer
 import ml_collections
@@ -693,107 +693,111 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
-# class Cross_unet(nn.Module):
-#     def __init__(self, n_channels=3, n_classes=1):
-#         '''
-#         n_channels : number of channels of the input.
-#                         By default 3, because we have RGB images
-#         n_labels : number of channels of the ouput.
-#                       By default 3 (2 labels + 1 for the background)
-#         '''
-#         super().__init__()
-#         self.n_channels = n_channels
-#         self.n_classes = n_classes
+class Cross_unet(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
 
 
-#         self.encoder_1 =  CrossFormer(img_size=224,
-#                                     patch_size=[4, 8, 16, 32],
-#                                     in_chans= 3,
-#                                     num_classes=1000,
-#                                     embed_dim=96,
-#                                     depths=[2, 2, 6, 2],
-#                                     num_heads=[3, 6, 12, 24],
-#                                     group_size=[7, 7, 7, 7],
-#                                     mlp_ratio=4.,
-#                                     qkv_bias=True,
-#                                     qk_scale=None,
-#                                     drop_rate=0.0,
-#                                     drop_path_rate=0.2,
-#                                     ape=False,
-#                                     patch_norm=True,
-#                                     use_checkpoint=False,
-#                                     merge_size=[[2, 4], [2,4], [2, 4]])
+        self.encoder_1 =  CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.2,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
-#         self.encoder_2 = DAT(
-#                             img_size=224,
-#                             patch_size=4,
-#                             num_classes=1000,
-#                             expansion=4,
-#                             dim_stem=96,
-#                             dims=[96, 192, 384, 768],
-#                             depths=[2, 2, 6, 2],
-#                             stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-#                             heads=[3, 6, 12, 24],
-#                             window_sizes=[7, 7, 7, 7] ,
-#                             groups=[-1, -1, 3, 6],
-#                             use_pes=[False, False, True, True],
-#                             dwc_pes=[False, False, False, False],
-#                             strides=[-1, -1, 1, 1],
-#                             sr_ratios=[-1, -1, -1, -1],
-#                             offset_range_factor=[-1, -1, 2, 2],
-#                             no_offs=[False, False, False, False],
-#                             fixed_pes=[False, False, False, False],
-#                             use_dwc_mlps=[False, False, False, False],
-#                             use_conv_patches=False,
-#                             drop_rate=0.0,
-#                             attn_drop_rate=0.0,
-#                             drop_path_rate=0.2,
-#                         )
+        self.encoder_2 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
 
-#         self.norm_4_1 = LayerNormProxy(dim=768)
-#         self.norm_3_1 = LayerNormProxy(dim=384)
-#         self.norm_2_1 = LayerNormProxy(dim=192)
-#         self.norm_1_1 = LayerNormProxy(dim=96)
+        self.norm_3_1 = LayerNormProxy(dim=384)
+        self.norm_2_1 = LayerNormProxy(dim=192)
+        self.norm_1_1 = LayerNormProxy(dim=96)
 
-#         self.norm_4_2 = LayerNormProxy(dim=768)
-#         self.norm_3_2 = LayerNormProxy(dim=384)
-#         self.norm_2_2 = LayerNormProxy(dim=192)
-#         self.norm_1_2 = LayerNormProxy(dim=96)
+        self.norm_3_2 = LayerNormProxy(dim=384)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_1_2 = LayerNormProxy(dim=96)
 
-#         self.knitt = knitt()
+        self.knitt = knitt()
 
-#         self.classifier = nn.Sequential(
-#             nn.ConvTranspose2d(96, 96, 4, 2, 1),
-#             nn.ReLU(inplace=True),
-#             nn.Conv2d(96, 48, 3, padding=1),
-#             nn.ReLU(inplace=True),
-#             nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-#         )
+        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.conv_1_2 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_2 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
 
-#     def forward(self, x):
-#         # # Question here
-#         x_input = x.float()
-#         B, C, H, W = x.shape
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
 
-#         outputs_1 = self.encoder_1(x_input)
-#         outputs_2 = self.encoder_2(x_input)
+        outputs_1 = self.encoder_1(x_input)
+        outputs_2 = self.encoder_2(x_input)
 
-#         x4 = self.norm_4_1(outputs_1[3]) 
-#         x3 = self.norm_3_1(outputs_1[2]) 
-#         x2 = self.norm_2_1(outputs_1[1]) 
-#         x1 = self.norm_1_1(outputs_1[0])
+        x3 = self.norm_3_1(outputs_1[2]) 
+        x2 = self.norm_2_1(outputs_1[1]) 
+        x1 = self.norm_1_1(outputs_1[0])
 
-#         e4 = self.norm_4_2(outputs_2[3]) 
-#         e3 = self.norm_3_2(outputs_2[2]) 
-#         e2 = self.norm_2_2(outputs_2[1]) 
-#         e1 = self.norm_1_2(outputs_2[0])
+        e3 = self.norm_3_2(outputs_2[2]) 
+        e2 = self.norm_2_2(outputs_2[1]) 
+        e1 = self.norm_1_2(outputs_2[0])
 
-#         t = self.knitt(x1, x2, x3, x4, e1, e2, e3, e4)
+        t = self.knitt(x1, x2, x3, e1, e2, e3)
 
-#         t = self.classifier(t)
+        t = self.classifier(t)
 
-#         return t
+        return t
 
 import math
 import torch
@@ -1393,7 +1397,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-b.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
