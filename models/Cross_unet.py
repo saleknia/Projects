@@ -188,8 +188,11 @@ class knitt(nn.Module):
         # self.fusion_e2 = UpBlock(384, 192)
         # self.fusion_e1 = UpBlock(192, 96)
 
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
+        # self.fusion_x2 = UpBlock(384, 192)
+        # self.fusion_x1 = UpBlock(192, 96)
+
+        self.fusion_x2 = UpBlock(96, 96)
+        self.fusion_x1 = UpBlock(96, 96)
 
         # self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
@@ -438,10 +441,14 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.meta = MetaFormer()
+        # self.meta = MetaFormer()
         # self.meta_2 = MetaFormer()
 
         # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
+
+        self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=0)
+        self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=0)        
+        self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=0)
 
     def forward(self, x):
         # # Question here
@@ -454,7 +461,11 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1])
         x1 = self.norm_1(outputs[0])
 
-        x1, x2, x3 = self.meta(x1, x2, x3)
+        x3 = self.conv_3(x3)
+        x2 = self.conv_2(x2)
+        x1 = self.conv_1(x1)
+
+        # x1, x2, x3 = self.meta(x1, x2, x3)
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
