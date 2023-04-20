@@ -115,7 +115,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.att  = SKAttention(channel=in_channels//2)
+        self.att  = SKAttention(channel=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -465,12 +465,12 @@ class Cross_unet(nn.Module):
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
 
-        # self.meta = MetaFormer()
+        self.meta = MetaFormer()
         # self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        self.psa_1 = ParallelPolarizedSelfAttention(96)
-        self.psa_2 = ParallelPolarizedSelfAttention(96)
-        self.psa_3 = ParallelPolarizedSelfAttention(96)
+        # self.psa_1 = ParallelPolarizedSelfAttention(96)
+        # self.psa_2 = ParallelPolarizedSelfAttention(96)
+        # self.psa_3 = ParallelPolarizedSelfAttention(96)
 
     def forward(self, x):
         # # Question here
@@ -487,9 +487,9 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        x3 = self.psa_3(x3)
-        x2 = self.psa_2(x2)
-        x1 = self.psa_1(x1)
+        # x3 = self.psa_3(x3)
+        # x2 = self.psa_2(x2)
+        # x1 = self.psa_1(x1)
 
         # x1, x2, x3 = self.meta(x1, x2, x3)
 
@@ -577,9 +577,9 @@ class MetaFormer(nn.Module):
         x1 = self.up_sample1(x1)
         x2 = self.up_sample2(x2)
 
-        x1 = self.att_1(gate=x1, skip_connection=org1)
-        x2 = self.att_2(gate=x2, skip_connection=org2)
-        x3 = self.att_3(gate=x3, skip_connection=org3)
+        x1 = self.att_1(gate=x1, skip_connection=org1) + org1
+        x2 = self.att_2(gate=x2, skip_connection=org2) + org2
+        x3 = self.att_3(gate=x3, skip_connection=org3) + org3
 
         return x1, x2, x3
 
