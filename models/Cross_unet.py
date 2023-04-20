@@ -200,11 +200,11 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = UpBlock(384, 192)
-        self.fusion_e1 = UpBlock(192, 96)
+        self.fusion_e2 = UpBlock(96, 96)
+        self.fusion_e1 = UpBlock(96, 96)
 
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
+        self.fusion_x2 = UpBlock(96, 96)
+        self.fusion_x1 = UpBlock(96, 96)
 
         # self.fusion_x2 = UpBlock(96, 96)
         # self.fusion_x1 = UpBlock(96, 96)
@@ -792,6 +792,14 @@ class Cross_unet(nn.Module):
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
+
+        x3 = self.conv_3_1(x3)
+        x2 = self.conv_2_1(x2)
+        x1 = self.conv_1_1(x1)
+
+        e3 = self.conv_3_2(e3)
+        e2 = self.conv_2_2(e2)
+        e1 = self.conv_1_2(e1)
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
