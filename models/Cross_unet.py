@@ -803,7 +803,9 @@ class Cross_unet(nn.Module):
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
-        t = self.classifier(t)
+        t = self.tp_conv1(t)
+        t = self.conv2(t)
+        t = self.tp_conv2(t)
 
         return t
 
