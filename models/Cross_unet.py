@@ -464,7 +464,8 @@ class Cross_unet(nn.Module):
         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.meta = MetaFormer()
+        # self.meta = MetaFormer()
+        self.mtc = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
     def forward(self, x):
         # # Question here
@@ -481,8 +482,10 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        x1, x2, x3 = self.meta(x1, x2, x3)
-        
+        # x1, x2, x3 = self.meta(x1, x2, x3)
+
+        x1, x2, x3 = self.mtc(x1, x2, x3)
+
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
@@ -501,6 +504,23 @@ class Cross_unet(nn.Module):
         #     return x, y, z
         # else:
         #     return x, y, z
+
+from .CTrans import ChannelTransformer
+import ml_collections
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 288  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 96 # base channel of U-Net
+    config.n_classes = 1
+    return config
 
 class MetaFormer(nn.Module):
 
