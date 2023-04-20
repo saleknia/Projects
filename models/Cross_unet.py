@@ -456,7 +456,6 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        # self.meta = MetaFormer()
         # self.meta_2 = MetaFormer()
 
         # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
@@ -464,6 +463,8 @@ class Cross_unet(nn.Module):
         self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.meta = MetaFormer()
 
     def forward(self, x):
         # # Question here
@@ -480,7 +481,8 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        # x1, x2, x3 = self.meta(x1, x2, x3)
+        x1, x2, x3 = self.meta(x1, x2, x3)
+        
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
         # e3 = None
@@ -502,7 +504,7 @@ class Cross_unet(nn.Module):
 
 class MetaFormer(nn.Module):
 
-    def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
+    def __init__(self, num_skip=3, skip_dim=[96, 96, 96]):
         super().__init__()
 
         fuse_dim = 0
@@ -519,9 +521,9 @@ class MetaFormer(nn.Module):
         self.up_sample1 = nn.Upsample(scale_factor=4)
         self.up_sample2 = nn.Upsample(scale_factor=2)
 
-        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
-        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96 )
-        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48 )
+        self.att_3 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.att_2 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.att_1 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
 
     def forward(self, x1, x2, x3):
         """
