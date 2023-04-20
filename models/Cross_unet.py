@@ -119,8 +119,8 @@ class UpBlock(nn.Module):
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.att(x, skip_x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.att(x, skip_x)
         x = self.conv(x)
         return x 
 
@@ -491,9 +491,9 @@ class Cross_unet(nn.Module):
         # x2 = self.psa_2(x2)
         # x1 = self.psa_1(x1)
 
-        # x1, x2, x3 = self.meta(x1, x2, x3)
+        x1, x2, x3 = self.meta(x1, x2, x3)
 
-        # x1, x2, x3 = self.mtc(x1, x2, x3)
+        x1, x2, x3 = self.mtc(x1, x2, x3)
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
