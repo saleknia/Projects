@@ -115,7 +115,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att  = SKAttention(channel=in_channels)
+        # self.att  = SKAttention(channel=in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -465,12 +465,12 @@ class Cross_unet(nn.Module):
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
 
-        self.meta = MetaFormer()
-        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        # self.meta = MetaFormer()
+        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        # self.psa_1 = ParallelPolarizedSelfAttention(96)
-        # self.psa_2 = ParallelPolarizedSelfAttention(96)
-        # self.psa_3 = ParallelPolarizedSelfAttention(96)
+        self.psa_1 = ParallelPolarizedSelfAttention(96)
+        self.psa_2 = ParallelPolarizedSelfAttention(96)
+        self.psa_3 = ParallelPolarizedSelfAttention(96)
 
     def forward(self, x):
         # # Question here
