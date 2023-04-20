@@ -491,7 +491,7 @@ class Cross_unet(nn.Module):
         # x2 = self.psa_2(x2)
         # x1 = self.psa_1(x1)
 
-        # x1, x2, x3 = self.meta(x1, x2, x3)
+        x1, x2, x3 = self.meta(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
