@@ -226,6 +226,33 @@ class knitt(nn.Module):
 
         return x
 
+class decoder(nn.Module):
+
+    def __init__(self):
+        super(decoder, self).__init__()
+
+        self.fusion_e2 = UpBlock(96, 96)
+        self.fusion_e1 = UpBlock(96, 96)
+
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
+    def forward(self, e1, e2, e3):
+
+        e = self.fusion_e2(e3, e2)
+        e = self.fusion_e1(e , e1)
+
+        e = self.tp_conv1(e)
+        e = self.conv2(e)
+        e = self.tp_conv2(e)
+
+        return e
+        
 class head(nn.Module):
 
     def __init__(self):
@@ -776,6 +803,16 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
+        self.decoder_x = decoder()
+        self.decoder_e = decoder() 
+
+        self.conv_1_x = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_x = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_x = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.conv_1_e = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_e = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_e = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -793,9 +830,17 @@ class Cross_unet(nn.Module):
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
 
+        y3 = self.conv_3_x(x3)
+        y2 = self.conv_2_x(x2)
+        y1 = self.conv_1_x(x1)
+
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
         x1 = self.conv_1_1(x1)
+
+        f3 = self.conv_3_2(e3)
+        f2 = self.conv_2_2(e2)
+        f1 = self.conv_1_2(e1)
 
         e3 = self.conv_3_2(e3)
         e2 = self.conv_2_2(e2)
@@ -807,7 +852,13 @@ class Cross_unet(nn.Module):
         t = self.conv2(t)
         t = self.tp_conv2(t)
 
-        return t
+        x = self.decoder_x(y1, y2, y3)
+        z = self.decoder_e(f1, f2, f3)
+
+        if self.training:
+            return t, x, z
+        else:
+            return (t+x+z) / 3.0
 
 import math
 import torch
