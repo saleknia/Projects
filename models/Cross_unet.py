@@ -421,7 +421,7 @@ class Cross_unet(nn.Module):
                                     in_chans= 3,
                                     num_classes=1000,
                                     embed_dim=96,
-                                    depths=[2, 2, 6, 2],
+                                    depths=[2, 2, 18, 2],
                                     num_heads=[3, 6, 12, 24],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
@@ -433,6 +433,24 @@ class Cross_unet(nn.Module):
                                     patch_norm=True,
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
+
+        # self.encoder =  CrossFormer(img_size=224,
+        #                             patch_size=[4, 8, 16, 32],
+        #                             in_chans= 3,
+        #                             num_classes=1000,
+        #                             embed_dim=96,
+        #                             depths=[2, 2, 6, 2],
+        #                             num_heads=[3, 6, 12, 24],
+        #                             group_size=[7, 7, 7, 7],
+        #                             mlp_ratio=4.,
+        #                             qkv_bias=True,
+        #                             qk_scale=None,
+        #                             drop_rate=0.0,
+        #                             drop_path_rate=0.2,
+        #                             ape=False,
+        #                             patch_norm=True,
+        #                             use_checkpoint=False,
+        #                             merge_size=[[2, 4], [2,4], [2, 4]])
 
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
@@ -465,7 +483,7 @@ class Cross_unet(nn.Module):
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         # self.meta = MetaFormer()
-        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         self.psa_1 = ParallelPolarizedSelfAttention(96)
         self.psa_2 = ParallelPolarizedSelfAttention(96)
@@ -494,7 +512,7 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3 = self.meta(x1, x2, x3)
 
-        x1, x2, x3 = self.mtc(x1, x2, x3)
+        # x1, x2, x3 = self.mtc(x1, x2, x3)
 
         # e1, e2, e3 = self.meta_2(e1, e2, e3)
 
@@ -1375,7 +1393,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-b.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
