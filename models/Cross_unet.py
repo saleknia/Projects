@@ -601,11 +601,11 @@ class MetaFormer(nn.Module):
         for i in range(num_skip):
             fuse_dim += skip_dim[i]
 
-        self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        # self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
 
-        # self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        # self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        # self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
 
         self.down_sample1 = nn.AvgPool2d(4)
         self.down_sample2 = nn.AvgPool2d(2)
@@ -637,7 +637,7 @@ class MetaFormer(nn.Module):
         # x2 = self.fuse_conv2(fuse)
         # x3 = self.fuse_conv3(fuse)
 
-        fuse = self.fuse_conv(fuse)
+        # fuse = self.fuse_conv(fuse)
 
         x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) 
         x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) 
