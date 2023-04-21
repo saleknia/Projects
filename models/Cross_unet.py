@@ -821,6 +821,9 @@ class Cross_unet(nn.Module):
         self.head_x = SegFormerHead()
         self.head_e = SegFormerHead()
 
+        self.meta_x = MetaFormer()
+        self.meta_e = MetaFormer()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -832,22 +835,24 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
-
         x = self.head_x(x1, x2, x3)
 
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
-
         e = self.head_e(e1, e2, e3)
 
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
         x1 = self.conv_1_1(x1)
 
+        x1, x2, x3 = self.meta_x(x1, x2, x3)
+
         e3 = self.conv_3_2(e3)
         e2 = self.conv_2_2(e2)
         e1 = self.conv_1_2(e1)
+
+        e1, e2, e3 = self.meta_e(e1, e2, e3)
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
