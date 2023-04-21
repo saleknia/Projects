@@ -633,22 +633,22 @@ class MetaFormer(nn.Module):
         # --------------------Concat sum------------------------------
         fuse = torch.cat(list1, dim=1)
 
-        # x1 = self.fuse_conv1(fuse)
-        # x2 = self.fuse_conv2(fuse)
-        # x3 = self.fuse_conv3(fuse)
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
 
         # fuse = self.fuse_conv(fuse)
 
-        x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) 
-        x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) 
-        x3 = self.att_3(gate=x3                   , skip_connection=org3) 
+        # x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) 
+        # x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) 
+        # x3 = self.att_3(gate=x3                   , skip_connection=org3) 
 
-        # x1 = self.up_sample1(x1)
-        # x2 = self.up_sample2(x2)
+        x1 = self.up_sample1(x1)
+        x2 = self.up_sample2(x2)
 
-        # x1 = self.att_1(gate=x1, skip_connection=org1) + org1
-        # x2 = self.att_2(gate=x2, skip_connection=org2) + org2
-        # x3 = self.att_3(gate=x3, skip_connection=org3) + org3
+        x1 = self.att_1(gate=x1, skip_connection=org1)
+        x2 = self.att_2(gate=x2, skip_connection=org2)
+        x3 = self.att_3(gate=x3, skip_connection=org3)
 
         return x1, x2, x3
 
