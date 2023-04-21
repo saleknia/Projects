@@ -210,7 +210,9 @@ class knitt(nn.Module):
         # self.fusion_x2 = UpBlock(96, 96)
         # self.fusion_x1 = UpBlock(96, 96)
 
-        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_3 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
@@ -220,13 +222,17 @@ class knitt(nn.Module):
         # e1 = self.fusion_e1(x2, e1)
         # x1 = self.fusion_x1(e2, x1)
 
+        x3 = self.combine_3(torch.cat([e3, x3], dim=1))
+        x2 = self.combine_2(torch.cat([e2, x2], dim=1))
+        x1 = self.combine_1(torch.cat([e1, x1], dim=1))
+
         x = self.fusion_x2(x3, x2)
         x = self.fusion_x1(x , x1)
 
-        e = self.fusion_e2(e3, e2)
-        e = self.fusion_e1(e , e1)
+        # e = self.fusion_e2(e3, e2)
+        # e = self.fusion_e1(e , e1)
 
-        x = self.combine(torch.cat([e, x], dim=1))
+        # x = self.combine(torch.cat([e, x], dim=1))
 
         # x = self.fusion_x2(x3, x2)
         # x = self.fusion_x1(x , x1)
@@ -336,13 +342,13 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-        self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
-        )
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
         self.up_3 = nn.Upsample(scale_factor=4.0)
@@ -362,9 +368,11 @@ class SegFormerHead(nn.Module):
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
-        x = self.classifier(c)
+        y = self.tp_conv1(c)
+        y = self.conv2(y)
+        y = self.tp_conv2(y)
 
-        return x
+        return y
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -810,6 +818,9 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
+        self.head_x = SegFormerHead()
+        self.head_e = SegFormerHead()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -822,9 +833,13 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
+        x = self.head_x(x1, x2, x3)
+
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
+
+        e = self.head_e(e1, e2, e3)
 
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
@@ -840,7 +855,10 @@ class Cross_unet(nn.Module):
         t = self.conv2(t)
         t = self.tp_conv2(t)
 
-        return t
+        if self.training:
+            return t, x,e
+        else:
+            return t
 
 import math
 import torch
