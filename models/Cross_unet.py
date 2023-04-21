@@ -594,7 +594,7 @@ def get_CTranS_config():
 
 class MetaFormer(nn.Module):
 
-    def __init__(self, num_skip=3, skip_dim=[96, 96, 96]):
+    def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
         super().__init__()
 
         fuse_dim = 0
@@ -613,9 +613,9 @@ class MetaFormer(nn.Module):
         self.up_sample1 = nn.Upsample(scale_factor=4)
         self.up_sample2 = nn.Upsample(scale_factor=2)
 
-        self.att_3 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
-        self.att_2 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
-        self.att_1 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
+        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96)
+        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48)
 
     def forward(self, x1, x2, x3):
         """
@@ -836,23 +836,21 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
         x = self.head_x(x1, x2, x3)
+        x1, x2, x3 = self.meta_x(x1, x2, x3)
 
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
         e = self.head_e(e1, e2, e3)
-
+        e1, e2, e3 = self.meta_e(e1, e2, e3)
+        
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
         x1 = self.conv_1_1(x1)
 
-        x1, x2, x3 = self.meta_x(x1, x2, x3)
-
         e3 = self.conv_3_2(e3)
         e2 = self.conv_2_2(e2)
         e1 = self.conv_1_2(e1)
-
-        e1, e2, e3 = self.meta_e(e1, e2, e3)
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
