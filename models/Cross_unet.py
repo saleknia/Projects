@@ -692,7 +692,7 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
         channel = 96
-        r = 3
+        r = 4
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
