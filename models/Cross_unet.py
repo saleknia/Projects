@@ -569,7 +569,7 @@ class MetaFormer(nn.Module):
         for i in range(num_skip):
             fuse_dim += skip_dim[i]
 
-        self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        # self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
 
         # self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
         # self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
@@ -595,13 +595,13 @@ class MetaFormer(nn.Module):
         org2 = x2
         org3 = x3
 
-        x2_u = self.up_sample2(x2)
-        x3_u = self.up_sample3(x3)
+        x1_u = self.down_sample1(x1)
+        x2_u = self.down_sample2(x2)
 
         # x1_d = self.down_sample1(x1)
         # x2_d = self.down_sample2(x2)
 
-        list1 = [x1, x2_u, x3_u]
+        list1 = [x1, x2_d, x3_d]
 
         # --------------------Concat sum------------------------------
         fuse = torch.cat(list1, dim=1)
@@ -758,7 +758,6 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
 
-        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         # # Question here
@@ -774,8 +773,6 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
-
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
