@@ -569,17 +569,19 @@ class MetaFormer(nn.Module):
         for i in range(num_skip):
             fuse_dim += skip_dim[i]
 
-        # self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
 
-        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+        # self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        # self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        # self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
 
-        self.down_sample1 = nn.AvgPool2d(4)
+        self.conv_ms = _make_nConv(in_channels=288, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
         self.down_sample2 = nn.AvgPool2d(2)
+        self.down_sample3 = nn.AvgPool2d(4)
 
-        self.up_sample1 = nn.Upsample(scale_factor=4)
         self.up_sample2 = nn.Upsample(scale_factor=2)
+        self.up_sample3 = nn.Upsample(scale_factor=4)
 
         self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
         self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96)
@@ -593,30 +595,33 @@ class MetaFormer(nn.Module):
         org2 = x2
         org3 = x3
 
-        x1_d = self.down_sample1(x1)
-        x2_d = self.down_sample2(x2)
+        x2_u = self.up_sample2(x2)
+        x3_u = self.up_sample3(x3)
 
-        list1 = [x1_d, x2_d, x3]
+        # x1_d = self.down_sample1(x1)
+        # x2_d = self.down_sample2(x2)
+
+        list1 = [x1, x2_u, x3_u]
 
         # --------------------Concat sum------------------------------
         fuse = torch.cat(list1, dim=1)
 
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-        x3 = self.fuse_conv3(fuse)
+        # x1 = self.fuse_conv1(fuse)
+        # x2 = self.fuse_conv2(fuse)
+        # x3 = self.fuse_conv3(fuse)
 
-        # fuse = self.fuse_conv(fuse)
+        fuse = self.conv_ms(fuse)
 
-        # x1 = self.att_1(gate=self.up_sample1(fuse), skip_connection=org1) 
-        # x2 = self.att_2(gate=self.up_sample2(fuse), skip_connection=org2) 
-        # x3 = self.att_3(gate=x3                   , skip_connection=org3) 
+        x1 = self.att_1(gate=fuse                   , skip_connection=org1) 
+        x2 = self.att_2(gate=self.down_sample2(fuse), skip_connection=org2) 
+        x3 = self.att_3(gate=self.down_sample3(fuse), skip_connection=org3) 
 
-        x1 = self.up_sample1(x1)
-        x2 = self.up_sample2(x2)
+        # x2 = self.up_sample2(x2)
+        # x3 = self.up_sample3(x3)
 
-        x1 = self.att_1(gate=x1, skip_connection=org1)
-        x2 = self.att_2(gate=x2, skip_connection=org2)
-        x3 = self.att_3(gate=x3, skip_connection=org3)
+        # x1 = self.att_1(gate=x1, skip_connection=org1)
+        # x2 = self.att_2(gate=x2, skip_connection=org2)
+        # x3 = self.att_3(gate=x3, skip_connection=org3)
 
         return x1, x2, x3
 
@@ -752,6 +757,8 @@ class Cross_unet(nn.Module):
                                 nn.BatchNorm2d(channel//2),
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
+
+        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         # # Question here
