@@ -48,9 +48,10 @@ class SKAttention(nn.Module):
         attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
 
         ### fuse
-        V=(attention_weights*feats)
-        V=torch.cat([feats[0], feats[1]], dim=1)
-        return V
+        # V=(attention_weights*feats)
+        # V=torch.cat([feats[0], feats[1]], dim=1)
+        feats=(attention_weights*feats)
+        return feats[0], feats[1]
 
 
 def get_activation(activation_type):  
@@ -72,7 +73,7 @@ class Flatten(nn.Module):
         return x.view(x.size(0), -1)
 
 class SEBlock(nn.Module):
-    def __init__(self, channel, r=8):
+    def __init__(self, channel, r=4):
         super(SEBlock, self).__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -821,8 +822,9 @@ class Cross_unet(nn.Module):
         self.head_x = SegFormerHead()
         self.head_e = SegFormerHead()
 
-        self.meta_x = MetaFormer()
-        self.meta_e = MetaFormer()
+        self.SKAttention_1 = SKAttention(96)
+        self.SKAttention_2 = SKAttention(96)
+        self.SKAttention_3 = SKAttention(96)
 
     def forward(self, x):
         # # Question here
@@ -836,13 +838,11 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
         x = self.head_x(x1, x2, x3)
-        x1, x2, x3 = self.meta_x(x1, x2, x3)
 
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
         e = self.head_e(e1, e2, e3)
-        e1, e2, e3 = self.meta_e(e1, e2, e3)
         
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
