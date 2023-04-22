@@ -197,8 +197,8 @@ class knitt(nn.Module):
     def __init__(self, channel):
         super(knitt, self).__init__()
 
-        self.fusion_x2 = UpBlock(channel, channel)
-        self.fusion_x1 = UpBlock(channel, channel)
+        self.fusion_x2 = UpBlock(128, 64)
+        self.fusion_x1 = UpBlock(64 , 32)
 
     def forward(self, x1, x2, x3):
 
@@ -692,6 +692,7 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
         channel = 96
+        r = 4
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
@@ -721,15 +722,13 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt(channel=channel)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//2, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(channel//2),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//r, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(channel//r),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(channel//2, channel//2, 3, 1, 1),
-                                nn.BatchNorm2d(channel//2),
+        self.conv2 = nn.Sequential(nn.Conv2d(channel//r, channel//r, 3, 1, 1),
+                                nn.BatchNorm2d(channel//r),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
-
-        self.MetaFormer = MetaFormer()
+        self.tp_conv2 = nn.ConvTranspose2d(channel//r, 1, 2, 2, 0)
 
     def forward(self, x):
         # # Question here
@@ -742,8 +741,6 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
-
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
@@ -755,7 +752,6 @@ class Cross_unet(nn.Module):
         t = self.tp_conv2(t)
 
         return t
-
 
 import math
 import torch
