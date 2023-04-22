@@ -222,9 +222,9 @@ class knitt(nn.Module):
         # e1 = self.fusion_e1(x2, e1)
         # x1 = self.fusion_x1(e2, x1)
 
-        x3 = self.combine_3(torch.cat([e3, x3], dim=1))
-        x2 = self.combine_2(torch.cat([e2, x2], dim=1))
-        x1 = self.combine_1(torch.cat([e1, x1], dim=1))
+        # x3 = self.combine_3(torch.cat([e3, x3], dim=1))
+        # x2 = self.combine_2(torch.cat([e2, x2], dim=1))
+        # x1 = self.combine_1(torch.cat([e1, x1], dim=1))
 
         x = self.fusion_x2(x3, x2)
         x = self.fusion_x1(x , x1)
@@ -836,24 +836,28 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
-        x = self.head_x(x1, x2, x3)
+        # x = self.head_x(x1, x2, x3)
 
-        e3 = self.norm_3_2(outputs_2[2]) 
-        e2 = self.norm_2_2(outputs_2[1]) 
-        e1 = self.norm_1_2(outputs_2[0])
-        e = self.head_e(e1, e2, e3)
+        # e3 = self.norm_3_2(outputs_2[2]) 
+        # e2 = self.norm_2_2(outputs_2[1]) 
+        # e1 = self.norm_1_2(outputs_2[0])
+        # e = self.head_e(e1, e2, e3)
         
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
         x1 = self.conv_1_1(x1)
 
-        e3 = self.conv_3_2(e3)
-        e2 = self.conv_2_2(e2)
-        e1 = self.conv_1_2(e1)
+        # e3 = self.conv_3_2(e3)
+        # e2 = self.conv_2_2(e2)
+        # e1 = self.conv_1_2(e1)
 
         # x1, e1 = self.SKAttention_1(x1, e1)
         # x2, e2 = self.SKAttention_2(x2, e2)
         # x3, e3 = self.SKAttention_3(x3, e3)
+
+        e1 = None
+        e2 = None
+        e3 = None
 
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
@@ -861,10 +865,11 @@ class Cross_unet(nn.Module):
         t = self.conv2(t)
         t = self.tp_conv2(t)
 
-        if self.training:
-            return t, x,e
-        else:
-            return t
+        return t
+        # if self.training:
+        #     return t, x,e
+        # else:
+        #     return t
 
 import math
 import torch
