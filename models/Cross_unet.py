@@ -751,8 +751,6 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
-
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -767,8 +765,6 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
-
-        x1, x2, x3 = self.mtc(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
