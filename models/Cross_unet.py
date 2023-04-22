@@ -692,7 +692,6 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
         channel = 96
-        r = 3
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
@@ -722,13 +721,15 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt(channel=channel)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//r, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(channel//r),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(channel//r, channel//r, 3, 1, 1),
-                                nn.BatchNorm2d(channel//r),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(channel//r, 1, 2, 2, 0)
+        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//r, 3, 2, 1, 1),
+        #                               nn.BatchNorm2d(channel//r),
+        #                               nn.ReLU(inplace=True),)
+        # self.conv2 = nn.Sequential(nn.Conv2d(channel//r, channel//r, 3, 1, 1),
+        #                         nn.BatchNorm2d(channel//r),
+        #                         nn.ReLU(inplace=True),)
+        # self.tp_conv2 = nn.ConvTranspose2d(channel//r, 1, 2, 2, 0)
+
+        self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 1), nn.Upsample(scale_factor=4.0))
 
         self.MetaFormer = MetaFormer()
 
@@ -747,13 +748,11 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
-        t = self.tp_conv1(t)
-        t = self.conv2(t)
-        t = self.tp_conv2(t)
+        t = self.classifier(t)
 
         return t
 
