@@ -116,7 +116,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att  = ParallelPolarizedSelfAttention(in_channels)
+        # self.att  = ParallelPolarizedSelfAttention(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -201,8 +201,8 @@ class knitt(nn.Module):
 
         # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
 
-        self.fusion_e2 = UpBlock(96, 96)
-        self.fusion_e1 = UpBlock(96, 96)
+        # self.fusion_e2 = UpBlock(96, 96)
+        # self.fusion_e1 = UpBlock(96, 96)
 
         self.fusion_x2 = UpBlock(96, 96)
         self.fusion_x1 = UpBlock(96, 96)
@@ -818,8 +818,8 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.head_x = SegFormerHead()
-        self.head_e = SegFormerHead()
+        # self.head_x = SegFormerHead()
+        # self.head_e = SegFormerHead()
 
         # self.SKAttention_1 = SKAttention(96)
         # self.SKAttention_2 = SKAttention(96)
@@ -831,17 +831,15 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        # outputs_2 = self.encoder_2(x_input)
 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
-        # x = self.head_x(x1, x2, x3)
 
         # e3 = self.norm_3_2(outputs_2[2]) 
         # e2 = self.norm_2_2(outputs_2[1]) 
         # e1 = self.norm_1_2(outputs_2[0])
-        # e = self.head_e(e1, e2, e3)
         
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
