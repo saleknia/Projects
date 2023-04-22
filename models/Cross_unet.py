@@ -743,6 +743,7 @@ class Cross_unet(nn.Module):
         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
+        self.knitt = knitt()
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
