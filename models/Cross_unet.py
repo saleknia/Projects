@@ -852,6 +852,10 @@ class Cross_unet(nn.Module):
         e2 = self.conv_2_2(e2)
         e1 = self.conv_1_2(e1)
 
+        x1, e1 = self.SKAttention_1(x1, e1)
+        x2, e2 = self.SKAttention_2(x2, e2)
+        x3, e3 = self.SKAttention_3(x3, e3)
+
         t = self.knitt(x1, x2, x3, e1, e2, e3)
 
         t = self.tp_conv1(t)
