@@ -692,7 +692,7 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
         channel = 96
-        r = 4
+        r = 2
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
@@ -730,6 +730,8 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(channel//r, 1, 2, 2, 0)
 
+        self.MetaFormer = MetaFormer()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -744,6 +746,8 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
+
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
