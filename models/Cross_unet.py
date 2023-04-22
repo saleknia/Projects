@@ -565,63 +565,34 @@ class MetaFormer(nn.Module):
     def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
         super().__init__()
 
-        fuse_dim = 0
-        for i in range(num_skip):
-            fuse_dim += skip_dim[i]
+        self.down_sample11 = nn.AvgPool2d(2)
+        self.down_sample12 = nn.AvgPool2d(4)
 
-        # self.fuse_conv = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.down_sample21 = nn.AvgPool2d(2)
+        self.up_sample21   = nn.Upsample(scale_factor=2)
 
-        # self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        # self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        # self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+        self.up_sample31 = nn.Upsample(scale_factor=2)
+        self.up_sample32 = nn.Upsample(scale_factor=4)
 
-        self.conv_ms = _make_nConv(in_channels=288, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        self.down_sample2 = nn.AvgPool2d(2)
-        self.down_sample3 = nn.AvgPool2d(4)
-
-        self.up_sample2 = nn.Upsample(scale_factor=2)
-        self.up_sample3 = nn.Upsample(scale_factor=4)
-
-        self.att_3 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
-        self.att_2 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
-        self.att_1 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.sigmoid = torch.nn.Sigmoid()
 
     def forward(self, x1, x2, x3):
         """
         x: B, H*W, C
         """
-        org1 = x1
-        org2 = x2
-        org3 = x3
 
-        x1_u = self.down_sample1(x1)
-        x2_u = self.down_sample2(x2)
+        x1_d1 = self.down_sample11(x1)
+        x1_d2 = self.down_sample12(x1)
 
-        # x1_d = self.down_sample1(x1)
-        # x2_d = self.down_sample2(x2)
+        x2_d1 = self.down_sample21(x2)
+        x2_u1 = self.up_sample21(x2)
 
-        list1 = [x1, x2_d, x3_d]
+        x3_u1 = self.up_sample31(x3)
+        x3_u2 = self.up_sample32(x3)
 
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(list1, dim=1)
-
-        # x1 = self.fuse_conv1(fuse)
-        # x2 = self.fuse_conv2(fuse)
-        # x3 = self.fuse_conv3(fuse)
-
-        fuse = self.conv_ms(fuse)
-
-        x1 = self.att_1(gate=fuse                   , skip_connection=org1) 
-        x2 = self.att_2(gate=self.down_sample2(fuse), skip_connection=org2) 
-        x3 = self.att_3(gate=self.down_sample3(fuse), skip_connection=org3) 
-
-        # x2 = self.up_sample2(x2)
-        # x3 = self.up_sample3(x3)
-
-        # x1 = self.att_1(gate=x1, skip_connection=org1)
-        # x2 = self.att_2(gate=x2, skip_connection=org2)
-        # x3 = self.att_3(gate=x3, skip_connection=org3)
+        x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
+        x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
+        x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2_d1)*(x2_d1))+(self.sigmoid(x1_d2)*(x1_d2)))
 
         return x1, x2, x3
 
@@ -727,7 +698,7 @@ class Cross_unet(nn.Module):
                                     in_chans= 3,
                                     num_classes=1000,
                                     embed_dim=96,
-                                    depths=[2, 2, 18, 2],
+                                    depths=[2, 2, 6, 2],
                                     num_heads=[3, 6, 12, 24],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
@@ -758,7 +729,7 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
 
-
+        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         # # Question here
@@ -774,6 +745,8 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
+
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
@@ -1382,7 +1355,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-b.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
