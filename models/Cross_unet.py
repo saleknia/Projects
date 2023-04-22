@@ -692,7 +692,7 @@ class Cross_unet(nn.Module):
         self.n_classes = n_classes
 
         channel = 96
-        r = 4
+        r = 3
 
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
@@ -747,7 +747,7 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
 
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
@@ -1359,6 +1359,12 @@ class CrossFormer(nn.Module):
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
+
+        # for param in self.layers[1].parameters():
+        #     param.requires_grad = False
+
+        # for param in self.layers[0].parameters():
+        #     param.requires_grad = False
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
