@@ -748,10 +748,10 @@ class Cross_unet(nn.Module):
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//2, 3, 2, 1, 1),
                                       nn.BatchNorm2d(channel//2),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(channel, channel, 3, 1, 1),
-                                nn.BatchNorm2d(channel),
+        self.conv2 = nn.Sequential(nn.Conv2d(channel//2, channel//2, 3, 1, 1),
+                                nn.BatchNorm2d(channel//2),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(channel, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
 
     def forward(self, x):
         # # Question here
