@@ -729,7 +729,7 @@ class Cross_unet(nn.Module):
         #                         nn.ReLU(inplace=True),)
         # self.tp_conv2 = nn.ConvTranspose2d(channel//r, 1, 2, 2, 0)
 
-        self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 1), nn.Upsample(scale_factor=4.0))
+        self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
         self.MetaFormer = MetaFormer()
 
