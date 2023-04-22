@@ -783,13 +783,17 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
         
-        x3 = self.conv_3(x3)
-        x2 = self.conv_2(x2)
-        x1 = self.conv_1(x1)
+        x3 = self.conv_3_1(x3)
+        x2 = self.conv_2_1(x2)
+        x1 = self.conv_1_1(x1)
 
         e1 = self.encoder1(x_input)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
+
+        e3 = self.conv_3_2(e3)
+        e2 = self.conv_2_2(e2)
+        e1 = self.conv_1_2(e1)
 
         x1 = self.combine_1(torch.cat([e1, x1] ,dim=1))
         x2 = self.combine_2(torch.cat([e2, x2] ,dim=1))
