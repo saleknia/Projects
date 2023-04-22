@@ -731,7 +731,9 @@ class Cross_unet(nn.Module):
 
         self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
-        self.MetaFormer = MetaFormer()
+        # self.MetaFormer = MetaFormer()
+
+        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
     def forward(self, x):
         # # Question here
@@ -749,6 +751,8 @@ class Cross_unet(nn.Module):
         x1 = self.conv_1(x1)
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+
+        x1, x2, x3 = self.mtc(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
