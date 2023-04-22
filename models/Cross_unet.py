@@ -197,8 +197,8 @@ class knitt(nn.Module):
     def __init__(self, channel):
         super(knitt, self).__init__()
 
-        self.fusion_x2 = UpBlock(128, 64)
-        self.fusion_x1 = UpBlock(64 , 32)
+        self.fusion_x2 = UpBlock(96, 96)
+        self.fusion_x1 = UpBlock(96, 96)
 
     def forward(self, x1, x2, x3):
 
