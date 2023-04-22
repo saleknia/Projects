@@ -116,11 +116,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att  = ParallelPolarizedSelfAttention(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = self.att(x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x 
@@ -753,6 +751,12 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
+        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+
+        self.combine_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.combine_3 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -767,6 +771,12 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
+
+        x1, x2, x3 = self.mtc(x1, x2, x3)
+
+        x3 = self.combine_3(x3)
+        x2 = self.combine_2(x2)
+        x1 = self.combine_1(x1)
 
         t = self.knitt(x1, x2, x3)
 
