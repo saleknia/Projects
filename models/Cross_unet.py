@@ -382,7 +382,7 @@ from torchvision import models as resnet
 
 def make_fuse_layers():
     num_branches = 3
-    num_in_chs = [96, 192, 384]
+    num_in_chs = [96, 96, 96]
     fuse_layers = []
     for i in range(num_branches):
         fuse_layer = []
@@ -715,6 +715,8 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
+        channel = 64
+
         self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
@@ -737,19 +739,19 @@ class Cross_unet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt()
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//2, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(channel//2),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(channel, channel, 3, 1, 1),
+                                nn.BatchNorm2d(channel),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(channel, 1, 2, 2, 0)
 
     def forward(self, x):
         # # Question here
