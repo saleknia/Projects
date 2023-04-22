@@ -583,9 +583,9 @@ class MetaFormer(nn.Module):
         self.up_sample2 = nn.Upsample(scale_factor=2)
         self.up_sample3 = nn.Upsample(scale_factor=4)
 
-        self.att_3 = AttentionBlock(F_g=384, F_l=384, n_coefficients=192)
-        self.att_2 = AttentionBlock(F_g=192, F_l=192, n_coefficients=96)
-        self.att_1 = AttentionBlock(F_g=96 , F_l=96 , n_coefficients=48)
+        self.att_3 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.att_2 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
+        self.att_1 = AttentionBlock(F_g=96, F_l=96, n_coefficients=48)
 
     def forward(self, x1, x2, x3):
         """
@@ -774,6 +774,8 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
+
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         t = self.knitt(x1, x2, x3)
 
