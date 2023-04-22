@@ -194,11 +194,11 @@ class DecoderBottleneckLayer(nn.Module):
 
 class knitt(nn.Module):
 
-    def __init__(self):
+    def __init__(self, channel):
         super(knitt, self).__init__()
 
-        self.fusion_x2 = UpBlock(96, 96)
-        self.fusion_x1 = UpBlock(96, 96)
+        self.fusion_x2 = UpBlock(channel, channel)
+        self.fusion_x1 = UpBlock(channel, channel)
 
     def forward(self, x1, x2, x3):
 
@@ -743,7 +743,7 @@ class Cross_unet(nn.Module):
         self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.knitt = knitt()
+        self.knitt = knitt(channel=channel)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel//2, 3, 2, 1, 1),
                                       nn.BatchNorm2d(channel//2),
