@@ -744,9 +744,9 @@ class Cross_unet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.conv_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt(channel=channel)
 
@@ -758,6 +758,19 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(channel//2, 1, 2, 2, 0)
 
+        resnet = resnet_model.resnet18(pretrained=True)
+
+        self.encoder1  = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu, resnet.layer1, resnet.layer2)
+        self.encoder2  = resnet.layer3
+        self.encoder3  = resnet.layer4
+
+        self.conv_1_2 = _make_nConv(in_channels=128, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_2 = _make_nConv(in_channels=256, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_2 = _make_nConv(in_channels=512, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.combine_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.combine_3 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x):
         # # Question here
@@ -773,6 +786,14 @@ class Cross_unet(nn.Module):
         x3 = self.conv_3(x3)
         x2 = self.conv_2(x2)
         x1 = self.conv_1(x1)
+
+        e1 = self.encoder1(x_input)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+
+        x1 = self.combine_1(torch.cat([e1, x1] ,dim=1))
+        x2 = self.combine_2(torch.cat([e2, x2] ,dim=1))
+        x3 = self.combine_3(torch.cat([e3, x3] ,dim=1))
 
         t = self.knitt(x1, x2, x3)
 
