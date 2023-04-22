@@ -367,12 +367,12 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             # loss_att = attention_loss(targets.unsqueeze(dim=1), e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
             loss = loss_ce + loss_dice + loss_att
 
-        # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9
 
-        # for param_group in optimizer.param_groups:
-        #     param_group['lr'] = lr_
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr_
 
-        # iter_num = iter_num + 1   
+        iter_num = iter_num + 1   
 
         # iter_num = iter_num + 1 
         # if iter_num % (total_batchs*3)==0:
