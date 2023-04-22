@@ -116,7 +116,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.att  = ParallelPolarizedSelfAttention(in_channels)
+        self.att  = ParallelPolarizedSelfAttention(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
@@ -199,43 +199,13 @@ class knitt(nn.Module):
     def __init__(self):
         super(knitt, self).__init__()
 
-        # self.fuse = _make_nConv(in_channels=384, out_channels=384, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
-
-        # self.fusion_e2 = UpBlock(96, 96)
-        # self.fusion_e1 = UpBlock(96, 96)
-
         self.fusion_x2 = UpBlock(96, 96)
         self.fusion_x1 = UpBlock(96, 96)
 
-        # self.fusion_x2 = UpBlock(96, 96)
-        # self.fusion_x1 = UpBlock(96, 96)
-
-        self.combine_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.combine_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.combine_3 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-    def forward(self, x1, x2, x3, e1, e2, e3):
-
-        # e2 = self.fusion_e2(x3, e2)
-        # x2 = self.fusion_x2(e3, x2)
-
-        # e1 = self.fusion_e1(x2, e1)
-        # x1 = self.fusion_x1(e2, x1)
-
-        x3 = self.combine_3(torch.cat([e3, x3], dim=1))
-        x2 = self.combine_2(torch.cat([e2, x2], dim=1))
-        x1 = self.combine_1(torch.cat([e1, x1], dim=1))
+    def forward(self, x1, x2, x3):
 
         x = self.fusion_x2(x3, x2)
         x = self.fusion_x1(x , x1)
-
-        # e = self.fusion_e2(e3, e2)
-        # e = self.fusion_e1(e , e1)
-
-        # x = self.combine(torch.cat([e, x], dim=1))
-
-        # x = self.fusion_x2(x3, x2)
-        # x = self.fusion_x1(x , x1)
 
         return x
 
@@ -747,8 +717,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-
-        self.encoder_1 =  CrossFormer(img_size=224,
+        self.encoder =  CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -766,49 +735,14 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder_2 = DAT(
-                            img_size=224,
-                            patch_size=4,
-                            num_classes=1000,
-                            expansion=4,
-                            dim_stem=96,
-                            dims=[96, 192, 384, 768],
-                            depths=[2, 2, 6, 2],
-                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-                            heads=[3, 6, 12, 24],
-                            window_sizes=[7, 7, 7, 7] ,
-                            groups=[-1, -1, 3, 6],
-                            use_pes=[False, False, True, True],
-                            dwc_pes=[False, False, False, False],
-                            strides=[-1, -1, 1, 1],
-                            sr_ratios=[-1, -1, -1, -1],
-                            offset_range_factor=[-1, -1, 2, 2],
-                            no_offs=[False, False, False, False],
-                            fixed_pes=[False, False, False, False],
-                            use_dwc_mlps=[False, False, False, False],
-                            use_conv_patches=False,
-                            drop_rate=0.0,
-                            attn_drop_rate=0.0,
-                            drop_path_rate=0.2,
-                        )
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.norm_3_2 = LayerNormProxy(dim=384)
-        self.norm_2_2 = LayerNormProxy(dim=192)
-        self.norm_1_2 = LayerNormProxy(dim=96)
-
-        self.knitt = knitt()
-
-        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-        self.conv_1_2 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3_2 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
@@ -818,56 +752,29 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        # self.head_x = SegFormerHead()
-        # self.head_e = SegFormerHead()
-
-        # self.SKAttention_1 = SKAttention(96)
-        # self.SKAttention_2 = SKAttention(96)
-        # self.SKAttention_3 = SKAttention(96)
-
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs_1 = self.encoder_1(x_input)
-        outputs_2 = self.encoder_2(x_input)
+        outputs = self.encoder(x_input)
 
-        x3 = self.norm_3_1(outputs_1[2]) 
-        x2 = self.norm_2_1(outputs_1[1]) 
-        x1 = self.norm_1_1(outputs_1[0])
-
-        e3 = self.norm_3_2(outputs_2[2]) 
-        e2 = self.norm_2_2(outputs_2[1]) 
-        e1 = self.norm_1_2(outputs_2[0])
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0])
         
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2)
         x1 = self.conv_1_1(x1)
 
-        e3 = self.conv_3_2(e3)
-        e2 = self.conv_2_2(e2)
-        e1 = self.conv_1_2(e1)
-
-        # x1, e1 = self.SKAttention_1(x1, e1)
-        # x2, e2 = self.SKAttention_2(x2, e2)
-        # x3, e3 = self.SKAttention_3(x3, e3)
-
-        # e1 = None
-        # e2 = None
-        # e3 = None
-
-        t = self.knitt(x1, x2, x3, e1, e2, e3)
+        t = self.knitt(x1, x2, x3)
 
         t = self.tp_conv1(t)
         t = self.conv2(t)
         t = self.tp_conv2(t)
 
         return t
-        # if self.training:
-        #     return t, x,e
-        # else:
-        #     return t
+
 
 import math
 import torch
