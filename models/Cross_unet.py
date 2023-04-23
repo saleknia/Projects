@@ -725,7 +725,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
 
 
 
-class Cross_unet_cross(nn.Module):
+class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
