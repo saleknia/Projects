@@ -766,6 +766,10 @@ class Cross_unet(nn.Module):
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
+        self.psa_1 = ParallelPolarizedSelfAttention(96)
+        self.psa_2 = ParallelPolarizedSelfAttention(96)
+        self.psa_3 = ParallelPolarizedSelfAttention(96)
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -784,6 +788,10 @@ class Cross_unet(nn.Module):
         x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
+
+        x1 = self.psa_1(x1)
+        x2 = self.psa_2(x2)
+        x3 = self.psa_3(x3)
 
         t = self.knitt(x1, x2, x3)
 
