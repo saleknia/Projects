@@ -64,7 +64,7 @@ class Reconstruct(nn.Module):
         h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
         x = x.permute(0, 2, 1)
         x = x.contiguous().view(B, hidden, h, w)
-        x = nn.Upsample(scale_factor=self.scale_factor)(x)
+        # x = nn.Upsample(scale_factor=self.scale_factor)(x)
 
         out = self.conv(x)
         out = self.norm(out)
@@ -296,11 +296,11 @@ class ChannelTransformer(nn.Module):
         emb2 = self.embeddings_2(en2)
 
         encoded1, encoded2, attn_weights = self.encoder(emb1,emb2)  # (B, n_patch, hidden)
-        # x1 = self.reconstruct_1(encoded1) if en1 is not None else None
-        # x2 = self.reconstruct_2(encoded2) if en2 is not None else None
+        x1 = self.reconstruct_1(encoded1) if en1 is not None else None
+        x2 = self.reconstruct_2(encoded2) if en2 is not None else None
 
-        x1 = encoded1 # x1 # + en1  if en1 is not None else None
-        x2 = encoded2 # x2 # + en2  if en2 is not None else None
+        x1 = x1 # + en1  if en1 is not None else None
+        x2 = x2 # + en2  if en2 is not None else None
 
         return x1, x2
 
