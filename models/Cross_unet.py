@@ -781,17 +781,17 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        x3 = self.conv_3_1(x3) + x3
-        x2 = self.conv_2_1(x2) + x2
-        x1 = self.conv_1_1(x1) + x1
+        x3 = self.conv_3_1(x3)
+        x2 = self.conv_2_1(x2) 
+        x1 = self.conv_1_1(x1) 
 
         x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
-        x1 = self.psa_1(x1)
-        x2 = self.psa_2(x2)
-        x3 = self.psa_3(x3)
+        x1 = self.psa_1(x1) + x1
+        x2 = self.psa_2(x2) + x2
+        x3 = self.psa_3(x3) + x3
 
         t = self.knitt(x1, x2, x3)
 
