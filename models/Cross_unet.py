@@ -116,13 +116,13 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
-        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.SE   = SEBlock(in_channels)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.att  = CoTAttention(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # skip_x = self.SE(x, skip_x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.att(x, skip_x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x 
 
@@ -712,8 +712,6 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
-
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -733,7 +731,7 @@ class Cross_unet(nn.Module):
                                     in_chans= 3,
                                     num_classes=1000,
                                     embed_dim=96,
-                                    depths=[2, 2, 18, 2],
+                                    depths=[2, 2, 6, 2],
                                     num_heads=[3, 6, 12, 24],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
@@ -745,7 +743,6 @@ class Cross_unet(nn.Module):
                                     patch_norm=True,
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
-
 
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
@@ -800,6 +797,46 @@ class Cross_unet(nn.Module):
         return t
 
 
+class CoTAttention(nn.Module):
+
+    def __init__(self, dim=512,kernel_size=3):
+        super().__init__()
+        self.dim=dim
+        self.kernel_size=kernel_size
+
+        self.key_embed=nn.Sequential(
+            nn.Conv2d(dim,dim,kernel_size=kernel_size,padding=kernel_size//2,groups=4,bias=False),
+            nn.BatchNorm2d(dim),
+            nn.ReLU()
+        )
+        self.value_embed=nn.Sequential(
+            nn.Conv2d(dim,dim,1,bias=False),
+            nn.BatchNorm2d(dim)
+        )
+
+        factor=4
+        self.attention_embed=nn.Sequential(
+            nn.Conv2d(2*dim,2*dim//factor,1,bias=False),
+            nn.BatchNorm2d(2*dim//factor),
+            nn.ReLU(),
+            nn.Conv2d(2*dim//factor,kernel_size*kernel_size*dim,1)
+        )
+
+
+    def forward(self, x, skip_x):
+        bs,c,h,w=x.shape
+        k1=self.key_embed(x) #bs,c,h,w
+        v=self.value_embed(x).view(bs,c,-1) #bs,c,h,w
+
+        y=torch.cat([k1,skip_x],dim=1) #bs,2c,h,w
+        att=self.attention_embed(y) #bs,c*k*k,h,w
+        att=att.reshape(bs,c,self.kernel_size*self.kernel_size,h,w)
+        att=att.mean(2,keepdim=False).view(bs,c,-1) #bs,c,h*w
+        k2=F.softmax(att,dim=-1)*v
+        k2=k2.view(bs,c,h,w)
+
+
+        return k1+k2
 
 
 import math
@@ -1400,7 +1437,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-b.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
         self.layers[3] = None
