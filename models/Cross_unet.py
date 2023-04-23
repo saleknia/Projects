@@ -116,9 +116,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.att  = SKAttention(channel=in_channels//2)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        # x, skip_x = self.att(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x 
@@ -758,7 +760,7 @@ class Cross_unet(nn.Module):
         # x2 = self.psa_2(x2)
         # x1 = self.psa_1(x1)
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
