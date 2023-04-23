@@ -116,9 +116,9 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         self.up   = nn.Upsample(scale_factor=2)
         self.down = nn.AvgPool2d(2)
-        self.conv_up   = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_down = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_net  = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_up   = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_down = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_net  = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.SE   = SEBlock(in_channels)
     
     def forward(self, x, skip_x):
@@ -130,10 +130,10 @@ class UpBlock(nn.Module):
         x_u = self.up(x)
         skip_x_d = self.down(skip_x) 
 
-        x_d = self.up(self.conv_down(torch.cat([x, skip_x_d], dim=1)))
-        x_u = self.conv_up(torch.cat([x_u, skip_x], dim=1))  
+        x_d = self.up(self.conv_down(x + skip_x_d))
+        x_u = self.conv_up(x_u + skip_x)  
   
-        x = self.conv_net(torch.cat([x_u, x_d], dim=1)) 
+        x = self.conv_net(x_u + x_d) 
 
         return x 
 
