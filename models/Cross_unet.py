@@ -83,15 +83,15 @@ class SEBlock(nn.Module):
             nn.Sigmoid(),
         )
 
-    def forward(self, x):
+    def forward(self, x, skip_x):
         b, c, _, _ = x.size()
         # Squeeze
         y = self.avg_pool(x).view(b, c)
         # Excitation
         y = self.fc(y).view(b, c, 1, 1)
         # Fusion
-        y = torch.mul(x, y)
-        return y
+        skip_x = torch.mul(skip_x, y)
+        return skip_x
 
 # class UpBlock(nn.Module):
 #     """Upscaling then conv"""
@@ -117,9 +117,11 @@ class UpBlock(nn.Module):
         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.SE   = SEBlock(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
+        skip_x = self.SE(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x 
@@ -766,9 +768,6 @@ class Cross_unet(nn.Module):
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        self.psa_1 = ParallelPolarizedSelfAttention(96)
-        self.psa_2 = ParallelPolarizedSelfAttention(96)
-        self.psa_3 = ParallelPolarizedSelfAttention(96)
 
     def forward(self, x):
         # # Question here
@@ -788,10 +787,6 @@ class Cross_unet(nn.Module):
         x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
-
-        x1 = self.psa_1(x1) + x1
-        x2 = self.psa_2(x2) + x2
-        x3 = self.psa_3(x3) + x3
 
         t = self.knitt(x1, x2, x3)
 
