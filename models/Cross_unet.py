@@ -116,16 +116,14 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.SE   = SEBlock(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = self.conv(x)
         # skip_x = self.SE(x, skip_x)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        x = x + skip_x
-        # x = self.conv(x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x 
 
 class ConvBatchNorm(nn.Module):
@@ -728,23 +726,49 @@ class Cross_unet(nn.Module):
 
         channel = 96
 
-        self.encoder_1 = CrossFormer(img_size=224,
-                                    patch_size=[4, 8, 16, 32],
-                                    in_chans= 3,
-                                    num_classes=1000,
-                                    embed_dim=96,
-                                    depths=[2, 2, 6, 2],
-                                    num_heads=[3, 6, 12, 24],
-                                    group_size=[7, 7, 7, 7],
-                                    mlp_ratio=4.,
-                                    qkv_bias=True,
-                                    qk_scale=None,
-                                    drop_rate=0.0,
-                                    drop_path_rate=0.2,
-                                    ape=False,
-                                    patch_norm=True,
-                                    use_checkpoint=False,
-                                    merge_size=[[2, 4], [2,4], [2, 4]])
+        # self.encoder_1 = CrossFormer(img_size=224,
+        #                             patch_size=[4, 8, 16, 32],
+        #                             in_chans= 3,
+        #                             num_classes=1000,
+        #                             embed_dim=96,
+        #                             depths=[2, 2, 6, 2],
+        #                             num_heads=[3, 6, 12, 24],
+        #                             group_size=[7, 7, 7, 7],
+        #                             mlp_ratio=4.,
+        #                             qkv_bias=True,
+        #                             qk_scale=None,
+        #                             drop_rate=0.0,
+        #                             drop_path_rate=0.2,
+        #                             ape=False,
+        #                             patch_norm=True,
+        #                             use_checkpoint=False,
+        #                             merge_size=[[2, 4], [2,4], [2, 4]])
+
+        self.encoder_1 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
 
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
