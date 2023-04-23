@@ -117,7 +117,7 @@ class UpBlock(nn.Module):
         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
         self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.att  = AxialImageTransformerAxialImageTransformer(dim = 96, depth = 12, reversible = True)
+        self.att  = AxialImageTransformer(dim = 96, depth = 12, reversible = True)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
