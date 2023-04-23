@@ -121,7 +121,7 @@ def main(args):
         model = U(bilinear=False).to(DEVICE)
 
     elif MODEL_NAME=='U_loss':
-        model = U_loss(bilinear=False).to(DEVICE)
+        model = U_loss().to(DEVICE)
 
     elif MODEL_NAME=='UCTransNet':
         config_vit = get_CTranS_config()
