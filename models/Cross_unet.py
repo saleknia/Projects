@@ -114,27 +114,16 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU', img_size=224):
         super(UpBlock, self).__init__()
-        self.up   = nn.Upsample(scale_factor=2)
-        self.down = nn.AvgPool2d(2)
-        self.conv_up   = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_down = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_net  = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+        self.up   = nn.Upsample(scale_factor=2.0)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.SE   = SEBlock(in_channels)
     
     def forward(self, x, skip_x):
-        # x = self.up(x) 
-        # # skip_x = self.SE(x, skip_x)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
-
-        x_u = self.up(x)
-        skip_x_d = self.down(skip_x) 
-
-        x_d = self.up(self.conv_down(x + skip_x_d))
-        x_u = self.conv_up(x_u + skip_x)  
-  
-        x = self.conv_net(x_u + x_d) 
-
+        x = self.up(x) 
+        # skip_x = self.SE(x, skip_x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.conv(x)
         return x 
 
 class ConvBatchNorm(nn.Module):
@@ -725,7 +714,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
 
 
 
-class Cross_unet(nn.Module):
+class Cross_unet_cross(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -757,6 +746,33 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
+        self.encoder_2 = DAT(
+                            img_size=224,
+                            patch_size=4,
+                            num_classes=1000,
+                            expansion=4,
+                            dim_stem=96,
+                            dims=[96, 192, 384, 768],
+                            depths=[2, 2, 6, 2],
+                            stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+                            heads=[3, 6, 12, 24],
+                            window_sizes=[7, 7, 7, 7] ,
+                            groups=[-1, -1, 3, 6],
+                            use_pes=[False, False, True, True],
+                            dwc_pes=[False, False, False, False],
+                            strides=[-1, -1, 1, 1],
+                            sr_ratios=[-1, -1, -1, -1],
+                            offset_range_factor=[-1, -1, 2, 2],
+                            no_offs=[False, False, False, False],
+                            fixed_pes=[False, False, False, False],
+                            use_dwc_mlps=[False, False, False, False],
+                            use_conv_patches=False,
+                            drop_rate=0.0,
+                            attn_drop_rate=0.0,
+                            drop_path_rate=0.2,
+                        )
+
+
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
@@ -764,6 +780,18 @@ class Cross_unet(nn.Module):
         self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.norm_3_2 = LayerNormProxy(dim=384)
+        self.norm_2_2 = LayerNormProxy(dim=192)
+        self.norm_1_2 = LayerNormProxy(dim=96)
+
+        self.conv_1_2 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_2 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.combine_1 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.combine_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.combine_3 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt(channel=channel)
 
@@ -778,6 +806,7 @@ class Cross_unet(nn.Module):
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
         self.MetaFormer_1 = MetaFormer()
+        self.MetaFormer_2 = MetaFormer()
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
@@ -788,6 +817,7 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         outputs_1 = self.encoder_1(x_input)
+        outputs_2 = self.encoder_2(x_input)
 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
@@ -798,6 +828,20 @@ class Cross_unet(nn.Module):
         x1 = self.conv_1_1(x1) 
 
         x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
+
+        e3 = self.norm_3_2(outputs_2[2]) 
+        e2 = self.norm_2_2(outputs_2[1]) 
+        e1 = self.norm_1_2(outputs_2[0])
+
+        e3 = self.conv_3_2(e3)
+        e2 = self.conv_2_2(e2) 
+        e1 = self.conv_1_2(e1) 
+
+        e1, e2, e3 = self.MetaFormer_2(e1, e2, e3)
+
+        x1 = self.combine_1(torch.cat([x1, e1], dim=1))
+        x2 = self.combine_2(torch.cat([x2, e2], dim=1))
+        x3 = self.combine_3(torch.cat([x3, e3], dim=1))
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
