@@ -203,7 +203,7 @@ class knitt(nn.Module):
         self.fusion_e2 = UpBlock(96, 96)
         self.fusion_e1 = UpBlock(96, 96)
 
-        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=0)
+        self.combine = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
