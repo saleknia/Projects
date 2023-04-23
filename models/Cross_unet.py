@@ -613,14 +613,14 @@ class MetaFormer(nn.Module):
         x: B, H*W, C
         """
 
-        x1_d1 = self.x1_d1(self.down_sample11(x1))
-        x1_d2 = self.x1_d2(self.down_sample12(x1))
+        x1_d1 = self.W_x1_d1(self.down_sample11(x1))
+        x1_d2 = self.W_x1_d2(self.down_sample12(x1))
 
-        x2_d1 = self.x2_d1(self.down_sample21(x2))
-        x2_u1 = self.x2_u1(self.up_sample21(x2))
+        x2_d1 = self.W_x2_d1(self.down_sample21(x2))
+        x2_u1 = self.W_x2_u1(self.up_sample21(x2))
 
-        x3_u1 = self.x3_u1(self.up_sample31(x3))
-        x3_u2 = self.x3_u2(self.up_sample32(x3))
+        x3_u1 = self.W_x3_u1(self.up_sample31(x3))
+        x3_u2 = self.W_x3_u2(self.up_sample32(x3))
 
         x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
         x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
