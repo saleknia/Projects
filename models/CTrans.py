@@ -64,7 +64,7 @@ class Reconstruct(nn.Module):
         h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
         x = x.permute(0, 2, 1)
         x = x.contiguous().view(B, hidden, h, w)
-        # x = nn.Upsample(scale_factor=self.scale_factor)(x)
+        x = nn.Upsample(scale_factor=self.scale_factor)(x)
 
         out = self.conv(x)
         out = self.norm(out)
