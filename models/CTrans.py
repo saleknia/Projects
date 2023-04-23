@@ -299,8 +299,8 @@ class ChannelTransformer(nn.Module):
         x1 = self.reconstruct_1(encoded1) if en1 is not None else None
         x2 = self.reconstruct_2(encoded2) if en2 is not None else None
 
-        x1 = x1 # + en1  if en1 is not None else None
-        x2 = x2 # + en2  if en2 is not None else None
+        x1 = x1 + en1  if en1 is not None else None
+        x2 = x2 + en2  if en2 is not None else None
 
         return x1, x2
 
