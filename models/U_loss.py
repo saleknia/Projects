@@ -1,121 +1,165 @@
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-import math
+from torchvision import models as resnet_model
+from torch import nn
 
 
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
 
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
 
-class DoubleConv(nn.Module):
-    """(convolution => [BN] => ReLU) * 2"""
-
-    def __init__(self, in_channels, out_channels, mid_channels=None):
-        super().__init__()
-        int_in_channels = in_channels
-        int_out_channels = out_channels
-        
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(in_channels, int_in_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(int_in_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_in_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(int_out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_out_channels, int_out_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(int_out_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(int_out_channels, out_channels, kernel_size=1, padding=0, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True),           
-        )
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return self.double_conv(x)
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
 
 
-class Down(nn.Module):
-    """Downscaling with maxpool then double conv"""
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
 
-    def __init__(self, in_channels, out_channels):
-        super().__init__()
-        self.maxpool_conv = nn.Sequential(
-            nn.MaxPool2d(2),
-            DoubleConv(in_channels, out_channels)
-        )
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
 
-    def forward(self, x):
-        return self.maxpool_conv(x)
-
-class Up(nn.Module):
-    """Upscaling then double conv"""
-
-    def __init__(self, in_channels, out_channels, bilinear=True):
-        super().__init__()
-
-        # if bilinear, use the normal convolutions to reduce the number of channels
-        if bilinear:
-            self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-            self.conv = DoubleConv(in_channels, out_channels, in_channels // 2)
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
         else:
-            self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-            self.conv = DoubleConv(in_channels, out_channels)
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
 
-    def forward(self, x1, x2):
-        x1 = self.up(x1)
-        # input is CHW
-        diffY = x2.size()[2] - x1.size()[2]
-        diffX = x2.size()[3] - x1.size()[3]
-
-        x1 = F.pad(x1, [diffX // 2, diffX - diffX // 2,
-                        diffY // 2, diffY - diffY // 2])
-        # if you have padding issues, see
-        # https://github.com/HaiyongJiang/U-Net-Pytorch-Unstructured-Buggy/commit/0e854509c2cea854e247a9c615f175f76fbb2e3a
-        # https://github.com/xiaopeng-liao/Pytorch-UNet/commit/8ebac70e633bac59fc22bb5195e513d5832fb3bd
-        x = torch.cat([x2, x1], dim=1)
-        return self.conv(x)
-
-class OutConv(nn.Module):
-    def __init__(self, in_channels, out_channels):
-        super(OutConv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=1)
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        return self.conv(x)
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
+
+
+class SEBlock(nn.Module):
+    def __init__(self, channel, r=16):
+        super(SEBlock, self).__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channel, channel // r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(channel // r, channel, bias=False),
+            nn.Sigmoid(),
+        )
+
+    def forward(self, x):
+        b, c, _, _ = x.size()
+        # Squeeze
+        y = self.avg_pool(x).view(b, c)
+        # Excitation
+        y = self.fc(y).view(b, c, 1, 1)
+        # Fusion
+        y = torch.mul(x, y)
+        return y
+
 
 class U_loss(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1, bilinear=False):
+    def __init__(self, n_channels=3, n_classes=1):
         super(U_loss, self).__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-        self.bilinear = bilinear
-        # self.bilinear = True
-        in_channels = 64
-        self.inc = DoubleConv(n_channels, in_channels)
-        self.down1 = Down(in_channels  , in_channels*2)
-        self.down2 = Down(in_channels*2, in_channels*4)
-        self.down3 = Down(in_channels*4, in_channels*8)
-        factor = 2 if bilinear else 1
-        self.down4 = Down(in_channels*8, (in_channels*16) // factor)
-        self.up1 = Up(in_channels*16, in_channels*8  // factor, bilinear)
-        self.up2 = Up(in_channels*8 , in_channels*4 // factor, bilinear)
-        self.up3 = Up(in_channels*4 , (in_channels*2) // factor, bilinear)
-        self.up4 = Up(in_channels*2 , in_channels , bilinear)
-        self.outc = OutConv(in_channels , n_classes)
 
-    def forward(self, x, multiple=False):
-        x1 = self.inc(x)
-        x2 = self.down1(x1)
-        x3 = self.down2(x2)
-        x4 = self.down3(x3)
-        x5 = self.down4(x4)
-        up1 = self.up1(x5, x4)
-        up2 = self.up2(up1, x3)
-        up3 = self.up3(up2, x2)
-        up4 = self.up4(up3, x1)
-        logits = self.outc(up4)
+        transformer = torch.hub.load('facebookresearch/deit:main', 'deit_tiny_distilled_patch16_224', pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        if multiple:
-            return logits, up1, up2, up3, up4, x1, x2, x3, x4, x5
-        else:
-            return logits
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.encoder1 = resnet.layer1
+        self.encoder2 = resnet.layer2
+        self.encoder3 = resnet.layer3
+        self.encoder4 = resnet.layer4
+
+        self.patch_embed = transformer.patch_embed
+        self.transformers = nn.ModuleList(
+            [transformer.blocks[i] for i in range(12)]
+        )
+
+        self.conv_seq_img = nn.Conv2d(in_channels=192, out_channels=512, kernel_size=1, padding=0)
+        self.se = SEBlock(channel=1024)
+        self.conv2d = nn.Conv2d(in_channels=1024, out_channels=512, kernel_size=1, padding=0)
+
+        self.FAMBlock1 = FAMBlock(channels=64)
+        self.FAMBlock2 = FAMBlock(channels=128)
+        self.FAMBlock3 = FAMBlock(channels=256)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+
+        filters = [64, 128, 256, 512]
+        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
+        self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
+
+        self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 3, padding=1)
+
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        feature_cnn = self.encoder4(e3)
+
+        emb = self.patch_embed(x)
+        for i in range(12):
+            emb = self.transformers[i](emb)
+        feature_tf = emb.permute(0, 2, 1)
+        feature_tf = feature_tf.view(b, 192, 14, 14)
+        feature_tf = self.conv_seq_img(feature_tf)
+
+        feature_cat = torch.cat((feature_cnn, feature_tf), dim=1)
+        feature_att = self.se(feature_cat)
+        feature_out = self.conv2d(feature_att)
+
+        for i in range(2):
+            e3 = self.FAM3[i](e3)
+        for i in range(4):
+            e2 = self.FAM2[i](e2)
+        for i in range(6):
+            e1 = self.FAM1[i](e1)
+        d4 = self.decoder4(feature_out) + e3
+        d3 = self.decoder3(d4) + e2
+        d2 = self.decoder2(d3) + e1
+
+        out1 = self.final_conv1(d2)
+        out1 = self.final_relu1(out1)
+        out = self.final_conv2(out1)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
+
+        return out
