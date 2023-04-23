@@ -114,8 +114,8 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU', img_size=224):
         super(UpBlock, self).__init__()
-        self.up   = nn.Upsample(scale_factor=2.0)
-        self.down = nn.AvgPool2d(2.0)
+        self.up   = nn.Upsample(scale_factor=2)
+        self.down = nn.AvgPool2d(2)
         self.conv_up   = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_down = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_net  = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
