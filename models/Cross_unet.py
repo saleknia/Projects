@@ -921,13 +921,14 @@ class Cross_unet(nn.Module):
 
         self.cross = Cross_unet_cross()
         self.dat   = Cross_unet_dat()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        t = self.Cross_unet_cross(x_input)
-        y = self.Cross_unet_dat(x_input)
+        t = self.cross(x_input)
+        y = self.dat(x_input)
 
         if self.training:
             return t, y
