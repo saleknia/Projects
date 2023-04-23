@@ -578,19 +578,49 @@ class MetaFormer(nn.Module):
 
         self.sigmoid = torch.nn.Sigmoid()
 
+        self.W_x1_d1 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x1_d2 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x2_d1 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x2_u1 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x3_u1 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x3_u2 = nn.Sequential(
+            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
     def forward(self, x1, x2, x3):
         """
         x: B, H*W, C
         """
 
-        x1_d1 = self.down_sample11(x1)
-        x1_d2 = self.down_sample12(x1)
+        x1_d1 = self.x1_d1(self.down_sample11(x1))
+        x1_d2 = self.x1_d2(self.down_sample12(x1))
 
-        x2_d1 = self.down_sample21(x2)
-        x2_u1 = self.up_sample21(x2)
+        x2_d1 = self.x2_d1(self.down_sample21(x2))
+        x2_u1 = self.x2_u1(self.up_sample21(x2))
 
-        x3_u1 = self.up_sample31(x3)
-        x3_u2 = self.up_sample32(x3)
+        x3_u1 = self.x3_u1(self.up_sample31(x3))
+        x3_u2 = self.x3_u2(self.up_sample32(x3))
 
         x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
         x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
@@ -733,9 +763,9 @@ class Cross_unet(nn.Module):
 
         self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
-        # self.MetaFormer = MetaFormer()
+        self.MetaFormer = MetaFormer()
 
-        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         # self.psa_1 = ParallelPolarizedSelfAttention(96)
         # self.psa_2 = ParallelPolarizedSelfAttention(96)
@@ -760,7 +790,7 @@ class Cross_unet(nn.Module):
         # x2 = self.psa_2(x2)
         # x1 = self.psa_1(x1)
 
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
