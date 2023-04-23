@@ -116,13 +116,13 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels*2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.att  = CoTAttention(in_channels)
     
     def forward(self, x, skip_x):
         x = self.up(x) 
         x = self.att(x, skip_x)
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         x = self.conv(x)
         return x 
 
