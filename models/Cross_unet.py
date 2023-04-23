@@ -2352,4 +2352,6 @@ class DilatedParllelResidualBlockB(nn.Module):
         combine = self.combine(torch.cat([d1, d2, d4, d8], 1))
         combine = input + combine
 
+        return combine
+
 
