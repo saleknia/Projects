@@ -449,7 +449,7 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-        valid_loader = DataLoader(test_dataset, # valid_dataset,
+        valid_loader = DataLoader(test_dataset, #valid_dataset,
                                 batch_size=30,
                                 shuffle=False,
                                 worker_init_fn=worker_init,

@@ -712,7 +712,7 @@ class ParallelPolarizedSelfAttention(nn.Module):
         out=spatial_out+channel_out
         return out
 
-class Cross_unet(nn.Module):
+class Cross_unet_dat(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -821,6 +821,118 @@ class Cross_unet(nn.Module):
         t = self.tp_conv2(t)
 
         return t
+
+class Cross_unet_cross(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        channel = 96
+
+        self.encoder_1 = CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.2,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
+
+        self.norm_3_1 = LayerNormProxy(dim=384)
+        self.norm_2_1 = LayerNormProxy(dim=192)
+        self.norm_1_1 = LayerNormProxy(dim=96)
+
+        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        self.knitt = knitt(channel=channel)
+
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
+        # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
+
+        self.MetaFormer_1 = MetaFormer()
+
+        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+
+
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
+
+        outputs_1 = self.encoder_1(x_input)
+
+        x3 = self.norm_3_1(outputs_1[2]) 
+        x2 = self.norm_2_1(outputs_1[1]) 
+        x1 = self.norm_1_1(outputs_1[0])
+
+        x3 = self.conv_3_1(x3)
+        x2 = self.conv_2_1(x2) 
+        x1 = self.conv_1_1(x1) 
+
+        x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
+
+        # x1, x2, x3 = self.mtc(x1, x2, x3)
+
+        t = self.knitt(x1, x2, x3)
+
+        t = self.tp_conv1(t)
+        t = self.conv2(t)
+        t = self.tp_conv2(t)
+
+        return t
+
+
+class Cross_unet_cross(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        self.cross = Cross_unet_cross()
+        self.dat   = Cross_unet_dat()
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
+
+        t = self.Cross_unet_cross(x_input)
+        y = self.Cross_unet_dat(x_input)
+
+        if self.training:
+            return t, y
+        else:
+            return (t+y)/2
 
 import math
 import torch
