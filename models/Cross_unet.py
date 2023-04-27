@@ -551,14 +551,14 @@ import ml_collections
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 192  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 384  # KV_size = Q1 + Q2 + Q3 + Q4
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0
-    config.patch_sizes = [1,1]
+    config.patch_sizes = [8, 4, 2, 1]
     config.base_channel = 96 # base channel of U-Net
     config.n_classes = 1
     return config
@@ -766,9 +766,9 @@ class Cross_unet(nn.Module):
 
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
-        self.MetaFormer_1 = MetaFormer()
+        # self.MetaFormer_1 = MetaFormer()
 
-        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
@@ -791,13 +791,13 @@ class Cross_unet(nn.Module):
         x2 = self.conv_2_1(x2) 
         x1 = self.conv_1_1(x1) 
 
-        x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
+        # x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
         # x1 = self.DA_1(x1)[0]
         # x2 = self.DA_2(x2)[0]
         # x3 = self.DA_3(x3)[0]
 
-        # x1, x2, x3 = self.mtc(x1, x2, x3)
+        x1, x2, x3 = self.mtc(x1, x2, x3, x4)
 
         t = self.knitt(x1, x2, x3, x4)
 
