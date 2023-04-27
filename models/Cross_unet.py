@@ -198,12 +198,14 @@ class knitt(nn.Module):
     def __init__(self, channel):
         super(knitt, self).__init__()
 
+        self.fusion_x3 = UpBlock(96, 96, img_size=28)
         self.fusion_x2 = UpBlock(96, 96, img_size=28)
         self.fusion_x1 = UpBlock(96, 96, img_size=56)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x1, x2, x3, x4):
 
-        x = self.fusion_x2(x3, x2)
+        x = self.fusion_x3(x4, x3)
+        x = self.fusion_x2(x , x3)
         x = self.fusion_x1(x , x1)
 
         return x
@@ -742,6 +744,7 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
+        self.norm_4_1 = LayerNormProxy(dim=768)
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
@@ -749,6 +752,7 @@ class Cross_unet(nn.Module):
         self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_4_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt(channel=channel)
 
@@ -777,10 +781,12 @@ class Cross_unet(nn.Module):
 
         outputs_1 = self.encoder_1(x_input)
 
+        x4 = self.norm_4_1(outputs_1[3]) 
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
+        x4 = self.conv_4_1(x4)
         x3 = self.conv_3_1(x3)
         x2 = self.conv_2_1(x2) 
         x1 = self.conv_1_1(x1) 
@@ -793,7 +799,7 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
-        t = self.knitt(x1, x2, x3)
+        t = self.knitt(x1, x2, x3, x4)
 
         t = self.tp_conv1(t)
         t = self.conv2(t)
@@ -1445,7 +1451,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        self.layers[3] = None
+        # self.layers[3] = None
 
         # for param in self.layers[1].parameters():
         #     param.requires_grad = False
@@ -1475,8 +1481,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        for i, layer in enumerate(self.layers[0:3]):
-        # for i, layer in enumerate(self.layers):
+        # for i, layer in enumerate(self.layers[0:3]):
+        for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
