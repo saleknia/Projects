@@ -766,7 +766,7 @@ class Cross_unet(nn.Module):
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        self.DA_1, self.DA_2, self.DA_3 = get_stage()
+        # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
 
 
@@ -787,9 +787,9 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
-        x1 = self.DA_1(x1)[0]
-        x2 = self.DA_2(x2)[0]
-        x3 = self.DA_3(x3)[0]
+        # x1 = self.DA_1(x1)[0]
+        # x2 = self.DA_2(x2)[0]
+        # x3 = self.DA_3(x3)[0]
 
         # x1, x2, x3 = self.mtc(x1, x2, x3)
 
