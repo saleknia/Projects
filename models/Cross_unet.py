@@ -797,7 +797,7 @@ class Cross_unet(nn.Module):
         # x2 = self.DA_2(x2)[0]
         # x3 = self.DA_3(x3)[0]
 
-        x1, x2, x3 = self.mtc(x1, x2, x3, x4)
+        x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
 
         t = self.knitt(x1, x2, x3, x4)
 
