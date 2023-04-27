@@ -752,7 +752,7 @@ class Cross_unet(nn.Module):
         self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
         self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_4_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_4_1 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt(channel=channel)
 
