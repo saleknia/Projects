@@ -332,10 +332,10 @@ class ChannelTransformer(nn.Module):
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
         self.patchSize_4 = patchSize[3]
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size,    in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//2, in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//4, in_channels=channel_num[2])
-        self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//8, in_channels=channel_num[3])
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//4 , in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//8 , in_channels=channel_num[1])
+        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2])
+        self.embeddings_4 = Channel_Embeddings(config,self.patchSize_4, img_size=img_size//32, in_channels=channel_num[3])
         self.encoder = Encoder(config, vis, channel_num)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
