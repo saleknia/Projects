@@ -766,9 +766,8 @@ class Cross_unet(nn.Module):
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
-        self.DA_1 = get_stage()
-        self.DA_2 = get_stage()
-        self.DA_3 = get_stage()
+        self.DA_1, self.DA_2, self.DA_3 = get_stage()
+
 
 
     def forward(self, x):
@@ -2064,16 +2063,16 @@ def get_stage():
     expansion=4,
     dim_stem=96,
     dims=[96, 96, 96, 96],
-    depths=[2, 2, 6, 2],
-    stage_spec=[['L', 'S'], ['L', 'S'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
-    heads=[3, 6, 12, 24],
+    depths=[6, 6, 6, 2],
+    stage_spec=[['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D', 'L', 'D', 'L', 'D'], ['L', 'D']],
+    heads=[3, 3, 3, 24],
     window_sizes=[7, 7, 7, 7] ,
-    groups=[-1, -1, 3, 6],
-    use_pes=[False, False, True, True],
+    groups=[3, 3, 3, 6],
+    use_pes=[True, True, True, True],
     dwc_pes=[False, False, False, False],
-    strides=[-1, -1, 1, 1],
+    strides=[1, 1, 1, 1],
     sr_ratios=[-1, -1, -1, -1],
-    offset_range_factor=[-1, -1, 2, 2],
+    offset_range_factor=[2, 2, 2, 2],
     no_offs=[False, False, False, False],
     fixed_pes=[False, False, False, False],
     use_dwc_mlps=[False, False, False, False],
@@ -2082,6 +2081,6 @@ def get_stage():
     drop_rate=0.0,
     attn_drop_rate=0.0,
     drop_path_rate=0.2)
-    return encoder.stages[2]
+    return encoder.stages[0], encoder.stages[1], encoder.stages[2]
 
  
