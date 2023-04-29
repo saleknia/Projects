@@ -97,6 +97,9 @@ class SEUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
+        # for param in resnet.parameters():
+        #     param.requires_grad = False
+
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
