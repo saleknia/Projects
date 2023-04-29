@@ -139,8 +139,8 @@ class SEUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
-        # for param in resnet.parameters():
-        #     param.requires_grad = False
+        for param in resnet.parameters():
+            param.requires_grad = False
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
@@ -163,9 +163,20 @@ class SEUNet(nn.Module):
         # self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
 
         self.decoder_1 = decoder_1()
+        
+        for param in decoder_1.parameters():
+            param.requires_grad = False
+
         self.decoder_2 = decoder_2()
+
+        # for param in decoder_2.parameters():
+        #     param.requires_grad = False
+
         self.decoder_3 = decoder_3()
-   
+
+        # for param in decoder_3.parameters():
+        #     param.requires_grad = False
+             
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
@@ -180,11 +191,11 @@ class SEUNet(nn.Module):
         e4 = self.encoder4(e3)
 
 
-        x = self.decoder_1(e1, e2, e3, e4)
-        # y = self.decoder_2(e1, e2, e3, e4)
+        # x = self.decoder_1(e1, e2, e3, e4)
+        y = self.decoder_2(e1, e2, e3, e4)
         # z = self.decoder_3(e1, e2, e3, e4)
 
-        return x
+        return y
 
 
 def get_activation(activation_type):  
