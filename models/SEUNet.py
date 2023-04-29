@@ -48,10 +48,24 @@ class decoder_1(nn.Module):
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
         self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
 
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+                
+        self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
+        
     def forward(self, e1, e2, e3, e4):
         e = self.up3(e4, e3) 
         e = self.up2(e , e2) 
         e = self.up1(e , e1)
+
+        e = self.tp_conv1(e)
+        e = self.conv2(e)
+        e = self.tp_conv2(e)
+
         return e
 
 class decoder_2(nn.Module):
@@ -62,10 +76,24 @@ class decoder_2(nn.Module):
         self.up2 = UpBlock_2(in_channels=256, out_channels=128)
         self.up1 = UpBlock_2(in_channels=128, out_channels=64 )
 
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+                
+        self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
+
     def forward(self, e1, e2, e3, e4):
         e = self.up3(e4, e3) 
         e = self.up2(e , e2) 
         e = self.up1(e , e1)
+
+        e = self.tp_conv1(e)
+        e = self.conv2(e)
+        e = self.tp_conv2(e)
+
         return e
 
 
@@ -77,10 +105,24 @@ class decoder_3(nn.Module):
         self.up2 = UpBlock_2(in_channels=256, out_channels=128)
         self.up1 = UpBlock_2(in_channels=128, out_channels=64 )
 
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+                
+        self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
+
     def forward(self, e1, e2, e3, e4):
         e = self.up3(e4, e3) 
         e = self.up2(e , e2) 
         e = self.up1(e , e1)
+
+        e = self.tp_conv1(e)
+        e = self.conv2(e)
+        e = self.tp_conv2(e)
+
         return e
 
 class SEUNet(nn.Module):
@@ -109,16 +151,16 @@ class SEUNet(nn.Module):
         self.encoder3  = resnet.layer3
         self.encoder4  = resnet.layer4
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
-                                nn.ReLU(inplace=True),)
+        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+        #                               nn.BatchNorm2d(32),
+        #                               nn.ReLU(inplace=True),)
+        # self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+        #                         nn.BatchNorm2d(32),
+        #                         nn.ReLU(inplace=True),)
         
-        # self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        # # self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
         
-        self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
+        # self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
 
         self.decoder_1 = decoder_1()
         self.decoder_2 = decoder_2()
