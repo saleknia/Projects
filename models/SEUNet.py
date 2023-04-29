@@ -56,7 +56,7 @@ class decoder_1(nn.Module):
                                 nn.ReLU(inplace=True),)
                 
         self.tp_conv2 = nn.Conv2d(32, 1, 1, 1, 0)
-        
+
     def forward(self, e1, e2, e3, e4):
         e = self.up3(e4, e3) 
         e = self.up2(e , e2) 
@@ -180,11 +180,11 @@ class SEUNet(nn.Module):
         e4 = self.encoder4(e3)
 
 
-        x = self.decoder_1(e1, e2, e3, e4)
+        # x = self.decoder_1(e1, e2, e3, e4)
         # y = self.decoder_2(e1, e2, e3, e4)
-        # z = self.decoder_3(e1, e2, e3, e4)
+        z = self.decoder_3(e1, e2, e3, e4)
 
-        return x
+        return z
 
 
 def get_activation(activation_type):  
