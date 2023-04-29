@@ -169,8 +169,8 @@ class SEUNet(nn.Module):
 
         self.decoder_2 = decoder_2()
 
-        # for param in self.decoder_2.parameters():
-        #     param.requires_grad = False
+        for param in self.decoder_2.parameters():
+            param.requires_grad = False
 
         self.decoder_3 = decoder_3()
 
@@ -192,10 +192,10 @@ class SEUNet(nn.Module):
 
 
         # x = self.decoder_1(e1, e2, e3, e4)
-        y = self.decoder_2(e1, e2, e3, e4)
-        # z = self.decoder_3(e1, e2, e3, e4)
+        # y = self.decoder_2(e1, e2, e3, e4)
+        z = self.decoder_3(e1, e2, e3, e4)
 
-        return y
+        return z
 
 
 def get_activation(activation_type):  
