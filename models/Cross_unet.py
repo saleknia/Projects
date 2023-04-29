@@ -671,46 +671,41 @@ class AttentionBlock(nn.Module):
         out = skip_connection * psi
         return out 
 
-class ParallelPolarizedSelfAttention(nn.Module):
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
 
-    def __init__(self, channel=512):
-        super().__init__()
-        self.ch_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.ch_wq=nn.Conv2d(channel,1,kernel_size=(1,1))
-        self.softmax_channel=nn.Softmax(1)
-        self.softmax_spatial=nn.Softmax(-1)
-        self.ch_wz=nn.Conv2d(channel//2,channel,kernel_size=(1,1))
-        self.ln=nn.LayerNorm(channel)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
 
-    def forward(self, x):
-        b, c, h, w = x.size()
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
 
-        #Channel-only Self-Attention
-        channel_wv=self.ch_wv(x) #bs,c//2,h,w
-        channel_wq=self.ch_wq(x) #bs,1,h,w
-        channel_wv=channel_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        channel_wq=channel_wq.reshape(b,-1,1) #bs,h*w,1
-        channel_wq=self.softmax_channel(channel_wq)
-        channel_wz=torch.matmul(channel_wv,channel_wq).unsqueeze(-1) #bs,c//2,1,1
-        channel_weight=self.sigmoid(self.ln(self.ch_wz(channel_wz).reshape(b,c,1).permute(0,2,1))).permute(0,2,1).reshape(b,c,1,1) #bs,c,1,1
-        channel_out=channel_weight*x
+        self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
+        self.norm3 = nn.BatchNorm2d(out_channels)
+        self.relu3 = nn.ReLU(inplace=True)
 
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=spatial_weight*x
-        out=spatial_out+channel_out
-        return out
+        # self.SK = SKAttention(out_channels)
+
+    def forward(self, x, skip_x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        # return self.SK(x, skip_x)
+        return x + skip_x
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -749,12 +744,16 @@ class Cross_unet(nn.Module):
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
 
-        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_4_1 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        # self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_4_1 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.knitt = knitt(channel=channel)
+        # self.knitt = knitt(channel=channel)
+
+        self.up3 = DecoderBottleneckLayer(in_channels=768, out_channels=384)
+        self.up2 = DecoderBottleneckLayer(in_channels=384, out_channels=192)
+        self.up1 = DecoderBottleneckLayer(in_channels=192, out_channels=96 )
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
@@ -768,7 +767,7 @@ class Cross_unet(nn.Module):
 
         # self.MetaFormer_1 = MetaFormer()
 
-        self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
+        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
@@ -786,10 +785,10 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        x4 = self.conv_4_1(x4)
-        x3 = self.conv_3_1(x3)
-        x2 = self.conv_2_1(x2) 
-        x1 = self.conv_1_1(x1) 
+        # x4 = self.conv_4_1(x4)
+        # x3 = self.conv_3_1(x3)
+        # x2 = self.conv_2_1(x2) 
+        # x1 = self.conv_1_1(x1) 
 
         # x1, x2, x3 = self.MetaFormer_1(x1, x2, x3)
 
@@ -797,15 +796,20 @@ class Cross_unet(nn.Module):
         # x2 = self.DA_2(x2)[0]
         # x3 = self.DA_3(x3)[0]
 
-        x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
+        # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
 
-        t = self.knitt(x1, x2, x3, x4)
+        # t = self.knitt(x1, x2, x3, x4)
 
-        t = self.tp_conv1(t)
-        t = self.conv2(t)
-        t = self.tp_conv2(t)
+        x = self.up3(x4, x3) 
+        x = self.up2(x , x2) 
+        x = self.up1(x , x1)
 
-        return t
+
+        x = self.tp_conv1(x)
+        x = self.conv2(x)
+        x = self.tp_conv2(x)
+
+        return x
 
 
 class CoTAttention(nn.Module):
