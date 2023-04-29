@@ -164,17 +164,17 @@ class SEUNet(nn.Module):
 
         self.decoder_1 = decoder_1()
         
-        for param in decoder_1.parameters():
+        for param in self.decoder_1.parameters():
             param.requires_grad = False
 
         self.decoder_2 = decoder_2()
 
-        # for param in decoder_2.parameters():
+        # for param in self.decoder_2.parameters():
         #     param.requires_grad = False
 
         self.decoder_3 = decoder_3()
 
-        # for param in decoder_3.parameters():
+        # for param in self.decoder_3.parameters():
         #     param.requires_grad = False
              
     def forward(self, x):
