@@ -751,13 +751,13 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt(channel=channel)
 
-        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-        #                               nn.BatchNorm2d(32),
-        #                               nn.ReLU(inplace=True),)
-        # self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-        #                         nn.BatchNorm2d(32),
-        #                         nn.ReLU(inplace=True),)
-        # self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
@@ -799,9 +799,9 @@ class Cross_unet(nn.Module):
         # x = self.upf2(x , x2) 
         # x = self.upf1(x , x1)
 
-        # x = self.tp_conv1(x)
-        # x = self.conv2(x)
-        # x = self.tp_conv2(x)
+        x = self.tp_conv1(x)
+        x = self.conv2(x)
+        x = self.tp_conv2(x)
 
         return x
 
