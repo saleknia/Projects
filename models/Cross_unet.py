@@ -198,9 +198,9 @@ class knitt(nn.Module):
     def __init__(self, channel):
         super(knitt, self).__init__()
 
-        self.fusion_x3 = UpBlock(96, 96, img_size=28)
-        self.fusion_x2 = UpBlock(96, 96, img_size=28)
-        self.fusion_x1 = UpBlock(96, 96, img_size=56)
+        self.fusion_x3 = UpBlock(96, 96)
+        self.fusion_x2 = UpBlock(96, 96)
+        self.fusion_x1 = UpBlock(96, 96)
 
     def forward(self, x1, x2, x3, x4):
 
@@ -721,31 +721,13 @@ class Cross_unet(nn.Module):
 
         channel = 96
 
-        # self.encoder_1 = CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.2,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
-
         self.encoder_1 = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
-                                    embed_dim=64,
-                                    depths=[1, 1, 8, 6],
-                                    num_heads=[2, 4, 8, 16],
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
                                     qkv_bias=True,
@@ -757,29 +739,25 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4_1 = LayerNormProxy(dim=512)
-        self.norm_3_1 = LayerNormProxy(dim=256)
-        self.norm_2_1 = LayerNormProxy(dim=128)
-        self.norm_1_1 = LayerNormProxy(dim=64)
+        self.norm_4_1 = LayerNormProxy(dim=768)
+        self.norm_3_1 = LayerNormProxy(dim=384)
+        self.norm_2_1 = LayerNormProxy(dim=192)
+        self.norm_1_1 = LayerNormProxy(dim=96)
 
-        # self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        # self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_4_1 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        self.conv_3_1 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_4_1 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        # self.knitt = knitt(channel=channel)
+        self.knitt = knitt(channel=channel)
 
-        self.upf3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.upf2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.upf1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
-
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+        #                               nn.BatchNorm2d(32),
+        #                               nn.ReLU(inplace=True),)
+        # self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+        #                         nn.BatchNorm2d(32),
+        #                         nn.ReLU(inplace=True),)
+        # self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
@@ -788,22 +766,6 @@ class Cross_unet(nn.Module):
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
-
-        resnet = resnet_model.resnet18(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
-
-        self.ups3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.ups2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.ups1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
-
 
 
     def forward(self, x):
@@ -818,16 +780,6 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        e0 = self.firstconv(x_input)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
-
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
-
         # x4 = self.conv_4_1(x4)
         # x3 = self.conv_3_1(x3)
         # x2 = self.conv_2_1(x2) 
@@ -841,28 +793,15 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
 
-        # t = self.knitt(x1, x2, x3, x4)
+        x = self.knitt(x1, x2, x3, x4)
 
         # x = self.upf3(x4, x3) 
         # x = self.upf2(x , x2) 
         # x = self.upf1(x , x1)
 
-        e3 = self.upf3(x4, e3)
-        x3 = self.ups3(e4, x3) 
-
-        e2 = self.upf2(x3, e2)
-        x2 = self.ups2(e3, x2) 
-
-        e1 = self.upf1(x2, e1)
-        x1 = self.ups1(e2, x1) 
-
-        x = e1 + x1
-
-
-
-        x = self.tp_conv1(x)
-        x = self.conv2(x)
-        x = self.tp_conv2(x)
+        # x = self.tp_conv1(x)
+        # x = self.conv2(x)
+        # x = self.tp_conv2(x)
 
         return x
 
