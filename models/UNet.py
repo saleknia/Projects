@@ -237,6 +237,11 @@ class MetaFormer(nn.Module):
             nn.BatchNorm2d(1)
         )
 
+        self.conv_1 = _make_nConv(in_channels=32, out_channels=32, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_2 = _make_nConv(in_channels=32, out_channels=32, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_3 = _make_nConv(in_channels=32, out_channels=32, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+
     def forward(self, x1, x2, x3):
         """
         x: B, H*W, C
@@ -245,6 +250,10 @@ class MetaFormer(nn.Module):
         x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3)*(x3))+(self.sigmoid(x2)*(x2)))
         x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3)*(x3))+(self.sigmoid(x1)*(x1)))
         x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2)*(x2))+(self.sigmoid(x1)*(x1)))
+
+        x1 = self.conv_1(x1)
+        x2 = self.conv_2(x2)
+        x3 = self.conv_3(x3)
 
         return x1, x2, x3
 
