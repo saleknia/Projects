@@ -60,12 +60,12 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = self.conv(x)
         x = x + skip_x
+        x = self.conv(x)
         return x
 
 # class UpBlock(nn.Module):
@@ -131,10 +131,6 @@ class UNet(nn.Module):
 
         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.conv_z2 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_z3 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_z4 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
@@ -175,14 +171,12 @@ class UNet(nn.Module):
         yl = self.encoder.stage2(xl)
 
         z2 = self.up1_2(yl[1], yl[0])
-        z2 = self.conv_z2(z2)  
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
         z3 = self.up2_3(yl[2], yl[1]) 
         z3 = self.up1_3(z3   , yl[0]) 
-        z3 = self.conv_z3(z3)  
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
@@ -190,9 +184,8 @@ class UNet(nn.Module):
         z4 = self.up3_4(yl[3], yl[2]) 
         z4 = self.up2_4(z4   , yl[1]) 
         z4 = self.up1_4(z4   , yl[0]) 
-        z4 = self.conv_z4(z4)
 
-        z2, z3, z4 = self.MetaFormer(z2, z3, z4)  
+        # z2, z3, z4 = self.MetaFormer(z2, z3, z4)  
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         # z3 = self.ESP_3(z3)
