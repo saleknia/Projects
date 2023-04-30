@@ -757,10 +757,10 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4_1 = LayerNormProxy(dim=768)
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.norm_4_1 = LayerNormProxy(dim=512)
+        self.norm_3_1 = LayerNormProxy(dim=256)
+        self.norm_2_1 = LayerNormProxy(dim=128)
+        self.norm_1_1 = LayerNormProxy(dim=64)
 
         # self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
@@ -769,17 +769,17 @@ class Cross_unet(nn.Module):
 
         # self.knitt = knitt(channel=channel)
 
-        self.up3 = DecoderBottleneckLayer(in_channels=768, out_channels=384)
-        self.up2 = DecoderBottleneckLayer(in_channels=384, out_channels=192)
-        self.up1 = DecoderBottleneckLayer(in_channels=192, out_channels=96 )
+        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
