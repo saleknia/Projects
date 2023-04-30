@@ -131,9 +131,9 @@ class UNet(nn.Module):
 
         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
-        self.conv_z2 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_z3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_z4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_z2 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_z3 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_z4 = _make_nConv(in_channels=channel*1, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
