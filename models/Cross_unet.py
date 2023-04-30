@@ -769,9 +769,9 @@ class Cross_unet(nn.Module):
 
         # self.knitt = knitt(channel=channel)
 
-        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+        self.upf3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        self.upf2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        self.upf1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
@@ -789,6 +789,21 @@ class Cross_unet(nn.Module):
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
+        resnet = resnet_model.resnet18(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
+
+        self.ups3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        self.ups2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        self.ups1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+
 
 
     def forward(self, x):
@@ -802,6 +817,16 @@ class Cross_unet(nn.Module):
         x3 = self.norm_3_1(outputs_1[2]) 
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
+
+        e0 = self.firstconv(x_input)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
         # x4 = self.conv_4_1(x4)
         # x3 = self.conv_3_1(x3)
@@ -818,9 +843,21 @@ class Cross_unet(nn.Module):
 
         # t = self.knitt(x1, x2, x3, x4)
 
-        x = self.up3(x4, x3) 
-        x = self.up2(x , x2) 
-        x = self.up1(x , x1)
+        # x = self.upf3(x4, x3) 
+        # x = self.upf2(x , x2) 
+        # x = self.upf1(x , x1)
+
+        e3 = self.upf3(x4, e3)
+        x3 = self.ups3(e4, x3) 
+
+        e2 = self.upf2(x3, e2)
+        x2 = self.ups2(e3, x2) 
+
+        e1 = self.upf3(x2, e1)
+        x1 = self.ups3(e2, x1) 
+
+        x = e1 + x1
+
 
 
         x = self.tp_conv1(x)
