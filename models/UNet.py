@@ -141,13 +141,13 @@ class UNet(nn.Module):
         # self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
         # self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(channel, channel, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(channel),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(channel, channel, 3, 1, 1),
+                                nn.BatchNorm2d(channel),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(channel, 1, 2, 2, 0)
 
         # self.classifier = nn.Sequential(
         #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
