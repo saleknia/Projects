@@ -751,13 +751,13 @@ class Cross_unet(nn.Module):
 
         self.knitt = knitt(channel=channel)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
         # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
 
