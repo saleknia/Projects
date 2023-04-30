@@ -54,52 +54,52 @@ class DownBlock(nn.Module):
         return self.nConvs(x)
 
 
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-#         super(UpBlock, self).__init__()
-#         self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-#         # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
-#     def forward(self, x, skip_x):
-#         x = self.up(x)
-#         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-#         # x = self.conv(x)
-#         x = x + skip_x
-#         return x
-
 class UpBlock(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
+    """Upscaling then conv"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
+        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        # self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
         x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x + skip_x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # x = self.conv(x)
+        x = x + skip_x
+        return x
+
+# class UpBlock(nn.Module):
+#     def __init__(self, in_channels, n_filters, use_transpose=True):
+#         super(UpBlock, self).__init__()
+
+#         self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+#         self.norm1 = nn.BatchNorm2d(in_channels // 4)
+#         self.relu1 = nn.ReLU(inplace=True)
+
+#         if use_transpose:
+#             self.up = nn.Sequential(
+#                 nn.ConvTranspose2d(
+#                     in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+#                 ),
+#                 nn.BatchNorm2d(in_channels // 4),
+#                 nn.ReLU(inplace=True)
+#             )
+#         else:
+#             self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+#         self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+#         self.norm3 = nn.BatchNorm2d(n_filters)
+#         self.relu3 = nn.ReLU(inplace=True)
+
+#     def forward(self, x, skip_x):
+#         x = self.conv1(x)
+#         x = self.norm1(x)
+#         x = self.relu1(x)
+#         x = self.up(x)
+#         x = self.conv3(x)
+#         x = self.norm3(x)
+#         x = self.relu3(x)
+#         return x + skip_x
 
 class UNet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -131,19 +131,31 @@ class UNet(nn.Module):
 
         self.up1_2 = UpBlock(channel*2, channel*1, nb_Conv=2)
 
+        self.conv_z2 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_z3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.conv_z4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
         self.conv_4 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         self.conv_3 = _make_nConv(in_channels=channel*2, out_channels=channel*1, nb_Conv=2, activation='ReLU', dilation=1, padding=1)     
 
         # self.ESP_3 = DilatedParllelResidualBlockB(18, 18)
         # self.ESP_2 = DilatedParllelResidualBlockB(18, 18)
 
-        self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(channel, channel, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(channel, channel, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
-        )
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
+        # self.classifier = nn.Sequential(
+        #     nn.ConvTranspose2d(channel, channel, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(channel, channel, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
+        # )
 
     def forward(self, x):
         # Question here
@@ -161,13 +173,15 @@ class UNet(nn.Module):
         xl = [t(x) for i, t in enumerate(self.encoder.transition1)]
         yl = self.encoder.stage2(xl)
 
-        z2 = self.up1_2(yl[1], yl[0])  
+        z2 = self.up1_2(yl[1], yl[0])
+        z2 = self.conv_z2(z2)  
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition2)]
         yl = self.encoder.stage3(xl)
 
         z3 = self.up2_3(yl[2], yl[1]) 
         z3 = self.up1_3(z3   , yl[0]) 
+        z3 = self.conv_z3(z3)  
 
         xl = [t(yl[-1]) if not isinstance(t, nn.Identity) else yl[i] for i, t in enumerate(self.encoder.transition3)]
         yl = self.encoder.stage4(xl)
@@ -175,6 +189,7 @@ class UNet(nn.Module):
         z4 = self.up3_4(yl[3], yl[2]) 
         z4 = self.up2_4(z4   , yl[1]) 
         z4 = self.up1_4(z4   , yl[0]) 
+        z4 = self.conv_z4(z4)  
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         # z3 = self.ESP_3(z3)
@@ -182,9 +197,11 @@ class UNet(nn.Module):
         z2 = self.conv_3(torch.cat([z3, z2], dim=1))
         # z2 = self.ESP_2(z2)
 
-        z = self.classifier(z2)
+        x = self.tp_conv1(z2)
+        x = self.conv2(x)
+        x = self.tp_conv2(x)
 
-        return z
+        return x
 
 import torch
 import torch.nn as nn
