@@ -156,6 +156,7 @@ class UNet(nn.Module):
         #     nn.ReLU(inplace=True),
         #     nn.ConvTranspose2d(channel, n_classes, kernel_size=2, stride=2)
         # )
+        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         # Question here
@@ -189,7 +190,9 @@ class UNet(nn.Module):
         z4 = self.up3_4(yl[3], yl[2]) 
         z4 = self.up2_4(z4   , yl[1]) 
         z4 = self.up1_4(z4   , yl[0]) 
-        z4 = self.conv_z4(z4)  
+        z4 = self.conv_z4(z4)
+
+        z2, z3, z4 = self.MetaFormer(z2, z3, z4)  
 
         z3 = self.conv_4(torch.cat([z4, z3], dim=1))
         # z3 = self.ESP_3(z3)
@@ -202,6 +205,56 @@ class UNet(nn.Module):
         x = self.tp_conv2(x)
 
         return x
+
+
+class MetaFormer(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+        self.sigmoid = torch.nn.Sigmoid()
+
+        self.W_x1_d1 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x1_d2 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x2_d1 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x2_u1 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x3_u1 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+        self.W_x3_u2 = nn.Sequential(
+            nn.Conv2d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+            nn.BatchNorm2d(1)
+        )
+
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        
+        x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3)*(x3))+(self.sigmoid(x2)*(x2)))
+        x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3)*(x3))+(self.sigmoid(x1)*(x1)))
+        x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2)*(x2))+(self.sigmoid(x1)*(x1)))
+
+        return x1, x2, x3
+
 
 import torch
 import torch.nn as nn
