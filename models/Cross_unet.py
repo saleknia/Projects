@@ -853,8 +853,8 @@ class Cross_unet(nn.Module):
         e2 = self.upf2(x3, e2)
         x2 = self.ups2(e3, x2) 
 
-        e1 = self.upf3(x2, e1)
-        x1 = self.ups3(e2, x1) 
+        e1 = self.upf1(x2, e1)
+        x1 = self.ups1(e2, x1) 
 
         x = e1 + x1
 
