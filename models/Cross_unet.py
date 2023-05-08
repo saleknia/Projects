@@ -231,11 +231,18 @@ class knitt(nn.Module):
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
+        seed_func.define()
+        self.SegFormerHead = SegFormerHead()
+        seed_func.find()
+
+
     def forward(self, x1, x2, x3, x4):
 
-        x = self.fusion_x3(x4, x3)
-        x = self.fusion_x2(x , x2)
-        x = self.fusion_x1(x , x1)
+        x3 = self.fusion_x3(x4, x3)
+        x2 = self.fusion_x2(x3, x2)
+        x1 = self.fusion_x1(x2, x1)
+
+        x  = self.SegFormerHead(x1, x2, x3)
 
         return x
 
@@ -296,9 +303,9 @@ class Cross_unet(nn.Module):
 
         # self.MetaFormer = MetaFormer()
 
-        seed_func.define()
-        self.MetaFormer  = MetaFormer()
-        seed_func.find()
+        # seed_func.define()
+        # self.MetaFormer  = MetaFormer()
+        # seed_func.find()
 
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
@@ -321,7 +328,7 @@ class Cross_unet(nn.Module):
         # x2 = self.conv_2_1(x2) 
         # x1 = self.conv_1_1(x1) 
 
-        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1 = self.DA_1(x1)[0]
         # x2 = self.DA_2(x2)[0]
@@ -340,6 +347,77 @@ class Cross_unet(nn.Module):
         x = self.tp_conv2(x)
 
         return x
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+        
+        
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
+        return x
+
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
+
+        embedding_dim = 96
+
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
+
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+
+    def forward(self, c1, c2, c3):
+
+        ############## MLP decoder on C1-C3 ###########
+        n, _, h, w = c3.shape
+
+        c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        c3 = self.up_3(c3)
+
+        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        c2 = self.up_2(c2)
+
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
+
+        return c
 
 class MetaFormer(nn.Module):
 
