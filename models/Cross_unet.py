@@ -385,9 +385,9 @@ class MetaFormer(nn.Module):
         x1_up = self.up_sample1(x1)
         x2_up = self.up_sample2(x2)
 
-        x1 = x1 + org1
-        x2 = x2 + org2
-        x3 = x3 + org3
+        x1 = x1_up + org1
+        x2 = x2_up + org2
+        x3 = x3    + org3
 
         return x1, x2, x3
 
