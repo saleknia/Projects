@@ -106,8 +106,8 @@ class seed():
         self.cuda_manual_seed  = torch.cuda.get_rng_state()
 
     def find(self):
-        torch.manual_seed(self.torch_manual_seed)
-        torch.cuda.manual_seed(self.cuda_manual_seed)     
+        torch.set_rng_state(self.torch_manual_seed)
+        torch.cuda.set_rng_state(self.cuda_manual_seed)     
 
 seed_func = seed()
 
