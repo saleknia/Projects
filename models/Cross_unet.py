@@ -672,41 +672,24 @@ class AttentionBlock(nn.Module):
         out = skip_connection * psi
         return out 
 
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, out_channels, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
         self.relu1 = nn.ReLU(inplace=True)
 
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
 
-        self.conv3 = nn.Conv2d(in_channels // 4, out_channels, 1)
-        self.norm3 = nn.BatchNorm2d(out_channels)
-        self.relu3 = nn.ReLU(inplace=True)
-
-        # self.SK = SKAttention(out_channels)
-
-    def forward(self, x, skip_x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        # return self.SK(x, skip_x)
-        return x + skip_x
+        return out
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -768,6 +751,12 @@ class Cross_unet(nn.Module):
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
+        self.FAMBlock1 = FAMBlock(channels=96)
+        self.FAMBlock2 = FAMBlock(channels=192)
+        self.FAMBlock3 = FAMBlock(channels=384)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
     def forward(self, x):
         # # Question here
@@ -793,6 +782,13 @@ class Cross_unet(nn.Module):
         # x3 = self.DA_3(x3)[0]
 
         # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
+
+        for i in range(2):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(6):
+            x1 = self.FAM1[i](x1)
 
         x = self.knitt(x1, x2, x3, x4)
 
