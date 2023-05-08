@@ -119,14 +119,14 @@ class UpBlock(nn.Module):
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        seed_func.define()
-        self.att  = SEBlock(channel=in_channels//2)
-        seed_func.find()
+        # seed_func.define()
+        # self.att  = SEBlock(channel=in_channels//2)
+        # seed_func.find()
 
     def forward(self, x, skip_x):
         x = self.up(x) 
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        skip_x = self.att(x, skip_x)
+        # skip_x = self.att(x, skip_x)
         x = self.conv(x+skip_x)
         # x = self.conv(x)
         return x 
@@ -296,6 +296,10 @@ class Cross_unet(nn.Module):
 
         # self.MetaFormer = MetaFormer()
 
+        seed_func.define()
+        self.MetaFormer  = MetaFormer()
+        seed_func.find()
+
         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
@@ -317,7 +321,7 @@ class Cross_unet(nn.Module):
         # x2 = self.conv_2_1(x2) 
         # x1 = self.conv_1_1(x1) 
 
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
+        x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
         # x1 = self.DA_1(x1)[0]
         # x2 = self.DA_2(x2)[0]
@@ -348,49 +352,44 @@ class MetaFormer(nn.Module):
         for i in range(num_skip):
             fuse_dim += skip_dim[i]
 
+        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
 
-        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        self.fuse_conv4 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+        self.down_sample1 = nn.AvgPool2d(4)
+        self.down_sample2 = nn.AvgPool2d(2)
 
-        self.down_sample2 = nn.AvgPool2d(4)
-        self.down_sample3 = nn.AvgPool2d(2)
-
-        self.up_sample2 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
-        self.up_sample3 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
 
     def forward(self, x1, x2, x3):
         """
         x: B, H*W, C
         """
+        org1 = x1
         org2 = x2
         org3 = x3
-        org4 = x4
 
-        x2 = self.bn2(x2)
-        x3 = self.bn3(x3)
-        x4 = self.bn4(x4)
-
+        x1_d = self.down_sample1(x1)
         x2_d = self.down_sample2(x2)
-        x3_d = self.down_sample3(x3)
 
-        list1 = [x2_d, x3_d, x4]
+        list1 = [x1_d, x2_d, x3]
 
         # --------------------Concat sum------------------------------
         fuse = torch.cat(list1, dim=1)
 
+        x1 = self.fuse_conv1(fuse)
         x2 = self.fuse_conv2(fuse)
         x3 = self.fuse_conv3(fuse)
-        x4 = self.fuse_conv4(fuse)
 
+        x1_up = self.up_sample1(x1)
         x2_up = self.up_sample2(x2)
-        x3_up = self.up_sample3(x3)
 
-        x22 = x2 +self.sa(self.bn2(x2))
-        x33 = x3 +self.sa(self.bn3(x3))
-        x44 = x4 +self.sa(self.bn4(x4))
+        x1 = x1 + org1
+        x2 = x2 + org2
+        x3 = x3 + org3
 
-        return x1, x22, x33, x44
+        return x1, x2, x3
 
 class CoTAttention(nn.Module):
 
