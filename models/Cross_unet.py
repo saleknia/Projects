@@ -94,6 +94,23 @@ class SEBlock(nn.Module):
         skip_x = torch.mul(skip_x, y)
         return skip_x
 
+class seed():
+    def __init__(self, channel, r=4):
+        super(seed, self).__init__()
+
+        self.torch_manual_seed = torch.get_rng_state()
+        self.cuda_manual_seed  = torch.cuda.get_rng_state()
+
+    def define(self):
+        self.torch_manual_seed = torch.get_rng_state()
+        self.cuda_manual_seed  = torch.cuda.get_rng_state()
+
+    def find(self):
+        torch.manual_seed(self.torch_manual_seed)
+        torch.cuda.manual_seed(self.cuda_manual_seed)     
+
+seed_func = seed()
+
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
@@ -102,17 +119,9 @@ class UpBlock(nn.Module):
         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        numpy_state = np.random.get_state()
-        random_state = random.getstate()
-        torch_state = torch.get_rng_state()
-        cuda_state = torch.cuda.get_rng_state()
-
+        seed_func.define()
         self.att  = SEBlock(channel=in_channels//2)
-
-        random.seed(numpy_state)    
-        np.random.seed(random_state)  
-        torch.manual_seed(torch_state)
-        torch.cuda.manual_seed(cuda_state)
+        seed_func.find()
 
     def forward(self, x, skip_x):
         x = self.up(x) 
