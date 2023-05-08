@@ -160,40 +160,6 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
-
-
 class knitt(nn.Module):
 
     def __init__(self, channel):
@@ -203,466 +169,13 @@ class knitt(nn.Module):
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
-        self.SegFormerHead = SegFormerHead()
-
     def forward(self, x1, x2, x3, x4):
 
-        x3 = self.fusion_x3(x4, x3)
-        x2 = self.fusion_x2(x3, x2)
-        x1 = self.fusion_x1(x2, x1)
-
-        x = self.SegFormerHead(x1, x2, x3)
+        x = self.fusion_x3(x4, x3)
+        x = self.fusion_x2(x , x2)
+        x = self.fusion_x1(x , x1)
 
         return x
-
-class decoder(nn.Module):
-
-    def __init__(self):
-        super(decoder, self).__init__()
-
-        self.fusion_e2 = UpBlock(96, 96)
-        self.fusion_e1 = UpBlock(96, 96)
-
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
-
-    def forward(self, e1, e2, e3):
-
-        e = self.fusion_e2(e3, e2)
-        e = self.fusion_e1(e , e1)
-
-        e = self.tp_conv1(e)
-        e = self.conv2(e)
-        e = self.tp_conv2(e)
-
-        return e
-        
-class head(nn.Module):
-
-    def __init__(self):
-        super(head, self).__init__()
-
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
-
-        self.classifier = nn.Sequential(
-            nn.ConvTranspose2d(96, 96, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(96, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, 1, kernel_size=2, stride=2)
-        )
-
-    def forward(self, x1, x2, x3):
-
-        x2 = self.fusion_x2(x3, x2)
-        x1 = self.fusion_x1(x2, x1)
-
-        x = self.classifier(x1)
-        
-        return x
-
-import numpy as np
-import torch.nn as nn
-import torch
-
-class BasicConv2d(nn.Module):
-    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
-        super(BasicConv2d, self).__init__()
-        
-        
-        self.conv = nn.Conv2d(in_planes, out_planes,
-                              kernel_size=kernel_size, stride=stride,
-                              padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        
-        x = self.conv(x)
-        x = self.bn(x)
-        return x
-
-class MLP(nn.Module):
-    """
-    Linear Embedding
-    """
-    def __init__(self, input_dim=2048, embed_dim=768):
-        super().__init__()
-        self.proj = nn.Linear(input_dim, embed_dim)
-
-    def forward(self, x):
-        x = x.flatten(2).transpose(1, 2)
-        x = self.proj(x)
-        return x
-
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
-
-        c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
-
-        embedding_dim = 96
-
-        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
-        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
-        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
-
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
-
-        self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_3 = nn.Upsample(scale_factor=4.0)
-
-    def forward(self, c1, c2, c3):
-
-        ############## MLP decoder on C1-C4 ###########
-        n, _, h, w = c3.shape
-
-        c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
-        c3 = self.up_3(c3)
-
-        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
-        c2 = self.up_2(c2)
-
-        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
-
-        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
-
-        return c
-
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
-
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torchvision import models as resnet
-
-def make_fuse_layers():
-    num_branches = 3
-    num_in_chs = [96, 96, 96]
-    fuse_layers = []
-    for i in range(num_branches):
-        fuse_layer = []
-        for j in range(num_branches):
-            if j > i:
-                fuse_layer.append(nn.Sequential(
-                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
-                    nn.BatchNorm2d(num_in_chs[i]),
-                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
-            elif j == i:
-                fuse_layer.append(nn.Identity())
-            else:
-                conv3x3s = []
-                for k in range(i - j):
-                    if k == i - j - 1:
-                        num_outchannels_conv3x3 = num_in_chs[i]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3)))
-                    else:
-                        num_outchannels_conv3x3 = num_in_chs[j]
-                        conv3x3s.append(nn.Sequential(
-                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
-                            nn.BatchNorm2d(num_outchannels_conv3x3),
-                            nn.ReLU(False)))
-                fuse_layer.append(nn.Sequential(*conv3x3s))
-        fuse_layers.append(nn.ModuleList(fuse_layer))
-
-    return nn.ModuleList(fuse_layers)
-
-
-# class Cross_unet(nn.Module):
-#     def __init__(self, n_channels=3, n_classes=1):
-#         '''
-#         n_channels : number of channels of the input.
-#                         By default 3, because we have RGB images
-#         n_labels : number of channels of the ouput.
-#                       By default 3 (2 labels + 1 for the background)
-#         '''
-#         super().__init__()
-#         self.n_channels = n_channels
-#         self.n_classes = n_classes
-
-#         self.encoder =  CrossFormer(img_size=224,
-#                                     patch_size=[4, 8, 16, 32],
-#                                     in_chans= 3,
-#                                     num_classes=1000,
-#                                     embed_dim=96,
-#                                     depths=[2, 2, 18, 2],
-#                                     num_heads=[3, 6, 12, 24],
-#                                     group_size=[7, 7, 7, 7],
-#                                     mlp_ratio=4.,
-#                                     qkv_bias=True,
-#                                     qk_scale=None,
-#                                     drop_rate=0.0,
-#                                     drop_path_rate=0.2,
-#                                     ape=False,
-#                                     patch_norm=True,
-#                                     use_checkpoint=False,
-#                                     merge_size=[[2, 4], [2,4], [2, 4]])
-
-#         # self.encoder =  CrossFormer(img_size=224,
-#         #                             patch_size=[4, 8, 16, 32],
-#         #                             in_chans= 3,
-#         #                             num_classes=1000,
-#         #                             embed_dim=96,
-#         #                             depths=[2, 2, 6, 2],
-#         #                             num_heads=[3, 6, 12, 24],
-#         #                             group_size=[7, 7, 7, 7],
-#         #                             mlp_ratio=4.,
-#         #                             qkv_bias=True,
-#         #                             qk_scale=None,
-#         #                             drop_rate=0.0,
-#         #                             drop_path_rate=0.2,
-#         #                             ape=False,
-#         #                             patch_norm=True,
-#         #                             use_checkpoint=False,
-#         #                             merge_size=[[2, 4], [2,4], [2, 4]])
-
-#         self.norm_3 = LayerNormProxy(dim=384)
-#         self.norm_2 = LayerNormProxy(dim=192)
-#         self.norm_1 = LayerNormProxy(dim=96)
-
-#         self.knitt = knitt()
-
-#         # self.head_1 = SegFormerHead()
-#         # self.head_2 = SegFormerHead()
-
-#         # self.head_1 = head()
-#         # self.head_2 = head()
-
-#         # self.meta_2 = MetaFormer()
-
-#         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-#                                       nn.BatchNorm2d(48),
-#                                       nn.ReLU(inplace=True),)
-#         self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-#                                 nn.BatchNorm2d(48),
-#                                 nn.ReLU(inplace=True),)
-#         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
-
-#         # self.meta_2 = MetaFormer()
-
-#         # self.conv2 = nn.Sequential(nn.Conv2d(96, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
-
-#         self.conv_1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-#         self.conv_2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-#         self.conv_3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-#         # self.meta = MetaFormer()
-#         # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
-
-#         self.psa_1 = ParallelPolarizedSelfAttention(96)
-#         self.psa_2 = ParallelPolarizedSelfAttention(96)
-#         self.psa_3 = ParallelPolarizedSelfAttention(96)
-
-#     def forward(self, x):
-#         # # Question here
-#         x0 = x.float()
-#         b, c, h, w = x.shape
-
-#         outputs = self.encoder(x0)
-
-#         x3 = self.norm_3(outputs[2])
-#         x2 = self.norm_2(outputs[1])
-#         x1 = self.norm_1(outputs[0])
-
-#         x3 = self.conv_3(x3)
-#         x2 = self.conv_2(x2)
-#         x1 = self.conv_1(x1)
-
-#         # x3 = self.psa_3(x3)
-#         # x2 = self.psa_2(x2)
-#         # x1 = self.psa_1(x1)
-
-#         # x1 = x1 + () * (1.0 - torch.nn.functional.sigmoid(x1))
-
-#         # x1, x2, x3 = self.meta(x1, x2, x3)
-
-#         # x1, x2, x3 = self.mtc(x1, x2, x3)
-
-#         # e1, e2, e3 = self.meta_2(e1, e2, e3)
-
-#         # e3 = None
-#         # e2 = None
-#         # e1 = None
-
-#         x = self.knitt(x1, x2, x3)
-
-#         y = self.tp_conv1(x)
-#         y = self.conv2(y)
-#         y = self.tp_conv2(y)
-
-#         return y
-
-#         # if self.training:
-#         #     return x, y, z
-#         # else:
-#         #     return x, y, z
-
-from .CTrans import ChannelTransformer
-import ml_collections
-def get_CTranS_config():
-    config = ml_collections.ConfigDict()
-    config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 384  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
-    config.transformer.dropout_rate = 0
-    config.patch_sizes = [8, 4, 2, 1]
-    config.base_channel = 96 # base channel of U-Net
-    config.n_classes = 1
-    return config
-
-# class MetaFormer(nn.Module):
-
-#     def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
-#         super().__init__()
-
-#         self.down_sample11 = nn.AvgPool2d(2)
-#         self.down_sample12 = nn.AvgPool2d(4)
-
-#         self.down_sample21 = nn.AvgPool2d(2)
-#         self.up_sample21   = nn.Upsample(scale_factor=2)
-
-#         self.up_sample31 = nn.Upsample(scale_factor=2)
-#         self.up_sample32 = nn.Upsample(scale_factor=4)
-
-#         self.sigmoid = torch.nn.Sigmoid()
-
-#         self.W_x1_d1 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#         self.W_x1_d2 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#         self.W_x2_d1 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#         self.W_x2_u1 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#         self.W_x3_u1 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#         self.W_x3_u2 = nn.Sequential(
-#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-#             nn.BatchNorm2d(1)
-#         )
-
-#     def forward(self, x1, x2, x3):
-#         """
-#         x: B, H*W, C
-#         """
-
-#         x1_d1 = self.W_x1_d1(self.down_sample11(x1))
-#         x1_d2 = self.W_x1_d2(self.down_sample12(x1))
-
-#         x2_d1 = self.W_x2_d1(self.down_sample21(x2))
-#         x2_u1 = self.W_x2_u1(self.up_sample21(x2))
-
-#         x3_u1 = self.W_x3_u1(self.up_sample31(x3))
-#         x3_u2 = self.W_x3_u2(self.up_sample32(x3))
-
-#         x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
-#         x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
-#         x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2_d1)*(x2_d1))+(self.sigmoid(x1_d2)*(x1_d2)))
-
-#         return x1, x2, x3
-
-class AttentionBlock(nn.Module):
-    """Attention block with learnable parameters"""
-
-    def __init__(self, F_g, F_l, n_coefficients):
-        """
-        :param F_g: number of feature maps (channels) in previous layer
-        :param F_l: number of feature maps in corresponding encoder layer, transferred via skip connection
-        :param n_coefficients: number of learnable multi-dimensional attention coefficients
-        """
-        super(AttentionBlock, self).__init__()
-
-        self.W_gate = nn.Sequential(
-            nn.Conv2d(F_g, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.W_x = nn.Sequential(
-            nn.Conv2d(F_l, n_coefficients, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(n_coefficients)
-        )
-
-        self.psi = nn.Sequential(
-            nn.Conv2d(n_coefficients, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1),
-            nn.Sigmoid()
-        )
-
-        self.relu = nn.ReLU(inplace=True)
-
-    def forward(self, gate, skip_connection):
-        """
-        :param gate: gating signal from previous layer
-        :param skip_connection: activation from corresponding encoder layer
-        :return: output activations
-        """
-        g1 = self.W_gate(gate)
-        x1 = self.W_x(skip_connection)
-        psi = self.relu(g1 + x1)
-        psi = self.psi(psi)
-        out = skip_connection * psi
-        return out 
 
 class FAMBlock(nn.Module):
     def __init__(self, channels):
@@ -697,7 +210,7 @@ class Cross_unet(nn.Module):
 
         channel = 96
 
-        self.encoder_1 = CrossFormer(img_size=224,
+        self.encoder = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -715,10 +228,10 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4_1 = LayerNormProxy(dim=768)
-        self.norm_3_1 = LayerNormProxy(dim=384)
-        self.norm_2_1 = LayerNormProxy(dim=192)
-        self.norm_1_1 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
         # self.conv_1_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
         # self.conv_2_1 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
@@ -743,24 +256,24 @@ class Cross_unet(nn.Module):
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
-        # self.FAMBlock1 = FAMBlock(channels=96)
-        # self.FAMBlock2 = FAMBlock(channels=192)
-        # self.FAMBlock3 = FAMBlock(channels=384)
-        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        # self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        # self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        self.FAMBlock1 = FAMBlock(channels=96)
+        self.FAMBlock2 = FAMBlock(channels=192)
+        self.FAMBlock3 = FAMBlock(channels=384)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(4)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(4)])
 
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs_1 = self.encoder_1(x_input)
+        outputs = self.encoder(x_input)
 
-        x4 = self.norm_4_1(outputs_1[3]) 
-        x3 = self.norm_3_1(outputs_1[2]) 
-        x2 = self.norm_2_1(outputs_1[1]) 
-        x1 = self.norm_1_1(outputs_1[0])
+        x4 = self.norm_4(outputs[3]) 
+        x3 = self.norm_3(outputs[2]) 
+        x2 = self.norm_2(outputs[1]) 
+        x1 = self.norm_1(outputs[0])
 
         # x4 = self.conv_4_1(x4)
         # x3 = self.conv_3_1(x3)
@@ -775,12 +288,12 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
 
-        # for i in range(2):
-        #     x3 = self.FAM3[i](x3)
-        # for i in range(4):
-        #     x2 = self.FAM2[i](x2)
-        # for i in range(6):
-        #     x1 = self.FAM1[i](x1)
+        for i in range(4):
+            x3 = self.FAM3[i](x3)
+        for i in range(4):
+            x2 = self.FAM2[i](x2)
+        for i in range(4):
+            x1 = self.FAM1[i](x1)
 
         x = self.knitt(x1, x2, x3, x4)
 
