@@ -95,7 +95,7 @@ class SEBlock(nn.Module):
         return skip_x
 
 class seed():
-    def __init__(self, channel, r=4):
+    def __init__(self):
         super(seed, self).__init__()
 
         self.torch_manual_seed = torch.get_rng_state()
