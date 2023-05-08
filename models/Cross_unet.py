@@ -203,11 +203,15 @@ class knitt(nn.Module):
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
+        self.SegFormerHead = SegFormerHead()
+
     def forward(self, x1, x2, x3, x4):
 
-        x = self.fusion_x3(x4, x3)
-        x = self.fusion_x2(x , x2)
-        x = self.fusion_x1(x , x1)
+        x3 = self.fusion_x3(x4, x3)
+        x2 = self.fusion_x2(x3, x2)
+        x1 = self.fusion_x1(x2, x1)
+
+        x = self.SegFormerHead(x1, x2, x3)
 
         return x
 
@@ -314,14 +318,6 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
-
         self.up_2 = nn.Upsample(scale_factor=2.0)
         self.up_3 = nn.Upsample(scale_factor=4.0)
 
@@ -340,11 +336,7 @@ class SegFormerHead(nn.Module):
 
         c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
-        y = self.tp_conv1(c)
-        y = self.conv2(y)
-        y = self.tp_conv2(y)
-
-        return y
+        return c
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -564,71 +556,71 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class MetaFormer(nn.Module):
+# class MetaFormer(nn.Module):
 
-    def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
-        super().__init__()
+#     def __init__(self, num_skip=3, skip_dim=[96, 192, 384]):
+#         super().__init__()
 
-        self.down_sample11 = nn.AvgPool2d(2)
-        self.down_sample12 = nn.AvgPool2d(4)
+#         self.down_sample11 = nn.AvgPool2d(2)
+#         self.down_sample12 = nn.AvgPool2d(4)
 
-        self.down_sample21 = nn.AvgPool2d(2)
-        self.up_sample21   = nn.Upsample(scale_factor=2)
+#         self.down_sample21 = nn.AvgPool2d(2)
+#         self.up_sample21   = nn.Upsample(scale_factor=2)
 
-        self.up_sample31 = nn.Upsample(scale_factor=2)
-        self.up_sample32 = nn.Upsample(scale_factor=4)
+#         self.up_sample31 = nn.Upsample(scale_factor=2)
+#         self.up_sample32 = nn.Upsample(scale_factor=4)
 
-        self.sigmoid = torch.nn.Sigmoid()
+#         self.sigmoid = torch.nn.Sigmoid()
 
-        self.W_x1_d1 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x1_d1 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-        self.W_x1_d2 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x1_d2 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-        self.W_x2_d1 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x2_d1 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-        self.W_x2_u1 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x2_u1 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-        self.W_x3_u1 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x3_u1 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-        self.W_x3_u2 = nn.Sequential(
-            nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm2d(1)
-        )
+#         self.W_x3_u2 = nn.Sequential(
+#             nn.Conv2d(96, 1, kernel_size=1, stride=1, padding=0, bias=True),
+#             nn.BatchNorm2d(1)
+#         )
 
-    def forward(self, x1, x2, x3):
-        """
-        x: B, H*W, C
-        """
+#     def forward(self, x1, x2, x3):
+#         """
+#         x: B, H*W, C
+#         """
 
-        x1_d1 = self.W_x1_d1(self.down_sample11(x1))
-        x1_d2 = self.W_x1_d2(self.down_sample12(x1))
+#         x1_d1 = self.W_x1_d1(self.down_sample11(x1))
+#         x1_d2 = self.W_x1_d2(self.down_sample12(x1))
 
-        x2_d1 = self.W_x2_d1(self.down_sample21(x2))
-        x2_u1 = self.W_x2_u1(self.up_sample21(x2))
+#         x2_d1 = self.W_x2_d1(self.down_sample21(x2))
+#         x2_u1 = self.W_x2_u1(self.up_sample21(x2))
 
-        x3_u1 = self.W_x3_u1(self.up_sample31(x3))
-        x3_u2 = self.W_x3_u2(self.up_sample32(x3))
+#         x3_u1 = self.W_x3_u1(self.up_sample31(x3))
+#         x3_u2 = self.W_x3_u2(self.up_sample32(x3))
 
-        x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
-        x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
-        x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2_d1)*(x2_d1))+(self.sigmoid(x1_d2)*(x1_d2)))
+#         x1 = x1 + (1.0-self.sigmoid(x1)) * ((self.sigmoid(x3_u2)*(x3_u2))+(self.sigmoid(x2_u1)*(x2_u1)))
+#         x2 = x2 + (1.0-self.sigmoid(x2)) * ((self.sigmoid(x3_u1)*(x3_u1))+(self.sigmoid(x1_d1)*(x1_d1)))
+#         x3 = x3 + (1.0-self.sigmoid(x3)) * ((self.sigmoid(x2_d1)*(x2_d1))+(self.sigmoid(x1_d2)*(x1_d2)))
 
-        return x1, x2, x3
+#         return x1, x2, x3
 
 class AttentionBlock(nn.Module):
     """Attention block with learnable parameters"""
@@ -751,12 +743,12 @@ class Cross_unet(nn.Module):
 
         # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
-        self.FAMBlock1 = FAMBlock(channels=96)
-        self.FAMBlock2 = FAMBlock(channels=192)
-        self.FAMBlock3 = FAMBlock(channels=384)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
+        # self.FAMBlock1 = FAMBlock(channels=96)
+        # self.FAMBlock2 = FAMBlock(channels=192)
+        # self.FAMBlock3 = FAMBlock(channels=384)
+        # self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(6)])
+        # self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        # self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(2)])
 
     def forward(self, x):
         # # Question here
@@ -783,12 +775,12 @@ class Cross_unet(nn.Module):
 
         # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
 
-        for i in range(2):
-            x3 = self.FAM3[i](x3)
-        for i in range(4):
-            x2 = self.FAM2[i](x2)
-        for i in range(6):
-            x1 = self.FAM1[i](x1)
+        # for i in range(2):
+        #     x3 = self.FAM3[i](x3)
+        # for i in range(4):
+        #     x2 = self.FAM2[i](x2)
+        # for i in range(6):
+        #     x1 = self.FAM1[i](x1)
 
         x = self.knitt(x1, x2, x3, x4)
 
@@ -802,6 +794,60 @@ class Cross_unet(nn.Module):
 
         return x
 
+class MetaFormer(nn.Module):
+
+    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384],
+                 act_layer=nn.GELU, norm_layer=nn.LayerNorm,
+                 ):
+        super().__init__()
+
+        fuse_dim = 0
+        for i in range(num_skip):
+            fuse_dim += skip_dim[i]
+
+
+        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
+        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
+        self.fuse_conv4 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
+
+        self.down_sample2 = nn.AvgPool2d(4)
+        self.down_sample3 = nn.AvgPool2d(2)
+
+        self.up_sample2 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
+        self.up_sample3 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+
+    def forward(self, x1, x2, x3):
+        """
+        x: B, H*W, C
+        """
+        org2 = x2
+        org3 = x3
+        org4 = x4
+
+        x2 = self.bn2(x2)
+        x3 = self.bn3(x3)
+        x4 = self.bn4(x4)
+
+        x2_d = self.down_sample2(x2)
+        x3_d = self.down_sample3(x3)
+
+        list1 = [x2_d, x3_d, x4]
+
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(list1, dim=1)
+
+        x2 = self.fuse_conv2(fuse)
+        x3 = self.fuse_conv3(fuse)
+        x4 = self.fuse_conv4(fuse)
+
+        x2_up = self.up_sample2(x2)
+        x3_up = self.up_sample3(x3)
+
+        x22 = x2 +self.sa(self.bn2(x2))
+        x33 = x3 +self.sa(self.bn3(x3))
+        x44 = x4 +self.sa(self.bn4(x4))
+
+        return x1, x22, x33, x44
 
 class CoTAttention(nn.Module):
 
