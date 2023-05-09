@@ -362,8 +362,8 @@ class SegFormerHead(nn.Module):
 
         self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        self.fc1 = nn.Linear(64, 64)
-        self.fc2 = nn.Linear(64, 4)
+        self.fc1 = nn.Linear(96, 96)
+        self.fc2 = nn.Linear(96, 4)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
