@@ -395,11 +395,11 @@ class SegFormerHead(nn.Module):
         y = y1 + y2 + y3 + y4
 
         coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(n, -1)))))
-        
-        c1 = c1 * coeff[:,0]
-        c2 = c2 * coeff[:,1]
-        c3 = c3 * coeff[:,2]
-        c4 = c4 * coeff[:,3]
+
+        c1 = c1 * coeff[:,0].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c1)
+        c2 = c2 * coeff[:,1].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c2)
+        c3 = c3 * coeff[:,2].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c3)
+        c4 = c4 * coeff[:,3].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c4)
 
         c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
 
