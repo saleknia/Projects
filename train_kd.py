@@ -223,7 +223,7 @@ def main(args):
         )
     logger.info(model_table)
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=5e-5, betas=(0.9,0.999))
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4, betas=(0.9,0.999))
 
     # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=1e-4, betas=(0.9,0.999))
 
@@ -485,7 +485,7 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-        valid_loader = DataLoader(test_dataset,#valid_dataset,
+        valid_loader = DataLoader(valid_dataset,
                                 batch_size=30,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
