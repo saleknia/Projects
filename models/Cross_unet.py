@@ -191,18 +191,18 @@ class knitt(nn.Module):
         self.fusion_x2 = UpBlock(384, 192)
         self.fusion_x1 = UpBlock(192, 96)
 
-        # seed_func.define()
-        # self.SegFormerHead = SegFormerHead()
-        # seed_func.find()
+        seed_func.define()
+        self.SegFormerHead = SegFormerHead()
+        seed_func.find()
 
 
     def forward(self, x1, x2, x3, x4):
 
-        x = self.fusion_x3(x4, x3)
-        x = self.fusion_x2(x , x2)
-        x = self.fusion_x1(x , x1)
+        x3 = self.fusion_x3(x4, x3)
+        x2 = self.fusion_x2(x3, x2)
+        x1 = self.fusion_x1(x2, x1)
 
-        # x  = self.SegFormerHead(x1, x2, x3)
+        x  = self.SegFormerHead(x1, x2, x3)
 
         return x
 
