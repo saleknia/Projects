@@ -111,41 +111,41 @@ class seed():
 
 seed_func = seed()
 
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
-#         super(UpBlock, self).__init__()
-#         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-#         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
-#         # seed_func.define()
-#         # self.att  = SEBlock(channel=in_channels//2)
-#         # seed_func.find()
-
-#     def forward(self, x, skip_x):
-#         x = self.up(x) 
-#         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-#         # skip_x = self.att(x, skip_x)
-#         x = self.conv(x+skip_x)
-#         # x = self.conv(x)
-#         return x 
-
-
 class UpBlock(nn.Module):
     """Upscaling then conv"""
 
-    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU', img_size=224):
+    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
-        # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-        self.up   = nn.Upsample(scale_factor=2.0)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-    
+        self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+        # seed_func.define()
+        # self.att  = SEBlock(channel=in_channels//2)
+        # seed_func.find()
+
     def forward(self, x, skip_x):
         x = self.up(x) 
-        x = x + skip_x
-        x = self.conv(x)
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        # skip_x = self.att(x, skip_x)
+        x = self.conv(x+skip_x)
+        # x = self.conv(x)
         return x 
+
+
+# class UpBlock(nn.Module):
+#     """Upscaling then conv"""
+
+#     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU', img_size=224):
+#         super(UpBlock, self).__init__()
+#         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
+#         self.up   = nn.Upsample(scale_factor=2.0)
+#         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+    
+#     def forward(self, x, skip_x):
+#         x = self.up(x) 
+#         x = x + skip_x
+#         x = self.conv(x)
+#         return x 
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -187,9 +187,9 @@ class knitt(nn.Module):
     def __init__(self, channel):
         super(knitt, self).__init__()
 
-        self.fusion_x3 = UpBlock(96, 96)
-        self.fusion_x2 = UpBlock(96, 96)
-        self.fusion_x1 = UpBlock(96, 96)
+        self.fusion_x3 = UpBlock(768, 384)
+        self.fusion_x2 = UpBlock(384, 192)
+        self.fusion_x1 = UpBlock(192, 96)
 
         # seed_func.define()
         # self.SegFormerHead = SegFormerHead()
@@ -244,10 +244,10 @@ class Cross_unet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        self.conv_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        self.conv_4 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
+        # self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        # self.conv_4 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
         self.knitt = knitt(channel=channel)
 
@@ -283,10 +283,10 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
 
-        x4 = self.conv_4(x4)
-        x3 = self.conv_3(x3)
-        x2 = self.conv_2(x2) 
-        x1 = self.conv_1(x1) 
+        # x4 = self.conv_4(x4)
+        # x3 = self.conv_3(x3)
+        # x2 = self.conv_2(x2) 
+        # x1 = self.conv_1(x1) 
 
         # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
 
