@@ -80,7 +80,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # skip_x = self.att(x, skip_x)
+        skip_x = self.att(x, skip_x)
         x = self.conv(x+skip_x)
         return x 
 
