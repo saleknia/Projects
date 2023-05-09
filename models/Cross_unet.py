@@ -259,8 +259,8 @@ class SegFormerHead(nn.Module):
 
         self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        self.fc1 = nn.Linear(96, 12)
-        self.fc2 = nn.Linear(12, 4)
+        self.fc1 = nn.Linear(96, 96)
+        self.fc2 = nn.Linear(96, 4)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
@@ -298,7 +298,9 @@ class SegFormerHead(nn.Module):
         c3 = c3 * coeff[:,2].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c3)
         c4 = c4 * coeff[:,3].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c4)
 
-        c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
+        # c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
+
+        c = c4 + c3 + c2 + c1
 
         return c
 
