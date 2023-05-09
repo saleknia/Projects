@@ -80,7 +80,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         x = self.up(x) 
-        skip_x = self.att(x, skip_x)
+        # skip_x = self.att(x, skip_x)
         x = self.conv(x+skip_x)
         return x 
 
@@ -139,9 +139,9 @@ class knitt(nn.Module):
         x2 = self.fusion_x2(x3, x2)
         x1 = self.fusion_x1(x2, x1)
 
-        x  = self.SegFormerHead(x1, x2, x3, x4)
+        # x  = self.SegFormerHead(x1, x2, x3, x4)
 
-        return x
+        return x1
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -190,6 +190,14 @@ class Cross_unet(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
+        seed_func.define()
+        self.final_conv = nn.Conv2d(96, 1, 1, 1, 0)
+        seed_func.find()
+
+        seed_func.define()
+        self.final_up = nn.Upsample(scale_factor=4.0)
+        seed_func.find()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -204,9 +212,12 @@ class Cross_unet(nn.Module):
 
         x = self.knitt(x1, x2, x3, x4)
 
-        x = self.tp_conv1(x)
-        x = self.conv2(x)
-        x = self.tp_conv2(x)
+        # x = self.tp_conv1(x)
+        # x = self.conv2(x)
+        # x = self.tp_conv2(x)
+
+        x = self.final_conv(x)
+        x = self.final_up(x)
 
         return x
 
