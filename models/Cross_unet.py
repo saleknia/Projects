@@ -202,7 +202,7 @@ class knitt(nn.Module):
         x2 = self.fusion_x2(x3, x2)
         x1 = self.fusion_x1(x2, x1)
 
-        x  = self.SegFormerHead(x1, x2, x3)
+        x  = self.SegFormerHead(x1, x2, x3, x4)
 
         return x
 
