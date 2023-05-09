@@ -349,23 +349,28 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384, 768
 
         embedding_dim = 96
 
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
         self.up_3 = nn.Upsample(scale_factor=4.0)
+        self.up_4 = nn.Upsample(scale_factor=8.0)
 
-    def forward(self, c1, c2, c3):
+    def forward(self, c1, c2, c3, c4):
 
         ############## MLP decoder on C1-C3 ###########
-        n, _, h, w = c3.shape
+        n, _, h, w = c4.shape
+
+        c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        c4 = self.up_4(c4)
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         c3 = self.up_3(c3)
@@ -375,7 +380,7 @@ class SegFormerHead(nn.Module):
 
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
+        c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
 
         return c
 
