@@ -10,51 +10,6 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
-
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-from collections import OrderedDict
-
-class SKAttention(nn.Module):
-
-    def __init__(self, channel=512, reduction=4, group=1):
-        super().__init__()
-        self.d=channel//reduction
-        self.fc=nn.Linear(channel,self.d)
-        self.fcs=nn.ModuleList([])
-        for i in range(2):
-            self.fcs.append(nn.Linear(self.d,channel))
-        self.softmax=nn.Softmax(dim=0)
-
-    def forward(self, x, y):
-        bs, c, _, _ = x.size()
-        conv_outs=[x, y]
-        feats=torch.stack(conv_outs,0)#k,bs,channel,h,w
-
-        ### fuse
-        U=sum(conv_outs) #bs,c,h,w
-
-        ### reduction channel
-        S=U.mean(-1).mean(-1) #bs,c
-        Z=self.fc(S) #bs,d
-
-        ### calculate attention weight
-        weights=[]
-        for fc in self.fcs:
-            weight=fc(Z)
-            weights.append(weight.view(bs,c,1,1)) #bs,channel
-        attention_weights=torch.stack(weights,0)  #k,bs,channel,1,1
-        attention_weights=torch.sigmoid(attention_weights)#k,bs,channel,1,1
-
-        ### fuse
-        # V=(attention_weights*feats)
-        # V=torch.cat([feats[0], feats[1]], dim=1)
-        feats=(attention_weights*feats)
-        return feats[0], feats[1]
-
-
 def get_activation(activation_type):  
     if activation_type=='Sigmoid':
         return nn.Sigmoid()
@@ -125,27 +80,9 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         x = self.up(x) 
-        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         skip_x = self.att(x, skip_x)
         x = self.conv(x+skip_x)
-        # x = self.conv(x)
         return x 
-
-
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU', img_size=224):
-#         super(UpBlock, self).__init__()
-#         # self.up   = nn.ConvTranspose2d(in_channels, in_channels, kernel_size=2, stride=2)
-#         self.up   = nn.Upsample(scale_factor=2.0)
-#         self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-    
-#     def forward(self, x, skip_x):
-#         x = self.up(x) 
-#         x = x + skip_x
-#         x = self.conv(x)
-#         return x 
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -206,7 +143,6 @@ class knitt(nn.Module):
 
         return x
 
-
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -244,11 +180,6 @@ class Cross_unet(nn.Module):
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
 
-        # self.conv_1 = _make_nConv(in_channels=96 , out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_2 = _make_nConv(in_channels=192, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)        
-        # self.conv_3 = _make_nConv(in_channels=384, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-        # self.conv_4 = _make_nConv(in_channels=768, out_channels=channel, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
         self.knitt = knitt(channel=channel)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
@@ -258,18 +189,6 @@ class Cross_unet(nn.Module):
                                 nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
-
-        # self.classifier = nn.Sequential(nn.Conv2d(channel, 1, 1, 1, 0), nn.Upsample(scale_factor=4.0))
-
-        # self.MetaFormer = MetaFormer()
-
-        # seed_func.define()
-        # self.MetaFormer  = MetaFormer()
-        # seed_func.find()
-
-        # self.mtc  = ChannelTransformer(config=get_CTranS_config(), vis=False, img_size=224,channel_num=[96, 96, 96, 96], patchSize=get_CTranS_config().patch_sizes)
-
-        # self.DA_1, self.DA_2, self.DA_3 = get_stage()
 
     def forward(self, x):
         # # Question here
@@ -283,24 +202,7 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
 
-        # x4 = self.conv_4(x4)
-        # x3 = self.conv_3(x3)
-        # x2 = self.conv_2(x2) 
-        # x1 = self.conv_1(x1) 
-
-        # x1, x2, x3 = self.MetaFormer(x1, x2, x3)
-
-        # x1 = self.DA_1(x1)[0]
-        # x2 = self.DA_2(x2)[0]
-        # x3 = self.DA_3(x3)[0]
-
-        # x1, x2, x3, x4 = self.mtc(x1, x2, x3, x4)
-
         x = self.knitt(x1, x2, x3, x4)
-
-        # x = self.upf3(x4, x3) 
-        # x = self.upf2(x , x2) 
-        # x = self.upf1(x , x1)
 
         x = self.tp_conv1(x)
         x = self.conv2(x)
@@ -312,21 +214,17 @@ class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
         super(BasicConv2d, self).__init__()
         
-        
         self.conv = nn.Conv2d(in_planes, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
         self.bn = nn.BatchNorm2d(out_planes)
         self.relu = nn.ReLU(inplace=True)
-        
-        
 
     def forward(self, x):
         
         x = self.conv(x)
         x = self.bn(x)
         return x
-
 
 class MLP(nn.Module):
     """
@@ -340,7 +238,6 @@ class MLP(nn.Module):
         x = x.flatten(2).transpose(1, 2)
         x = self.proj(x)
         return x
-
 
 class SegFormerHead(nn.Module):
     """
@@ -362,8 +259,8 @@ class SegFormerHead(nn.Module):
 
         self.pooling = nn.AdaptiveAvgPool2d(1)
 
-        self.fc1 = nn.Linear(96, 48)
-        self.fc2 = nn.Linear(48, 4)
+        self.fc1 = nn.Linear(96, 32)
+        self.fc2 = nn.Linear(32, 4)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
@@ -404,98 +301,6 @@ class SegFormerHead(nn.Module):
         c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
 
         return c
-
-class MetaFormer(nn.Module):
-
-    def __init__(self, drop_path=0., num_skip=3, skip_dim=[96, 192, 384],
-                 act_layer=nn.GELU, norm_layer=nn.LayerNorm,
-                 ):
-        super().__init__()
-
-        fuse_dim = 0
-        for i in range(num_skip):
-            fuse_dim += skip_dim[i]
-
-        self.fuse_conv1 = nn.Conv2d(fuse_dim, skip_dim[0], 1, 1)
-        self.fuse_conv2 = nn.Conv2d(fuse_dim, skip_dim[1], 1, 1)
-        self.fuse_conv3 = nn.Conv2d(fuse_dim, skip_dim[2], 1, 1)
-
-        self.down_sample1 = nn.AvgPool2d(4)
-        self.down_sample2 = nn.AvgPool2d(2)
-
-        self.up_sample1 = nn.Upsample(scale_factor=4, mode='bilinear', align_corners=True)
-        self.up_sample2 = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-
-    def forward(self, x1, x2, x3):
-        """
-        x: B, H*W, C
-        """
-        org1 = x1
-        org2 = x2
-        org3 = x3
-
-        x1_d = self.down_sample1(x1)
-        x2_d = self.down_sample2(x2)
-
-        list1 = [x1_d, x2_d, x3]
-
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(list1, dim=1)
-
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-        x3 = self.fuse_conv3(fuse)
-
-        x1_up = self.up_sample1(x1)
-        x2_up = self.up_sample2(x2)
-
-        x1 = x1_up + org1
-        x2 = x2_up + org2
-        x3 = x3    + org3
-
-        return x1, x2, x3
-
-class CoTAttention(nn.Module):
-
-    def __init__(self, dim=512,kernel_size=3):
-        super().__init__()
-        self.dim=dim
-        self.kernel_size=kernel_size
-
-        self.key_embed=nn.Sequential(
-            nn.Conv2d(dim,dim,kernel_size=kernel_size,padding=kernel_size//2,groups=4,bias=False),
-            nn.BatchNorm2d(dim),
-            nn.ReLU()
-        )
-        self.value_embed=nn.Sequential(
-            nn.Conv2d(dim,dim,1,bias=False),
-            nn.BatchNorm2d(dim)
-        )
-
-        factor=4
-        self.attention_embed=nn.Sequential(
-            nn.Conv2d(2*dim,2*dim//factor,1,bias=False),
-            nn.BatchNorm2d(2*dim//factor),
-            nn.ReLU(),
-            nn.Conv2d(2*dim//factor,kernel_size*kernel_size*dim,1)
-        )
-
-
-    def forward(self, x, skip_x):
-        bs,c,h,w=x.shape
-        k1=self.key_embed(x) #bs,c,h,w
-        v=self.value_embed(x).view(bs,c,-1) #bs,c,h,w
-
-        y=torch.cat([k1,skip_x],dim=1) #bs,2c,h,w
-        att=self.attention_embed(y) #bs,c*k*k,h,w
-        att=att.reshape(bs,c,self.kernel_size*self.kernel_size,h,w)
-        att=att.mean(2,keepdim=False).view(bs,c,-1) #bs,c,h*w
-        k2=F.softmax(att,dim=-1)*v
-        k2=k2.view(bs,c,h,w)
-
-
-        return k1+k2
-
 
 import math
 import torch
