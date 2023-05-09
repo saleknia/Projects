@@ -360,6 +360,13 @@ class SegFormerHead(nn.Module):
 
         self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
 
+        self.pooling = nn.AdaptiveAvgPool2d(1)
+
+        self.fc1 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(64, 4)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
         self.up_2 = nn.Upsample(scale_factor=2.0)
         self.up_3 = nn.Upsample(scale_factor=4.0)
         self.up_4 = nn.Upsample(scale_factor=8.0)
@@ -379,6 +386,20 @@ class SegFormerHead(nn.Module):
         c2 = self.up_2(c2)
 
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        y1 = self.pooling(c4)
+        y2 = self.pooling(c3)
+        y3 = self.pooling(c2)
+        y4 = self.pooling(c1)
+
+        y = y1 + y2 + y3 + y4
+
+        coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(n, -1)))))
+        
+        c1 = c1 * coeff[:,0]
+        c2 = c2 * coeff[:,1]
+        c3 = c3 * coeff[:,2]
+        c4 = c4 * coeff[:,3]
 
         c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
 
