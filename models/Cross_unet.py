@@ -302,6 +302,8 @@ class SegFormerHead(nn.Module):
 
         return c
 
+
+
 import math
 import torch
 import torch.nn as nn

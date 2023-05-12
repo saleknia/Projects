@@ -187,6 +187,24 @@ class knitt_net(nn.Module):
         self.head_tff = SegFormerHead()
         seed_func.find()
 
+        seed_func.define()
+        self.FAMBlock1_e = FAMBlock(channels=64)
+        self.FAMBlock2_e = FAMBlock(channels=128)
+        self.FAMBlock3_e = FAMBlock(channels=256)
+        self.FAM1_e = nn.ModuleList([self.FAMBlock1_e for i in range(6)])
+        self.FAM2_e = nn.ModuleList([self.FAMBlock2_e for i in range(4)])
+        self.FAM3_e = nn.ModuleList([self.FAMBlock3_e for i in range(2)])
+        seed_func.find()
+
+        seed_func.define()
+        self.FAMBlock1_x = FAMBlock(channels=64)
+        self.FAMBlock2_x = FAMBlock(channels=128)
+        self.FAMBlock3_x = FAMBlock(channels=256)
+        self.FAM1_x = nn.ModuleList([self.FAMBlock1_x for i in range(6)])
+        self.FAM2_x = nn.ModuleList([self.FAMBlock2_x for i in range(4)])
+        self.FAM3_x = nn.ModuleList([self.FAMBlock3_x for i in range(2)])
+        seed_func.find()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -216,6 +234,20 @@ class knitt_net(nn.Module):
 
         cnn_out = self.head_cnn(e1, e2, e3, e4)
         tff_out = self.head_tff(x1, x2, x3, x4)
+
+        for i in range(2):
+            e3 = self.FAM3_e[i](e3)
+        for i in range(4):
+            e2 = self.FAM2_e[i](e2)
+        for i in range(6):
+            e1 = self.FAM1_e[i](e1)
+
+        for i in range(2):
+            x3 = self.FAM3_x[i](x3)
+        for i in range(4):
+            x2 = self.FAM2_x[i](x2)
+        for i in range(6):
+            x1 = self.FAM1_x[i](x1)
 
         x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
@@ -310,6 +342,25 @@ class MLP(nn.Module):
         x = x.flatten(2).transpose(1, 2)
         x = self.proj(x)
         return x
+
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
 
 
 import math
