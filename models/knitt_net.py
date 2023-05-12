@@ -106,7 +106,7 @@ class knitt_b(nn.Module):
 
         return x1
 
-class knitt(nn.Module):
+class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
         n_channels : number of channels of the input.
@@ -125,7 +125,7 @@ class knitt(nn.Module):
                                     in_chans= 3,
                                     num_classes=1000,
                                     embed_dim=64,
-                                    depths=[2, 2, 6, 2],
+                                    depths=[1, 1, 6, 8],
                                     num_heads=[2, 4, 8, 16],
                                     group_size=[7, 7, 7, 7],
                                     mlp_ratio=4.,
