@@ -182,6 +182,11 @@ class knitt_net(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
+        seed_func.define()
+        self.head_cnn = SegFormerHead()
+        self.head_tff = SegFormerHead()
+        seed_func.find()
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -209,12 +214,89 @@ class knitt_net(nn.Module):
         e2 = self.norm_2_2(e2) 
         e1 = self.norm_1_2(e1)
 
+        cnn_out = self.head_cnn(e1, e2, e3, e4)
+        tff_out = self.head_tff(x1, x2, x3, x4)
+
         x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
         x = self.tp_conv1(x)
         x = self.conv2(x)
         x = self.tp_conv2(x)
 
+        if self.training:
+            return x, cnn_out, tff_out
+        else:
+            return x
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 64, 128, 256, 512
+
+        embedding_dim = 64
+
+        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
+        self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
+        self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
+        self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
+
+        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+        self.up_4 = nn.Upsample(scale_factor=8.0)
+
+    def forward(self, c1, c2, c3, c4):
+
+        ############## MLP decoder on C1-C3 ###########
+        n, _, h, w = c4.shape
+
+        c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
+        c4 = self.up_4(c4)
+
+        c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
+        c3 = self.up_3(c3)
+
+        c2 = self.linear_c2(c2).permute(0,2,1).reshape(n, -1, c2.shape[2], c2.shape[3])
+        c2 = self.up_2(c2)
+
+        c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
+
+        c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
+
+        return c
+
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
+        
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+
+class MLP(nn.Module):
+    """
+    Linear Embedding
+    """
+    def __init__(self, input_dim=2048, embed_dim=768):
+        super().__init__()
+        self.proj = nn.Linear(input_dim, embed_dim)
+
+    def forward(self, x):
+        x = x.flatten(2).transpose(1, 2)
+        x = self.proj(x)
         return x
 
 
