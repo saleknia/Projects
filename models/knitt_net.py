@@ -106,18 +106,22 @@ class knitt_b(nn.Module):
 
     def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
 
-        x3 = self.fusion_x3(x4, e3)
-        e3 = self.fusion_e3(e4, x3)     
+        # x3 = self.fusion_x3(x4, e3)
+        # e3 = self.fusion_e3(e4, x3)     
 
-        x2 = self.fusion_x2(x3, e2)
-        e2 = self.fusion_e2(e3, x2)     
+        # x2 = self.fusion_x2(x3, e2)
+        # e2 = self.fusion_e2(e3, x2)     
 
-        x1 = self.fusion_x1(x2, e1)
-        e1 = self.fusion_e1(e2, x1)    
+        # x1 = self.fusion_x1(x2, e1)
+        # e1 = self.fusion_e1(e2, x1)    
 
-        x  = self.conv(e1+x1)
+        # x  = self.conv(e1+x1)
 
-        return x
+        x3 = self.fusion_x3(x4, x3)
+        x2 = self.fusion_x2(x3, x2)
+        x1 = self.fusion_x1(x2, x1)
+
+        return x1
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -187,24 +191,6 @@ class knitt_net(nn.Module):
         self.head_tff = SegFormerHead()
         seed_func.find()
 
-        seed_func.define()
-        self.FAMBlock1_e = FAMBlock(channels=64)
-        self.FAMBlock2_e = FAMBlock(channels=128)
-        self.FAMBlock3_e = FAMBlock(channels=256)
-        self.FAM1_e = nn.ModuleList([self.FAMBlock1_e for i in range(6)])
-        self.FAM2_e = nn.ModuleList([self.FAMBlock2_e for i in range(4)])
-        self.FAM3_e = nn.ModuleList([self.FAMBlock3_e for i in range(2)])
-        seed_func.find()
-
-        seed_func.define()
-        self.FAMBlock1_x = FAMBlock(channels=64)
-        self.FAMBlock2_x = FAMBlock(channels=128)
-        self.FAMBlock3_x = FAMBlock(channels=256)
-        self.FAM1_x = nn.ModuleList([self.FAMBlock1_x for i in range(6)])
-        self.FAM2_x = nn.ModuleList([self.FAMBlock2_x for i in range(4)])
-        self.FAM3_x = nn.ModuleList([self.FAMBlock3_x for i in range(2)])
-        seed_func.find()
-
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -255,11 +241,11 @@ class knitt_net(nn.Module):
         x = self.conv2(x)
         x = self.tp_conv2(x)
 
-        if self.training:
-            return x, cnn_out, tff_out
-        else:
-            return x
-
+        # if self.training:
+        #     return x, cnn_out, tff_out
+        # else:
+        #     return x
+        return x
 class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
