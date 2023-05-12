@@ -175,6 +175,7 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
+
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
