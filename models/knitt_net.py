@@ -102,26 +102,19 @@ class knitt_b(nn.Module):
         self.fusion_e2 = UpBlock(256, 128)
         self.fusion_e1 = UpBlock(128, 64)
 
-        self.conv = _make_nConv(in_channels=64, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-
     def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
 
-        # x3 = self.fusion_x3(x4, e3)
-        # e3 = self.fusion_e3(e4, x3)     
+        x3 = self.fusion_x3(x4, e3)
+        e3 = self.fusion_e3(e4, x3)     
 
-        # x2 = self.fusion_x2(x3, e2)
-        # e2 = self.fusion_e2(e3, x2)     
+        x2 = self.fusion_x2(x3, e2)
+        e2 = self.fusion_e2(e3, x2)     
 
-        # x1 = self.fusion_x1(x2, e1)
-        # e1 = self.fusion_e1(e2, x1)    
+        x1 = self.fusion_x1(x2, e1)
+        e1 = self.fusion_e1(e2, x1)    
 
-        # x  = self.conv(e1+x1)
 
-        x3 = self.fusion_x3(x4, x3)
-        x2 = self.fusion_x2(x3, x2)
-        x1 = self.fusion_x1(x2, x1)
-
-        return x1
+        return x1, e1
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -178,18 +171,26 @@ class knitt_net(nn.Module):
 
         self.knitt_b = knitt_b(channel=channel)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+        self.tp_conv1_1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+        self.conv2_1 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
                                 nn.BatchNorm2d(32),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv2_1 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
-        seed_func.define()
-        self.head_cnn = SegFormerHead()
-        self.head_tff = SegFormerHead()
-        seed_func.find()
+        self.tp_conv1_2 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2_2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2_2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+
+        # seed_func.define()
+        # self.head_cnn = SegFormerHead()
+        # self.head_tff = SegFormerHead()
+        # seed_func.find()
 
     def forward(self, x):
         # # Question here
@@ -218,20 +219,29 @@ class knitt_net(nn.Module):
         e2 = self.norm_2_2(e2) 
         e1 = self.norm_1_2(e1)
 
-        cnn_out = self.head_cnn(e1, e2, e3, e4)
-        tff_out = self.head_tff(x1, x2, x3, x4)
+        # cnn_out = self.head_cnn(e1, e2, e3, e4)
+        # tff_out = self.head_tff(x1, x2, x3, x4)
 
-        x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
+        x, e = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
-        x = self.tp_conv1(x)
-        x = self.conv2(x)
-        x = self.tp_conv2(x)
+        # x = self.tp_conv1(x)
+        # x = self.conv2(x)
+        # x = self.tp_conv2(x)
 
-        # if self.training:
-        #     return x, cnn_out, tff_out
-        # else:
-        #     return x
-        return x
+        x = self.tp_conv1_1(x)
+        x = self.conv2_1(x)
+        x = self.tp_conv2_1(x)
+
+        e = self.tp_conv1_2(e)
+        e = self.conv2_2(e)
+        e = self.tp_conv2_2(e)
+
+        if self.training:
+            return x, e
+        else:
+            return (x + e) / 2.0
+
+        # return x
 class SegFormerHead(nn.Module):
     """
     SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
