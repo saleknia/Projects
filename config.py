@@ -191,7 +191,7 @@ model_table = tabulate(
                         ['Cross',30],
                         ['SEUNet_loss',31],
                         ['SEUNet_lite',32],
-                        ['Knitt_Net',31]],
+                        ['Knitt_Net',33]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
