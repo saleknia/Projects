@@ -89,10 +89,10 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-class knitt(nn.Module):
+class knitt_b(nn.Module):
 
     def __init__(self, channel):
-        super(knitt, self).__init__()
+        super(knitt_b, self).__init__()
 
         self.fusion_x3 = UpBlock(512, 256)
         self.fusion_x2 = UpBlock(256, 128)
@@ -143,7 +143,7 @@ class knitt(nn.Module):
         self.norm_2 = LayerNormProxy(dim=128)
         self.norm_1 = LayerNormProxy(dim=64)
 
-        self.knitt = knitt(channel=channel)
+        self.knitt_b = knitt_b(channel=channel)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
@@ -165,7 +165,7 @@ class knitt(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
 
-        x = self.knitt(x1, x2, x3, x4)
+        x = self.knitt_b(x1, x2, x3, x4)
 
         x = self.tp_conv1(x)
         x = self.conv2(x)
