@@ -221,20 +221,6 @@ class knitt_net(nn.Module):
         cnn_out = self.head_cnn(e1, e2, e3, e4)
         tff_out = self.head_tff(x1, x2, x3, x4)
 
-        for i in range(2):
-            e3 = self.FAM3_e[i](e3)
-        for i in range(4):
-            e2 = self.FAM2_e[i](e2)
-        for i in range(6):
-            e1 = self.FAM1_e[i](e1)
-
-        for i in range(2):
-            x3 = self.FAM3_x[i](x3)
-        for i in range(4):
-            x2 = self.FAM2_x[i](x2)
-        for i in range(6):
-            x1 = self.FAM1_x[i](x1)
-
         x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
         x = self.tp_conv1(x)
