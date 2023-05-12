@@ -98,13 +98,26 @@ class knitt_b(nn.Module):
         self.fusion_x2 = UpBlock(256, 128)
         self.fusion_x1 = UpBlock(128, 64)
 
-    def forward(self, x1, x2, x3, x4):
+        self.fusion_e3 = UpBlock(512, 256)
+        self.fusion_e2 = UpBlock(256, 128)
+        self.fusion_e1 = UpBlock(128, 64)
 
-        x3 = self.fusion_x3(x4, x3)
-        x2 = self.fusion_x2(x3, x2)
-        x1 = self.fusion_x1(x2, x1)
+        self.conv = _make_nConv(in_channels=64, out_channels=64, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        return x1
+    def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
+
+        x3 = self.fusion_x3(x4, e3)
+        e3 = self.fusion_e3(e4, x3)     
+
+        x2 = self.fusion_x2(x3, e2)
+        e2 = self.fusion_e2(e3, x2)     
+
+        x1 = self.fusion_x1(x2, e1)
+        e1 = self.fusion_e1(e2, x1)    
+
+        x  = self.conv(e1+x1)
+
+        return x
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -120,7 +133,7 @@ class knitt_net(nn.Module):
 
         channel = 64
 
-        self.encoder = CrossFormer(img_size=224,
+        self.encoder_1 = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -138,10 +151,26 @@ class knitt_net(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4 = LayerNormProxy(dim=512)
-        self.norm_3 = LayerNormProxy(dim=256)
-        self.norm_2 = LayerNormProxy(dim=128)
-        self.norm_1 = LayerNormProxy(dim=64)
+        self.norm_4_1 = LayerNormProxy(dim=512)
+        self.norm_3_1 = LayerNormProxy(dim=256)
+        self.norm_2_1 = LayerNormProxy(dim=128)
+        self.norm_1_1 = LayerNormProxy(dim=64)
+
+        resnet = resnet_model.resnet18(pretrained=True)
+
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4
+
+        self.norm_4_2 = LayerNormProxy(dim=512)
+        self.norm_3_2 = LayerNormProxy(dim=256)
+        self.norm_2_2 = LayerNormProxy(dim=128)
+        self.norm_1_2 = LayerNormProxy(dim=64)
 
         self.knitt_b = knitt_b(channel=channel)
 
@@ -158,14 +187,29 @@ class knitt_net(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs = self.encoder(x_input)
+        outputs = self.encoder_1(x_input)
 
-        x4 = self.norm_4(outputs[3]) 
-        x3 = self.norm_3(outputs[2]) 
-        x2 = self.norm_2(outputs[1]) 
-        x1 = self.norm_1(outputs[0])
+        x4 = self.norm_4_1(outputs[3]) 
+        x3 = self.norm_3_1(outputs[2]) 
+        x2 = self.norm_2_1(outputs[1]) 
+        x1 = self.norm_1_1(outputs[0])
 
-        x = self.knitt_b(x1, x2, x3, x4)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
+
+        e4 = self.norm_4_2(e4) 
+        e3 = self.norm_3_2(e3) 
+        e2 = self.norm_2_2(e2) 
+        e1 = self.norm_1_2(e1)
+
+        x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
         x = self.tp_conv1(x)
         x = self.conv2(x)

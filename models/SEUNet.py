@@ -104,6 +104,7 @@ class SEUNet(nn.Module):
         e4 = self.encoder4(e3)
 
 
+
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
         e1 = self.up1(e2, e1)
