@@ -190,7 +190,8 @@ model_table = tabulate(
                         ['Cross_unet',29],
                         ['Cross',30],
                         ['SEUNet_loss',31],
-                        ['SEUNet_lite',32]],
+                        ['SEUNet_lite',32],
+                        ['Knitt_Net',31]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -296,6 +297,10 @@ elif model_id==31:
 
 elif model_id==32:
     MODEL_NAME = 'SEUNet_lite'
+
+elif model_id==33:
+    MODEL_NAME = 'Knitt_Net'
+
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
