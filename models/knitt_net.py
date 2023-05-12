@@ -250,6 +250,14 @@ class SegFormerHead(nn.Module):
         self.up_3 = nn.Upsample(scale_factor=4.0)
         self.up_4 = nn.Upsample(scale_factor=8.0)
 
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+
     def forward(self, c1, c2, c3, c4):
 
         ############## MLP decoder on C1-C3 ###########
@@ -268,7 +276,11 @@ class SegFormerHead(nn.Module):
 
         c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
 
-        return c
+        x = self.tp_conv1(c)
+        x = self.conv2(x)
+        x = self.tp_conv2(x)
+
+        return x
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
