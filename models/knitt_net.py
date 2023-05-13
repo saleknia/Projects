@@ -188,10 +188,10 @@ class knitt_net(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
-        # seed_func.define()
-        # self.head_cnn = SegFormerHead()
-        # self.head_tff = SegFormerHead()
-        # seed_func.find()
+        seed_func.define()
+        self.head_cnn = SegFormerHead()
+        self.head_tff = SegFormerHead()
+        seed_func.find()
 
     def forward(self, x):
         # # Question here
@@ -205,28 +205,28 @@ class knitt_net(nn.Module):
         x2 = self.norm_2_1(outputs[1]) 
         x1 = self.norm_1_1(outputs[0])
 
-        # e0 = self.firstconv(x)
-        # e0 = self.firstbn(e0)
-        # e0 = self.firstrelu(e0)
-        # e0 = self.maxpool(e0)
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
 
-        # e1 = self.encoder1(e0)
-        # e2 = self.encoder2(e1)
-        # e3 = self.encoder3(e2)
-        # e4 = self.encoder4(e3)
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
-        # e4 = self.norm_4_2(e4) 
-        # e3 = self.norm_3_2(e3) 
-        # e2 = self.norm_2_2(e2) 
-        # e1 = self.norm_1_2(e1)
+        e4 = self.norm_4_2(e4) 
+        e3 = self.norm_3_2(e3) 
+        e2 = self.norm_2_2(e2) 
+        e1 = self.norm_1_2(e1)
 
-        # cnn_out = self.head_cnn(e1, e2, e3, e4)
-        # tff_out = self.head_tff(x1, x2, x3, x4)
+        cnn_out = self.head_cnn(e1, e2, e3, e4)
+        tff_out = self.head_tff(x1, x2, x3, x4)
 
-        e1 = None
-        e2 = None
-        e3 = None
-        e4 = None
+        # e1 = None
+        # e2 = None
+        # e3 = None
+        # e4 = None
 
         x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
@@ -234,11 +234,12 @@ class knitt_net(nn.Module):
         x = self.conv2(x)
         x = self.tp_conv2(x)
 
-        # if self.training:
-        #     return x, cnn_out, tff_out
-        # else:
-        #     return x
-        return x
+        if self.training:
+            return x, cnn_out, tff_out
+        else:
+            return x
+            
+        # return x
 
 class SegFormerHead(nn.Module):
     """
