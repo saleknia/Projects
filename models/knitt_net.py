@@ -118,7 +118,7 @@ class knitt_b(nn.Module):
         # x  = self.conv(torch.cat([e1, x1], dim=1))
 
 
-        x = self.fusion_x3(x4, e3)
+        x = self.fusion_x3(x4, x3)
         x = self.fusion_x2(x , x2)
         x = self.fusion_x1(x , x1)
 
