@@ -94,21 +94,19 @@ class knitt_b(nn.Module):
     def __init__(self, channel):
         super(knitt_b, self).__init__()
 
-        self.u_x3 = UpBlock(96, 96)
         self.u_x2 = UpBlock(96, 96)
         self.u_x1 = UpBlock(96, 96)
 
-        self.u_e3 = UpBlock(96, 96)
         self.u_e2 = UpBlock(96, 96)
         self.u_e1 = UpBlock(96, 96)
 
     def forward(self, x1, x2, x3, e1, e2, e3):
 
         x = self.u_x2(x3, x2)
-        x = self.u_x1(x2, x1)
+        x = self.u_x1(x , x1)
 
         e = self.u_e2(e3, e2)
-        e = self.u_e1(e2, e1)
+        e = self.u_e1(e , e1)
 
         return x, e
 
