@@ -106,21 +106,21 @@ class knitt_b(nn.Module):
 
     def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
 
-        x3 = self.fusion_x3(x4, e3)
-        e3 = self.fusion_e3(e4, x3)     
+        # x3 = self.fusion_x3(x4, e3)
+        # e3 = self.fusion_e3(e4, x3)     
 
-        x2 = self.fusion_x2(x3, e2)
-        e2 = self.fusion_e2(e3, x2)     
+        # x2 = self.fusion_x2(x3, e2)
+        # e2 = self.fusion_e2(e3, x2)     
 
-        x1 = self.fusion_x1(x2, e1)
-        e1 = self.fusion_e1(e2, x1)    
+        # x1 = self.fusion_x1(x2, e1)
+        # e1 = self.fusion_e1(e2, x1)    
 
-        x  = self.conv(torch.cat([e1, x1], dim=1))
+        # x  = self.conv(torch.cat([e1, x1], dim=1))
 
 
-        # x = self.fusion_x3(x4, e3)
-        # x = self.fusion_x2(x , x2)
-        # x = self.fusion_x1(x , x1)
+        x = self.fusion_x3(x4, e3)
+        x = self.fusion_x2(x , x2)
+        x = self.fusion_x1(x , x1)
 
 
         return x
@@ -205,23 +205,28 @@ class knitt_net(nn.Module):
         x2 = self.norm_2_1(outputs[1]) 
         x1 = self.norm_1_1(outputs[0])
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # e4 = self.encoder4(e3)
 
-        e4 = self.norm_4_2(e4) 
-        e3 = self.norm_3_2(e3) 
-        e2 = self.norm_2_2(e2) 
-        e1 = self.norm_1_2(e1)
+        # e4 = self.norm_4_2(e4) 
+        # e3 = self.norm_3_2(e3) 
+        # e2 = self.norm_2_2(e2) 
+        # e1 = self.norm_1_2(e1)
 
         # cnn_out = self.head_cnn(e1, e2, e3, e4)
         # tff_out = self.head_tff(x1, x2, x3, x4)
+
+        e1 = None
+        e2 = None
+        e3 = None
+        e4 = None
 
         x = self.knitt_b(x1, x2, x3, x4, e1, e2, e3, e4)
 
