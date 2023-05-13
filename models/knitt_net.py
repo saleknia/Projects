@@ -262,7 +262,7 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384
+        c1_in_channels, c2_in_channels, c3_in_channels = 96, 192, 384
 
         embedding_dim = 96
 
