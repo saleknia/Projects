@@ -239,8 +239,8 @@ class knitt_net(nn.Module):
         # x2 = e2
         # x1 = e1
 
-        cnn_out = self.head_cnn(e1, e2, e3)
-        tff_out = self.head_tff(x1, x2, x3)
+        cr_out = self.head_cr(e1, e2, e3)
+        de_out = self.head_de(x1, x2, x3)
 
         x = self.knitt_b(x1, x2, x3, e1, e2, e3)
 
@@ -249,7 +249,7 @@ class knitt_net(nn.Module):
         x = self.tp_conv2(x)
 
         if self.training:
-            return x, cnn_out, tff_out
+            return x, cr_out, de_out
         else:
             return x
 
