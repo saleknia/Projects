@@ -106,16 +106,16 @@ class knitt_b(nn.Module):
 
     def forward(self, x1, x2, x3, e1, e2, e3):    
 
-        # x2 = self.fusion_x2(x3, e2)
-        # e2 = self.fusion_e2(e3, x2)     
+        x2 = self.fusion_x2(x3, e2)
+        e2 = self.fusion_e2(e3, x2)     
 
-        # x1 = self.fusion_x1(x2, e1)
-        # e1 = self.fusion_e1(e2, x1)    
+        x1 = self.fusion_x1(x2, e1)
+        e1 = self.fusion_e1(e2, x1)    
 
-        # x  = self.conv(torch.cat([e1, x1], dim=1))
+        x  = self.conv(torch.cat([e1, x1], dim=1))
 
-        x = self.fusion_x2(x3, x2)
-        x = self.fusion_x1(x , x1)
+        # x = self.fusion_x2(x3, x2)
+        # x = self.fusion_x1(x , x1)
 
 
         return x
@@ -152,7 +152,6 @@ class knitt_net(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.norm_4_1 = LayerNormProxy(dim=768)
         self.norm_3_1 = LayerNormProxy(dim=384)
         self.norm_2_1 = LayerNormProxy(dim=192)
         self.norm_1_1 = LayerNormProxy(dim=96)
@@ -183,7 +182,6 @@ class knitt_net(nn.Module):
                             drop_path_rate=0.2,
                         )
 
-        self.norm_4_2 = LayerNormProxy(dim=768)
         self.norm_3_2 = LayerNormProxy(dim=384)
         self.norm_2_2 = LayerNormProxy(dim=192)
         self.norm_1_2 = LayerNormProxy(dim=96)
@@ -206,26 +204,24 @@ class knitt_net(nn.Module):
                                 nn.ReLU(inplace=True),)
         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        # seed_func.define()
-        # self.head_cnn = SegFormerHead()
-        # self.head_tff = SegFormerHead()
-        # seed_func.find()
+        self.head_de = SegFormerHead()
+        self.head_cr = SegFormerHead()
 
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        # outputs_1 = self.encoder_1(x_input)
+        outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-        # x3 = self.norm_3_1(outputs_1[2]) 
-        # x2 = self.norm_2_1(outputs_1[1]) 
-        # x1 = self.norm_1_1(outputs_1[0])
+        x3 = self.norm_3_1(outputs_1[2]) 
+        x2 = self.norm_2_1(outputs_1[1]) 
+        x1 = self.norm_1_1(outputs_1[0])
 
-        # x3 = self.reduce_3_1(x3)
-        # x2 = self.reduce_2_1(x2)
-        # x1 = self.reduce_1_1(x1)
+        x3 = self.reduce_3_1(x3)
+        x2 = self.reduce_2_1(x2)
+        x1 = self.reduce_1_1(x1)
 
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
@@ -239,12 +235,12 @@ class knitt_net(nn.Module):
         # e2 = None
         # e1 = None
 
-        x3 = e3
-        x2 = e2
-        x1 = e1
+        # x3 = e3
+        # x2 = e2
+        # x1 = e1
 
-        # cnn_out = self.head_cnn(e1, e2, e3, e4)
-        # tff_out = self.head_tff(x1, x2, x3, x4)
+        cnn_out = self.head_cnn(e1, e2, e3)
+        tff_out = self.head_tff(x1, x2, x3)
 
         x = self.knitt_b(x1, x2, x3, e1, e2, e3)
 
@@ -252,12 +248,12 @@ class knitt_net(nn.Module):
         x = self.conv2(x)
         x = self.tp_conv2(x)
 
-        # if self.training:
-        #     return x, cnn_out, tff_out
-        # else:
-        #     return x
+        if self.training:
+            return x, cnn_out, tff_out
+        else:
+            return x
 
-        return x
+        # return x
 
 class SegFormerHead(nn.Module):
     """
@@ -266,36 +262,31 @@ class SegFormerHead(nn.Module):
     def __init__(self):
         super(SegFormerHead, self).__init__()
 
-        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 64, 128, 256, 512
+        c1_in_channels, c2_in_channels, c3_in_channels, c4_in_channels = 96, 192, 384
 
-        embedding_dim = 64
+        embedding_dim = 96
 
-        self.linear_c4 = MLP(input_dim=c4_in_channels, embed_dim=embedding_dim)
         self.linear_c3 = MLP(input_dim=c3_in_channels, embed_dim=embedding_dim)
         self.linear_c2 = MLP(input_dim=c2_in_channels, embed_dim=embedding_dim)
         self.linear_c1 = MLP(input_dim=c1_in_channels, embed_dim=embedding_dim)
 
-        self.linear_fuse = BasicConv2d(embedding_dim*4, embedding_dim, 1)
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
 
         self.up_2 = nn.Upsample(scale_factor=2.0)
         self.up_3 = nn.Upsample(scale_factor=4.0)
-        self.up_4 = nn.Upsample(scale_factor=8.0)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-    def forward(self, c1, c2, c3, c4):
+    def forward(self, c1, c2, c3):
 
         ############## MLP decoder on C1-C3 ###########
-        n, _, h, w = c4.shape
-
-        c4 = self.linear_c4(c4).permute(0,2,1).reshape(n, -1, c4.shape[2], c4.shape[3])
-        c4 = self.up_4(c4)
+        n, _, h, w = c3.shape
 
         c3 = self.linear_c3(c3).permute(0,2,1).reshape(n, -1, c3.shape[2], c3.shape[3])
         c3 = self.up_3(c3)
@@ -305,7 +296,7 @@ class SegFormerHead(nn.Module):
 
         c1 = self.linear_c1(c1).permute(0,2,1).reshape(n, -1, c1.shape[2], c1.shape[3])
 
-        c = self.linear_fuse(torch.cat([c4, c3, c2, c1], dim=1))
+        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
 
         x = self.tp_conv1(c)
         x = self.conv2(x)
