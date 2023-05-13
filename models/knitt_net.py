@@ -106,21 +106,21 @@ class knitt_b(nn.Module):
 
     def forward(self, x1, x2, x3, x4, e1, e2, e3, e4):
 
-        # x3 = self.fusion_x3(x4, e3)
-        # e3 = self.fusion_e3(e4, x3)     
+        x3 = self.fusion_x3(x4, e3)
+        e3 = self.fusion_e3(e4, x3)     
 
-        # x2 = self.fusion_x2(x3, e2)
-        # e2 = self.fusion_e2(e3, x2)     
+        x2 = self.fusion_x2(x3, e2)
+        e2 = self.fusion_e2(e3, x2)     
 
-        # x1 = self.fusion_x1(x2, e1)
-        # e1 = self.fusion_e1(e2, x1)    
+        x1 = self.fusion_x1(x2, e1)
+        e1 = self.fusion_e1(e2, x1)    
 
-        # x  = self.conv(torch.cat([e1, x1], dim=1))
+        x  = self.conv(torch.cat([e1, x1], dim=1))
 
 
-        x = self.fusion_x3(x4, x3)
-        x = self.fusion_x2(x , x2)
-        x = self.fusion_x1(x , x1)
+        # x = self.fusion_x3(x4, x3)
+        # x = self.fusion_x2(x , x2)
+        # x = self.fusion_x1(x , x1)
 
 
         return x
@@ -238,7 +238,7 @@ class knitt_net(nn.Module):
             return x, cnn_out, tff_out
         else:
             return x
-            
+
         # return x
 
 class SegFormerHead(nn.Module):
