@@ -98,13 +98,39 @@ class knitt_b(nn.Module):
         self.fusion_x2 = UpBlock(96, 96)
         self.fusion_x1 = UpBlock(96, 96)
 
+        self.u_x3 = UpBlock(96, 96)
+        self.u_x2 = UpBlock(96, 96)
+        self.u_x1 = UpBlock(96, 96)
+
         self.fusion_e3 = UpBlock(96, 96)
         self.fusion_e2 = UpBlock(96, 96)
         self.fusion_e1 = UpBlock(96, 96)
 
+        self.u_e3 = UpBlock(96, 96)
+        self.u_e2 = UpBlock(96, 96)
+        self.u_e1 = UpBlock(96, 96)
+
         self.conv = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-    def forward(self, x1, x2, x3, e1, e2, e3):    
+    def forward(self, x1, x2, x3, e1, e2, e3):
+
+        x2 = self.u_x2(x3, x2)
+        x1 = self.u_x1(x2, x1)
+
+        x = x1
+
+        e2 = self.u_e2(e3, e2)
+        e1 = self.u_e1(e2, e1)
+
+        e = e1
+
+        e1 = e1.clone().detach()
+        e2 = e2.clone().detach()       
+        e3 = e3.clone().detach() 
+
+        x1 = x1.clone().detach()
+        x2 = x2.clone().detach()       
+        x3 = x3.clone().detach() 
 
         x2 = self.fusion_x2(x3, e2)
         e2 = self.fusion_e2(e3, x2)     
@@ -112,13 +138,13 @@ class knitt_b(nn.Module):
         x1 = self.fusion_x1(x2, e1)
         e1 = self.fusion_e1(e2, x1)    
 
-        x  = self.conv(torch.cat([e1, x1], dim=1))
+        f  = self.conv(torch.cat([e1, x1], dim=1))
 
         # x = self.fusion_x2(x3, x2)
         # x = self.fusion_x1(x , x1)
 
 
-        return x
+        return x, e, f
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -196,16 +222,32 @@ class knitt_net(nn.Module):
 
         self.knitt_b = knitt_b(channel=channel)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+        self.tp_conv1_x = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+        self.conv2_x = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
                                 nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2_x = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
-        self.head_de = SegFormerHead()
-        self.head_cr = SegFormerHead()
+
+        self.tp_conv1_e = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2_e = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2_e = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
+
+        self.tp_conv1_f = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
+                                      nn.ReLU(inplace=True),)
+        self.conv2_f = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2_f = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
 
     def forward(self, x):
         # # Question here
@@ -219,8 +261,6 @@ class knitt_net(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
-        cr_out = self.head_cr(x1, x2, x3)
-
         x3 = self.reduce_3_1(x3)
         x2 = self.reduce_2_1(x2)
         x1 = self.reduce_1_1(x1)
@@ -228,8 +268,6 @@ class knitt_net(nn.Module):
         e3 = self.norm_3_2(outputs_2[2]) 
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
-
-        de_out = self.head_de(e1, e2, e3)
         
         e3 = self.reduce_3_2(e3)
         e2 = self.reduce_2_2(e2)
@@ -243,16 +281,25 @@ class knitt_net(nn.Module):
         # x2 = e2
         # x1 = e1
 
-        x = self.knitt_b(x1, x2, x3, e1, e2, e3)
+        x , e , f = self.knitt_b(x1, x2, x3, e1, e2, e3)
 
-        x = self.tp_conv1(x)
-        x = self.conv2(x)
-        x = self.tp_conv2(x)
+        x = self.tp_conv1_x(x)
+        x = self.conv2_x(x)
+        x = self.tp_conv2_x(x)
 
+        e = self.tp_conv1_e(e)
+        e = self.conv2_e(e)
+        e = self.tp_conv2_e(e)
+
+        f = self.tp_conv1_f(f)
+        f = self.conv2_f(f)
+        f = self.tp_conv2_f(f)
+
+    
         if self.training:
-            return x, cr_out, de_out
+            return x, e, f
         else:
-            return x
+            return (x + e + f) / 3.0
 
         # return x
 
