@@ -219,6 +219,8 @@ class knitt_net(nn.Module):
         x2 = self.norm_2_1(outputs_1[1]) 
         x1 = self.norm_1_1(outputs_1[0])
 
+        cr_out = self.head_cr(x1, x2, x3)
+
         x3 = self.reduce_3_1(x3)
         x2 = self.reduce_2_1(x2)
         x1 = self.reduce_1_1(x1)
@@ -227,6 +229,8 @@ class knitt_net(nn.Module):
         e2 = self.norm_2_2(outputs_2[1]) 
         e1 = self.norm_1_2(outputs_2[0])
 
+        de_out = self.head_de(e1, e2, e3)
+        
         e3 = self.reduce_3_2(e3)
         e2 = self.reduce_2_2(e2)
         e1 = self.reduce_1_2(e1)
@@ -238,9 +242,6 @@ class knitt_net(nn.Module):
         # x3 = e3
         # x2 = e2
         # x1 = e1
-
-        cr_out = self.head_cr(e1, e2, e3)
-        de_out = self.head_de(x1, x2, x3)
 
         x = self.knitt_b(x1, x2, x3, e1, e2, e3)
 
