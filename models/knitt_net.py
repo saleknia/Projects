@@ -114,7 +114,7 @@ class knitt_b(nn.Module):
 
         # x  = self.conv(torch.cat([e1, x1], dim=1))
 
-        x = self.fusion_x2(x , x2)
+        x = self.fusion_x2(x3, x2)
         x = self.fusion_x1(x , x1)
 
 
@@ -216,28 +216,32 @@ class knitt_net(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        outputs_1 = self.encoder_1(x_input)
+        # outputs_1 = self.encoder_1(x_input)
         outputs_2 = self.encoder_2(x_input)
 
-        x3 = self.norm_3_1(outputs_1[2]) 
-        x2 = self.norm_2_1(outputs_1[1]) 
-        x1 = self.norm_1_1(outputs_1[0])
+        # x3 = self.norm_3_1(outputs_1[2]) 
+        # x2 = self.norm_2_1(outputs_1[1]) 
+        # x1 = self.norm_1_1(outputs_1[0])
 
-        x3 = self.reduce_3_1(x3)
-        x2 = self.reduce_2_1(x2)
-        x1 = self.reduce_1_1(x1)
+        # x3 = self.reduce_3_1(x3)
+        # x2 = self.reduce_2_1(x2)
+        # x1 = self.reduce_1_1(x1)
 
-        # e3 = self.norm_3_2(outputs_2[2]) 
-        # e2 = self.norm_2_2(outputs_2[1]) 
-        # e1 = self.norm_1_2(outputs_2[0])
+        e3 = self.norm_3_2(outputs_2[2]) 
+        e2 = self.norm_2_2(outputs_2[1]) 
+        e1 = self.norm_1_2(outputs_2[0])
 
-        # e3 = self.reduce_3_2(e3)
-        # e2 = self.reduce_2_2(e2)
-        # e1 = self.reduce_1_2(e1)
+        e3 = self.reduce_3_2(e3)
+        e2 = self.reduce_2_2(e2)
+        e1 = self.reduce_1_2(e1)
 
-        e3 = None
-        e2 = None
-        e1 = None
+        # e3 = None
+        # e2 = None
+        # e1 = None
+
+        x3 = e3
+        x2 = e2
+        x1 = e1
 
         # cnn_out = self.head_cnn(e1, e2, e3, e4)
         # tff_out = self.head_tff(x1, x2, x3, x4)
