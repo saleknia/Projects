@@ -954,7 +954,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        # self.layers[3] = None
+        self.layers[3] = None
 
         # for param in self.layers[1].parameters():
         #     param.requires_grad = False
@@ -984,8 +984,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        # for i, layer in enumerate(self.layers[0:3]):
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers[0:3]):
+        # for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
