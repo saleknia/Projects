@@ -31,18 +31,20 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
-        for param in self.features[0:7].parameters():
+        self.features = torchvision.models.segmentation.deeplabv3_resnet50(DeepLabV3_ResNet50_Weights).backbone
+
+        for param in self.features[0:6].parameters():
             param.requires_grad = False
 
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Linear(in_features=2048, out_features=512, bias=True),
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.5, inplace=True),
