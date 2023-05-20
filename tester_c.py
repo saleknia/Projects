@@ -41,8 +41,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
 
     loss_total = utils.AverageMeter()
-    accuracy   = utils.AverageMeter()
-    # accuracy = mAPMeter()
+    # accuracy   = utils.AverageMeter()
+    accuracy = mAPMeter()
 
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
@@ -79,8 +79,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-            # accuracy.add(outputs, torch.nn.functional.one_hot(targets, num_classes=60))
+            # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+            accuracy.add(outputs, torch.nn.functional.one_hot(targets, num_classes=40))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
@@ -92,8 +92,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
-                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
+                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
                 bar_length=45
             )  
 
