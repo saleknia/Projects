@@ -29,61 +29,27 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = resnet34(pretrained=True) # efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model.features[0][0].stride = (1, 1)
 
-        # model.features[0][0].stride = (1, 1)
+        self.features = model.features
 
-        # self.features = model.features
-
-        resnet = resnet34(pretrained=True)
-
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
-
-
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
 
         self.avgpool = model.avgpool
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=512, out_features=256, bias=True),
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=256, out_features=20, bias=True),
+            nn.Linear(in_features=256, out_features=60, bias=True),
         )
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=512, out_features=256, bias=True),
-        #     nn.Dropout(p=0.4, inplace=True),
-        #     nn.Linear(in_features=256, out_features=60, bias=True),
-        # )
-
     def forward(self, x0):
-        x0 = x0.unsqueeze(dim=1)
-        x0 = torch.cat([x0, x0, x0], dim=1)
-        b, c, w, h = x0.shape
-
-        e = self.firstconv(x0)
-        e = self.firstbn(e)
-        e = self.firstrelu(e)
-        e = self.maxpool(e)
-
-        e = self.encoder1(e)
-        e = self.encoder2(e)
-        e = self.encoder3(e)
-        e = self.encoder4(e)
 
         # x_t, x1_t, x2_t = self.teacher(x0)
 
@@ -91,13 +57,13 @@ class Mobile_netV2(nn.Module):
 
         # print(x_t)
 
-        # x1 = self.features[0:7](x0)
-        # x2 = self.features[7:8](x1)
-        # x3 = self.features[8:9](x2)
+        x1 = self.features[0:7](x0)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
-        # x = self.features(x3)
+        x = self.features(x3)
 
-        x = self.avgpool(e)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
