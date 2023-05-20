@@ -170,13 +170,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_ce_total = utils.AverageMeter()
     loss_disparity_total = utils.AverageMeter()
 
-    accuracy = utils.AverageMeter()
-    # accuracy = mAPMeter()
+    # accuracy = utils.AverageMeter()
+    accuracy = mAPMeter()
 
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.1)
+
     # disparity_loss = loss_function
     ##################################################################
 
@@ -192,29 +193,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-
-        # print(targets)
-        
-        # targets[targets<10.00] = 40.00            
-        # targets[targets<20.00] = 41.00
-        # targets[targets<30.00] = 42.00        
-        # targets[targets<40.00] = 43.00
-
-        # targets[targets==40.00] = 0.00            
-        # targets[targets==41.00] = 1.00            
-        # targets[targets==42.00] = 2.00            
-        # targets[targets==43.00] = 3.00            
-
-
-        # outputs, x1, x2, outputs_t, x1_t, x2_t = model(inputs)
         
         outputs = model(inputs)
 
-        # print(outputs.shape)
-
-        # outputs, outputs_t = model(inputs)
-
-        # loss_function(outputs=outputs, labels=targets.long(), epoch=epoch_num)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))

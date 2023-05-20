@@ -137,7 +137,7 @@ elif task_id==8:
     TASK_NAME = 'ISIC2017'
 
 elif task_id==9:
-    NUM_CLASS = 4
+    NUM_CLASS = 40
     TASK_NAME = 'Standford40'
 
 elif task_id==10:
