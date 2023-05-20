@@ -97,8 +97,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 bar_length=45
             )  
 
-        acc = 100*accuracy.avg
-        # acc = 100*accuracy.value().item()
+        # acc = 100*accuracy.avg
+        acc = 100*accuracy.value().item()
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , Accuracy: {acc:.2f}') 

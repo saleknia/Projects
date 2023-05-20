@@ -268,8 +268,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             bar_length=45
         )  
 
-    acc = 100*accuracy.avg
-    # acc = 100*accuracy.value().item()
+    # acc = 100*accuracy.avg
+    acc = 100*accuracy.value().item()
 
     if lr_scheduler is not None:
         lr_scheduler.step()        
