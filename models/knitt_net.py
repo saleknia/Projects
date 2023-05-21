@@ -26,7 +26,7 @@ class knitt_net(nn.Module):
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=40,
-            embed_dim=48,
+            embed_dim=96,
             depths=[2, 2, 6, 2],
             num_heads=[3, 6, 12, 24],
             group_size=[7, 7, 7, 7],
@@ -34,13 +34,16 @@ class knitt_net(nn.Module):
             qkv_bias=True,
             qk_scale=None,
             drop_rate=0.0,
-            drop_path_rate=0.1,
+            drop_path_rate=0.2,
             ape=False,
             patch_norm=True,
             use_checkpoint=False,
             merge_size=[[2, 4], [2,4], [2, 4]]
         )
         self.model = model
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu') 
+        state_dict = checkpoint['model']
+        self.model.load_state_dict(state_dict, strict=False)
 
     def forward(self, x):
         # # Question here
