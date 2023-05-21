@@ -51,6 +51,8 @@ from models.TransFuse import TransFuse_S
 from models.DATUNet import DATUNet
 from models.Cross_unet import Cross_unet
 from models.Cross import Cross
+from models.knitt_net import knitt_net
+
 # from models.original_UNet import original_UNet
 import utils
 from utils import color
@@ -205,6 +207,9 @@ def main(args):
 
     elif MODEL_NAME=='Cross':
         model = Cross().to(DEVICE)
+                                                                 
+    elif MODEL_NAME=='Knitt_Net':
+        model = knitt_net().to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
