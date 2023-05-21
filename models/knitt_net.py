@@ -22,7 +22,7 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = CrossFormer(img_size=448,
+        model = CrossFormer(img_size=224,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
@@ -44,6 +44,12 @@ class knitt_net(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.model.load_state_dict(state_dict, strict=False)
+        # self.model.load_pretrained(state_dict)
+
+        for layer in self.model.layers[0:3]:
+            for param in layer.parameters():
+                param.requires_grad = False
+
         self.model.head = nn.Linear(768, 40) 
 
     def forward(self, x):
@@ -605,7 +611,7 @@ class CrossFormer(nn.Module):
                                drop=drop_rate, attn_drop=attn_drop_rate,
                                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
                                norm_layer=norm_layer,
-                               downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
+                               downsample=PatchMerging if ((i_layer < self.num_layers - 1) and (0 < i_layer)) else None,
                                use_checkpoint=use_checkpoint,
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
@@ -633,6 +639,46 @@ class CrossFormer(nn.Module):
     @torch.jit.ignore
     def no_weight_decay_keywords(self):
         return {'relative_position_bias_table'}
+
+    @torch.no_grad()
+    def load_pretrained(self, state_dict):
+        
+        new_state_dict = {}
+        for state_key, state_value in state_dict.items():
+            keys = state_key.split('.')
+            m = self
+            for key in keys:
+                if key.isdigit():
+                    m = m[int(key)]
+                else:
+                    m = getattr(m, key)
+            if m.shape == state_value.shape:
+                new_state_dict[state_key] = state_value
+            else:
+                # Ignore different shapes
+                if 'relative_position_index' in keys:
+                    new_state_dict[state_key] = m.data
+                if 'q_grid' in keys:
+                    new_state_dict[state_key] = m.data
+                if 'reference' in keys:
+                    new_state_dict[state_key] = m.data
+                # Bicubic Interpolation
+                if 'relative_position_bias_table' in keys:
+                    n, c = state_value.size()
+                    l = int(math.sqrt(n))
+                    assert n == l ** 2
+                    L = int(math.sqrt(m.shape[0]))
+                    pre_interp = state_value.reshape(1, l, l, c).permute(0, 3, 1, 2)
+                    post_interp = F.interpolate(pre_interp, (L, L), mode='bicubic')
+                    new_state_dict[state_key] = post_interp.reshape(c, L ** 2).permute(1, 0)
+                if 'rpe_table' in keys:
+                    c, h, w = state_value.size()
+                    C, H, W = m.data.size()
+                    pre_interp = state_value.unsqueeze(0)
+                    post_interp = F.interpolate(pre_interp, (H, W), mode='bicubic')
+                    new_state_dict[state_key] = post_interp.squeeze(0)
+        
+        self.load_state_dict(new_state_dict, strict=False)
 
     def forward_features(self, x):
         x = self.patch_embed(x)
