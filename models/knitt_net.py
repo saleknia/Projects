@@ -46,7 +46,7 @@ class knitt_net(nn.Module):
         self.model.load_state_dict(state_dict, strict=False)
         # self.model.load_pretrained(state_dict)
 
-        for layer in self.model.layers[0:3]:
+        for layer in self.model.layers[0:2]:
             for param in layer.parameters():
                 param.requires_grad = False
 
