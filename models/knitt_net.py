@@ -51,7 +51,11 @@ class knitt_net(nn.Module):
             for param in layer.parameters():
                 param.requires_grad = False
 
-        self.model.head = nn.Linear(768, 40) 
+        # self.model.head = nn.Linear(768, 40) 
+
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=40, bias=True))
 
     def forward(self, x):
         # # Question here
