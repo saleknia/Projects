@@ -22,7 +22,7 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = CrossFormer(img_size=224,
+        model = CrossFormer(img_size=448,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
@@ -38,13 +38,14 @@ class knitt_net(nn.Module):
             ape=False,
             patch_norm=True,
             use_checkpoint=False,
-            merge_size=[[2, 4], [2,4], [2, 4]]
+            merge_size=[[2, 4], [2, 4], [2, 4]]
         )
         self.model = model
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu') 
         state_dict = checkpoint['model']
-        self.model.load_state_dict(state_dict, strict=False)
-        # self.model.load_pretrained(state_dict)
+
+        # self.model.load_state_dict(state_dict, strict=False)
+        self.model.load_pretrained(state_dict)
 
         for layer in self.model.layers[0:2]:
             for param in layer.parameters():
@@ -358,8 +359,7 @@ class PatchMerging(nn.Module):
                 out_dim = 2 * dim // 2 ** (i + 1)
             stride = 2
             padding = (ps - stride) // 2
-            self.reductions.append(nn.Conv2d(dim, out_dim, kernel_size=ps, 
-                                                stride=stride, padding=padding))
+            self.reductions.append(nn.Conv2d(dim, out_dim, kernel_size=ps, stride=stride, padding=padding))
 
     def forward(self, x):
         """
