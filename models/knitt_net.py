@@ -22,7 +22,7 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = CrossFormer(img_size=224,
+        model = CrossFormer(img_size=448,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
