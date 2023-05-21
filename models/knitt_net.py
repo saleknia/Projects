@@ -46,7 +46,7 @@ class knitt_net(nn.Module):
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
-            embed_dim=96,
+            embed_dim=64,
             depths=[1, 1, 8, 6],
             num_heads=[2, 4, 8, 16],
             group_size=[7, 7, 7, 7],
