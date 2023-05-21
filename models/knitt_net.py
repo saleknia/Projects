@@ -611,7 +611,7 @@ class CrossFormer(nn.Module):
                                drop=drop_rate, attn_drop=attn_drop_rate,
                                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
                                norm_layer=norm_layer,
-                               downsample=PatchMerging if ((i_layer < self.num_layers - 1) and (0 < i_layer)) else None,
+                               downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                                use_checkpoint=use_checkpoint,
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
