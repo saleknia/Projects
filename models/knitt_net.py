@@ -44,7 +44,7 @@ class knitt_net(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu') 
         state_dict = checkpoint['model']
         self.model.load_state_dict(state_dict, strict=False)
-        self.model.head.out_features = 40
+        self.model.head = nn.Linear(768, 40) 
 
     def forward(self, x):
         # # Question here
