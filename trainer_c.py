@@ -188,14 +188,17 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
+    scaler = torch.cuda.amp.GradScaler()
+
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-        
-        outputs = model(inputs)
 
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
+            loss_ce = ce_loss(outputs, targets.long()) 
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -215,13 +218,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets.long()) * weights
             loss_ce = torch.mean(loss_ce)
 
-        else:
-            loss_ce = ce_loss(outputs, targets.long()) 
-            # loss_ce = ce_loss(outputs, outputs_t)
-            # loss_ce = ce_loss(outputs, targets.long()) + 1.0 * torch.nn.functional.mse_loss(outputs, outputs_t)
-            # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/1.0, dim=1),F.softmax(outputs_t/1.0, dim=1),reduction='batchmean') * 1.0 * 0.9)
-            # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
-            # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
+        # else:
+
+        # loss_ce = ce_loss(outputs, outputs_t)
+        # loss_ce = ce_loss(outputs, targets.long()) + 1.0 * torch.nn.functional.mse_loss(outputs, outputs_t)
+        # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/1.0, dim=1),F.softmax(outputs_t/1.0, dim=1),reduction='batchmean') * 1.0 * 0.9)
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+        # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
 
 
         # loss_disparity = distillation(outputs, targets.long())
@@ -248,10 +251,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         #         for param_group in optimizer.param_groups:
         #             param_group['lr'] = param_group['lr'] * 0.5
 
+        # optimizer.zero_grad()
+        # loss.backward()
+        # optimizer.step()
 
+        scaler.scale(loss).backward()
+        scaler.step(optimizer)
+        scaler.update()
         optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
