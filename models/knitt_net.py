@@ -41,7 +41,7 @@ class knitt_net(nn.Module):
         #     merge_size=[[2, 4], [2, 4], [2, 4]]
         # )
 
-        model = CrossFormer(img_size=224,
+        model = CrossFormer(img_size=448,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
