@@ -4,6 +4,7 @@ import torch.nn.functional as F
 import torchvision
 from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
+from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 import random
 from torch.nn import init
 from .Mobile_netV2_loss import Mobile_netV2_loss
@@ -31,7 +32,9 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+
+        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
         # model.features[0][0].stride = (1, 1)
 
