@@ -1,4 +1,4 @@
-import os
+3import os
 import torch
 import torchvision
 import logging
@@ -45,7 +45,7 @@ if log:
 
 LEARNING_RATE = 0.01
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 40
+BATCH_SIZE = 38
 NUM_EPOCHS = 30
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
