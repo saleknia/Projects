@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet34, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
+from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 from torch.nn import init
@@ -29,29 +29,34 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # self.features = model.features
+        model.features[0][0].stride = (1, 1)
 
-        self.features = torchvision.models.segmentation.deeplabv3_resnet50(DeepLabV3_ResNet50_Weights).backbone
+        self.features = model.features
 
-        for param in self.features[0:6].parameters():
+        for param in self.features[0:4].parameters():
             param.requires_grad = False
 
         self.avgpool = model.avgpool
 
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=512, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        #     nn.Dropout(p=0.4, inplace=True),
+        #     nn.Linear(in_features=256, out_features=40, bias=True),
+        # )
+
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=512, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
-
+            nn.Linear(in_features=1480, out_features=40, bias=True))
+        
     def forward(self, x0):
+        b, c, w, h = x0.shape
 
         # x_t, x1_t, x2_t = self.teacher(x0)
 
@@ -59,17 +64,18 @@ class Mobile_netV2(nn.Module):
 
         # print(x_t)
 
-        # x1 = self.features[0:7](x0)
-        # x2 = self.features[7:8](x1)
-        # x3 = self.features[8:9](x2)
+        x1 = self.features[0:7](x0)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
-        x = self.features(x0)
+        # x = self.features(x3)
 
-        x = self.avgpool(x)
+        x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x        
+        return x
+                
         # if self.training:
         #     return x#, x_t#, x1, x2, x_t, x1_t, x2_t
         # else:
