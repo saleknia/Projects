@@ -69,22 +69,22 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t = self.teacher(x0)
 
-        x_t = self.teacher(x0)
+        x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
         # print(x_t)
 
-        # x1 = self.features[0:7](x0)
-        # x2 = self.features[7:8](x1)
-        # x3 = self.features[8:9](x2)
+        x1 = self.features[0:7](x0)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
-        x3 = self.features(x0)
+        # x3 = self.features(x0)
 
         x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
         if self.training:
-            return x, x_t
+            return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
         else:
             return x
 
@@ -125,7 +125,11 @@ class Mobile_netV2_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.features(x0)
+        # x = self.features(x0)
+
+        x1 = model[0:4](x0)
+        x2 = model[4:6](x1)
+        x3 = model[6:9](x2)
 
         x = self.avgpool(x) 
         
@@ -138,7 +142,7 @@ class Mobile_netV2_teacher(nn.Module):
         # else:
         #     return torch.softmax(x, dim=1)
 
-        return torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1), x1, x2, x3
 
 
     # def forward(self, x0):
