@@ -22,46 +22,46 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        # model = CrossFormer(img_size=448,
-        #     patch_size=[4, 8, 16, 32],
-        #     in_chans= 3,
-        #     num_classes=1000,
-        #     embed_dim=96,
-        #     depths=[2, 2, 6, 2],
-        #     num_heads=[3, 6, 12, 24],
-        #     group_size=[7, 7, 7, 7],
-        #     mlp_ratio=4.,
-        #     qkv_bias=True,
-        #     qk_scale=None,
-        #     drop_rate=0.0,
-        #     drop_path_rate=0.2,
-        #     ape=False,
-        #     patch_norm=True,
-        #     use_checkpoint=False,
-        #     merge_size=[[2, 4], [2, 4], [2, 4]]
-        # )
-
         model = CrossFormer(img_size=448,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
-            embed_dim=64,
-            depths=[1, 1, 8, 6],
-            num_heads=[2, 4, 8, 16],
+            embed_dim=96,
+            depths=[2, 2, 6, 2],
+            num_heads=[3, 6, 12, 24],
             group_size=[7, 7, 7, 7],
             mlp_ratio=4.,
             qkv_bias=True,
             qk_scale=None,
             drop_rate=0.0,
-            drop_path_rate=0.1,
+            drop_path_rate=0.2,
             ape=False,
             patch_norm=True,
             use_checkpoint=False,
             merge_size=[[2, 4], [2, 4], [2, 4]]
         )
 
+        # model = CrossFormer(img_size=448,
+        #     patch_size=[4, 8, 16, 32],
+        #     in_chans= 3,
+        #     num_classes=1000,
+        #     embed_dim=64,
+        #     depths=[1, 1, 8, 6],
+        #     num_heads=[2, 4, 8, 16],
+        #     group_size=[7, 7, 7, 7],
+        #     mlp_ratio=4.,
+        #     qkv_bias=True,
+        #     qk_scale=None,
+        #     drop_rate=0.0,
+        #     drop_path_rate=0.1,
+        #     ape=False,
+        #     patch_norm=True,
+        #     use_checkpoint=False,
+        #     merge_size=[[2, 4], [2, 4], [2, 4]]
+        # )
+
         self.model = model
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu') 
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu') 
         state_dict = checkpoint['model']
 
         # self.model.load_state_dict(state_dict, strict=False)
@@ -75,7 +75,7 @@ class knitt_net(nn.Module):
 
         self.model.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512, out_features=40, bias=True))
+            nn.Linear(in_features=768, out_features=40, bias=True))
 
         # self.model.head = nn.Sequential(
         #                                 nn.Dropout(p=0.5, inplace=True),
