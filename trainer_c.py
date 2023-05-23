@@ -198,8 +198,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
-        outputs = model(inputs)
-        loss_ce = ce_loss(outputs, targets.long()) 
+        # outputs = model(inputs)
+        # loss_ce = ce_loss(outputs, targets.long()) 
+
+        outputs, outputs_t = model(inputs)
+        loss_ce = torch.nn.functional.cross_entropy(outputs, outputs_t.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
