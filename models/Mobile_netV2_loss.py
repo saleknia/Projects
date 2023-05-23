@@ -10,7 +10,7 @@ class Mobile_netV2_loss(nn.Module):
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_90_00/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_91_50/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_b_0 = loaded_data_b_0['net']
 
         a = pretrained_b_0.copy()
@@ -46,34 +46,6 @@ class Mobile_netV2_loss(nn.Module):
         self.b_2.load_state_dict(pretrained_b_2)
         self.b_2 = self.b_2.eval()
 
-        # self.b_3 = Mobile_netV2_3()
-        # loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_89_50/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_b_3 = loaded_data_b_3['net']
-
-        # a = pretrained_b_3.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_3.pop(key)
-
-        # self.b_3.load_state_dict(pretrained_b_3)
-        # self.b_3 = self.b_3.eval()
-
-        # for param in self.b_0.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.b_1.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.b_2.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.b_3.parameters():
-        #     param.requires_grad = False
-
-        # net = sum(p.numel() for p in self.parameters())
-        # self.w1  = sum(p.numel() for p in self.b_1.parameters()) / net
-        # self.w2  = sum(p.numel() for p in self.b_2.parameters()) / net
-        # self.w3  = sum(p.numel() for p in self.b_3.parameters()) / net
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -81,15 +53,8 @@ class Mobile_netV2_loss(nn.Module):
         x0 = self.b_0(x)
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
-        # x3 = self.b_3(x)
 
-        # x = 1.0 * x0 + 1.45 * x1 + 1.67 * x2 + 2.0 * x3
-        # x = 1.0 * x0 + 1.47 * x1 + 1.67 * x2 + 2.0 * x3
-        # x = self.w1 * x1 + self.w2 * x2 + self.w3 * x3
-        # x = 1.0 * x1 + 1.4 * x2 + 2.0 * x3
-        # x = x0 + x1 + x2 + x3
 
-        # x = (x0 + x1 + x2 + x3) / 4.0
         x = (x0 + x1 + x2) / 3.0
         
 
@@ -110,60 +75,24 @@ from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV
 import random
 
 
-class Mobile_netV2_3(nn.Module):
+class Mobile_netV2_0(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2_3, self).__init__()
+        super(Mobile_netV2_0, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # self.teacher.load_state_dict(pretrained_teacher)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        # model.features[0][0].stride = (1, 1)
-        # self.features = model.features
-        # self.avgpool = model.avgpool
-
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
-
-        # for param in self.segmentation.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
-
-        # model.features[0][0].stride = (1, 1)
-        # model.features[0][0].in_channels = 4
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
-        # for param in self.features[0:8].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:9].parameters():
+            param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1536, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True))
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512 , out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256 , out_features=40, bias=True),
-        # )
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -175,142 +104,24 @@ class Mobile_netV2_3(nn.Module):
         x = self.classifier(x)
 
         return x
-        # return torch.softmax(x, dim=1)
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
-
-class Mobile_netV2_2(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2_2, self).__init__()
-
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # self.teacher.load_state_dict(pretrained_teacher)
-
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        # model.features[0][0].stride = (1, 1)
-        # self.features = model.features
-        # self.avgpool = model.avgpool
-
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
-
-        # for param in self.segmentation.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
-
-        # model.features[0][0].stride = (1, 1)
-        # model.features[0][0].in_channels = 4
-
-        self.features = model.features
-        self.features[0][0].stride = (1, 1)
-        self.avgpool = model.avgpool
-
-        # for param in self.features[0:8].parameters():
-        #     param.requires_grad = False
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1408, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512 , out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256 , out_features=40, bias=True),
-        # )
-
-    def forward(self, x):
-        b, c, w, h = x.shape
-
-        x = self.features(x)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-
-        return x
-        # return torch.softmax(x, dim=1)
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
-
 
 class Mobile_netV2_1(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_1, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # self.teacher.load_state_dict(pretrained_teacher)
-
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        # model.features[0][0].stride = (1, 1)
-        # self.features = model.features
-        # self.avgpool = model.avgpool
-
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
-
-        # for param in self.segmentation.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
         model = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
-        # model.features[0][0].stride = (1, 1)
-        # model.features[0][0].in_channels = 4
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
-        # for param in self.features[0:8].parameters():
-        #     param.requires_grad = False
-
-        # self.classifier = nn.Sequential(
-        #     nn.Linear(in_features=1280, out_features=40, bias=True),
-        # )
+        for param in self.features[0:9].parameters():
+            param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
-
-
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512 , out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256 , out_features=40, bias=True),
-        # )
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=40, bias=True))
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -322,66 +133,25 @@ class Mobile_netV2_1(nn.Module):
         x = self.classifier(x)
 
         return x
-        # return torch.softmax(x, dim=1)
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
 
-class Mobile_netV2_0(nn.Module):
+class Mobile_netV2_2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2_0, self).__init__()
+        super(Mobile_netV2_2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_teacher/Mobile_NetV2_FER2013_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # self.teacher.load_state_dict(pretrained_teacher)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        # model.features[0][0].stride = (1, 1)
-        # self.features = model.features
-        # self.avgpool = model.avgpool
-
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_resnet50(weights=DeepLabV3_ResNet50_Weights)
-        # self.segmentation = torchvision.models.segmentation.deeplabv3_mobilenet_v3_large(weights=DeepLabV3_MobileNet_V3_Large_Weights)
-
-        # for param in self.segmentation.parameters():
-        #     param.requires_grad = False
-
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-
-        # model.features[0][0].stride = (1, 1)
-        # model.features[0][0].in_channels = 4
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
-        self.features[0][0].stride = (1, 1)
         self.avgpool = model.avgpool
 
-        # for param in self.features[0:8].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:9].parameters():
+            param.requires_grad = False
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=1280, out_features=512, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-            nn.Dropout(p=0.4, inplace=True),
-            nn.Linear(in_features=256, out_features=40, bias=True),
-        )
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1408, out_features=40, bias=True))
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512 , out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256 , out_features=40, bias=True),
-        # )
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -393,11 +163,5 @@ class Mobile_netV2_0(nn.Module):
         x = self.classifier(x)
 
         return x
-        # return torch.softmax(x, dim=1)
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
-
 
 
