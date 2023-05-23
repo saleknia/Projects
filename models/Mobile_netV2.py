@@ -23,8 +23,8 @@ class Mobile_netV2(nn.Module):
                 pretrained_teacher.pop(key)
         self.teacher.load_state_dict(pretrained_teacher)
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         # self.teacher = Mobile_netV2_loss()
         # self.teacher.eval()
