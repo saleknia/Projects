@@ -65,7 +65,7 @@ def label_smoothing(labels, outputs_t):
     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
     smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
 
-    smoothed_labels = (smoothed_labels + outputs_t) / 2.0
+    # smoothed_labels = (smoothed_labels + outputs_t) / 2.0
 
     return smoothed_labels
 
@@ -225,7 +225,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = torch.mean(loss_ce)
 
 
-
         # loss_ce = ce_loss(outputs, outputs_t)
 
         loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
@@ -246,9 +245,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
+        loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
