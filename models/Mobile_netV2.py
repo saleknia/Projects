@@ -31,9 +31,9 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        # model = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
@@ -43,11 +43,11 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
 
-        # for param in self.features[0:6].parameters():
-        #     param.requires_grad = False
-
-        for param in self.features[0:4].parameters():
+        for param in self.features[0:6].parameters():
             param.requires_grad = False
+
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
