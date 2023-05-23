@@ -14,26 +14,26 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VM_95_54/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.teacher.load_state_dict(pretrained_teacher)
+        self.teacher = Mobile_netV2_teacher()
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VM_95_54/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.teacher.load_state_dict(pretrained_teacher)
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         # self.teacher = Mobile_netV2_loss()
         # self.teacher.eval()
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b4(weights=EfficientNet_B4_Weights)
+        # model = efficientnet_b4(weights=EfficientNet_B4_Weights)
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -43,11 +43,11 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
 
-        # for param in self.features[0:6].parameters():
-        #     param.requires_grad = False
-
-        for param in self.features[0:4].parameters():
+        for param in self.features[0:6].parameters():
             param.requires_grad = False
+
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
@@ -62,24 +62,29 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1792, out_features=40, bias=True))
+            nn.Linear(in_features=1280, out_features=40, bias=True))
         
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         # x_t, x1_t, x2_t = self.teacher(x0)
 
-        # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
+        x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
         # print(x_t)
 
-        x1 = self.features[0:7](x0)
-        x2 = self.features[7:8](x1)
-        x3 = self.features[8:9](x2)
+        # x1 = self.features[0:7](x0)
+        # x2 = self.features[7:8](x1)
+        # x3 = self.features[8:9](x2)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
+
+        x0 = self.features[0:6](x0)
+        x1 = self.features[6:7](x0)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
         # x3 = self.features(x0)
 
@@ -96,7 +101,7 @@ class Mobile_netV2(nn.Module):
         # print(x3_t.shape)
 
         if self.training:
-            return x#, x_t, x1, x2, x3, x1_t, x2_t, x3_t
+            return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
         else:
             return x
 
@@ -139,9 +144,14 @@ class Mobile_netV2_teacher(nn.Module):
 
         # x = self.features(x0)
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
+
+        x0 = self.features[0:6](x0)
+        x1 = self.features[6:7](x0)
+        x2 = self.features[7:8](x1)
+        x3 = self.features[8:9](x2)
 
         x = self.avgpool(x3) 
         
