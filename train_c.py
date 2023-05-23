@@ -404,7 +404,6 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-
         trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
