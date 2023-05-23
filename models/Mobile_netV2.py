@@ -127,9 +127,9 @@ class Mobile_netV2_teacher(nn.Module):
 
         # x = self.features(x0)
 
-        x1 = model[0:4](x0)
-        x2 = model[4:6](x1)
-        x3 = model[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         x = self.avgpool(x) 
         
