@@ -116,7 +116,7 @@ class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
-        model = efficientnet_v2_l(weights=EfficientNet_V2_l_Weights)
+        model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
         model.features[0][0].stride = (1, 1)
 
         self.features = model.features
