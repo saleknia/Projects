@@ -43,11 +43,11 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
 
-        # for param in self.features[0:6].parameters():
-        #     param.requires_grad = False
-
-        for param in self.features[0:4].parameters():
+        for param in self.features[0:6].parameters():
             param.requires_grad = False
+
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
