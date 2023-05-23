@@ -15,7 +15,7 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VS_94_75/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VM_95_54/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -31,7 +31,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
@@ -99,7 +99,7 @@ class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
         model.features[0][0].stride = (1, 1)
 
         self.features = model.features
