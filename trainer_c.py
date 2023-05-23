@@ -188,7 +188,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-    scaler = torch.cuda.amp.GradScaler()
+    # scaler = torch.cuda.amp.GradScaler()
 
     for batch_idx, (inputs, targets) in enumerate(loader):
 
@@ -196,9 +196,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        with torch.autocast(device_type=device, dtype=torch.float16):
-            outputs = model(inputs)
-            loss_ce = ce_loss(outputs, targets.long()) 
+        # with torch.autocast(device_type=device, dtype=torch.float16):
+
+        outputs = model(inputs)
+        loss_ce = ce_loss(outputs, targets.long()) 
 
         predictions = torch.argmax(input=outputs,dim=1).long()
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
@@ -251,14 +252,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         #         for param_group in optimizer.param_groups:
         #             param_group['lr'] = param_group['lr'] * 0.5
 
-        # optimizer.zero_grad()
-        # loss.backward()
-        # optimizer.step()
-
-        scaler.scale(loss).backward()
-        scaler.step(optimizer)
-        scaler.update()
         optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        # scaler.scale(loss).backward()
+        # scaler.step(optimizer)
+        # scaler.update()
+        # optimizer.zero_grad()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
