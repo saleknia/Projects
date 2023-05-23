@@ -84,7 +84,7 @@ class Mobile_netV2(nn.Module):
         x = self.classifier(x)
 
         if self.training:
-            return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
+            return x, x_t#, x1, x2, x3, x1_t, x2_t, x3_t
         else:
             return x
 
@@ -100,7 +100,7 @@ class Mobile_netV2_teacher(nn.Module):
         super(Mobile_netV2_teacher, self).__init__()
 
         model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
-
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
