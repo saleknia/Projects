@@ -77,14 +77,14 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[7:8](x1)
         # x3 = self.features[8:9](x2)
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
-        x0 = self.features[0:6](x0)
-        x1 = self.features[6:7](x0)
-        x2 = self.features[7:8](x1)
-        x3 = self.features[8:9](x2)
+        # x0 = self.features[0:6](x0)
+        # x1 = self.features[6:7](x0)
+        # x2 = self.features[7:8](x1)
+        # x3 = self.features[8:9](x2)
 
         # x3 = self.features(x0)
 
@@ -144,14 +144,14 @@ class Mobile_netV2_teacher(nn.Module):
 
         # x = self.features(x0)
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
-        x0 = self.features[0:6](x0)
-        x1 = self.features[6:7](x0)
-        x2 = self.features[7:8](x1)
-        x3 = self.features[8:9](x2)
+        # x0 = self.features[0:6](x0)
+        # x1 = self.features[6:7](x0)
+        # x2 = self.features[7:8](x1)
+        # x3 = self.features[8:9](x2)
 
         x = self.avgpool(x3) 
         
