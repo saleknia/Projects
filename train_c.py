@@ -404,12 +404,12 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordActionDataset/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
             trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        testset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/test/',
+        testset = torchvision.datasets.ImageFolder(root='/content/StanfordActionDataset/test/',
                                         transform=transform_test)
         test_loader = torch.utils.data.DataLoader(
             testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
