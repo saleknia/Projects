@@ -62,7 +62,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=40, bias=True))
+            nn.Linear(in_features=1408, out_features=101, bias=True))
         
     def forward(self, x0):
         b, c, w, h = x0.shape
