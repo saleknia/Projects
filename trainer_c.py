@@ -200,9 +200,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
-        outputs = model(inputs)
+        # outputs = model(inputs)
 
-        # outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
+        outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
 
         # loss_ce = torch.nn.functional.cross_entropy(outputs, outputs_t, weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
 
