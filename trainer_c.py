@@ -200,9 +200,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
-        outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
+        # outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
 
         # loss_ce = torch.nn.functional.cross_entropy(outputs, outputs_t, weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
 
@@ -227,12 +227,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, outputs_t)
 
-        loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
+        # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
         # loss_ce = ce_loss(outputs, targets.long()) + 1.0 * torch.nn.functional.mse_loss(outputs, outputs_t)
         # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/1.0, dim=1),F.softmax(outputs_t/1.0, dim=1),reduction='batchmean') * 1.0 * 0.9)
 
-        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
         # loss_ce = loss_kd_regularization(outputs=outputs, labels=targets.long())
 
@@ -245,9 +245,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
+        # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x1, t=x1_t) + importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################

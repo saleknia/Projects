@@ -416,6 +416,31 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':test_loader}
 
+    elif TASK_NAME=='BU101+':
+
+        transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        transform_test = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+        ])
+
+        trainset = torchvision.datasets.ImageFolder(root='/content/BU101/train/', transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        testset = torchvision.datasets.ImageFolder(root='/content/BU101/test/', transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':train_loader,'valid':test_loader}
+
     elif TASK_NAME=='TCIA':
 
         train_dataset = TCIA(split='train', joint_transform=train_tf)
