@@ -140,20 +140,19 @@ def importance_maps_distillation(s, t, exp=4):
     :param t: teacher feature maps
     :return: imd loss value
     """
-    if s.shape[2] != t.shape[2]:
-        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    # if s.shape[2] != t.shape[2]:
+    #     s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
-def attention_loss(masks, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t):
+def attention_loss(e1, e2, e3, e1_t, e2_t, e3_t):
 
     loss = 0.0
 
-    # loss = loss + importance_maps_distillation(e1, e1_t) 
-    # loss = loss + importance_maps_distillation(e2, e2_t) 
-    # loss = loss + importance_maps_distillation(e3, e3_t) 
-    # loss = loss + importance_maps_distillation(e4, e4_t) 
+    loss = loss + importance_maps_distillation(e1, e1_t) 
+    loss = loss + importance_maps_distillation(e2, e2_t) 
+    loss = loss + importance_maps_distillation(e3, e3_t) 
 
-    return loss * 0.1
+    return loss 
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):
@@ -363,8 +362,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         targets = targets.float()
         inputs = inputs.float()
 
-        outputs = model(inputs)
-        # outputs, e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t = model(inputs)
+        # outputs = model(inputs)
+        outputs, e1, e2, e3, e1_t, e2_t, e3_t = model(inputs)
 
         if type(outputs)==tuple:
             loss_ce   = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) #+ ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
@@ -375,8 +374,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         else:
             loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
-            loss_att  = 0.0
-            # loss_att = attention_loss(targets.unsqueeze(dim=1), e1, e2, e3, e4, d1, d2, d3, e1_t, e2_t, e3_t, e4_t, d1_t, d2_t, d3_t)
+            # loss_att  = 0.0
+            loss_att = attention_loss(e1, e2, e3, e1_t, e2_t, e3_t)
             loss = loss_ce + loss_dice + loss_att
             # loss = structure_loss(outputs, targets.unsqueeze(dim=1))
 
