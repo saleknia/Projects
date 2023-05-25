@@ -103,12 +103,22 @@ class SEUNet(nn.Module):
 
         # y_t, e1_t, e2_t, e3_t = self.teacher(x)
 
-        x = self.stem(x)
+        # x = self.stem(x)
 
-        e1 = self.layer1(x)
-        e2 = self.layer2(e1)
-        e3 = self.layer3(e2)
-        e4 = self.layer4(e3)
+        # e1 = self.layer1(x)
+        # e2 = self.layer2(e1)
+        # e3 = self.layer3(e2)
+        # e4 = self.layer4(e3)
+
+        e0 = self.firstconv(x)
+        e0 = self.firstbn(e0)
+        e0 = self.firstrelu(e0)
+        e0 = self.maxpool(e0)
+
+        e1 = self.encoder1(e0)
+        e2 = self.encoder2(e1)
+        e3 = self.encoder3(e2)
+        e4 = self.encoder4(e3)
 
         e = self.up3(e4, e3) 
         e = self.up2(e , e2) 
