@@ -67,19 +67,19 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.teacher = SEUNet_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = SEUNet_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
-        model = torchvision.models.regnet_x_800mf(weights='DEFAULT')
+        model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
         self.stem   = model.stem
         self.layer1 = model.trunk_output.block1
@@ -87,23 +87,23 @@ class SEUNet(nn.Module):
         self.layer3 = model.trunk_output.block3
         self.layer4 = model.trunk_output.block4
 
-        self.up3 = DecoderBottleneckLayer(in_channels=672, out_channels=288)
-        self.up2 = DecoderBottleneckLayer(in_channels=288, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64)
+        self.up3 = DecoderBottleneckLayer(in_channels=440, out_channels=208)
+        self.up2 = DecoderBottleneckLayer(in_channels=208, out_channels=104)
+        self.up1 = DecoderBottleneckLayer(in_channels=104, out_channels=48)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(48, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
 
-        y_t, e1_t, e2_t, e3_t = self.teacher(x)
+        # y_t, e1_t, e2_t, e3_t = self.teacher(x)
 
         x = self.stem(x)
 
@@ -122,7 +122,7 @@ class SEUNet(nn.Module):
 
 
         if self.training:
-            return y, y_t, e1, e2, e3, e1_t, e2_t, e3_t
+            return y#, y_t, e1, e2, e3, e1_t, e2_t, e3_t
         else:
             return y 
 
