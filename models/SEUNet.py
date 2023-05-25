@@ -76,8 +76,8 @@ class SEUNet(nn.Module):
         self.layer4 = model.trunk_output.block4
 
         self.up3 = DecoderBottleneckLayer(in_channels=1008, out_channels=432)
-        self.up2 = DecoderBottleneckLayer(in_channels=432 , out_channels=92)
-        self.up1 = DecoderBottleneckLayer(in_channels=92  , out_channels=96)
+        self.up2 = DecoderBottleneckLayer(in_channels=432 , out_channels=192)
+        self.up1 = DecoderBottleneckLayer(in_channels=192 , out_channels=96)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
