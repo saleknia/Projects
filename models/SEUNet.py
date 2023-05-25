@@ -67,7 +67,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = torchvision.models.regnet_x_1_6_gf(weights='DEFAULT')
+        model = torchvision.models.regnet_x_1_6gf(weights='DEFAULT')
 
         self.stem   = model.stem
         self.layer1 = model.trunk_output.block1
