@@ -67,22 +67,19 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        model = torchvision.models.regnet_x_400mf(weights='DEFAULT')
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        self.stem   = model.stem
+        self.layer1 = model.trunk_output.block1
+        self.layer2 = model.trunk_output.block2
+        self.layer3 = model.trunk_output.block3
+        self.layer4 = model.trunk_output.block4
 
-        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
-        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64 )
+        self.up3 = DecoderBottleneckLayer(in_channels=400, out_channels=160)
+        self.up2 = DecoderBottleneckLayer(in_channels=160, out_channels=64 )
+        self.up1 = DecoderBottleneckLayer(in_channels=64 , out_channels=32 )
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(32, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
         self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
@@ -93,17 +90,13 @@ class SEUNet(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        x = self.stem(x)
 
-
+        e1 = self.layer1(x)
+        e2 = self.layer2(e1)
+        e3 = self.layer3(e2)
+        e4 = self.layer4(e3)
 
         e3 = self.up3(e4, e3) 
         e2 = self.up2(e3, e2) 
