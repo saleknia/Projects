@@ -67,17 +67,17 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.teacher = SEUNet_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = SEUNet_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         model = torchvision.models.regnet_x_800mf(weights='DEFAULT')
 
@@ -103,7 +103,7 @@ class SEUNet(nn.Module):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
 
-        y_t, e1_t, e2_t, e3_t = self.teacher(x)
+        # y_t, e1_t, e2_t, e3_t = self.teacher(x)
 
         x = self.stem(x)
 
@@ -121,7 +121,7 @@ class SEUNet(nn.Module):
         y = self.tp_conv2(y)
 
         if self.training:
-            return y, y_t, e1, e2, e3, e1_t, e2_t, e3_t
+            return y#, y_t, e1, e2, e3, e1_t, e2_t, e3_t
         else:
             return y
 
