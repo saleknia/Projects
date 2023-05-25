@@ -67,7 +67,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = torchvision.models.regnet_x_800mf(weights='DEFAULT')
+        model = torchvision.models.regnet_x_3_2gf(weights='DEFAULT')
 
         self.stem   = model.stem
         self.layer1 = model.trunk_output.block1
@@ -75,11 +75,11 @@ class SEUNet(nn.Module):
         self.layer3 = model.trunk_output.block3
         self.layer4 = model.trunk_output.block4
 
-        self.up3 = DecoderBottleneckLayer(in_channels=672, out_channels=288)
-        self.up2 = DecoderBottleneckLayer(in_channels=288, out_channels=128)
-        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64)
+        self.up3 = DecoderBottleneckLayer(in_channels=1008, out_channels=432)
+        self.up2 = DecoderBottleneckLayer(in_channels=432 , out_channels=192)
+        self.up1 = DecoderBottleneckLayer(in_channels=192 , out_channels=96)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 32, 3, 2, 1, 1),
                                       nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
         self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
