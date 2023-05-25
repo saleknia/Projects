@@ -146,13 +146,7 @@ def importance_maps_distillation(s, t, exp=4):
 
 def attention_loss(e1, e2, e3, e1_t, e2_t, e3_t):
 
-    loss = 0.0
-
-    loss = loss + importance_maps_distillation(e1, e1_t) 
-    loss = loss + importance_maps_distillation(e2, e2_t) 
-    loss = loss + importance_maps_distillation(e3, e3_t) 
-
-    return loss 
+    return importance_maps_distillation(e1, e1_t) + importance_maps_distillation(e2, e2_t) + importance_maps_distillation(e3, e3_t)  
 
 class CriterionPixelWise(nn.Module):
     def __init__(self):

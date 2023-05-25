@@ -116,11 +116,10 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2) 
         e = self.up1(e , e1)
 
-        y = self.tp_conv1(e1)
+        y = self.tp_conv1(e)
         y = self.conv2(y)
         y = self.tp_conv2(y)
 
-        
 
         if self.training:
             return y, y_t, e1, e2, e3, e1_t, e2_t, e3_t
@@ -174,7 +173,7 @@ class SEUNet_teacher(nn.Module):
         e = self.up2(e , e2) 
         e = self.up1(e , e1)
 
-        y = self.tp_conv1(e1)
+        y = self.tp_conv1(e)
         y = self.conv2(y)
         y = self.tp_conv2(y)
 
