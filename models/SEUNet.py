@@ -68,7 +68,7 @@ class SEUNet(nn.Module):
         self.n_classes = n_classes
 
         self.teacher = SEUNet_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best', map_location='cuda')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_85_17/SEUNet_ISIC2017_best.pth', map_location='cuda')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
