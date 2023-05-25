@@ -67,53 +67,46 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.model = torchvision.models.regnet_x_400mf(weights='DEFAULT')
+        model = torchvision.models.regnet_x_800mf(weights='DEFAULT')
 
-        # self.stem   = model.stem
-        # self.layer1 = model.trunk_output.block1
-        # self.layer2 = model.trunk_output.block2
-        # self.layer3 = model.trunk_output.block3
-        # self.layer4 = model.trunk_output.block4
+        self.stem   = model.stem
+        self.layer1 = model.trunk_output.block1
+        self.layer2 = model.trunk_output.block2
+        self.layer3 = model.trunk_output.block3
+        self.layer4 = model.trunk_output.block4
 
-        self.model.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=400, out_features=40, bias=True))
+        self.up3 = DecoderBottleneckLayer(in_channels=672, out_channels=288)
+        self.up2 = DecoderBottleneckLayer(in_channels=288, out_channels=128)
+        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64)
 
-        # self.up3 = DecoderBottleneckLayer(in_channels=672, out_channels=288)
-        # self.up2 = DecoderBottleneckLayer(in_channels=288, out_channels=128)
-        # self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64)
-
-        # self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-        #                               nn.BatchNorm2d(32),
-        #                               nn.ReLU(inplace=True),)
-        # self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-        #                         nn.BatchNorm2d(32),
-        #                         nn.ReLU(inplace=True),)
-        # self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
+                                      nn.ReLU(inplace=True),)
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
+                                nn.ReLU(inplace=True),)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
-        e = self.model(x)
-        # x = self.stem(x)
 
-        # e1 = self.layer1(x)
-        # e2 = self.layer2(e1)
-        # e3 = self.layer3(e2)
-        # e4 = self.layer4(e3)
+        x = self.stem(x)
 
-        # e = self.avgpool(e4)
-        # e = self.classifier(e)
+        e1 = self.layer1(x)
+        e2 = self.layer2(e1)
+        e3 = self.layer3(e2)
+        e4 = self.layer4(e3)
 
-        # e3 = self.up3(e4, e3) 
-        # e2 = self.up2(e3, e2) 
-        # e1 = self.up1(e2, e1)
+        e3 = self.up3(e4, e3) 
+        e2 = self.up2(e3, e2) 
+        e1 = self.up1(e2, e1)
 
-        # y = self.tp_conv1(e1)
-        # y = self.conv2(y)
-        # y = self.tp_conv2(y)
+        y = self.tp_conv1(e1)
+        y = self.conv2(y)
+        y = self.tp_conv2(y)
 
-        return e
+        return y
 
 class MetaFormer(nn.Module):
 
