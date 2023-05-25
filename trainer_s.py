@@ -375,11 +375,11 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             # loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             # loss_dice = dice_loss(inputs=outputs, targets=targets)
 
-            loss_ce   = ce_loss(outputs, outputs_t.unsqueeze(dim=1)) 
-            loss_dice = dice_loss(inputs=outputs, targets=outputs_t)
-
+            loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
+            loss_dice = dice_loss(inputs=outputs, targets=targets)
+            
             # loss_att  = 0.0
-            loss_att = 0.25 * attention_loss(e1, e2, e3, e1_t, e2_t, e3_t)
+            loss_att = 0.1 * attention_loss(e1, e2, e3, e1_t, e2_t, e3_t)
             loss = loss_ce + loss_dice + loss_att
             # loss = structure_loss(outputs, targets.unsqueeze(dim=1))
 
