@@ -67,17 +67,15 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = torchvision.models.regnet_x_400mf(weights='DEFAULT')
+        self.model = torchvision.models.regnet_x_400mf(weights='DEFAULT')
 
-        self.stem   = model.stem
-        self.layer1 = model.trunk_output.block1
-        self.layer2 = model.trunk_output.block2
-        self.layer3 = model.trunk_output.block3
-        self.layer4 = model.trunk_output.block4
+        # self.stem   = model.stem
+        # self.layer1 = model.trunk_output.block1
+        # self.layer2 = model.trunk_output.block2
+        # self.layer3 = model.trunk_output.block3
+        # self.layer4 = model.trunk_output.block4
 
-        self.avgpool = model.avgpool
-
-        self.classifier = nn.Sequential(
+        self.model.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=400, out_features=40, bias=True))
 
@@ -96,16 +94,16 @@ class SEUNet(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
+        e = self.model(x)
+        # x = self.stem(x)
 
-        x = self.stem(x)
+        # e1 = self.layer1(x)
+        # e2 = self.layer2(e1)
+        # e3 = self.layer3(e2)
+        # e4 = self.layer4(e3)
 
-        e1 = self.layer1(x)
-        e2 = self.layer2(e1)
-        e3 = self.layer3(e2)
-        e4 = self.layer4(e3)
-
-        e = self.avgpool(e4)
-        e = self.classifier(e)
+        # e = self.avgpool(e4)
+        # e = self.classifier(e)
 
         # e3 = self.up3(e4, e3) 
         # e2 = self.up2(e3, e2) 
