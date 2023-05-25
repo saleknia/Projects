@@ -42,19 +42,6 @@ class DecoderBottleneckLayer(nn.Module):
         # return self.SK(x, skip_x)
         return x + skip_x
 
-class LayerNormProxy(nn.Module):
-    
-    def __init__(self, dim):
-        
-        super().__init__()
-        self.norm = nn.LayerNorm(dim)
-
-    def forward(self, x):
-
-        x = einops.rearrange(x, 'b c h w -> b h w c')
-        x = self.norm(x)
-        return einops.rearrange(x, 'b h w c -> b c h w')
-        
 class SEUNet(nn.Module):
     def __init__(self, n_channels=1, n_classes=9):
         '''
@@ -79,25 +66,36 @@ class SEUNet(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
+        # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        self.stem   = model.stem
-        self.layer1 = model.trunk_output.block1
-        self.layer2 = model.trunk_output.block2
-        self.layer3 = model.trunk_output.block3
-        self.layer4 = model.trunk_output.block4
+        # self.stem   = model.stem
+        # self.layer1 = model.trunk_output.block1
+        # self.layer2 = model.trunk_output.block2
+        # self.layer3 = model.trunk_output.block3
+        # self.layer4 = model.trunk_output.block4
 
-        self.up3 = DecoderBottleneckLayer(in_channels=440, out_channels=208)
-        self.up2 = DecoderBottleneckLayer(in_channels=208, out_channels=104)
-        self.up1 = DecoderBottleneckLayer(in_channels=104, out_channels=48)
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(48, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.firstconv = resnet.conv1
+        self.firstbn = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool  = resnet.maxpool
+        self.encoder1 = resnet.layer1[0]
+        self.encoder2 = resnet.layer2[0]
+        self.encoder3 = resnet.layer3[0]
+        self.encoder4 = resnet.layer4[0]
+
+        self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
+        self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
+        self.up1 = DecoderBottleneckLayer(in_channels=128, out_channels=64)
+
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -119,6 +117,8 @@ class SEUNet(nn.Module):
         y = self.tp_conv1(e)
         y = self.conv2(y)
         y = self.tp_conv2(y)
+
+        # y = (y + y_t) / 2.0
 
 
         if self.training:
