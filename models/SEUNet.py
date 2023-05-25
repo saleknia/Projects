@@ -103,7 +103,7 @@ class SEUNet(nn.Module):
         b, c, h, w = x.shape
         # x = torch.cat([x, x, x], dim=1)
 
-        e1_t, e2_t, e3_t = self.teacher(x)
+        y_t, e1_t, e2_t, e3_t = self.teacher(x)
 
         x = self.stem(x)
 
@@ -121,7 +121,7 @@ class SEUNet(nn.Module):
         y = self.tp_conv2(y)
 
         if self.training:
-            return y, e1, e2, e3, e1_t, e2_t, e3_t
+            return y, y_t, e1, e2, e3, e1_t, e2_t, e3_t
         else:
             return y
 
@@ -176,5 +176,11 @@ class SEUNet_teacher(nn.Module):
         y = self.conv2(y)
         y = self.tp_conv2(y)
 
-        return e1, e2, e3
+        y = torch.round(torch.sigmoid(torch.squeeze(y, dim=1)))
+
+        return y, e1, e2, e3
+
+
+
+
       
