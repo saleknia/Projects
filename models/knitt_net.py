@@ -59,7 +59,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
         # self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
         self.up   = nn.Upsample(scale_factor=2.0)
-        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
         # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
@@ -118,8 +118,8 @@ class knitt_net(nn.Module):
         self.encoder_cnn_layer_2 = model.features[2:4]        
         self.encoder_cnn_layer_3 = model.features[4:6]
 
-        self.up2 = UpBlock(384, 192, nb_Conv=2)
-        self.up1 = UpBlock(192, 96 , nb_Conv=2)
+        self.up2 = UpBlock(96, 96, nb_Conv=2)
+        self.up1 = UpBlock(96, 96, nb_Conv=2)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
