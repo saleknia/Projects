@@ -57,12 +57,13 @@ class UpBlock(nn.Module):
 
     def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
         super(UpBlock, self).__init__()
-        self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
-        self.conv = _make_nConv(in_channels=in_channels, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
+        # self.up = nn.ConvTranspose2d(in_channels, in_channels // 2, kernel_size=2, stride=2)
+        self.up   = nn.Upsample(scale_factor=2.0)
+        self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=nb_Conv, activation=activation, dilation=1, padding=1)
     def forward(self, x, skip_x):
         x = self.up(x)
-        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
-        # x = x + skip_x
+        # x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = x + skip_x
         x = self.conv(x)
         return x
 
@@ -117,8 +118,8 @@ class knitt_net(nn.Module):
         self.encoder_cnn_layer_2 = model.features[2:4]        
         self.encoder_cnn_layer_3 = model.features[4:6]
 
-        self.up2_e = UpBlock(384, 192, nb_Conv=2)
-        self.up1_e = UpBlock(192, 96 , nb_Conv=2)
+        self.up2 = UpBlock(384, 192, nb_Conv=2)
+        self.up1 = UpBlock(192, 96 , nb_Conv=2)
 
         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
                                       nn.BatchNorm2d(48),
@@ -147,10 +148,13 @@ class knitt_net(nn.Module):
                                         merge_size=[[2, 4], [2, 4], [2, 4]]
                                     )
 
-        self.up2_t = UpBlock(384, 192, nb_Conv=2)
-        self.up1_t = UpBlock(192, 96 , nb_Conv=2)
+        self.reduce_e1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_e2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_e3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
-        self.conv = _make_nConv(in_channels=192, out_channels=96, nb_Conv=1, activation='ReLU', dilation=1, padding=1)
+        self.reduce_x1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_x2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+        self.reduce_x3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
 
     def forward(self, x):
         # Question here
@@ -161,17 +165,24 @@ class knitt_net(nn.Module):
         e2 = self.encoder_cnn_layer_2(e1)
         e3 = self.encoder_cnn_layer_3(e2)
 
-        tff_outputs = self.encoder_tff(x0)
+        e1 = self.reduce_e1(e1)
+        e2 = self.reduce_e2(e2)
+        e3 = self.reduce_e3(e3)
 
-        x1, x2, x3 = tff_outputs[0], tff_outputs[1], tff_outputs[2]
+        # tff_outputs = self.encoder_tff(x0)
 
-        x2 = self.up2_e(e3, x2)
-        e2 = self.up2_x(x3, e2)
+        # x1, x2, x3 = tff_outputs[0], tff_outputs[1], tff_outputs[2]
 
-        x0 = self.up1_e(e2, x1)
-        e0 = self.up1_x(x2, e1)
+        # x1 = self.reduce_x1(x1)
+        # x2 = self.reduce_x2(x2)
+        # x3 = self.reduce_x3(x3)
 
-        e = self.conv(torch.cat([x0, e0], dim=1))
+        # e3 = e3 + x3
+        # e2 = e2 + x2
+        # e1 = e1 + x1
+
+        e = self.up2(e3, e2)
+        e = self.up1(e , e1)
 
         e = self.tp_conv1(e)
         e = self.conv2(e)
