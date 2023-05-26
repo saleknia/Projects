@@ -112,44 +112,59 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        self.encoder_cnn_layer_1 = model.features[0:2]
-        self.encoder_cnn_layer_2 = model.features[2:4]        
-        self.encoder_cnn_layer_3 = model.features[4:6]
-        self.encoder_cnn_layer_4 = model.features[6:8]
+        model = CrossFormer(img_size=224,
+            patch_size=[4, 8, 16, 32],
+            in_chans= 3,
+            num_classes=1000,
+            embed_dim=64,
+            depths=[1, 1, 8, 6],
+            num_heads=[2, 4, 8, 16],
+            group_size=[7, 7, 7, 7],
+            mlp_ratio=4.,
+            qkv_bias=True,
+            qk_scale=None,
+            drop_rate=0.0,
+            drop_path_rate=0.1,
+            ape=False,
+            patch_norm=True,
+            use_checkpoint=False,
+            merge_size=[[2, 4], [2, 4], [2, 4]]
+        )
 
-        self.up3 = UpBlock(768, 384)
-        self.up2 = UpBlock(384, 192)
-        self.up1 = UpBlock(192, 96)
+        self.up2 = UpBlock(512, 256)
+        self.up2 = UpBlock(256, 128)
+        self.up1 = UpBlock(128, 64)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(48),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(32),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
+        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
+                                nn.BatchNorm2d(32),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+
+
 
     def forward(self, x):
         # Question here
         x0 = x.float()
         b, c, h, w = x.shape
 
-        e1 = self.encoder_cnn_layer_1(x0)
-        e2 = self.encoder_cnn_layer_2(e1)
-        e3 = self.encoder_cnn_layer_3(e2)
-        e4 = self.encoder_cnn_layer_4(e3)
+        tff_outputs = self.encoder_tff(x0)
 
-        e = self.up3(e4, e3)
-        e = self.up2(e , e2)
-        e = self.up1(e , e1)
+        x1, x2, x3, x4 = tff_outputs[0], tff_outputs[1], tff_outputs[2], tff_outputs[3]
 
-        e = self.tp_conv1(e)
-        e = self.conv2(e)
-        e = self.tp_conv2(e)
+        x = self.up3(x4, x3)
+        x = self.up2(x , x2)
+        x = self.up1(x , x1)
 
-        return e
+        x = self.tp_conv1(x)
+        x = self.conv2(x)
+        x = self.tp_conv2(x)
+
+        return x
 
 
 import math
@@ -750,11 +765,11 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
 
-        self.layers = self.layers[0:3]
+        # self.layers = self.layers[0:3]
 
     def _init_weights(self, m):
         if isinstance(m, nn.Linear):
