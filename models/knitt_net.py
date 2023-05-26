@@ -119,7 +119,7 @@ class knitt_net(nn.Module):
         self.encoder_cnn_layer_3 = model.features[4:6]
         self.encoder_cnn_layer_4 = model.features[6:8]
 
-        self.up2 = UpBlock(768, 384)
+        self.up3 = UpBlock(768, 384)
         self.up2 = UpBlock(384, 192)
         self.up1 = UpBlock(192, 96)
 
