@@ -132,8 +132,8 @@ class knitt_net(nn.Module):
             use_checkpoint=False,
             merge_size=[[2, 4], [2, 4], [2, 4]]
         )
-
-        self.up2 = UpBlock(512, 256)
+        self.encoder_tff = model
+        self.up3 = UpBlock(512, 256)
         self.up2 = UpBlock(256, 128)
         self.up1 = UpBlock(128, 64)
 
@@ -165,6 +165,96 @@ class knitt_net(nn.Module):
         x = self.tp_conv2(x)
 
         return x
+
+# class knitt_net_cnn(nn.Module):
+#     def __init__(self, n_channels=3, n_classes=1):
+#         '''
+#         n_channels : number of channels of the input.
+#                         By default 3, because we have RGB images
+#         n_labels : number of channels of the ouput.
+#                       By default 3 (2 labels + 1 for the background)
+#         '''
+#         super().__init__()
+#         self.n_channels = n_channels
+#         self.n_classes = n_classes
+
+#         model = torchvision.models.convnext_tiny(weights='DEFAULT')
+
+#         self.encoder_cnn_layer_1 = model.features[0:2]
+#         self.encoder_cnn_layer_2 = model.features[2:4]        
+#         self.encoder_cnn_layer_3 = model.features[4:6]
+
+#         self.up2 = UpBlock(384, 192, nb_Conv=2)
+#         self.up1 = UpBlock(192, 96 , nb_Conv=2)
+
+#         self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+#                                       nn.BatchNorm2d(48),
+#                                       nn.ReLU(inplace=True),)
+#         self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+#                                 nn.BatchNorm2d(48),
+#                                 nn.ReLU(inplace=True),)
+#         self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+
+#         self.encoder_tff = CrossFormer(img_size=224,
+#                                         patch_size=[4, 8, 16, 32],
+#                                         in_chans= 3,
+#                                         num_classes=1000,
+#                                         embed_dim=96,
+#                                         depths=[2, 2, 6, 2],
+#                                         num_heads=[3, 6, 12, 24],
+#                                         group_size=[7, 7, 7, 7],
+#                                         mlp_ratio=4.,
+#                                         qkv_bias=True,
+#                                         qk_scale=None,
+#                                         drop_rate=0.0,
+#                                         drop_path_rate=0.2,
+#                                         ape=False,
+#                                         patch_norm=True,
+#                                         use_checkpoint=False,
+#                                         merge_size=[[2, 4], [2, 4], [2, 4]]
+#                                     )
+
+#         self.reduce_e1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.reduce_e2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.reduce_e3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+#         self.reduce_x1 = _make_nConv(in_channels=96 , out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.reduce_x2 = _make_nConv(in_channels=192, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+#         self.reduce_x3 = _make_nConv(in_channels=384, out_channels=96, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
+
+#     def forward(self, x):
+#         # Question here
+#         x0 = x.float()
+#         b, c, h, w = x.shape
+
+#         e1 = self.encoder_cnn_layer_1(x0)
+#         e2 = self.encoder_cnn_layer_2(e1)
+#         e3 = self.encoder_cnn_layer_3(e2)
+
+#         e1 = self.reduce_e1(e1)
+#         e2 = self.reduce_e2(e2)
+#         e3 = self.reduce_e3(e3)
+
+#         # tff_outputs = self.encoder_tff(x0)
+
+#         # x1, x2, x3 = tff_outputs[0], tff_outputs[1], tff_outputs[2]
+
+#         # x1 = self.reduce_x1(x1)
+#         # x2 = self.reduce_x2(x2)
+#         # x3 = self.reduce_x3(x3)
+
+#         # e3 = e3 + x3
+#         # e2 = e2 + x2
+#         # e1 = e1 + x1
+
+#         e = self.up2(e3, e2)
+#         e = self.up1(e , e1)
+
+#         e = self.tp_conv1(e)
+#         e = self.conv2(e)
+#         e = self.tp_conv2(e)
+
+#         return e
 
 
 import math

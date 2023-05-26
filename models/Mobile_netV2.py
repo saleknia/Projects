@@ -14,17 +14,17 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher()
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VL_96_97/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.teacher.load_state_dict(pretrained_teacher)
+        # self.teacher = Mobile_netV2_teacher()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_VL_96_97/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         # self.teacher = Mobile_netV2_loss()
         # self.teacher.eval()
@@ -37,9 +37,12 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
-        model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
+        # model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model.features[0][0].stride = (2, 2)
+        
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
