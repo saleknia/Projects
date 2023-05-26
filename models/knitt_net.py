@@ -113,9 +113,9 @@ class knitt_net(nn.Module):
 
         model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        self.encoder_cnn_layer_1 = model.features[0:4]
-        self.encoder_cnn_layer_2 = model.features[4:6]        
-        self.encoder_cnn_layer_3 = model.features[6:8]
+        self.encoder_cnn_layer_1 = model.features[0:2]
+        self.encoder_cnn_layer_2 = model.features[2:4]        
+        self.encoder_cnn_layer_3 = model.features[4:6]
 
         self.up2 = UpBlock(384, 192, nb_Conv=2)
         self.up1 = UpBlock(192, 96 , nb_Conv=2)
