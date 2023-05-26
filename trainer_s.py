@@ -373,10 +373,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             
             loss_att  = 0.0
-            alpha = torch.rand(1)[0]
             # loss_att = 1.0 * attention_loss(e1, e2, e3, e1_t, e2_t, e3_t)
-            loss = alpha * (loss_ce + loss_dice) + (1.0-alpha) * (structure_loss(outputs, targets.unsqueeze(dim=1)))
-
+            loss = loss_ce + loss_dice + loss_att
+            # loss = structure_loss(outputs, targets.unsqueeze(dim=1))
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
 
