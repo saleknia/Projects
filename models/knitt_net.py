@@ -114,36 +114,38 @@ class knitt_net(nn.Module):
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        model = CrossFormer(img_size=224,
+        model = CrossFormer(img_size=448,
             patch_size=[4, 8, 16, 32],
             in_chans= 3,
             num_classes=1000,
-            embed_dim=64,
-            depths=[1, 1, 8, 6],
-            num_heads=[2, 4, 8, 16],
+            embed_dim=96,
+            depths=[2, 2, 6, 2],
+            num_heads=[3, 6, 12, 24],
             group_size=[7, 7, 7, 7],
             mlp_ratio=4.,
             qkv_bias=True,
             qk_scale=None,
             drop_rate=0.0,
-            drop_path_rate=0.1,
+            drop_path_rate=0.2,
             ape=False,
             patch_norm=True,
             use_checkpoint=False,
             merge_size=[[2, 4], [2, 4], [2, 4]]
         )
-        self.encoder_tff = model
-        self.up3 = UpBlock(512, 256)
-        self.up2 = UpBlock(256, 128)
-        self.up1 = UpBlock(128, 64)
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(64, 32, 3, 2, 1, 1),
-                                      nn.BatchNorm2d(32),
+        self.encoder_tff = model
+
+        self.up3 = UpBlock(768, 384)
+        self.up2 = UpBlock(384, 192)
+        self.up1 = UpBlock(192, 96)
+
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+                                      nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(32, 32, 3, 1, 1),
-                                nn.BatchNorm2d(32),
+        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
+                                nn.BatchNorm2d(48),
                                 nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(32, 1, 2, 2, 0)
+        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
 
 
 
@@ -855,7 +857,7 @@ class CrossFormer(nn.Module):
                                patch_size_end=patch_size_end,
                                num_patch_size=num_patch_size)
             self.layers.append(layer)
-        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
 
