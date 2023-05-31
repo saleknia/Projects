@@ -65,7 +65,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
@@ -80,11 +80,15 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
         
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+
+        self.final_conv = nn.ConvTranspose2d(64, 1, 1, 1, 1)
+        self.final_up   = nn.Upsample(scale_factor=4.0)
+
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -105,11 +109,30 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
-        e = self.final_conv1(e)
-        e = self.final_relu1(e)
-        e = self.final_conv2(e)
-        e = self.final_relu2(e)
-        e = self.final_conv3(e)
+        # e = self.final_conv1(e)
+        # e = self.final_relu1(e)
+        # e = self.final_conv2(e)
+        # e = self.final_relu2(e)
+        # e = self.final_conv3(e)
+
+
+        e = self.final_conv(e)
+        e = self.final_up(e)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         return e
         
