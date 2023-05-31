@@ -688,14 +688,11 @@ class Synapse_dataset(Dataset):
         if split=='train':
             self.img_transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),
-            ])
+                transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),])
         else:
-            self.img_transform = transforms.Compose([
-                transforms.ToTensor(),
-            ])
-        self.gt_transform = transforms.Compose([
-            transforms.ToTensor()])
+            self.img_transform = transforms.Compose([transforms.ToTensor(),])
+
+        self.gt_transform = transforms.Compose([transforms.ToTensor()])
 
         # elif split=='val':
             # to_tensor = T.ToTensor()

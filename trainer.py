@@ -206,12 +206,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ###############################################
         alpha = 0.5
         beta  = 0.5
-        theta = 0.01
+        theta = 0.00
 
         loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9
+        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9
 
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
