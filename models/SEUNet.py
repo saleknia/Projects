@@ -86,7 +86,7 @@ class SEUNet(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
-        self.final_conv = nn.Conv2d(64, 1, 1, padding=0)
+        self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
         self.final_up   = nn.Upsample(scale_factor=4.0)
 
 
