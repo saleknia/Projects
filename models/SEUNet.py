@@ -156,30 +156,17 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
-        # e = self.final_conv1(e)
-        # e = self.final_relu1(e)
-        # e = self.final_conv2(e)
-        # e = self.final_relu2(e)
-        # e = self.final_conv3(e)
-
-
-        e = self.final_conv(e)
-        e = self.final_up(e)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        e = self.final_conv1(e)
+        e = self.final_relu1(e)
+        e = self.final_conv2(e)
+        e = self.final_relu2(e)
+        e = self.final_conv3(e)
 
 
         return e
+        
+
+
+
+
         
