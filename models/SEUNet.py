@@ -96,7 +96,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.att(out)
+        # out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -131,7 +131,9 @@ class SEUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+
+        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
 
         # self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
         # self.final_up   = nn.Upsample(scale_factor=4.0)
@@ -145,7 +147,7 @@ class SEUNet(nn.Module):
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
-        e0 = self.maxpool(e0)
+        # e0 = self.maxpool(e0)
 
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
@@ -169,4 +171,3 @@ class SEUNet(nn.Module):
 
 
 
-        
