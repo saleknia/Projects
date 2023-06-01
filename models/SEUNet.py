@@ -127,14 +127,14 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
         
-        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
-        self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
-        self.final_up   = nn.Upsample(scale_factor=4.0)
+        # self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
+        # self.final_up   = nn.Upsample(scale_factor=4.0)
 
 
     def forward(self, x):
