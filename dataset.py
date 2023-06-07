@@ -1004,7 +1004,7 @@ class TCIA(Dataset):
         image,mask = sample['image'],sample['label'] 
 
 
-        return image,mask
+        return image.unsqueeze(dim=1),mask
 
 # class TCIA(Dataset):
 #     def __init__(self, split, joint_transform: Callable = None):
