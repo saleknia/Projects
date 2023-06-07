@@ -73,7 +73,6 @@ class SEUNet(nn.Module):
         # resnet = resnet_model.resnet34(pretrained=True)
 
         model = torchvision.models.convnext_tiny(weights='DEFAULT').features
-        model[0][0].stride = (1, 1)
 
         # self.firstconv = resnet.conv1
         # self.firstbn   = resnet.bn1
@@ -93,13 +92,15 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=384, out_channels=192, nb_Conv=2)
         self.up1 = UpBlock(in_channels=192, out_channels=96 , nb_Conv=2)
         
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.ConvTranspose2d(48, 2, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(48, 2, kernel_size=2, stride=2)
 
-        self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
+        # self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
+
+        # self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
 
         # self.final_up   = nn.Upsample(scale_factor=4.0)
 
@@ -126,13 +127,13 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
-        # e = self.final_conv1(e)
-        # e = self.final_relu1(e)
-        # e = self.final_conv2(e)
-        # e = self.final_relu2(e)
-        # e = self.final_conv3(e)
+        e = self.final_conv1(e)
+        e = self.final_relu1(e)
+        e = self.final_conv2(e)
+        e = self.final_relu2(e)
+        e = self.final_conv3(e)
 
-        e = self.final_conv(e)
+        # e = self.final_conv(e)
 
         return e
         
