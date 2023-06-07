@@ -41,8 +41,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
 
     loss_total = utils.AverageMeter()
-    # accuracy   = utils.AverageMeter()
-    accuracy = mAPMeter()
+    accuracy   = utils.AverageMeter()
+    # accuracy = mAPMeter()
 
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
