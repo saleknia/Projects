@@ -90,9 +90,11 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         # self.up = nn.Upsample(scale_factor=2)
-        self.att    = ParallelPolarizedSelfAttention(channel=in_channels//2)
+
         self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+        self.att    = ParallelPolarizedSelfAttention(channel=in_channels//2)
 
     def forward(self, x, skip_x):
         out = self.up(x)
@@ -117,7 +119,7 @@ class SEUNet(nn.Module):
         self.firstconv = resnet.conv1
         self.firstbn   = resnet.bn1
         self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
+        # self.maxpool   = resnet.maxpool 
         self.encoder1  = resnet.layer1
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
@@ -127,15 +129,17 @@ class SEUNet(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
         self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
         
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
 
         # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
-        self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
+        
+        # self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
 
-        # self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
+        self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
+
         # self.final_up   = nn.Upsample(scale_factor=4.0)
 
 
@@ -158,13 +162,14 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
-        e = self.final_conv1(e)
-        e = self.final_relu1(e)
-        e = self.final_conv2(e)
-        e = self.final_relu2(e)
-        e = self.final_conv3(e)
+        # e = self.final_conv1(e)
+        # e = self.final_relu1(e)
+        # e = self.final_conv2(e)
+        # e = self.final_relu2(e)
+        # e = self.final_conv3(e)
 
-
+        e = self.final_conv(e)
+        
         return e
         
 
