@@ -114,31 +114,37 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        # resnet = resnet_model.resnet34(pretrained=True)
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        # self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        model = torchvision.models.convnext_tiny(weights='DEFAULT').features
 
-        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
+        # self.firstconv = resnet.conv1
+        # self.firstbn   = resnet.bn1
+        # self.firstrelu = resnet.relu
+        # # self.maxpool   = resnet.maxpool 
+        # self.encoder1  = resnet.layer1
+        # self.encoder2  = resnet.layer2
+        # self.encoder3  = resnet.layer3
+        # self.encoder4  = resnet.layer4
+
+        self.encoder1  = model[0:2]
+        self.encoder2  = model[2:4]
+        self.encoder3  = model[4:6]
+        self.encoder4  = model[6:8]
+
+        self.up3 = UpBlock(in_channels=768, out_channels=384, nb_Conv=2)
+        self.up2 = UpBlock(in_channels=384, out_channels=192, nb_Conv=2)
+        self.up1 = UpBlock(in_channels=192, out_channels=96 , nb_Conv=2)
         
-        # self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-
-        # self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
         
         # self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
 
-        self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
+        # self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
 
         # self.final_up   = nn.Upsample(scale_factor=4.0)
 
@@ -148,12 +154,12 @@ class SEUNet(nn.Module):
         x = torch.cat([x, x, x], dim=1)
 
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
-        # e0 = self.maxpool(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
+        # # e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(e0)
+        e1 = self.encoder1(x)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
