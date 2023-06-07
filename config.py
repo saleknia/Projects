@@ -126,7 +126,7 @@ elif task_id==5:
     TASK_NAME = 'SSL'
 
 elif task_id==6:
-    NUM_CLASS = 20
+    NUM_CLASS = 2
     TASK_NAME = 'TCIA'
 
 elif task_id==7:

@@ -61,8 +61,8 @@ class Synapse_dataset(Dataset):
         data = h5py.File(filepath)
         image, mask = data['image'][:], data['label'][:]
 
-        image = zoom(image, (1, 224 / 512, 224 / 512), order=3)
-        mask  = zoom(mask , (1, 224 / 512, 224 / 512), order=0)
+        # image = zoom(image, (1, 224 / 512, 224 / 512), order=3)
+        # mask  = zoom(mask , (1, 224 / 512, 224 / 512), order=0)
 
         sample = {'image': image, 'label': mask}
 
