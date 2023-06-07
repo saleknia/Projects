@@ -32,6 +32,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             inputs, targets = inputs.to(device), targets.to(device)
 
             targets = targets.float()
+            
             targets = targets[:, 0, :, :]
 
             # targets[targets!=4.0] = 0.0
