@@ -99,7 +99,8 @@ class SEUNet(nn.Module):
         self.final_conv3 = nn.ConvTranspose2d(48, 2, kernel_size=2, stride=2)
 
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_se/SEUNet_TCIA_best.pth', map_location='cpu')
-        state_dict = checkpoint['model']
+        # print(checkpoint.keys())
+        state_dict = checkpoint['net']
         self.load_state_dict(state_dict, strict=False)
 
         self.final_conv3 = nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
