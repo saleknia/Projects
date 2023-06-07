@@ -96,8 +96,15 @@ class SEUNet(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(48, 2, kernel_size=2, stride=2)
+
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_se/SEUNet_TCIA_best.pth', map_location='cpu')
+        state_dict = checkpoint['model']
+        self.load_state_dict(state_dict, strict=False)
+
         self.final_conv3 = nn.ConvTranspose2d(48, n_classes, kernel_size=2, stride=2)
-        
+
+
         # self.final_conv3 = nn.Conv2d(32, n_classes, 1, padding=0)
 
         # self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
@@ -106,7 +113,9 @@ class SEUNet(nn.Module):
 
 
     def forward(self, x):
-        x = x.unsqueeze(dim=1)
+
+        # x = x.unsqueeze(dim=1)
+        
         b, c, h, w = x.shape
         e0 = torch.cat([x, x, x], dim=1)
 
