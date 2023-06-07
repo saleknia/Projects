@@ -57,16 +57,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             targets = targets.float()
 
-            # targets[targets<10.00] = 40.00            
-            # targets[targets<20.00] = 41.00
-            # targets[targets<30.00] = 42.00        
-            # targets[targets<40.00] = 43.00
-
-            # targets[targets==40.00] = 0.00            
-            # targets[targets==41.00] = 1.00            
-            # targets[targets==42.00] = 2.00            
-            # targets[targets==43.00] = 3.00  
-
             outputs = model(inputs)
             # prob = torch.softmax(outputs, dim=1)
 
@@ -79,8 +69,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.long()
 
             predictions = torch.argmax(input=outputs,dim=1).long()
-            # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+
+            accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+            # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
             # if 0.0 < torch.sum(targets==0.0):          
             #     accuracy.update(torch.sum((targets+predictions)==0.0)/torch.sum(targets==0.0))
@@ -92,13 +83,13 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
+                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
                 bar_length=45
             )  
 
-        # acc = 100*accuracy.avg
-        acc = 100*accuracy.value().item()
+        acc = 100*accuracy.avg
+        # acc = 100*accuracy.value().item()
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , Accuracy: {acc:.2f}') 

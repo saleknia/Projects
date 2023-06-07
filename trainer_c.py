@@ -40,11 +40,11 @@ general_labels = np.load('/content/UNet_V2/labels.npy')
 #     return loss
 
 
-def loss_label_smoothing(outputs, labels):
+def loss_label_smoothing(outputs, labels, alpha):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.1
+    alpha = alpha
     N = outputs.size(0)  # batch_size
     C = outputs.size(1)  # number of classes
     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
@@ -173,13 +173,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_ce_total = utils.AverageMeter()
     loss_disparity_total = utils.AverageMeter()
 
-    # accuracy = utils.AverageMeter()
-    accuracy = mAPMeter()
+    accuracy = utils.AverageMeter()
+    # accuracy = mAPMeter()
 
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.1)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
 
     # disparity_loss = loss_function
     ##################################################################
@@ -202,17 +202,21 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
         outputs = model(inputs)
         # outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
+
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
+
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
+
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), 0.0)
 
 
 
         # loss_ce = torch.nn.functional.cross_entropy(outputs, outputs_t, weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
-        # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
+
+        accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+        # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
@@ -291,8 +295,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
-            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
+            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
             bar_length=45
         )  
 
