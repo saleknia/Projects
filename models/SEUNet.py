@@ -98,7 +98,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        # out = self.att(out)
+        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -169,7 +169,7 @@ class SEUNet(nn.Module):
         # e = self.final_conv3(e)
 
         e = self.final_conv(e)
-        
+
         return e
         
 
