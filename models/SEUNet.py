@@ -94,11 +94,8 @@ class UpBlock(nn.Module):
         self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
-        self.att    = ParallelPolarizedSelfAttention(channel=in_channels//2)
-
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.att(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
@@ -151,7 +148,7 @@ class SEUNet(nn.Module):
 
     def forward(self, x):
         b, c, h, w = x.shape
-        x = torch.cat([x, x, x], dim=1)
+        e0 = torch.cat([x, x, x], dim=1)
 
 
         # e0 = self.firstconv(x)
@@ -159,7 +156,7 @@ class SEUNet(nn.Module):
         # e0 = self.firstrelu(e0)
         # # e0 = self.maxpool(e0)
 
-        e1 = self.encoder1(x)
+        e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
@@ -168,13 +165,13 @@ class SEUNet(nn.Module):
         e = self.up2(e , e2)
         e = self.up1(e , e1)
 
-        # e = self.final_conv1(e)
-        # e = self.final_relu1(e)
-        # e = self.final_conv2(e)
-        # e = self.final_relu2(e)
-        # e = self.final_conv3(e)
+        e = self.final_conv1(e)
+        e = self.final_relu1(e)
+        e = self.final_conv2(e)
+        e = self.final_relu2(e)
+        e = self.final_conv3(e)
 
-        e = self.final_conv(e)
+        # e = self.final_conv(e)
 
         return e
         
