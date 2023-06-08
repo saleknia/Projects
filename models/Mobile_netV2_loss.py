@@ -13,7 +13,7 @@ class Mobile_netV2_loss(nn.Module):
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_78_62/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_78_62/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_0 = loaded_data_b_0['net']
 
         a = pretrained_b_0.copy()
@@ -25,7 +25,7 @@ class Mobile_netV2_loss(nn.Module):
         self.b_0 = self.b_0.eval()
 
         self.b_1 = Mobile_netV2_1()
-        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_95_46/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_79_36/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_1 = loaded_data_b_1['net']
 
         a = pretrained_b_1.copy()
@@ -80,10 +80,10 @@ class Mobile_netV2_loss(nn.Module):
         x1 = self.b_1(x) 
         # x2 = self.b_2(x)
 
-        x = (x0 + x1) / 2.0
+        x = (torch.softmax(x0, dim=1) + 2.0 * torch.softmax(x1, dim=1)) / 3.0
         
 
-        return torch.softmax(x, dim=1)
+        return x
 
         # if self.training:
         #     return x
@@ -117,7 +117,7 @@ class Mobile_netV2_0(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=40, bias=True))
+            nn.Linear(in_features=1280, out_features=67, bias=True))
 
 
     def forward(self, x):
@@ -148,7 +148,7 @@ class Mobile_netV2_1(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=40, bias=True))
+            nn.Linear(in_features=1280, out_features=67, bias=True))
 
     def forward(self, x):
         b, c, w, h = x.shape
