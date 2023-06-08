@@ -15,16 +15,16 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
         # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
-        for param in self.features[0:6].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
