@@ -40,8 +40,8 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        teacher = models.__dict__['resnet18'](num_classes=365)
-        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        teacher = models.__dict__['densenet161'](num_classes=365)
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         teacher.load_state_dict(state_dict)
 
