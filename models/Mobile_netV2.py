@@ -45,8 +45,12 @@ class Mobile_netV2(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model.load_state_dict(state_dict)
 
-        model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
         self.model = model
+
+        for param in self.teacher.parameters():
+            param.requires_grad = False
+
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
