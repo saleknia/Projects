@@ -40,7 +40,7 @@ class Mobile_netV2(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        teacher = models.__dict__['resnet50'](num_classes=365)
+        teacher = models.__dict__['resnet18'](num_classes=365)
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         teacher.load_state_dict(state_dict)
@@ -50,22 +50,22 @@ class Mobile_netV2(nn.Module):
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
         # for param in self.features.parameters():
         #     param.requires_grad = False
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -80,21 +80,21 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.teacher.conv1(x0)
-        x = self.teacher.bn1(x)
-        x = self.teacher.relu(x)
-        x = self.teacher.maxpool(x)
-        x = self.teacher.layer1(x)
+        # x = self.teacher.conv1(x0)
+        # x = self.teacher.bn1(x)
+        # x = self.teacher.relu(x)
+        # x = self.teacher.maxpool(x)
+        # x = self.teacher.layer1(x)
 
-        x1_t = self.teacher.layer2(x)
-        x2_t = self.teacher.layer3(x1_t)
-        x3_t = self.teacher.layer4(x2_t)
+        # x1_t = self.teacher.layer2(x)
+        # x2_t = self.teacher.layer3(x1_t)
+        # x3_t = self.teacher.layer4(x2_t)
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
-        # x = self.model(x0)
+        x3 = self.teacher(x0)
 
         # x3 = self.features(x0)
 
