@@ -17,13 +17,24 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
+
+        model = resnet18(pretrained=True)
+
+        self.firstconv = model.conv1
+        self.firstbn   = model.bn1
+        self.firstrelu = model.relu
+        self.maxpool   = model.maxpool 
+        self.encoder1  = model.layer1
+        self.encoder2  = model.layer2
+        self.encoder3  = model.layer3
+        self.encoder4  = model.layer4
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
@@ -32,7 +43,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+            nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -51,7 +62,17 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x = self.features(x0)
+        # x = self.features(x0)
+
+        x = self.firstconv(x0)
+        x = self.firstbn(x)
+        x = self.firstrelu(x)
+        x = self.maxpool(x)
+
+        x = self.encoder1(x)
+        x = self.encoder2(x)
+        x = self.encoder3(x)
+        x = self.encoder4(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
