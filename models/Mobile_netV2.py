@@ -17,10 +17,10 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
-        
+        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
+
         # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
