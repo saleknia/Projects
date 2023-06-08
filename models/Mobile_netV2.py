@@ -28,18 +28,30 @@ class Mobile_netV2(nn.Module):
 
         self.avgpool = model.avgpool
 
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
-        
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=256, out_features=num_classes, bias=True),
+        )
+
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
-        x = self.avgpool(x3)
+        x = self.features(x)
+
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
