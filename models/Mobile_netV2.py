@@ -58,8 +58,8 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
 
-        for param in self.features.parameters():
-            param.requires_grad = False
+        # for param in self.features.parameters():
+        #     param.requires_grad = False
 
         self.avgpool = model.avgpool
 
@@ -80,34 +80,34 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.teacher.conv1(x0)
-        # x = self.teacher.bn1(x)
-        # x = self.teacher.relu(x)
-        # x = self.teacher.maxpool(x)
-        # x = self.teacher.layer1(x)
+        x = self.teacher.conv1(x0)
+        x = self.teacher.bn1(x)
+        x = self.teacher.relu(x)
+        x = self.teacher.maxpool(x)
+        x = self.teacher.layer1(x)
 
-        # x1_t = self.teacher.layer2(x)
-        # x2_t = self.teacher.layer3(x1_t)
-        # x3_t = self.teacher.layer4(x2_t)
+        x1_t = self.teacher.layer2(x)
+        x2_t = self.teacher.layer3(x1_t)
+        x3_t = self.teacher.layer4(x2_t)
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         # x = self.model(x0)
 
-        x3 = self.features(x0)
+        # x3 = self.features(x0)
 
         x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x1, x2, x3, x1_t, x2_t, x3_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x1, x2, x3, x1_t, x2_t, x3_t
+        else:
+            return x
 
 
 # class Mobile_netV2(nn.Module):
