@@ -38,34 +38,34 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = models.__dict__['resnet50'](num_classes=365)
+        teacher = models.__dict__['resnet50'](num_classes=365)
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
+        teacher.load_state_dict(state_dict)
 
-        self.model = model
+        self.teacher = teacher
 
-        for param in self.model.parameters():
+        for param in self.teacher.parameters():
             param.requires_grad = False
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -80,26 +80,34 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x_t = self.teacher(x0)
+        x = self.teacher.conv1(x0)
+        x = self.teacher.bn1(x)
+        x = self.teacher.relu(x)
+        x = self.teacher.maxpool(x)
+        x = self.layer1(x)
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1_t = self.layer2(x)
+        x2_t = self.layer3(x1_t)
+        x3_t = self.layer4(x2_t)
 
-        x = self.model(x0)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
+
+        # x = self.model(x0)
 
         # x = self.features(x0)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x1, x2, x3, x1_t, x2_t, x3_t
+        else:
+            return x
 
 
 # class Mobile_netV2(nn.Module):
