@@ -50,7 +50,7 @@ class Mobile_netV2(nn.Module):
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
@@ -61,7 +61,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.features.parameters():
         #     param.requires_grad = False
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -94,20 +94,20 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x3 = self.teacher(x0)
+        x = self.teacher(x0)
 
         # x3 = self.features(x0)
 
-        x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.avgpool(x3)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x1, x2, x3, x1_t, x2_t, x3_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x1, x2, x3, x1_t, x2_t, x3_t
+        # else:
+        #     return x
 
 
 # class Mobile_netV2(nn.Module):
