@@ -10,6 +10,13 @@ import random
 from torch.nn import init
 from .Mobile_netV2_loss import Mobile_netV2_loss
 
+import torch
+from torch.autograd import Variable as V
+import torchvision.models as models
+from torchvision import transforms as trn
+from torch.nn import functional as F
+import os
+from PIL import Image
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -31,22 +38,30 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
-        
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+
+        model = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
+
+        model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.model = model
+
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -67,11 +82,13 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x = self.features(x0)
+        x = self.model(x0)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.features(x0)
+
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         return x
 
