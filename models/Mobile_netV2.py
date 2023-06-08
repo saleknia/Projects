@@ -31,7 +31,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
@@ -46,7 +46,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
