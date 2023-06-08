@@ -84,11 +84,11 @@ class Mobile_netV2(nn.Module):
         x = self.teacher.bn1(x)
         x = self.teacher.relu(x)
         x = self.teacher.maxpool(x)
-        x = self.layer1(x)
+        x = self.teacher.layer1(x)
 
-        x1_t = self.layer2(x)
-        x2_t = self.layer3(x1_t)
-        x3_t = self.layer4(x2_t)
+        x1_t = self.teacher.layer2(x)
+        x2_t = self.teacher.layer3(x1_t)
+        x3_t = self.teacher.layer4(x2_t)
 
         x1 = self.features[0:4](x0)
         x2 = self.features[4:6](x1)
