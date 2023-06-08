@@ -15,22 +15,29 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
+        self.teacher = Mobile_netV2_teacher()
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_B0_78_62/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.teacher.load_state_dict(pretrained_teacher)
+
+        for param in self.teacher.parameters():
+            param.requires_grad = False
+
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
+        # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
-
-        self.features = nn.Sequential(
-            model.stem,
-            model.trunk_output
-        )
+        self.features = model.features
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
@@ -39,7 +46,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=440, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -54,6 +61,8 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
+        x_t = self.teacher(x0)
+
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
@@ -64,7 +73,10 @@ class Mobile_netV2(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 # class Mobile_netV2(nn.Module):
@@ -176,8 +188,8 @@ class Mobile_netV2_teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_teacher, self).__init__()
 
-        model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
-        model.features[0][0].stride = (1, 1)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -223,7 +235,7 @@ class Mobile_netV2_teacher(nn.Module):
         # else:
         #     return torch.softmax(x, dim=1)
 
-        return torch.softmax(x, dim=1), x1, x2, x3
+        return torch.softmax(x, dim=1)#, x1, x2, x3
 
 
     # def forward(self, x0):

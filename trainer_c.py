@@ -200,14 +200,18 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         targets = targets.float()
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
-        outputs = model(inputs)
+        # outputs = model(inputs)
         # outputs, outputs_t, x1, x2, x3, x1_t, x2_t, x3_t = model(inputs)
+
+        outputs, outputs_t = model(inputs)
 
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=outputs_t.long(), alpha=0.0)
+
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
 
 
