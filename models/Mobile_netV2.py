@@ -38,38 +38,45 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        # teacher = models.__dict__['resnet18'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # teacher.load_state_dict(state_dict)
+        teacher = models.__dict__['densenet161'](num_classes=365)
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # self.teacher = teacher
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        teacher.load_state_dict(state_dict)
+
+        self.teacher = teacher
+
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         # for param in self.teacher.layer4[-1].parameters():
         #     param.requires_grad = True
 
-        # self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
-        # self.teacher.conv1.stride = (1, 1)
+        for param in self.teacher.features.denseblock4.parameters():
+            param.requires_grad = True
+
+        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+        self.teacher.features[0].stride = (1, 1)
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
-        for param in self.features[0:4].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -94,15 +101,15 @@ class Mobile_netV2(nn.Module):
         # x2_t = self.teacher.layer3(x1_t)
         # x3_t = self.teacher.layer4(x2_t)
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
-        # x = self.teacher(x0)
+        x = self.teacher(x0)
 
         # x3 = self.features(x0)
 
-        x = self.avgpool(x3)
+        x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 

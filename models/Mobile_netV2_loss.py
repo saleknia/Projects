@@ -38,7 +38,7 @@ class Mobile_netV2_loss(nn.Module):
         self.b_1 = self.b_1.eval()
         
         self.b_2 = Mobile_netV2_2()
-        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_79_31/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_2 = loaded_data_b_2['net']
 
         a = pretrained_b_2.copy()
@@ -48,6 +48,20 @@ class Mobile_netV2_loss(nn.Module):
 
         self.b_2.load_state_dict(pretrained_b_2)
         self.b_2 = self.b_2.eval()
+
+
+        self.b_3 = Mobile_netV2_3()
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_b_3 = loaded_data_b_3['net']
+
+        a = pretrained_b_3.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_3.pop(key)
+
+        self.b_3.load_state_dict(pretrained_b_3)
+        self.b_3 = self.b_3.eval()
+
 
         self.res_18 = Mobile_netV2_res_18()
         loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
@@ -77,16 +91,17 @@ class Mobile_netV2_loss(nn.Module):
 
         x0 = self.b_0(x)
         x1 = self.b_1(x) 
-        # x2 = self.b_2(x)
+        x2 = self.b_2(x)
+        x3 = self.b_3(x)
 
-        # x_18 = self.res_18(x)
-        # x_50 = self.res_50(x)
+        x_18 = self.res_18(x)
+        x_50 = self.res_50(x)
 
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
 
-        x = ((x0 + x1) / 2.0)# + x_18 #+ x_50 
+        x = ((x0 + x1 + x2) / 3.0) + x_18 + x_50
 
         return x
 
@@ -173,7 +188,7 @@ class Mobile_netV2_2(nn.Module):
         model = efficientnet_b2(weights=EfficientNet_B2_Weights)
         # model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
