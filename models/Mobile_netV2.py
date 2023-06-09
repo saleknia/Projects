@@ -57,7 +57,31 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.layer4[-1].parameters():
         #     param.requires_grad = True
 
-        for param in self.teacher.features.denseblock4.parameters():
+        for param in self.teacher.features.denseblock4.denselayer24.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer23.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer22.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer21.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer20.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer19.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer18.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer17.parameters():
+            param.requires_grad = True
+
+        for param in self.teacher.features.denseblock4.denselayer16.parameters():
             param.requires_grad = True
 
         self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=num_classes, bias=True))
