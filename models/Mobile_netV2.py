@@ -40,51 +40,24 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        teacher = models.__dict__['densenet161'](num_classes=365)
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        teacher = models.__dict__['resnet18'](num_classes=365)
+        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
         teacher.load_state_dict(state_dict)
 
         self.teacher = teacher
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         # for param in self.teacher.layer4[-1].parameters():
         #     param.requires_grad = True
 
-        for param in self.teacher.features.denseblock4.denselayer24.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer23.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer22.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer21.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer20.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer19.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer18.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer17.parameters():
-            param.requires_grad = True
-
-        for param in self.teacher.features.denseblock4.denselayer16.parameters():
-            param.requires_grad = True
-
-        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
         self.teacher.features[0].stride = (1, 1)
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
@@ -92,6 +65,7 @@ class Mobile_netV2(nn.Module):
         # model.features[0][0].stride = (1, 1)
 
         # self.features = model.features
+        self.avgpool = self.teacher.avgpool
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False

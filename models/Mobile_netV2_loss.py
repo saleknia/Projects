@@ -95,7 +95,9 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
 
-        x = ((x0 + x1 + x2) / 3.0) + x_18 + x_50 + x_d
+        x =  ((x0 + x1 + x2) / 3.0) + x_50 + x_18
+
+        # x = (((x2 + x_18) / 2.0) + ((x1 + x_d) / 2.0) + ((x0 + x_50) / 2.0)) / 3.0
 
         return x
 
