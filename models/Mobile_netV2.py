@@ -58,7 +58,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = True
 
         self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
-        self.teacher.features[0].stride = (1, 1)
+        self.teacher.conv1.stride = (1, 1)
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
