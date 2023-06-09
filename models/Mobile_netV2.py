@@ -51,11 +51,11 @@ class Mobile_netV2(nn.Module):
 
         self.teacher = teacher
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
-        # for param in self.teacher.layer4[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.teacher.layer4[-1].parameters():
+            param.requires_grad = True
 
         self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
         self.teacher.features[0].stride = (1, 1)
