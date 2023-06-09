@@ -26,17 +26,13 @@ def label_smoothing(labels):
     return smoothed_labels
 
 
-transforms = tta.Compose(
-    [
-        tta.HorizontalFlip(),
-        tta.Rotate90(angles=[0, 180]),      
-    ]
-)
+transforms = tta.Compose([tta.HorizontalFlip(), tta.FiveCrops(180, 180), tta.Resize((224,224))])
+
 
 def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model.eval()
 
-    # model = tta.ClassificationTTAWrapper(model, tta.aliases.five_crop_transform(crop_height=200, crop_width=200), merge_mode='mean')
+    model = tta.ClassificationTTAWrapper(model, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
     # model = tta.ClassificationTTAWrapper(model, transforms, merge_mode='mean')
 
 

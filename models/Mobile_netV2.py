@@ -38,10 +38,10 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        teacher = models.__dict__['densenet161'](num_classes=365)
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        teacher = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         teacher.load_state_dict(state_dict)
 
@@ -50,7 +50,10 @@ class Mobile_netV2(nn.Module):
         for param in self.teacher.parameters():
             param.requires_grad = False
 
-        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        for param in self.teacher.layer4.parameters():
+            param.requires_grad = True
+
+        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
@@ -61,7 +64,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.features.parameters():
         #     param.requires_grad = False
 
-        self.avgpool = model.avgpool
+        self.avgpool = self.teacher.avgpool
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),

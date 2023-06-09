@@ -390,26 +390,27 @@ def main(args):
     elif TASK_NAME=='MIT-67':
 
         transform_train = transforms.Compose([
+            # transforms.Resize((256, 256)),
+            # transforms.CenterCrop(224),
             transforms.RandomResizedCrop(224),
-            # transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
         transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((256, 256)),
             transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
         trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         testset = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/', transform=transform_test)
-        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+        test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
