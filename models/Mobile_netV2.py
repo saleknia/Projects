@@ -109,9 +109,9 @@ class Mobile_netV2(nn.Module):
 
         # x3 = self.features(x0)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         return x
 
