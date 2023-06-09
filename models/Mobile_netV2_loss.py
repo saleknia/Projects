@@ -310,7 +310,7 @@ class Mobile_netV2_dense(nn.Module):
 
         self.teacher = teacher
 
-        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=67, bias=True))
         self.teacher.features[0].stride = (1, 1)
 
         for param in self.teacher.parameters():
