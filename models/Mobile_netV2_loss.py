@@ -14,7 +14,7 @@ class Mobile_netV2_loss(nn.Module):
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_78_62/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_23/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_0 = loaded_data_b_0['net']
 
         a = pretrained_b_0.copy()
@@ -79,14 +79,14 @@ class Mobile_netV2_loss(nn.Module):
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
 
-        x_18 = self.res_18(x)
-        x_50 = self.res_50(x)
+        # x_18 = self.res_18(x)
+        # x_50 = self.res_50(x)
 
-        # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
+        x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
 
-        x = ((x0 + x1 + x2) / 3.0) + x_18 + x_50 
+        # x = ((x0 + x1 + x2) / 3.0) + x_18 + x_50 
 
         return x
 
@@ -112,7 +112,7 @@ class Mobile_netV2_0(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
