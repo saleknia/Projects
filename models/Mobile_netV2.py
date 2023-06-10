@@ -38,8 +38,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model_pre = efficientnet_b0(weights=EfficientNet_B2_Weights)
-        model_scr = efficientnet_b0(weights=None)
+        model = efficientnet_b0(weights=EfficientNet_B2_Weights)
 
         # teacher = models.__dict__['resnet18'](num_classes=365)
         # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
@@ -65,15 +64,15 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features      = model_scr.features
-        self.features[0:4] = model_pre.features[0:4]
+        self.features = model.features
+        torch.nn.init.xavier_uniform_(self.features[4:].weight)
 
         # self.avgpool = self.teacher.avgpool
 
         for param in self.features[0:4].parameters():
             param.requires_grad = False
 
-        self.avgpool = model_scr.avgpool
+        self.avgpool = model.avgpool
         self.features[0][0].stride = (1, 1)
 
         self.classifier = nn.Sequential(
