@@ -250,6 +250,24 @@ class Mobile_netV2_teacher(nn.Module):
         #     nn.Linear(in_features=256, out_features=40, bias=True),
         # )
 
+        # teacher = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # teacher.load_state_dict(state_dict)
+
+        # self.teacher = teacher
+
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.teacher.layer4[-1].parameters():
+        #     param.requires_grad = True
+
+        # self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        # self.teacher.conv1.stride = (1, 1)
+
+        # self.avgpool = self.teacher.avgpool
+
         teacher = models.__dict__['resnet50'](num_classes=365)
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -257,16 +275,13 @@ class Mobile_netV2_teacher(nn.Module):
 
         self.teacher = teacher
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
-
-        # for param in self.teacher.layer4[-1].parameters():
-        #     param.requires_grad = True
-
-        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
         self.teacher.conv1.stride = (1, 1)
 
         self.avgpool = self.teacher.avgpool
+
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
