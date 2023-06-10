@@ -110,8 +110,8 @@ class Mobile_netV2(nn.Module):
         # x3_t = self.teacher.layer4(x2_t)
 
         x1 = self.features_1[0:4](x0)
-        x2 = self.features_2[4:6](x1)
-        x3 = self.features_2[6:9](x2)
+        x2 = self.features_2[0:2](x1)
+        x3 = self.features_2[2:5](x2)
 
         x1_t, x2_t, x3_t = self.teacher(x0)
 
