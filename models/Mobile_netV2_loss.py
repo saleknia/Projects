@@ -78,7 +78,7 @@ class Mobile_netV2_loss(nn.Module):
         self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -89,7 +89,7 @@ class Mobile_netV2_loss(nn.Module):
         x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
-        x3 = self.res_50(x)
+        # x3 = self.res_50(x)
         # x5 = self.dense(x)
 
         # x3 = self.b_4(x)
@@ -109,10 +109,10 @@ class Mobile_netV2_loss(nn.Module):
         # x = (x0 + x1 + x2 + (x0 + x1) / 2.0 + (x0 + x2) / 2.0 + (x1 + x2) / 2.0 + (x0 + x1 + x2) / 3.0) 
         # x = (((x2 + x_18) / 2.0) + ((x1 + x_d) / 2.0) + ((x0 + x_50) / 2.0)) / 3.0
 
-        c1 = torch.softmax(x0, dim=1)
-        c2 = torch.softmax(x1, dim=1)
-        c3 = torch.softmax(x2, dim=1)
-        c4 = torch.softmax(x3, dim=1)
+        # c1 = torch.softmax(x0, dim=1)
+        # c2 = torch.softmax(x1, dim=1)
+        # c3 = torch.softmax(x2, dim=1)
+        # c4 = torch.softmax(x3, dim=1)
 
         # c4 = torch.softmax(x_18, dim=1)
         # c5 = torch.softmax(x_50, dim=1)
@@ -197,7 +197,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = ((x_d + x_50 + x_18) / 3.0) + ((x0 + x1 + x2) / 3.0)
         # x = ((x0 + x1 + x2) / 3.0) + x_50
 
-        x = ((c1 + c2 + c3) / 3.0) + c4
+        x = ((x0 + x1 + x2) / 3.0) # + c4
 
         return x
 
@@ -245,7 +245,7 @@ class Mobile_netV2_0(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x
+        return torch.softmax(x, dim=1)
 
 class Mobile_netV2_1(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -275,7 +275,7 @@ class Mobile_netV2_1(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x
+        return torch.softmax(x, dim=1)
 
 class Mobile_netV2_2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -306,7 +306,7 @@ class Mobile_netV2_2(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
-        return x
+        return torch.softmax(x, dim=1)
 
 
 import torch
