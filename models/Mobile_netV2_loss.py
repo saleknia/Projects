@@ -14,7 +14,7 @@ class Mobile_netV2_loss(nn.Module):
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_82_50/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_23/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_0 = loaded_data_b_0['net']
 
         a = pretrained_b_0.copy()
@@ -26,7 +26,7 @@ class Mobile_netV2_loss(nn.Module):
         self.b_0 = self.b_0.eval()
 
         self.b_1 = Mobile_netV2_1()
-        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_82_80/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_1 = loaded_data_b_1['net']
 
         a = pretrained_b_1.copy()
@@ -48,18 +48,6 @@ class Mobile_netV2_loss(nn.Module):
 
         self.b_2.load_state_dict(pretrained_b_2)
         self.b_2 = self.b_2.eval()
-
-        self.b_5 = Mobile_netV2_2()
-        loaded_data_b_5 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_52/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        pretrained_b_5 = loaded_data_b_5['net']
-
-        a = pretrained_b_5.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_5.pop(key)
-
-        self.b_5.load_state_dict(pretrained_b_5)
-        self.b_5 = self.b_5.eval()
 
 
         self.res_18 = Mobile_netV2_res_18()
@@ -85,9 +73,9 @@ class Mobile_netV2_loss(nn.Module):
         self.dense.load_state_dict(pretrained_dense)
         self.dense = self.dense.eval()
 
-        # self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
+        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
+        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
@@ -98,7 +86,7 @@ class Mobile_netV2_loss(nn.Module):
 
         x0 = self.b_0(x)
         x1 = self.b_1(x) 
-        # x2 = self.b_2(x)
+        x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
         # x4 = self.res_50(x)
@@ -203,7 +191,7 @@ class Mobile_netV2_loss(nn.Module):
         # x  = c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12 + c13 + c14 + c15 + c16 + c17 + c18 + c19 + c20 
         # x  = x + c21 + c22 + c23 + c24 + c25 + c26 + c27 + c28 + c29 + c30 + c31 + c32 + c33 + c34 + c35 + c36 + c37 + c38 + c39 + c40 + c41 + c42 + c43 + c44 + c45 + c46 + c47 + c48 + c49 + c50 + c51 + c52 + c53 + c54 + c55 + c56 + c57 + c58 
 
-        x = x0 + x1 
+        x = x0 + x1 + x2
 
         return x
 
