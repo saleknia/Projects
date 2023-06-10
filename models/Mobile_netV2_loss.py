@@ -73,9 +73,9 @@ class Mobile_netV2_loss(nn.Module):
         self.dense.load_state_dict(pretrained_dense)
         self.dense = self.dense.eval()
 
-        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
-        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
-        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.five_crop_transform(224, 224), merge_mode='sum')
+        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
@@ -98,6 +98,7 @@ class Mobile_netV2_loss(nn.Module):
         # x_18 = self.res_18(x)
         # x_50 = self.res_50(x)
         # x_d  = self.dense(x)
+
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
@@ -108,13 +109,13 @@ class Mobile_netV2_loss(nn.Module):
         # x = (x0 + x1 + x2 + (x0 + x1) / 2.0 + (x0 + x2) / 2.0 + (x1 + x2) / 2.0 + (x0 + x1 + x2) / 3.0) 
         # x = (((x2 + x_18) / 2.0) + ((x1 + x_d) / 2.0) + ((x0 + x_50) / 2.0)) / 3.0
 
-        # c1 = torch.softmax(x0, dim=1)
-        # c2 = torch.softmax(x1, dim=1)
-        # c3 = torch.softmax(x2, dim=1)
+        c1 = torch.softmax(x0, dim=1)
+        c2 = torch.softmax(x1, dim=1)
+        c3 = torch.softmax(x2, dim=1)
 
-        # c4 = torch.softmax(x3, dim=1)
-        # c5 = torch.softmax(x4, dim=1)
-        # c6 = torch.softmax(x5, dim=1)
+        # c4 = torch.softmax(x_18, dim=1)
+        # c5 = torch.softmax(x_50, dim=1)
+        # c6 = torch.softmax(x_d , dim=1)
 
         # c4  = torch.softmax((x0 + x1) / 2.0, dim=1)
         # c5  = torch.softmax((x0 + x2) / 2.0, dim=1)
@@ -191,7 +192,11 @@ class Mobile_netV2_loss(nn.Module):
         # x  = c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12 + c13 + c14 + c15 + c16 + c17 + c18 + c19 + c20 
         # x  = x + c21 + c22 + c23 + c24 + c25 + c26 + c27 + c28 + c29 + c30 + c31 + c32 + c33 + c34 + c35 + c36 + c37 + c38 + c39 + c40 + c41 + c42 + c43 + c44 + c45 + c46 + c47 + c48 + c49 + c50 + c51 + c52 + c53 + c54 + c55 + c56 + c57 + c58 
 
-        x = x0 + x1 + x2
+        # x = ((x0 + x1 + x2) / 3.0) + x_d
+        # x = ((x_d + x_50 + x_18) / 3.0) + ((x0 + x1 + x2) / 3.0)
+        # x = ((x0 + x1 + x2) / 3.0) + x_50
+
+        x = (c1 + c2 + c3) / 3.0
 
         return x
 
