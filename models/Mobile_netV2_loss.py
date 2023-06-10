@@ -109,13 +109,13 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
+        x0 = self.b_4(x)
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
 
-        x3 = self.res_18(x)
-        x4 = self.res_50(x)
-        x5 = self.dense(x)
+        # x3 = self.res_18(x)
+        # x4 = self.res_50(x)
+        # x5 = self.dense(x)
 
         # x3 = self.b_4(x)
         # x4 = self.b_5(x)
@@ -133,89 +133,90 @@ class Mobile_netV2_loss(nn.Module):
         # x = (x0 + x1 + x2 + (x0 + x1) / 2.0 + (x0 + x2) / 2.0 + (x1 + x2) / 2.0 + (x0 + x1 + x2) / 3.0) 
         # x = (((x2 + x_18) / 2.0) + ((x1 + x_d) / 2.0) + ((x0 + x_50) / 2.0)) / 3.0
 
-        c1 = torch.softmax(x0, dim=1)
-        c2 = torch.softmax(x1, dim=1)
-        c3 = torch.softmax(x2, dim=1)
-        c4 = torch.softmax(x3, dim=1)
-        c5 = torch.softmax(x4, dim=1)
-        c6 = torch.softmax(x5, dim=1)
+        # c1 = torch.softmax(x0, dim=1)
+        # c2 = torch.softmax(x1, dim=1)
+        # c3 = torch.softmax(x2, dim=1)
 
-        c4  = torch.softmax((x0 + x1) / 2.0, dim=1)
-        c5  = torch.softmax((x0 + x2) / 2.0, dim=1)
-        c6  = torch.softmax((x0 + x3) / 2.0, dim=1)
-        c7  = torch.softmax((x0 + x4) / 2.0, dim=1)
-        c8  = torch.softmax((x0 + x5) / 2.0, dim=1)
+        # c4 = torch.softmax(x3, dim=1)
+        # c5 = torch.softmax(x4, dim=1)
+        # c6 = torch.softmax(x5, dim=1)
 
-        c9  = torch.softmax((x1 + x2) / 2.0, dim=1)
-        c10 = torch.softmax((x1 + x3) / 2.0, dim=1)
-        c11 = torch.softmax((x1 + x4) / 2.0, dim=1)
-        c12 = torch.softmax((x1 + x5) / 2.0, dim=1)
+        # c4  = torch.softmax((x0 + x1) / 2.0, dim=1)
+        # c5  = torch.softmax((x0 + x2) / 2.0, dim=1)
+        # c6  = torch.softmax((x0 + x3) / 2.0, dim=1)
+        # c7  = torch.softmax((x0 + x4) / 2.0, dim=1)
+        # c8  = torch.softmax((x0 + x5) / 2.0, dim=1)
 
-        c13 = torch.softmax((x2 + x3) / 2.0, dim=1)
-        c14 = torch.softmax((x2 + x4) / 2.0, dim=1)
-        c15 = torch.softmax((x2 + x5) / 2.0, dim=1)
+        # c9  = torch.softmax((x1 + x2) / 2.0, dim=1)
+        # c10 = torch.softmax((x1 + x3) / 2.0, dim=1)
+        # c11 = torch.softmax((x1 + x4) / 2.0, dim=1)
+        # c12 = torch.softmax((x1 + x5) / 2.0, dim=1)
 
-        c16 = torch.softmax((x3 + x4) / 2.0, dim=1)
-        c17 = torch.softmax((x3 + x5) / 2.0, dim=1)
+        # c13 = torch.softmax((x2 + x3) / 2.0, dim=1)
+        # c14 = torch.softmax((x2 + x4) / 2.0, dim=1)
+        # c15 = torch.softmax((x2 + x5) / 2.0, dim=1)
 
-        c18 = torch.softmax((x4 + x5) / 2.0, dim=1)
+        # c16 = torch.softmax((x3 + x4) / 2.0, dim=1)
+        # c17 = torch.softmax((x3 + x5) / 2.0, dim=1)
 
-        c19 = torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
-        c20 = torch.softmax((x0 + x1 + x3) / 3.0, dim=1)
-        c21 = torch.softmax((x0 + x1 + x4) / 3.0, dim=1)
-        c22 = torch.softmax((x0 + x2 + x3) / 3.0, dim=1)
-        c23 = torch.softmax((x0 + x2 + x4) / 3.0, dim=1)
-        c24 = torch.softmax((x0 + x2 + x5) / 3.0, dim=1)
-        c25 = torch.softmax((x0 + x3 + x4) / 3.0, dim=1)
-        c26 = torch.softmax((x0 + x3 + x5) / 3.0, dim=1)
-        c27 = torch.softmax((x0 + x4 + x5) / 3.0, dim=1)
+        # c18 = torch.softmax((x4 + x5) / 2.0, dim=1)
 
-        c28 = torch.softmax((x1 + x2 + x3) / 3.0, dim=1)
-        c29 = torch.softmax((x1 + x2 + x4) / 3.0, dim=1)
-        c30 = torch.softmax((x1 + x2 + x5) / 3.0, dim=1)
-        c31 = torch.softmax((x1 + x3 + x4) / 3.0, dim=1)
-        c32 = torch.softmax((x1 + x3 + x5) / 3.0, dim=1)
-        c33 = torch.softmax((x1 + x4 + x5) / 3.0, dim=1)
+        # c19 = torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
+        # c20 = torch.softmax((x0 + x1 + x3) / 3.0, dim=1)
+        # c21 = torch.softmax((x0 + x1 + x4) / 3.0, dim=1)
+        # c22 = torch.softmax((x0 + x2 + x3) / 3.0, dim=1)
+        # c23 = torch.softmax((x0 + x2 + x4) / 3.0, dim=1)
+        # c24 = torch.softmax((x0 + x2 + x5) / 3.0, dim=1)
+        # c25 = torch.softmax((x0 + x3 + x4) / 3.0, dim=1)
+        # c26 = torch.softmax((x0 + x3 + x5) / 3.0, dim=1)
+        # c27 = torch.softmax((x0 + x4 + x5) / 3.0, dim=1)
 
-        c34 = torch.softmax((x2 + x3 + x4) / 3.0, dim=1)
-        c35 = torch.softmax((x2 + x3 + x5) / 3.0, dim=1)
-        c36 = torch.softmax((x2 + x4 + x5) / 3.0, dim=1)
+        # c28 = torch.softmax((x1 + x2 + x3) / 3.0, dim=1)
+        # c29 = torch.softmax((x1 + x2 + x4) / 3.0, dim=1)
+        # c30 = torch.softmax((x1 + x2 + x5) / 3.0, dim=1)
+        # c31 = torch.softmax((x1 + x3 + x4) / 3.0, dim=1)
+        # c32 = torch.softmax((x1 + x3 + x5) / 3.0, dim=1)
+        # c33 = torch.softmax((x1 + x4 + x5) / 3.0, dim=1)
 
-        c37 = torch.softmax((x3 + x4 + x5) / 3.0, dim=1)
+        # c34 = torch.softmax((x2 + x3 + x4) / 3.0, dim=1)
+        # c35 = torch.softmax((x2 + x3 + x5) / 3.0, dim=1)
+        # c36 = torch.softmax((x2 + x4 + x5) / 3.0, dim=1)
 
-        c38 = torch.softmax((x0 + x1 + x2 + x3) / 4.0, dim=1)
-        c39 = torch.softmax((x0 + x1 + x2 + x4) / 4.0, dim=1)
-        c40 = torch.softmax((x0 + x1 + x2 + x5) / 4.0, dim=1)
-        c41 = torch.softmax((x0 + x1 + x3 + x4) / 4.0, dim=1)
-        c42 = torch.softmax((x0 + x1 + x3 + x5) / 4.0, dim=1)
-        c43 = torch.softmax((x0 + x1 + x4 + x5) / 4.0, dim=1)
-        c44 = torch.softmax((x0 + x2 + x3 + x4) / 4.0, dim=1)
-        c45 = torch.softmax((x0 + x2 + x3 + x5) / 4.0, dim=1)
-        c46 = torch.softmax((x0 + x2 + x4 + x5) / 4.0, dim=1)
-        c47 = torch.softmax((x0 + x3 + x4 + x5) / 4.0, dim=1)
+        # c37 = torch.softmax((x3 + x4 + x5) / 3.0, dim=1)
 
-        c48 = torch.softmax((x1 + x2 + x3 + x4) / 4.0, dim=1)
-        c49 = torch.softmax((x1 + x2 + x3 + x5) / 4.0, dim=1)
-        c50 = torch.softmax((x1 + x2 + x4 + x5) / 4.0, dim=1)
-        c51 = torch.softmax((x1 + x3 + x4 + x5) / 4.0, dim=1)
+        # c38 = torch.softmax((x0 + x1 + x2 + x3) / 4.0, dim=1)
+        # c39 = torch.softmax((x0 + x1 + x2 + x4) / 4.0, dim=1)
+        # c40 = torch.softmax((x0 + x1 + x2 + x5) / 4.0, dim=1)
+        # c41 = torch.softmax((x0 + x1 + x3 + x4) / 4.0, dim=1)
+        # c42 = torch.softmax((x0 + x1 + x3 + x5) / 4.0, dim=1)
+        # c43 = torch.softmax((x0 + x1 + x4 + x5) / 4.0, dim=1)
+        # c44 = torch.softmax((x0 + x2 + x3 + x4) / 4.0, dim=1)
+        # c45 = torch.softmax((x0 + x2 + x3 + x5) / 4.0, dim=1)
+        # c46 = torch.softmax((x0 + x2 + x4 + x5) / 4.0, dim=1)
+        # c47 = torch.softmax((x0 + x3 + x4 + x5) / 4.0, dim=1)
 
-        c52 = torch.softmax((x2 + x3 + x4 + x5) / 4.0, dim=1)
+        # c48 = torch.softmax((x1 + x2 + x3 + x4) / 4.0, dim=1)
+        # c49 = torch.softmax((x1 + x2 + x3 + x5) / 4.0, dim=1)
+        # c50 = torch.softmax((x1 + x2 + x4 + x5) / 4.0, dim=1)
+        # c51 = torch.softmax((x1 + x3 + x4 + x5) / 4.0, dim=1)
 
-        c52 = torch.softmax((x0 + x1 + x2 + x3 + x4) / 5.0, dim=1)
-        c53 = torch.softmax((x0 + x1 + x2 + x3 + x5) / 5.0, dim=1)
-        c54 = torch.softmax((x0 + x1 + x2 + x4 + x5) / 5.0, dim=1)
-        c55 = torch.softmax((x0 + x1 + x3 + x4 + x5) / 5.0, dim=1)
-        c56 = torch.softmax((x0 + x2 + x3 + x4 + x5) / 5.0, dim=1)
+        # c52 = torch.softmax((x2 + x3 + x4 + x5) / 4.0, dim=1)
 
-        c57 = torch.softmax((x1 + x2 + x3 + x4 + x5) / 5.0, dim=1)
+        # c52 = torch.softmax((x0 + x1 + x2 + x3 + x4) / 5.0, dim=1)
+        # c53 = torch.softmax((x0 + x1 + x2 + x3 + x5) / 5.0, dim=1)
+        # c54 = torch.softmax((x0 + x1 + x2 + x4 + x5) / 5.0, dim=1)
+        # c55 = torch.softmax((x0 + x1 + x3 + x4 + x5) / 5.0, dim=1)
+        # c56 = torch.softmax((x0 + x2 + x3 + x4 + x5) / 5.0, dim=1)
 
-        c58 = torch.softmax((x0 + x1 + x2 + x3 + x4 + x5) / 6.0, dim=1)
+        # c57 = torch.softmax((x1 + x2 + x3 + x4 + x5) / 5.0, dim=1)
+
+        # c58 = torch.softmax((x0 + x1 + x2 + x3 + x4 + x5) / 6.0, dim=1)
 
 
-        x  = c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12 + c13 + c14 + c15 + c16 + c17 + c18 + c19 + c20 
-        x  = x + c21 + c22 + c23 + c24 + c25 + c26 + c27 + c28 + c29 + c30 + c31 + c32 + c33 + c34 + c35 + c36 + c37 + c38 + c39 + c40 + c41 + c42 + c43 + c44 + c45 + c46 + c47 + c48 + c49 + c50 + c51 + c52 + c53 + c54 + c55 + c56 + c57 + c58 
+        # x  = c1 + c2 + c3 + c4 + c5 + c6 + c7 + c8 + c9 + c10 + c11 + c12 + c13 + c14 + c15 + c16 + c17 + c18 + c19 + c20 
+        # x  = x + c21 + c22 + c23 + c24 + c25 + c26 + c27 + c28 + c29 + c30 + c31 + c32 + c33 + c34 + c35 + c36 + c37 + c38 + c39 + c40 + c41 + c42 + c43 + c44 + c45 + c46 + c47 + c48 + c49 + c50 + c51 + c52 + c53 + c54 + c55 + c56 + c57 + c58 
 
-        # x = c7
+        x = x0 + x1 + x2
 
         return x
 
