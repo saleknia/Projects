@@ -73,12 +73,12 @@ class Mobile_netV2_loss(nn.Module):
         self.dense.load_state_dict(pretrained_dense)
         self.dense = self.dense.eval()
 
-        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -89,7 +89,7 @@ class Mobile_netV2_loss(nn.Module):
         x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
-        # x4 = self.res_50(x)
+        x3 = self.res_50(x)
         # x5 = self.dense(x)
 
         # x3 = self.b_4(x)
@@ -112,6 +112,7 @@ class Mobile_netV2_loss(nn.Module):
         c1 = torch.softmax(x0, dim=1)
         c2 = torch.softmax(x1, dim=1)
         c3 = torch.softmax(x2, dim=1)
+        c4 = torch.softmax(x3, dim=1)
 
         # c4 = torch.softmax(x_18, dim=1)
         # c5 = torch.softmax(x_50, dim=1)
@@ -196,7 +197,7 @@ class Mobile_netV2_loss(nn.Module):
         # x = ((x_d + x_50 + x_18) / 3.0) + ((x0 + x1 + x2) / 3.0)
         # x = ((x0 + x1 + x2) / 3.0) + x_50
 
-        x = (c1 + c2 + c3) / 3.0
+        x = ((c1 + c2 + c3) / 3.0) + c4
 
         return x
 
