@@ -38,8 +38,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model_pre = efficientnet_b0(weights=EfficientNet_B2_Weights)
-        model_scr = efficientnet_b0(weights=None)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # teacher = models.__dict__['resnet18'](num_classes=365)
         # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
@@ -63,22 +62,20 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        # model.features[0][0].stride = (1, 1)
 
-        self.features_1 = model_pre.features[0:4]
-        self.features_2 = model_scr.features[4:9]
+        model.features[0][0].stride = (1, 1)
+
+        self.features = model.features
 
         # self.avgpool = self.teacher.avgpool
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        for param in self.features_1.parameters():
+        for param in self.features[0:4].parameters():
             param.requires_grad = False
 
-        self.avgpool = model_pre.avgpool
-
-        self.features_1[0][0].stride = (1, 1)
+        self.avgpool = model.avgpool
 
         # self.features[0][0].stride = (1, 1)
 
@@ -99,15 +96,15 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.teacher.conv1(x0)
-        # x = self.teacher.bn1(x)
-        # x = self.teacher.relu(x)
-        # x = self.teacher.maxpool(x)
-        # x = self.teacher.layer1(x)
+        x = self.teacher.conv1(x0)
+        x = self.teacher.bn1(x)
+        x = self.teacher.relu(x)
+        x = self.teacher.maxpool(x)
+        x = self.teacher.layer1(x)
 
-        # x1_t = self.teacher.layer2(x)
-        # x2_t = self.teacher.layer3(x1_t)
-        # x3_t = self.teacher.layer4(x2_t)
+        x1_t = self.teacher.layer2(x)
+        x2_t = self.teacher.layer3(x1_t)
+        x3_t = self.teacher.layer4(x2_t)
 
         x1 = self.features_1[0:4](x0)
         x2 = self.features_2[0:2](x1)
