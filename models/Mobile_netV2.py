@@ -38,7 +38,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
 
         # teacher = models.__dict__['resnet18'](num_classes=365)
         # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
@@ -61,7 +61,6 @@ class Mobile_netV2(nn.Module):
         # self.teacher.conv1.stride = (1, 1)
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
-
 
         model.features[0][0].stride = (1, 1)
 
