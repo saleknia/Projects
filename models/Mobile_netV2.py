@@ -309,7 +309,7 @@ class Mobile_netV2_teacher(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.teacher.fc(x)
 
-        return x, x1, x2, x3
+        return torch.softmax(x, dim=1), x1, x2, x3
 
 
 # class Mobile_netV2(nn.Module):
