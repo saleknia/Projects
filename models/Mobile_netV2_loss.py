@@ -38,7 +38,7 @@ class Mobile_netV2_loss(nn.Module):
         self.b_1 = self.b_1.eval()
         
         self.b_2 = Mobile_netV2_2()
-        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_52/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_b_2 = loaded_data_b_2['net']
 
         a = pretrained_b_2.copy()
@@ -88,14 +88,14 @@ class Mobile_netV2_loss(nn.Module):
         x1 = self.b_1(x) 
         x2 = self.b_2(x)
 
-        x_18 = self.res_18(x)
-        x_50 = self.res_50(x)
-        x_d  = self.dense(x)
+        # x_18 = self.res_18(x)
+        # x_50 = self.res_50(x)
+        # x_d  = self.dense(x)
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
 
-        x =  ((x0 + x1 + x2) / 3.0) + x_50 + x_18
+        x =  ((x0 + x1 + x2) / 3.0) #+ x_50 + x_18
 
         # x = (((x2 + x_18) / 2.0) + ((x1 + x_d) / 2.0) + ((x0 + x_50) / 2.0)) / 3.0
 
@@ -235,9 +235,9 @@ class Mobile_netV2_res_18(nn.Module):
 
 
         teacher = models.__dict__['resnet18'](num_classes=365)
-        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        teacher.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # teacher.load_state_dict(state_dict)
 
         self.teacher = teacher
 
@@ -269,9 +269,9 @@ class Mobile_netV2_res_50(nn.Module):
 
 
         teacher = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        teacher.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # teacher.load_state_dict(state_dict)
 
         self.teacher = teacher
 
@@ -302,13 +302,13 @@ class Mobile_netV2_dense(nn.Module):
         super(Mobile_netV2_dense, self).__init__()
 
         teacher = models.__dict__['densenet161'](num_classes=365)
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        teacher.load_state_dict(state_dict)
+        # teacher.load_state_dict(state_dict)
 
         self.teacher = teacher
 
