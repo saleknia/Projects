@@ -38,7 +38,8 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b0(weights=EfficientNet_B2_Weights)
+        model_pre = efficientnet_b0(weights=EfficientNet_B2_Weights)
+        model_scr = efficientnet_b0(weights=None)
 
         # teacher = models.__dict__['resnet18'](num_classes=365)
         # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
@@ -64,16 +65,22 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
-        torch.nn.init.xavier_uniform_(self.features[4:].weight)
+        self.features_1 = model_pre.features[0:4]
+        self.features_2 = model_scr.features[4:9]
 
         # self.avgpool = self.teacher.avgpool
 
-        for param in self.features[0:4].parameters():
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
+
+        for param in self.features_1.parameters():
             param.requires_grad = False
 
-        self.avgpool = model.avgpool
-        self.features[0][0].stride = (1, 1)
+        self.avgpool = model_pre.avgpool
+
+        self.features_1[0][0].stride = (1, 1)
+
+        # self.features[0][0].stride = (1, 1)
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -102,9 +109,9 @@ class Mobile_netV2(nn.Module):
         # x2_t = self.teacher.layer3(x1_t)
         # x3_t = self.teacher.layer4(x2_t)
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        x1 = self.features_1[0:4](x0)
+        x2 = self.features_2[4:6](x1)
+        x3 = self.features_2[6:9](x2)
 
         x1_t, x2_t, x3_t = self.teacher(x0)
 
