@@ -211,7 +211,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
-        loss_ce = torch.nn.functional.cross_entropy(outputs, ((outputs_t + targets.long()) / 2.0), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
+        loss_ce = torch.nn.functional.cross_entropy(outputs, ((outputs_t + torch.nn.functional.one_hot(targets.long(), num_classes=40)) / 2.0), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
 
         predictions = torch.argmax(input=outputs,dim=1).long()
 
