@@ -113,7 +113,7 @@ class Mobile_netV2(nn.Module):
         x2 = self.features_2[0:2](x1)
         x3 = self.features_2[2:5](x2)
 
-        x1_t, x2_t, x3_t = self.teacher(x0)
+        x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
         # x3 = self.features(x0)
 
@@ -124,7 +124,7 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x, x1, x2, x3, x1_t, x2_t, x3_t
+            return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
         else:
             return x
 
@@ -305,7 +305,11 @@ class Mobile_netV2_teacher(nn.Module):
         x2 = self.teacher.layer3(x1)
         x3 = self.teacher.layer4(x2)
 
-        return x1, x2, x3
+        x = self.avgpool(x3) 
+        x = x.view(x.size(0), -1)
+        x = self.teacher.fc(x)
+
+        return x, x1, x2, x3
 
 
 # class Mobile_netV2(nn.Module):
