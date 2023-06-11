@@ -106,7 +106,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
         self.avgpool = model.avgpool
-        
+
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
@@ -143,7 +143,7 @@ class Mobile_netV2(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        x = self.model.fc(x)
 
         return x
 
