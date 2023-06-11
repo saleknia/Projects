@@ -13,44 +13,44 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        self.b_0 = Mobile_netV2_0()
-        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_23/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        pretrained_b_0 = loaded_data_b_0['net']
+        # self.b_0 = Mobile_netV2_0()
+        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_23/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        # pretrained_b_0 = loaded_data_b_0['net']
 
-        a = pretrained_b_0.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_0.pop(key)
+        # a = pretrained_b_0.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_0.pop(key)
 
-        self.b_0.load_state_dict(pretrained_b_0)
-        self.b_0 = self.b_0.eval()
+        # self.b_0.load_state_dict(pretrained_b_0)
+        # self.b_0 = self.b_0.eval()
 
-        self.b_1 = Mobile_netV2_1()
-        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_82_80/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        pretrained_b_1 = loaded_data_b_1['net']
+        # self.b_1 = Mobile_netV2_1()
+        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_82_80/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        # pretrained_b_1 = loaded_data_b_1['net']
 
-        a = pretrained_b_1.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_1.pop(key)
+        # a = pretrained_b_1.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_1.pop(key)
 
-        self.b_1.load_state_dict(pretrained_b_1)
-        self.b_1 = self.b_1.eval()
+        # self.b_1.load_state_dict(pretrained_b_1)
+        # self.b_1 = self.b_1.eval()
         
-        self.b_2 = Mobile_netV2_2()
-        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        pretrained_b_2 = loaded_data_b_2['net']
+        # self.b_2 = Mobile_netV2_2()
+        # loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        # pretrained_b_2 = loaded_data_b_2['net']
 
-        a = pretrained_b_2.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_b_2.pop(key)
+        # a = pretrained_b_2.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_b_2.pop(key)
 
-        self.b_2.load_state_dict(pretrained_b_2)
-        self.b_2 = self.b_2.eval()
+        # self.b_2.load_state_dict(pretrained_b_2)
+        # self.b_2 = self.b_2.eval()
 
 
-        self.res_18 = Mobile_netV2_res_18()
+        # self.res_18 = Mobile_netV2_res_18()
         # # loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         # # pretrained_res_18 = loaded_data_res_18['net']
         # loaded_data_res_18 = torch.load('/content/SAScene_ResNet18_MIT.pth.tar', map_location='cpu')
@@ -61,26 +61,26 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.res_50 = Mobile_netV2_res_50()
-        loaded_data_res_50 = torch.load('/content/drive/MyDrive/checkpoint_res_50/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_res_50 = torch.load('/content/drive/MyDrive/checkpoint_res_50_84_14/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_res_50 = loaded_data_res_50['net']
 
         self.res_50.load_state_dict(pretrained_res_50)
         self.res_50 = self.res_50.eval()
 
 
-        self.dense = Mobile_netV2_dense()
-        loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint_dense/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        pretrained_dense = loaded_data_dense['net']
+        # self.dense = Mobile_netV2_dense()
+        # loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint_dense/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        # pretrained_dense = loaded_data_dense['net']
 
-        self.dense.load_state_dict(pretrained_dense)
-        self.dense = self.dense.eval()
+        # self.dense.load_state_dict(pretrained_dense)
+        # self.dense = self.dense.eval()
 
         # self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -97,8 +97,8 @@ class Mobile_netV2_loss(nn.Module):
         # x3 = self.b_4(x)
         # x4 = self.b_5(x)
 
-        x_18 = self.res_18(x)
-        # x_50 = self.res_50(x)
+        # x_18 = self.res_18(x)
+        x_50 = self.res_50(x)
         # x_d  = self.dense(x)
 
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
@@ -121,7 +121,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # x = ((x0 + x1 + x2) / 3.0) # + c4
 
-        return x_18
+        return x_50
 
         # if self.training:
         #     return x
@@ -293,31 +293,25 @@ class Mobile_netV2_res_50(nn.Module):
         super(Mobile_netV2_res_50, self).__init__()
 
 
-        teacher = models.__dict__['resnet50'](num_classes=365)
+        model = models.__dict__['resnet50'](num_classes=365)
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # teacher.load_state_dict(state_dict)
+        # model.load_state_dict(state_dict)
 
-        self.teacher = teacher
+        self.model = model
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
+        # self.model.conv1.stride = (1, 1)
 
-        for param in self.teacher.layer4[-1].parameters():
-            param.requires_grad = True
+        self.avgpool = self.model.avgpool
 
-        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
-        self.teacher.conv1.stride = (1, 1)
-
-        self.avgpool = self.teacher.avgpool
-
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.teacher(x0)
+        x = self.model(x0)
 
         return x
 
@@ -340,8 +334,8 @@ class Mobile_netV2_dense(nn.Module):
         self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=67, bias=True))
         self.teacher.features[0].stride = (1, 1)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
