@@ -118,7 +118,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.layer4.parameters():
         #     param.requires_grad = True
 
-        for param in self.model.denseblock4.parameters():
+        for param in self.model.features.denseblock4.parameters():
             param.requires_grad = True
 
         # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
