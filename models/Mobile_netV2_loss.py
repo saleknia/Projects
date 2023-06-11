@@ -66,19 +66,20 @@ class Mobile_netV2_loss(nn.Module):
         self.res_50 = self.res_50.eval()
 
 
-        # self.dense = Mobile_netV2_dense()
-        # loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint_dense/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_dense = loaded_data_dense['net']
+        self.dense = Mobile_netV2_dense()
+        loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_dense = loaded_data_dense['net']
 
-        # self.dense.load_state_dict(pretrained_dense)
-        # self.dense = self.dense.eval()
+        self.dense.load_state_dict(pretrained_dense)
+        self.dense = self.dense.eval()
 
-        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -305,19 +306,19 @@ class Mobile_netV2_dense(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_dense, self).__init__()
 
-        teacher = models.__dict__['densenet161'](num_classes=365)
+        model = models.__dict__['densenet161'](num_classes=365)
         # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
         # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # teacher.load_state_dict(state_dict)
+        # model.load_state_dict(state_dict)
 
-        self.teacher = teacher
+        self.model = model
 
-        self.teacher.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=67, bias=True))
-        self.teacher.features[0].stride = (1, 1)
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=67, bias=True))
+        # self.model.features[0].stride = (1, 1)
 
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
