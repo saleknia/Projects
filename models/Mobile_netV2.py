@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
+from torchvision.models import resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights
@@ -17,6 +17,9 @@ from torchvision import transforms as trn
 from torch.nn import functional as F
 import os
 from PIL import Image
+
+from .wideresnet import *
+from .wideresnet import recursion_change_bn
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -34,7 +37,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
@@ -62,25 +65,44 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
         # self.avgpool = self.teacher.avgpool
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        for param in self.features[0:6].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:6].parameters():
+        #     param.requires_grad = False
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
         # self.features[0][0].stride = (1, 1)
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        model = resnet18(num_classes=365)
+        checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
+        
+        # hacky way to deal with the upgraded batchnorm2D and avgpool layers...
+        for i, (name, module) in enumerate(model._modules.items()):
+            module = recursion_change_bn(model)
+        model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+
+        self.model = model
+
+        # print(model)
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
