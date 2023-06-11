@@ -81,15 +81,15 @@ class Mobile_netV2(nn.Module):
 
         # self.features[0][0].stride = (1, 1)
 
-        model = resnet18(num_classes=365)
-        checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
+        model = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model.load_state_dict(state_dict)
         
         # hacky way to deal with the upgraded batchnorm2D and avgpool layers...
-        for i, (name, module) in enumerate(model._modules.items()):
-            module = recursion_change_bn(model)
-        model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+        # for i, (name, module) in enumerate(model._modules.items()):
+        #     module = recursion_change_bn(model)
+        # model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
 
         self.model = model
 
@@ -101,10 +101,10 @@ class Mobile_netV2(nn.Module):
         for param in self.model.layer4.parameters():
             param.requires_grad = True
 
-        for param in self.model.layer3.parameters():
-            param.requires_grad = True
+        # for param in self.model.layer3.parameters():
+        #     param.requires_grad = True
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -123,15 +123,14 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.teacher.conv1(x0)
-        # x = self.teacher.bn1(x)
-        # x = self.teacher.relu(x)
-        # x = self.teacher.maxpool(x)
-        # x = self.teacher.layer1(x)
-
-        # x1_t = self.teacher.layer2(x)
-        # x2_t = self.teacher.layer3(x1_t)
-        # x3_t = self.teacher.layer4(x2_t)
+        x = self.model.conv1(x0)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.maxpool(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
@@ -139,11 +138,11 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
-        # x = self.avgpool(x3)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
         return x
 
