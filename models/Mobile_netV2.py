@@ -166,8 +166,9 @@ class Mobile_netV2(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.model.fc(x)
-
+        # x = self.model.fc(x)
+        x = self.classifier(x)
+        
         return x
 
         # if self.training:
