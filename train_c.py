@@ -587,7 +587,8 @@ def main(args):
                         tester(
                             end_epoch=1,
                             epoch_num=1,
-                            model=copy.deepcopy(model),
+                            # model=copy.deepcopy(model),
+                            model=model,
                             dataloader=data_loader['valid'],
                             device=DEVICE,
                             ckpt=None,

@@ -65,6 +65,13 @@ class Mobile_netV2_loss(nn.Module):
         self.res_50.load_state_dict(pretrained_res_50)
         self.res_50 = self.res_50.eval()
 
+        self.seg = Mobile_netV2_seg()
+        loaded_data_seg = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_seg = loaded_data_seg['net']
+
+        self.seg.load_state_dict(pretrained_seg)
+        self.seg = self.res_50.eval()
+
 
         self.dense = Mobile_netV2_dense()
         loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint_dense_85_04/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
@@ -80,6 +87,8 @@ class Mobile_netV2_loss(nn.Module):
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+
+        # self.seg = tta.ClassificationTTAWrapper(self.seg, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -100,6 +109,8 @@ class Mobile_netV2_loss(nn.Module):
         x_50 = self.res_50(x)
         x_d  = self.dense(x)
 
+        x_s  = self.seg(x)
+
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
         # x = (torch.softmax(x_18, dim=1) + torch.softmax(x_50, dim=1)) / 3.0
@@ -118,14 +129,19 @@ class Mobile_netV2_loss(nn.Module):
         # x = ((x_d + x_50 + x_18) / 3.0) + ((x0 + x1 + x2) / 3.0)
         # x = ((x0 + x1 + x2) / 3.0) + x_50
 
+        # x = ((x0 + x1 + x2) / 3.0)
+
+        # y = (x + x_18) / 2.0
+        # z = (x + x_50) / 2.0
+        # w = (x + x_d)  / 2.0
+
         x = ((x0 + x1 + x2) / 3.0)
+        y = ((x_18 + x_50 + x_d) / 3.0)
+        z = x_s 
 
-        y = (x + x_18) / 2.0
-        z = (x + x_50) / 2.0
-        w = (x + x_d)  / 2.0
+        return y + x 
 
-
-        return y + w + z
+        # return x_s
 
         # if self.training:
         #     return x
@@ -334,6 +350,46 @@ class Mobile_netV2_dense(nn.Module):
         x = self.model(x0)
 
         return torch.softmax(x, dim=1)
+
+
+
+from mit_semseg.models import ModelBuilder
+
+class Mobile_netV2_seg(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2_seg, self).__init__()
+
+        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+
+        self.model = model
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer4.parameters():
+            param.requires_grad = True
+
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=67, bias=True))
+
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)[0]
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        
+        return torch.softmax(x, dim=1)
+
+
+
+
 
 
 
