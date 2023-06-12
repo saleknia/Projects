@@ -168,7 +168,7 @@ class Mobile_netV2(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.model.fc(x)
 
-        return x
+        return x[0]
 
         # if self.training:
         #     return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
