@@ -119,8 +119,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4.parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
         # for param in self.model.features.denseblock4.parameters():
         #     param.requires_grad = True
@@ -168,7 +168,7 @@ class Mobile_netV2(nn.Module):
         x = x.view(x.size(0), -1)
         # x = self.model.fc(x)
         x = self.classifier(x)
-        
+
         return x
 
         # if self.training:
