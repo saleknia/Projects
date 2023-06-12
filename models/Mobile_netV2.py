@@ -162,13 +162,13 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
-        x = self.model(x0)
+        x = self.model(x0)[0]
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.model.fc(x)
 
-        return x[0]
+        return x
 
         # if self.training:
         #     return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
