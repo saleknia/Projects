@@ -136,7 +136,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+            nn.Linear(in_features=2048*2, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -173,7 +173,9 @@ class Mobile_netV2(nn.Module):
         # 
         # x_place = self.model.place(x0)
 
-        x = x_seg + x_place
+        # x = x_seg + x_place
+
+        x = torch.cat([x_seg, x_place], dim=1)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
