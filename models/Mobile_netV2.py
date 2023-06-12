@@ -27,7 +27,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
+        self.teacher = Mobile_netV2_teacher()
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_50/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         # pretrained_teacher = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
@@ -192,7 +192,7 @@ class Mobile_netV2(nn.Module):
         # x_cls = self.model_cls.layer3(x_cls)
         # x_cls = self.model_cls.layer4(x_cls)
 
-        # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
+        x1_t, x2_t, x3_t, x4_t = self.teacher(x0)
 
         # 
         # x_place = self.model.place(x0)
@@ -207,12 +207,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.classifier(x)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t, x1, x2, x3, x1_t, x2_t, x3_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x1, x2, x3, x4, x1_t, x2_t, x3_t, x4_t
+        else:
+            return x
 
 
 # class Mobile_netV2(nn.Module):
@@ -364,10 +364,10 @@ class Mobile_netV2_teacher(nn.Module):
 
         # self.avgpool = self.teacher.avgpool
 
-        teacher = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # teacher.load_state_dict(state_dict)
+        teacher = models.__dict__['resnet18'](num_classes=365)
+        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        teacher.load_state_dict(state_dict)
 
         self.teacher = teacher
 
@@ -386,16 +386,16 @@ class Mobile_netV2_teacher(nn.Module):
         x0 = self.teacher.bn1(x0)
         x0 = self.teacher.relu(x0)
         x0 = self.teacher.maxpool(x0)
-        x0 = self.teacher.layer1(x0)
-        x1 = self.teacher.layer2(x0)
-        x2 = self.teacher.layer3(x1)
-        x3 = self.teacher.layer4(x2)
+        x1 = self.teacher.layer1(x0)
+        x2 = self.teacher.layer2(x1)
+        x3 = self.teacher.layer3(x2)
+        x4 = self.teacher.layer4(x3)
 
-        x = self.avgpool(x3) 
-        x = x.view(x.size(0), -1)
-        x = self.teacher.fc(x)
+        # x = self.avgpool(x3) 
+        # x = x.view(x.size(0), -1)
+        # x = self.teacher.fc(x)
 
-        return torch.softmax(x, dim=1), x1, x2, x3
+        return x1, x2, x3, x4
 
 
 # class Mobile_netV2(nn.Module):
