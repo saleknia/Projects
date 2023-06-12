@@ -67,7 +67,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.dense = Mobile_netV2_dense()
-        loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        loaded_data_dense = torch.load('/content/drive/MyDrive/checkpoint_dense_85_04/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         pretrained_dense = loaded_data_dense['net']
 
         self.dense.load_state_dict(pretrained_dense)
@@ -79,7 +79,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
         # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x):
@@ -96,9 +96,9 @@ class Mobile_netV2_loss(nn.Module):
         # x3 = self.b_4(x)
         # x4 = self.b_5(x)
 
-        # x_18 = self.res_18(x)
+        x_18 = self.res_18(x)
         x_50 = self.res_50(x)
-        # x_d  = self.dense(x)
+        x_d  = self.dense(x)
 
         # x = (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1) + torch.softmax(x2, dim=1)) / 3.0
 
@@ -118,9 +118,14 @@ class Mobile_netV2_loss(nn.Module):
         # x = ((x_d + x_50 + x_18) / 3.0) + ((x0 + x1 + x2) / 3.0)
         # x = ((x0 + x1 + x2) / 3.0) + x_50
 
-        x = ((x0 + x1 + x2) / 3.0) # + c4
+        x = ((x0 + x1 + x2) / 3.0)
 
-        return x_50 + x
+        y = (x + x_18) / 2.0
+        z = (x + x_50) / 2.0
+        w = (x + x_d)  / 2.0
+
+
+        return y + w + z
 
         # if self.training:
         #     return x
