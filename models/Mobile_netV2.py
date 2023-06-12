@@ -21,6 +21,8 @@ from PIL import Image
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
+from mit_semseg.models import ModelBuilder
+
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
@@ -90,13 +92,15 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         # model.load_state_dict(state_dict)
 
-        model = models.__dict__['densenet161'](num_classes=365)
+        # model = models.__dict__['densenet161'](num_classes=365)
 
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-        model.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # model.load_state_dict(state_dict)
+
+        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
 
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
@@ -115,18 +119,20 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # for param in self.model.layer4.parameters():
-        #     param.requires_grad = True
-
-        for param in self.model.features.denseblock4.parameters():
+        for param in self.model.layer4.parameters():
             param.requires_grad = True
+
+        # for param in self.model.features.denseblock4.parameters():
+        #     param.requires_grad = True
 
         # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
         # self.avgpool = model.avgpool
 
-        self.model.classifier = nn.Sequential(
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
+
+        self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -158,9 +164,9 @@ class Mobile_netV2(nn.Module):
 
         x = self.model(x0)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.model.fc(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.model.fc(x)
 
         return x
 
