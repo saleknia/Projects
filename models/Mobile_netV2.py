@@ -79,18 +79,15 @@ class Mobile_netV2(nn.Module):
         # for param in self.features[0:6].parameters():
         #     param.requires_grad = False
 
-
-
         # self.features[0][0].stride = (1, 1)
-
 
         # model = resnet18(num_classes=365)
 
-        # model = models.__dict__['resnet18'](num_classes=365)
+        model_place = models.__dict__['resnet50'](num_classes=365)
 
-        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model.load_state_dict(state_dict)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_place.load_state_dict(state_dict)
 
         # model = models.__dict__['densenet161'](num_classes=365)
 
@@ -100,7 +97,7 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
 
-        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        model_seg =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
 
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
@@ -112,15 +109,16 @@ class Mobile_netV2(nn.Module):
         #     module = recursion_change_bn(model)
         # model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
 
-        self.model = model
+        self.model.place = model_place.features
+        self.model.seg   = model_seg.features
 
         # print(model)
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4.parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4.parameters():
+        #     param.requires_grad = True
 
         # for param in self.model.features.denseblock4.parameters():
         #     param.requires_grad = True
@@ -160,9 +158,14 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
+
+
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
-        x = self.model(x0)[0]
+        x_seg   = self.model.seg(x0)
+        x_place = self.model.place(x0)
+
+        x = x_seg + x_place
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
