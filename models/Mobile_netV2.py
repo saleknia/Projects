@@ -109,8 +109,11 @@ class Mobile_netV2(nn.Module):
         #     module = recursion_change_bn(model)
         # model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
 
-        self.model.place = model_place.features
-        self.model.seg   = model_seg.features
+        # print(model_seg)
+        # print(model_place)
+
+        self.model.place = model_place
+        self.model.seg   = model_seg
 
         # print(model)
 
@@ -145,14 +148,23 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.model.conv1(x0)
-        # x = self.model.bn1(x)
-        # x = self.model.relu(x)
-        # x = self.model.maxpool(x)
-        # x = self.model.layer1(x)
-        # x = self.model.layer2(x)
-        # x = self.model.layer3(x)
-        # x = self.model.layer4(x)
+        x_seg = self.model_seg.conv1(x0)
+        x_seg = self.model_seg.bn1(x_seg)
+        x_seg = self.model_seg.relu(x_seg)
+        x_seg = self.model_seg.max_pool(x_seg)
+        x_seg = self.model_seg.layer1(x_seg)
+        x_seg = self.model_seg.layer2(x_seg)
+        x_seg = self.model_seg.layer3(x_seg)
+        x_seg = self.model_seg.layer4(x_seg)
+
+        x_place = self.model_seg.conv1(x0)
+        x_place = self.model_seg.bn1(x_place)
+        x_place = self.model_seg.relu(x_place)
+        x_place = self.model_seg.max_pool(x_place)
+        x_place = self.model_seg.layer1(x_place)
+        x_place = self.model_seg.layer2(x_place)
+        x_place = self.model_seg.layer3(x_place)
+        x_place = self.model_seg.layer4(x_place)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
@@ -162,8 +174,8 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
-        x_seg   = self.model.seg(x0)
-        x_place = self.model.place(x0)
+        # x_seg   = self.model.seg(x0)
+        # x_place = self.model.place(x0)
 
         x = x_seg + x_place
 
