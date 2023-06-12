@@ -112,12 +112,15 @@ class Mobile_netV2(nn.Module):
         # print(model_seg)
         # print(model_place)
 
-        self.model.place = model_place
-        self.model.seg   = model_seg
+        self.model_place = model_place
+        self.model_seg   = model_seg
 
         # print(model)
 
-        for param in self.model.parameters():
+        for param in self.model_place.parameters():
+            param.requires_grad = False
+
+        for param in self.model_seg.parameters():
             param.requires_grad = False
 
         # for param in self.model.layer4.parameters():
@@ -148,23 +151,16 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_seg = self.model_seg.conv1(x0)
-        x_seg = self.model_seg.bn1(x_seg)
-        x_seg = self.model_seg.relu(x_seg)
-        x_seg = self.model_seg.max_pool(x_seg)
-        x_seg = self.model_seg.layer1(x_seg)
-        x_seg = self.model_seg.layer2(x_seg)
-        x_seg = self.model_seg.layer3(x_seg)
-        x_seg = self.model_seg.layer4(x_seg)
+        x_seg   = self.model_seg(x0)[0]
 
-        x_place = self.model_seg.conv1(x0)
-        x_place = self.model_seg.bn1(x_place)
-        x_place = self.model_seg.relu(x_place)
-        x_place = self.model_seg.max_pool(x_place)
-        x_place = self.model_seg.layer1(x_place)
-        x_place = self.model_seg.layer2(x_place)
-        x_place = self.model_seg.layer3(x_place)
-        x_place = self.model_seg.layer4(x_place)
+        x_place = self.model_place.conv1(x0)
+        x_place = self.model_place.bn1(x_place)
+        x_place = self.model_place.relu(x_place)
+        x_place = self.model_place.maxpool(x_place)
+        x_place = self.model_place.layer1(x_place)
+        x_place = self.model_place.layer2(x_place)
+        x_place = self.model_place.layer3(x_place)
+        x_place = self.model_place.layer4(x_place)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
@@ -174,7 +170,7 @@ class Mobile_netV2(nn.Module):
 
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
-        # x_seg   = self.model.seg(x0)
+        # 
         # x_place = self.model.place(x0)
 
         x = x_seg + x_place
