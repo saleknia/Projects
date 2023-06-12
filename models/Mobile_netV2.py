@@ -99,6 +99,7 @@ class Mobile_netV2(nn.Module):
 
         model_seg =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
+        model_cls = torchvision.models.resnet50(weights='DEFAULT')
 
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -114,6 +115,7 @@ class Mobile_netV2(nn.Module):
 
         self.model_place = model_place
         self.model_seg   = model_seg
+        self.model_cls   = model_cls
 
         # print(model)
 
@@ -121,6 +123,9 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = False
 
         for param in self.model_seg.parameters():
+            param.requires_grad = False
+
+        for param in self.model_cls.parameters():
             param.requires_grad = False
 
         # for param in self.model.layer4.parameters():
@@ -136,7 +141,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048*2, out_features=num_classes, bias=True))
+            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -166,16 +171,23 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-
+        x_cls = self.model_cls.conv1(x0)
+        x_cls = self.model_cls.bn1(x_cls)
+        x_cls = self.model_cls.relu(x_cls)
+        x_cls = self.model_cls.maxpool(x_cls)
+        x_cls = self.model_cls.layer1(x_cls)
+        x_cls = self.model_cls.layer2(x_cls)
+        x_cls = self.model_cls.layer3(x_cls)
+        x_cls = self.model_cls.layer4(x_cls)
 
         # x_t, x1_t, x2_t, x3_t = self.teacher(x0)
 
         # 
         # x_place = self.model.place(x0)
 
-        # x = x_seg + x_place
+        x = x_seg + x_place + x_cls
 
-        x = torch.cat([x_seg, x_place], dim=1)
+        # x = torch.cat([x_seg, x_place], dim=1)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
