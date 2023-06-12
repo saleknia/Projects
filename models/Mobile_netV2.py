@@ -372,7 +372,7 @@ class Mobile_netV2_teacher(nn.Module):
         self.teacher = teacher
 
         self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
-        self.teacher.conv1.stride = (1, 1)
+        # self.teacher.conv1.stride = (1, 1)
 
         self.avgpool = self.teacher.avgpool
 

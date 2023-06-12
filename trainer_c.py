@@ -203,6 +203,16 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # outputs = model(inputs)
         outputs, x1, x2, x3, x4, x1_t, x2_t, x3_t, x4_t = model(inputs)
 
+        # print(x1.shape)
+        # print(x2.shape)        
+        # print(x3.shape)        
+        # print(x4.shape)
+
+        # print(x1_t.shape)
+        # print(x2_t.shape)        
+        # print(x3_t.shape)        
+        # print(x4_t.shape)
+
         # outputs, outputs_t = model(inputs)
 
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
