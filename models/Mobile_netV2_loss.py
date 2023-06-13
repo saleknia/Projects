@@ -1,12 +1,28 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights
+from torchvision.models import resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b4, EfficientNet_B4_Weights
 import torchvision
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights
 from torchvision.models import efficientnet_v2_s, EfficientNet_V2_S_Weights
 import ttach as tta
+
+
+import torch
+from torch.autograd import Variable as V
+import torchvision.models as models
+from torchvision import transforms as trn
+from torch.nn import functional as F
+import os
+from PIL import Image
+
+from .wideresnet import *
+from .wideresnet import recursion_change_bn
+
+from mit_semseg.models import ModelBuilder
+
+
 
 class Mobile_netV2_loss(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -51,7 +67,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.res_18 = Mobile_netV2_res_18()
-        loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_81_97/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
+        loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_82_57/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         pretrained_res_18 = loaded_data_res_18['net']
 
         self.res_18.load_state_dict(pretrained_res_18)
@@ -80,13 +96,13 @@ class Mobile_netV2_loss(nn.Module):
         self.dense.load_state_dict(pretrained_dense)
         self.dense = self.dense.eval()
 
-        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
-        self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        # self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.seg = tta.ClassificationTTAWrapper(self.seg, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
@@ -94,9 +110,9 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        x0 = self.b_0(x)
-        x1 = self.b_1(x) 
-        x2 = self.b_2(x)
+        # x0 = self.b_0(x)
+        # x1 = self.b_1(x) 
+        # x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
         # x3 = self.res_50(x)
@@ -106,8 +122,8 @@ class Mobile_netV2_loss(nn.Module):
         # x4 = self.b_5(x)
 
         x_18 = self.res_18(x)
-        x_50 = self.res_50(x)
-        x_d  = self.dense(x)
+        # x_50 = self.res_50(x)
+        # x_d  = self.dense(x)
 
         # x_s  = self.seg(x)
 
@@ -141,7 +157,7 @@ class Mobile_netV2_loss(nn.Module):
 
         # return torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1) + torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
 
-        return x0 + x1 + x2 + x_18 + x_50 + x_d
+        return x_18
 
         # return x_s
 
@@ -155,7 +171,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b5
+from torchvision.models import resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b5
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 import random
 
@@ -259,7 +275,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
-from torchvision.models import resnet18, resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
+from torchvision.models import resnet50, efficientnet_b0, EfficientNet_B0_Weights, efficientnet_b1, EfficientNet_B1_Weights, efficientnet_b2, EfficientNet_B2_Weights, EfficientNet_B3_Weights, efficientnet_b3, EfficientNet_B5_Weights, efficientnet_b4, EfficientNet_B4_Weights, efficientnet_b5, efficientnet_v2_s, EfficientNet_V2_S_Weights
 from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV3_MobileNet_V3_Large_Weights
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights
@@ -279,18 +295,20 @@ class Mobile_netV2_res_18(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_res_18, self).__init__()
 
+        model = resnet18(num_classes=365)
 
-        model = models.__dict__['resnet18'](num_classes=67)
-        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # teacher.load_state_dict(state_dict)
-        
+        for i, (name, module) in enumerate(model._modules.items()):
+            module = recursion_change_bn(model)
+
+        model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+
         self.model = model
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
-        # self.model.conv1.stride = (1, 1)
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        self.avgpool = self.model.avgpool
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
+        self.avgpool = model.avgpool
 
     def forward(self, x0):
         b, c, w, h = x0.shape
