@@ -96,13 +96,13 @@ class Mobile_netV2_loss(nn.Module):
         self.dense.load_state_dict(pretrained_dense)
         self.dense = self.dense.eval()
 
-        # self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_0 = tta.ClassificationTTAWrapper(self.b_0, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_1 = tta.ClassificationTTAWrapper(self.b_1, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.b_2 = tta.ClassificationTTAWrapper(self.b_2, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
-        # self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
-        # self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.res_18 = tta.ClassificationTTAWrapper(self.res_18, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.res_50 = tta.ClassificationTTAWrapper(self.res_50, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
+        self.dense = tta.ClassificationTTAWrapper(self.dense, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
         # self.seg = tta.ClassificationTTAWrapper(self.seg, tta.aliases.ten_crop_transform(224, 224), merge_mode='mean')
 
@@ -110,9 +110,9 @@ class Mobile_netV2_loss(nn.Module):
     def forward(self, x):
         b, c, w, h = x.shape
 
-        # x0 = self.b_0(x)
-        # x1 = self.b_1(x) 
-        # x2 = self.b_2(x)
+        x0 = self.b_0(x)
+        x1 = self.b_1(x) 
+        x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
         # x3 = self.res_50(x)
@@ -122,8 +122,8 @@ class Mobile_netV2_loss(nn.Module):
         # x4 = self.b_5(x)
 
         x_18 = self.res_18(x)
-        # x_50 = self.res_50(x)
-        # x_d  = self.dense(x)
+        x_50 = self.res_50(x)
+        x_d  = self.dense(x)
 
         # x_s  = self.seg(x)
 
@@ -155,9 +155,9 @@ class Mobile_netV2_loss(nn.Module):
         # y = ((x_18 + x_50 + x_d) / 3.0)
         # z = x_s 
 
-        # return torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1) + torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
+        return torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1) + torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
 
-        return x_18
+        # return x_18
 
         # return x_s
 
