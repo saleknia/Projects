@@ -67,7 +67,7 @@ class Mobile_netV2_loss(nn.Module):
 
 
         self.res_18 = Mobile_netV2_res_18()
-        loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_82_57/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
+        loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_81_97/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         pretrained_res_18 = loaded_data_res_18['net']
 
         self.res_18.load_state_dict(pretrained_res_18)
@@ -295,20 +295,21 @@ class Mobile_netV2_res_18(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2_res_18, self).__init__()
 
-        model = resnet18(num_classes=365)
 
-        for i, (name, module) in enumerate(model._modules.items()):
-            module = recursion_change_bn(model)
-
-        model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+        model = models.__dict__['resnet18'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model.load_state_dict(state_dict)
 
         self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
-
         self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
-        self.avgpool = model.avgpool
+        # self.model.conv1.stride = (1, 1)
+
+        self.avgpool = self.model.avgpool
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape

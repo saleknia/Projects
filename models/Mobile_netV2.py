@@ -43,7 +43,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        # model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # teacher = models.__dict__['resnet18'](num_classes=365)
         # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
@@ -69,12 +69,12 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
-        # self.avgpool = self.teacher.avgpool
+        self.avgpool = self.teacher.avgpool
 
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
 
         # for param in self.features[0:6].parameters():
         #     param.requires_grad = False
@@ -97,7 +97,7 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
 
-        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        # model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
         # model = torchvision.models.resnet18(weights='DEFAULT')
 
@@ -117,7 +117,7 @@ class Mobile_netV2(nn.Module):
         # print(model_seg)
         # print(model_place)
 
-        self.model = model
+        # self.model = model
 
         # self.model_place = model_place
         # self.model_seg   = model_seg
@@ -134,20 +134,20 @@ class Mobile_netV2(nn.Module):
         # for param in self.model_cls.parameters():
         #     param.requires_grad = False
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.layer4.parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4.parameters():
+        #     param.requires_grad = True
 
         # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
         # self.avgpool = model.avgpool
 
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
+        # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -172,7 +172,7 @@ class Mobile_netV2(nn.Module):
         # x3 = self.model.layer3(x2)
         # x4 = self.model.layer4(x3)
 
-        x = self.model(x0)[0]
+        # x = self.model(x0)[0]
 
         # x = self.model.conv1(x0)
         # x = self.model.bn1(x)
@@ -184,9 +184,9 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        # # x1 = self.features[0:4](x0)
-        # # x2 = self.features[4:6](x1)
-        # # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         # # x_cls = self.model_cls.conv1(x0)
         # # x_cls = self.model_cls.bn1(x_cls)
