@@ -71,7 +71,7 @@ class Mobile_netV2(nn.Module):
 
         self.features = model.features
 
-        self.avgpool = self.teacher.avgpool
+        self.avgpool = model.avgpool
 
         for param in self.features[0:4].parameters():
             param.requires_grad = False
