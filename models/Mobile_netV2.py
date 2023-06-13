@@ -207,7 +207,7 @@ class Mobile_netV2(nn.Module):
 
         # # x = torch.cat([x_seg, x], dim=1)
 
-        x = self.avgpool(x)
+        x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         # x = self.model.fc(x)
 
