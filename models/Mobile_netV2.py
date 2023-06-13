@@ -27,7 +27,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher()
+        # self.teacher = Mobile_netV2_teacher()
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_50/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         # pretrained_teacher = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
