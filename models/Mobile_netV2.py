@@ -174,14 +174,15 @@ class Mobile_netV2(nn.Module):
 
         # # x_seg   = self.model_seg(x0)[0]
 
-        # # x_place = self.model_place.conv1(x0)
-        # # x_place = self.model_place.bn1(x_place)
-        # # x_place = self.model_place.relu(x_place)
-        # # x_place = self.model_place.maxpool(x_place)
-        # # x_place = self.model_place.layer1(x_place)
-        # # x_place = self.model_place.layer2(x_place)
-        # # x_place = self.model_place.layer3(x_place)
-        # # x_place = self.model_place.layer4(x_place)
+        x = self.model.conv1(x0)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
+        x = self.model.layer4(x)
+
+        # print(x.shape)
 
         # # x1 = self.features[0:4](x0)
         # # x2 = self.features[4:6](x1)
@@ -200,15 +201,15 @@ class Mobile_netV2(nn.Module):
 
         # #
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
-        # # x = x_seg + x_place + x_cls
+        # # x = x_seg + x + x_cls
 
-        # # x = torch.cat([x_seg, x_place], dim=1)
+        # # x = torch.cat([x_seg, x], dim=1)
 
-        # x = self.avgpool(x4)
-        # x = x.view(x.size(0), -1)
-        # x = self.model.fc(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.model.fc(x)
 
         # x = self.classifier(x)
 
