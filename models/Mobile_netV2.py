@@ -158,6 +158,8 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=256, out_features=num_classes, bias=True),
         # )
 
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
+        self.load_state_dict(state_dict)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
