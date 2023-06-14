@@ -29,41 +29,41 @@ class Mobile_netV2_loss(nn.Module):
         super(Mobile_netV2_loss, self).__init__()
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # self.b_0 = Mobile_netV2_0()
-        # loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_23/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_b_0 = loaded_data_b_0['net']
+        self.b_0 = Mobile_netV2_0()
+        loaded_data_b_0 = torch.load('/content/drive/MyDrive/checkpoint_B0_81_68/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_b_0 = loaded_data_b_0['net']
 
-        # a = pretrained_b_0.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_0.pop(key)
+        a = pretrained_b_0.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_0.pop(key)
 
-        # self.b_0.load_state_dict(pretrained_b_0)
-        # self.b_0 = self.b_0.eval()
+        self.b_0.load_state_dict(pretrained_b_0)
+        self.b_0 = self.b_0.eval()
 
-        # self.b_1 = Mobile_netV2_1()
-        # loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_82_80/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_b_1 = loaded_data_b_1['net']
+        self.b_1 = Mobile_netV2_1()
+        loaded_data_b_1 = torch.load('/content/drive/MyDrive/checkpoint_B1_82_72/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_b_1 = loaded_data_b_1['net']
 
-        # a = pretrained_b_1.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_1.pop(key)
+        a = pretrained_b_1.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_1.pop(key)
 
-        # self.b_1.load_state_dict(pretrained_b_1)
-        # self.b_1 = self.b_1.eval()
+        self.b_1.load_state_dict(pretrained_b_1)
+        self.b_1 = self.b_1.eval()
         
-        # self.b_2 = Mobile_netV2_2()
-        # loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_84_07/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_b_2 = loaded_data_b_2['net']
+        self.b_2 = Mobile_netV2_2()
+        loaded_data_b_2 = torch.load('/content/drive/MyDrive/checkpoint_B2_83_02/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_b_2 = loaded_data_b_2['net']
 
-        # a = pretrained_b_2.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_b_2.pop(key)
+        a = pretrained_b_2.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_2.pop(key)
 
-        # self.b_2.load_state_dict(pretrained_b_2)
-        # self.b_2 = self.b_2.eval()
+        self.b_2.load_state_dict(pretrained_b_2)
+        self.b_2 = self.b_2.eval()
 
 
         self.res_18 = Mobile_netV2_res_18()
@@ -108,7 +108,7 @@ class Mobile_netV2_loss(nn.Module):
         # x2 = self.b_2(x)
 
         # x3 = self.res_18(x)
-        # x3 = self.res_50(x)
+        # x4 = self.res_50(x)
         # x5 = self.dense(x)
 
         # x3 = self.b_4(x)
@@ -148,7 +148,9 @@ class Mobile_netV2_loss(nn.Module):
         # y = ((x_18 + x_50 + x_d) / 3.0)
         # z = x_s 
 
-        return torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1)# + torch.softmax((x0 + x1 + x2) / 3.0, dim=1)
+        # return  + 2.0 * torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1)
+
+        return x_18 + x_50 + x_d
 
         # return x_18
 
@@ -176,7 +178,7 @@ class Mobile_netV2_0(nn.Module):
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -207,7 +209,7 @@ class Mobile_netV2_1(nn.Module):
         model = efficientnet_b1(weights=EfficientNet_B1_Weights)
         # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -238,7 +240,7 @@ class Mobile_netV2_2(nn.Module):
         model = efficientnet_b2(weights=EfficientNet_B2_Weights)
         # model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool = model.avgpool
@@ -309,7 +311,7 @@ class Mobile_netV2_res_18(nn.Module):
 
         x = self.model(x0)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 
 class Mobile_netV2_res_50(nn.Module):
@@ -337,7 +339,7 @@ class Mobile_netV2_res_50(nn.Module):
 
         x = self.model(x0)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 
 
@@ -367,7 +369,7 @@ class Mobile_netV2_dense(nn.Module):
 
         x = self.model(x0)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 
 
