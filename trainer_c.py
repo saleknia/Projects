@@ -228,7 +228,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         predictions = torch.argmax(input=outputs,dim=1).long()
 
-        metric.update(predictions, targets)
+        metric.update(predictions, targets.long())
 
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 

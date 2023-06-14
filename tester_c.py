@@ -68,7 +68,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             predictions = torch.argmax(input=outputs,dim=1).long()
 
-            metric.update(predictions, targets)
+            metric.update(predictions, targets.long())
 
             # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
             # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
