@@ -43,7 +43,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         # teacher = models.__dict__['resnet50'](num_classes=365)
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
@@ -148,7 +148,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
