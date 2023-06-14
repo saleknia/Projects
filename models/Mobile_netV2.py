@@ -137,10 +137,10 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4.parameters():
+        for param in self.model.layer3.parameters():
             param.requires_grad = True
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1024, out_features=num_classes, bias=True))
 
         # self.avgpool = model.avgpool
 
@@ -175,14 +175,14 @@ class Mobile_netV2(nn.Module):
         # x3 = self.model.layer3(x2)
         # x4 = self.model.layer4(x3)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
-        # x = self.model.conv1(x0)
-        # x = self.model.bn1(x)
-        # x = self.model.relu(x)
-        # x = self.model.layer1(x)
-        # x = self.model.layer2(x)
-        # x = self.model.layer3(x)
+        x = self.model.conv1(x0)
+        x = self.model.bn1(x)
+        x = self.model.relu(x)
+        x = self.model.layer1(x)
+        x = self.model.layer2(x)
+        x = self.model.layer3(x)
         # x = self.model.layer4(x)
 
         # print(x.shape)
@@ -210,9 +210,9 @@ class Mobile_netV2(nn.Module):
 
         # # x = torch.cat([x_seg, x], dim=1)
 
-        # x = self.avgpool(x3)
-        # x = x.view(x.size(0), -1)
-        # # x = self.model.fc(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.model.fc(x)
 
         # x = self.classifier(x)
 
