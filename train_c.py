@@ -414,6 +414,33 @@ def main(args):
 
         data_loader={'train':train_loader,'valid':test_loader}
 
+    elif TASK_NAME=='Scene-15':
+
+        transform_train = transforms.Compose([
+            # transforms.Resize((256, 256)),
+            # transforms.CenterCrop(224),
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
+
+        transform_test = transforms.Compose([
+            transforms.Resize((448, 448)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
+
+        trainset = torchvision.datasets.ImageFolder(root='/content/Scene-15/train/', transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        testset = torchvision.datasets.ImageFolder(root='/content/Scene-15/test/', transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':train_loader,'valid':test_loader}
+        
     elif TASK_NAME=='Standford40':
 
         transform_train = transforms.Compose([
