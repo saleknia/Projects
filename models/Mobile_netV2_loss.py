@@ -65,6 +65,17 @@ class Mobile_netV2_loss(nn.Module):
         self.b_2.load_state_dict(pretrained_b_2)
         self.b_2 = self.b_2.eval()
 
+        self.b_3 = Mobile_netV2_3()
+        loaded_data_b_3 = torch.load('/content/drive/MyDrive/checkpoint_B3_83_84/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
+        pretrained_b_3 = loaded_data_b_3['net']
+
+        a = pretrained_b_3.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_b_3.pop(key)
+
+        self.b_3.load_state_dict(pretrained_b_3)
+        self.b_3 = self.b_3.eval()
 
         self.res_18 = Mobile_netV2_res_18()
         loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_81_97/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
@@ -264,7 +275,36 @@ class Mobile_netV2_2(nn.Module):
 
         return x # torch.softmax(x, dim=1)
 
+class Mobile_netV2_3(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(Mobile_netV2_3, self).__init__()
 
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        # model = efficientnet_v2_l(weights=EfficientNet_V2_L_Weights)
+
+        # model.features[0][0].stride = (1, 1)
+
+        self.features = model.features
+        self.avgpool = model.avgpool
+
+        for param in self.features[0:9].parameters():
+            param.requires_grad = False
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1536, out_features=67, bias=True))
+
+
+    def forward(self, x):
+        b, c, w, h = x.shape
+
+        x = self.features(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+
+        return x # torch.softmax(x, dim=1)
 
 import torch
 import torch.nn as nn
