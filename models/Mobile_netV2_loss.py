@@ -127,9 +127,9 @@ class Mobile_netV2_loss(nn.Module):
         # x3 = self.b_4(x)
         # x4 = self.b_5(x)
 
-        # x_18 = self.res_18(x)
-        # x_50 = self.res_50(x)
-        # x_d  = self.dense(x)
+        x_18 = self.res_18(x)
+        x_50 = self.res_50(x)
+        x_d  = self.dense(x)
 
         # x_s  = self.seg(x)
 
@@ -158,12 +158,12 @@ class Mobile_netV2_loss(nn.Module):
         # w = (x + x_d)  / 2.0
 
         # x = ((x0 + x1 + x2) / 3.0)
-        # y = ((x_18 + x_50 + x_d) / 3.0)
+        # y = (() / 3.0)
         # z = x_s 
 
         # return  + 2.0 * torch.softmax((x_18 + x_50 + x_d) / 3.0, dim=1)
 
-        return torch.softmax((x0 + x1 + x2 + x3) / 4.0, dim=1)
+        return torch.softmax((x0 + x1 + x2 + x3) / 4.0, dim=1) + x_18 + x_50 + x_d
 
         # return x_18
 
