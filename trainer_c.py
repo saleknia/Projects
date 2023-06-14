@@ -17,6 +17,7 @@ from utils import importance_maps_distillation as imd
 import os
 import numpy as np
 from torchnet.meter import mAPMeter
+from torcheval.metrics import MulticlassAccuracy
 
 warnings.filterwarnings("ignore")
 
@@ -173,7 +174,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_ce_total = utils.AverageMeter()
     loss_disparity_total = utils.AverageMeter()
 
-    accuracy = utils.AverageMeter()
+    # accuracy = utils.AverageMeter()
+    metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
     # accuracy = mAPMeter()
 
     if teacher_model is not None:
@@ -219,14 +221,17 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
 
         # loss_ce = torch.nn.functional.cross_entropy(outputs, targets.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
 
         predictions = torch.argmax(input=outputs,dim=1).long()
 
-        accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+        metric.update(predictions, targets)
+
+        # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
+
         # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=40))
 
         # if 0.0 < torch.sum(targets):
@@ -306,12 +311,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * metric.compute():.4f}',   
+            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
             # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
             bar_length=45
         )  
 
-    acc = 100*accuracy.avg
+    acc = 100*metric.compute()
+
+    # acc = 100*accuracy.avg
     # acc = 100*accuracy.value().item()
 
     if lr_scheduler is not None:
