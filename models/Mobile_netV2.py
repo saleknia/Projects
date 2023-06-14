@@ -142,7 +142,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1024, out_features=num_classes, bias=True))
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
         # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1))
 
