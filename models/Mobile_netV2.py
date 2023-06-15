@@ -39,7 +39,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
