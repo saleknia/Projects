@@ -207,7 +207,7 @@ class Mobile_netV2_0(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=67, bias=True))
+            nn.Linear(in_features=1280, out_features=15, bias=True))
 
 
     def forward(self, x):
@@ -238,7 +238,7 @@ class Mobile_netV2_1(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=67, bias=True))
+            nn.Linear(in_features=1280, out_features=15, bias=True))
 
     def forward(self, x):
         b, c, w, h = x.shape
@@ -269,7 +269,7 @@ class Mobile_netV2_2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=67, bias=True))
+            nn.Linear(in_features=1408, out_features=15, bias=True))
 
 
     def forward(self, x):
@@ -300,7 +300,7 @@ class Mobile_netV2_3(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=67, bias=True))
+            nn.Linear(in_features=1536, out_features=15, bias=True))
 
 
     def forward(self, x):
@@ -346,7 +346,7 @@ class Mobile_netV2_res_18(nn.Module):
 
         self.model = model
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=15, bias=True))
         # self.model.conv1.stride = (1, 1)
 
         self.avgpool = self.model.avgpool
@@ -374,7 +374,7 @@ class Mobile_netV2_res_50(nn.Module):
 
         self.model = model
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=15, bias=True))
         # self.model.conv1.stride = (1, 1)
 
         self.avgpool = self.model.avgpool
@@ -406,7 +406,7 @@ class Mobile_netV2_dense(nn.Module):
 
         self.model = model
 
-        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=67, bias=True))
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=15, bias=True))
         # self.model.features[0].stride = (1, 1)
 
         # for param in self.teacher.parameters():
@@ -442,7 +442,7 @@ class Mobile_netV2_seg(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+            nn.Linear(in_features=2048, out_features=15, bias=True))
 
 
     def forward(self, x0):
