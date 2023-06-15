@@ -39,7 +39,9 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
+        # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
+
+        model = torchvision.models.maxvit_t(weights='DEFAULT')
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
@@ -69,15 +71,15 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        for param in self.features[0:7].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:7].parameters():
+        #     param.requires_grad = False
 
         # self.features[0][0].stride = (1, 1)
 
@@ -117,7 +119,7 @@ class Mobile_netV2(nn.Module):
         # print(model_seg)
         # print(model_place)
 
-        # self.model = model
+        self.model = model
 
         # self.model_place = model_place
         # self.model_seg   = model_seg
@@ -125,8 +127,8 @@ class Mobile_netV2(nn.Module):
 
         # print(model)
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # for param in self.model.features.denseblock4.parameters():
         #     param.requires_grad = True
@@ -134,21 +136,21 @@ class Mobile_netV2(nn.Module):
         # for param in self.model_cls.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.blocks[3].parameters():
+            param.requires_grad = True
 
         # for param in self.model.layer4.parameters():
         #     param.requires_grad = True
 
-        # self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # self.avgpool = model.avgpool
 
         # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) dense
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -175,7 +177,7 @@ class Mobile_netV2(nn.Module):
         # x3 = self.model.layer3(x2)
         # x4 = self.model.layer4(x3)
 
-        # x = self.model(x0)
+        x = self.model(x0)
 
         # x = self.model.conv1(x0)
         # x = self.model.bn1(x)
@@ -187,9 +189,9 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
         # # x_cls = self.model_cls.conv1(x0)
         # # x_cls = self.model_cls.bn1(x_cls)
@@ -210,9 +212,9 @@ class Mobile_netV2(nn.Module):
 
         # # x = torch.cat([x_seg, x], dim=1)
 
-        x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.avgpool(x3)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         return x
 
