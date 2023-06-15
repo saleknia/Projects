@@ -39,7 +39,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
@@ -69,15 +69,15 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        # for param in self.features[0:6].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:6].parameters():
+            param.requires_grad = False
 
         # self.features[0][0].stride = (1, 1)
 
@@ -89,13 +89,13 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         # model.load_state_dict(state_dict)
 
-        model = models.__dict__['densenet161'](num_classes=365)
+        # model = models.__dict__['densenet161'](num_classes=365)
 
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-        model.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # model.load_state_dict(state_dict)
 
         # model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
@@ -117,7 +117,7 @@ class Mobile_netV2(nn.Module):
         # print(model_seg)
         # print(model_place)
 
-        self.model = model
+        # self.model = model
 
         # self.model_place = model_place
         # self.model_seg   = model_seg
@@ -125,11 +125,11 @@ class Mobile_netV2(nn.Module):
 
         # print(model)
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.features.denseblock4.parameters():
-            param.requires_grad = True
+        # for param in self.model.features.denseblock4.parameters():
+        #     param.requires_grad = True
 
         # for param in self.model_cls.parameters():
         #     param.requires_grad = False
@@ -140,7 +140,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.layer4.parameters():
         #     param.requires_grad = True
 
-        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.avgpool = model.avgpool
 
@@ -187,9 +187,9 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         # # x_cls = self.model_cls.conv1(x0)
         # # x_cls = self.model_cls.bn1(x_cls)
@@ -204,15 +204,15 @@ class Mobile_netV2(nn.Module):
 
         # #
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
         # # x = x_seg + x + x_cls
 
         # # x = torch.cat([x_seg, x], dim=1)
 
-        # x = self.avgpool(x3)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.avgpool(x3)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
         return x
 
