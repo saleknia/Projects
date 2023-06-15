@@ -83,19 +83,19 @@ class Mobile_netV2(nn.Module):
 
         # model = resnet18(num_classes=365)
 
-        model = models.__dict__['densenet161'](num_classes=365)
-
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
-
         # model = models.__dict__['densenet161'](num_classes=365)
 
         # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
+
+        model = models.__dict__['densenet161'](num_classes=365)
+
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        model.load_state_dict(state_dict)
 
         # model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
 
