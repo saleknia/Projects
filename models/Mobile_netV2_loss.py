@@ -77,12 +77,12 @@ class Mobile_netV2_loss(nn.Module):
         self.b_3.load_state_dict(pretrained_b_3)
         self.b_3 = self.b_3.eval()
 
-        self.res_18 = Mobile_netV2_res_18()
-        loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_81_97/Mobile_NetV2_Scene-15_best.pth', map_location='cpu')
-        pretrained_res_18 = loaded_data_res_18['net']
+        # self.res_18 = Mobile_netV2_res_18()
+        # loaded_data_res_18 = torch.load('/content/drive/MyDrive/checkpoint_res_18_81_97/Mobile_NetV2_Scene-15_best.pth', map_location='cpu')
+        # pretrained_res_18 = loaded_data_res_18['net']
 
-        self.res_18.load_state_dict(pretrained_res_18)
-        self.res_18 = self.res_18.eval()
+        # self.res_18.load_state_dict(pretrained_res_18)
+        # self.res_18 = self.res_18.eval()
 
 
         self.res_50 = Mobile_netV2_res_50()
