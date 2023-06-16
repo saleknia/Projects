@@ -17,7 +17,7 @@ from torchvision import transforms as trn
 from torch.nn import functional as F
 import os
 from PIL import Image
-
+import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
@@ -41,7 +41,9 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
-        model = torchvision.models.maxvit_t(weights='DEFAULT')
+        # model = torchvision.models.maxvit_t(weights='DEFAULT')
+
+        model = timm.create_model('maxvit_tiny_tf_224.in1k', pretrained=True, num_classes=67)
 
         # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
 
@@ -136,13 +138,13 @@ class Mobile_netV2(nn.Module):
         # for param in self.model_cls.parameters():
         #     param.requires_grad = False
 
-        for param in self.model.blocks[3].parameters():
+        for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
         # for param in self.model.layer4.parameters():
         #     param.requires_grad = True
 
-        self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        # self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # self.avgpool = model.avgpool
 
