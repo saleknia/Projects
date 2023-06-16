@@ -103,7 +103,8 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
 
-        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        model = ModelBuilder.build_encoder(arch='resnet50'       , fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        model = ModelBuilder.build_encoder(arch='resnet18dilated', fc_dim=512, weights='/content/encoder_epoch_20.pth')
 
         # model = torchvision.models.resnet18(weights='DEFAULT')
 
@@ -124,8 +125,8 @@ class Mobile_netV2(nn.Module):
         # print(model_place)
 
         self.model   = model
-        self.model.conv1.stride = (1, 1)
-        self.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
+        # self.model.conv1.stride = (1, 1)
+        self.avgpool = torch.nn.AvgPool2d(kernel_size=28, stride=1, padding=0)
 
         # self.model_place = model_place
         # self.model_seg   = model_seg
@@ -156,7 +157,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+            nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
