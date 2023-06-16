@@ -183,7 +183,7 @@ class Mobile_netV2(nn.Module):
         # x3 = self.model.layer3(x2)
         # x4 = self.model.layer4(x3)
 
-        x = self.model(x0)
+        x = self.model(x0)[0]
 
         # x = self.model.conv1(x0)
         # x = self.model.bn1(x)
