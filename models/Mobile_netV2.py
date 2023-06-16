@@ -71,7 +71,7 @@ class Mobile_netV2(nn.Module):
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
@@ -195,7 +195,10 @@ class Mobile_netV2(nn.Module):
 
         x1 = self.features[0:4](x0)
         x2 = self.features[4:6](x1)
-        x2 = self.pooling(x2)
+
+        if self.training==False:
+            x2 = self.pooling(x2)
+            
         x3 = self.features[6:9](x2)
 
         # # x_cls = self.model_cls.conv1(x0)
