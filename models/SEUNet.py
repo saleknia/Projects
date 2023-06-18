@@ -69,7 +69,7 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet18(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
         # model = torchvision.models.convnext_tiny(weights='DEFAULT').features
 
@@ -111,8 +111,6 @@ class SEUNet(nn.Module):
         # model.load_pretrained(state_dict)
 
         self.transformer = model.layers[2]
-
-        self.fusion = ConvBatchNorm(1024, 512, kernel_size=1, padding=0)
 
     def forward(self, x):
 
