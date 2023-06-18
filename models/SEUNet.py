@@ -30,10 +30,9 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, activation='ReLU'):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -88,6 +87,33 @@ class SEUNet(nn.Module):
         
         self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
 
+        model = CrossFormer(img_size=224,
+            patch_size=[4, 8, 16, 32],
+            in_chans= 3,
+            num_classes=1000,
+            embed_dim=64,
+            depths=[1, 1, 8, 6],
+            num_heads=[2, 4, 8, 16],
+            group_size=[7, 7, 7, 7],
+            mlp_ratio=4.,
+            qkv_bias=True,
+            qk_scale=None,
+            drop_rate=0.0,
+            drop_path_rate=0.1,
+            ape=False,
+            patch_norm=True,
+            use_checkpoint=False,
+            merge_size=[[2, 4], [2, 4], [2, 4]]
+        )
+
+        checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu') 
+        state_dict = checkpoint['model']
+        model.load_pretrained(state_dict)
+
+        self.transformer = model.layers[2]
+
+        self.fusion = ConvBatchNorm(1024, 512, 1, 0)
+
     def forward(self, x):
 
         # x = x.unsqueeze(dim=1)
@@ -104,6 +130,10 @@ class SEUNet(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
+
+        tf = self.transformer(e3)
+
+        e4 = self.fusion(torch.cat([e4, tf], dim=1))
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
