@@ -117,7 +117,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model_obj.parameters():
             param.requires_grad = False
 
-        for param in self.model_sce.layers[-1].parameters():
+        for param in self.model_sce.layer4[-1].parameters():
             param.requires_grad = True
 
         # model = resnet18(num_classes=365)
