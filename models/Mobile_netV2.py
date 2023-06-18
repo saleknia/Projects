@@ -165,7 +165,7 @@ class Mobile_netV2(nn.Module):
 
         # self.avgpool = model.avgpool
 
-        # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) dense
+        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) dense
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
