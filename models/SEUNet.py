@@ -133,7 +133,7 @@ class SEUNet(nn.Module):
 
         tf, _ = self.transformer(e3.flatten(2).transpose(1, 2), 28, 28)
 
-        e4 = self.fusion(torch.cat([e4, tf], dim=1))
+        e4 = tf
 
         e = self.up3(e4, e3)
         e = self.up2(e , e2)
@@ -589,9 +589,12 @@ class Stage(nn.Module):
                 x = blk(x, H, W)
 
         B, _, C = x.shape
-        feat = x.view(B, H, W, C).permute(0, 3, 1, 2).contiguous()
+
         if self.downsample is not None:
             x = self.downsample(x, H, W)
+
+        feat = x.view(B, 14, 14, 512).permute(0, 3, 1, 2).contiguous()
+
         return feat, x
 
     def extra_repr(self) -> str:
