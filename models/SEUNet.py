@@ -129,7 +129,7 @@ class SEUNet(nn.Module):
         e1 = self.encoder1(e0)
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
-        e4 = self.encoder4(e3)
+        # e4 = self.encoder4(e3)
 
         tf, _ = self.transformer(e3.flatten(2).transpose(1, 2), 28, 28)
 
