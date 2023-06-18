@@ -30,7 +30,7 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, kernel_size=3, padding=1, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
         super(ConvBatchNorm, self).__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding)
         self.norm = nn.BatchNorm2d(out_channels)
@@ -112,7 +112,7 @@ class SEUNet(nn.Module):
 
         self.transformer = model.layers[2]
 
-        self.fusion = ConvBatchNorm(1024, 512, 1, 0)
+        self.fusion = ConvBatchNorm(1024, 512, kernel_size=1, padding=0)
 
     def forward(self, x):
 
