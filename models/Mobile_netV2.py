@@ -89,11 +89,11 @@ class Mobile_netV2(nn.Module):
 
         # model = resnet18(num_classes=365)
 
-        # model = models.__dict__['densenet161'](num_classes=365)
+        model = models.__dict__['resnet50'](num_classes=365)
 
-        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model.load_state_dict(state_dict)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
 
         # model = models.__dict__['densenet161'](num_classes=365)
 
@@ -102,11 +102,23 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
+        
+        self.model_sce = model
+        self.model_seg = ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        self.model_obj = torchvision.models.resnet50(weights='DEFAULT')
 
-        # model = ModelBuilder.build_encoder(arch='resnet50'       , fc_dim=2048, weights='/content/encoder_epoch_30.pth')
-        model = ModelBuilder.build_encoder(arch='resnet18dilated', fc_dim=512, weights='/content/encoder_epoch_20.pth')
 
-        # model = torchvision.models.resnet18(weights='DEFAULT')
+        for param in self.model_sce.parameters():
+            param.requires_grad = False
+
+        for param in self.model_seg.parameters():
+            param.requires_grad = False
+
+        for param in self.model_obj.parameters():
+            param.requires_grad = False
+
+        for param in self.model_sce.layers[-1].parameters():
+            param.requires_grad = True
 
         # model = resnet18(num_classes=365)
 
@@ -124,9 +136,9 @@ class Mobile_netV2(nn.Module):
         # print(model_seg)
         # print(model_place)
 
-        self.model   = model
+        # self.model   = model
         # self.model.conv1.stride = (1, 1)
-        self.avgpool = torch.nn.AvgPool2d(kernel_size=28, stride=1, padding=0)
+        # self.avgpool = torch.nn.AvgPool2d(kernel_size=28, stride=1, padding=0)
 
         # self.model_place = model_place
         # self.model_seg   = model_seg
@@ -134,8 +146,8 @@ class Mobile_netV2(nn.Module):
 
         # print(model)
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.features.denseblock4.parameters():
         #     param.requires_grad = True
@@ -146,8 +158,8 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.layer4.parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4.parameters():
+        #     param.requires_grad = True
 
         # self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
@@ -157,7 +169,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True))
+            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -174,17 +186,26 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.model.conv1(x0)
-        # x = self.model.bn1(x)
-        # x = self.model.relu(x)
-        # x = self.model.maxpool(x)
 
-        # x1 = self.model.layer1(x)
-        # x2 = self.model.layer2(x1)
-        # x3 = self.model.layer3(x2)
-        # x4 = self.model.layer4(x3)
+        x_seg = self.model_seg(x0)[0]
 
-        x = self.model(x0)[0]
+        x_obj = self.model_obj.conv1(x0)
+        x_obj = self.model_obj.bn1(x_obj)
+        x_obj = self.model_obj.relu(x_obj)
+        x_obj = self.model_obj.maxpool(x_obj)
+        x_obj = self.model_obj.layer1(x_obj)
+        x_obj = self.model_obj.layer2(x_obj)
+        x_obj = self.model_obj.layer3(x_obj)
+        x_obj = self.model_obj.layer4(x_obj)
+
+        x_sce = self.model_sce.conv1(x0)
+        x_sce = self.model_sce.bn1(x_sce)
+        x_sce = self.model_sce.relu(x_sce)
+        x_sce = self.model_sce.maxpool(x_sce)
+        x_sce = self.model_sce.layer1(x_sce)
+        x_sce = self.model_sce.layer2(x_sce)
+        x_sce = self.model_sce.layer3(x_sce)
+        x_sce = self.model_sce.layer4(x_sce)
 
         # x = self.model.conv1(x0)
         # x = self.model.bn1(x)
@@ -204,14 +225,6 @@ class Mobile_netV2(nn.Module):
 
         # x3 = self.features[6:9](x2)
 
-        # # x_cls = self.model_cls.conv1(x0)
-        # # x_cls = self.model_cls.bn1(x_cls)
-        # # x_cls = self.model_cls.relu(x_cls)
-        # # x_cls = self.model_cls.maxpool(x_cls)
-        # # x_cls = self.model_cls.layer1(x_cls)
-        # # x_cls = self.model_cls.layer2(x_cls)
-        # # x_cls = self.model_cls.layer3(x_cls)
-        # # x_cls = self.model_cls.layer4(x_cls)
 
         # x1_t, x2_t, x3_t, x4_t = self.teacher(x0)
 
@@ -219,7 +232,7 @@ class Mobile_netV2(nn.Module):
 
         # x = self.model(x0)
 
-        # # x = x_seg + x + x_cls
+        x = x_seg + x_sce + x_obj
 
         # # x = torch.cat([x_seg, x], dim=1)
 
