@@ -131,7 +131,7 @@ class SEUNet(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        tf = self.transformer(e3)
+        tf = self.transformer(e3, 28, 28)
 
         e4 = self.fusion(torch.cat([e4, tf], dim=1))
 
