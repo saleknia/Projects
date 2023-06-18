@@ -119,10 +119,10 @@ class SEUNet(nn.Module):
         # x = x.unsqueeze(dim=1)
         
         b, c, h, w = x.shape
-        e0 = torch.cat([x, x, x], dim=1)
+        # e0 = torch.cat([x, x, x], dim=1)
 
 
-        e0 = self.firstconv(e0)
+        e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
 
