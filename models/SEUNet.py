@@ -79,7 +79,7 @@ class SEUNet(nn.Module):
         self.encoder1  = resnet.layer1
         self.encoder2  = resnet.layer2
         self.encoder3  = resnet.layer3
-        self.encoder4  = resnet.layer4
+        # self.encoder4  = resnet.layer4
 
         self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
         self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
