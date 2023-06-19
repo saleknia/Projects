@@ -39,7 +39,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = torchvision.models.maxvit_t(weights='DEFAULT')
 
@@ -73,7 +73,7 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
         # self.avgpool = model.avgpool
 
@@ -82,8 +82,8 @@ class Mobile_netV2(nn.Module):
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        for param in self.features[0:6].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:6].parameters():
+        #     param.requires_grad = False
 
         # self.features[0][0].stride = (1, 1)
 
@@ -163,13 +163,13 @@ class Mobile_netV2(nn.Module):
 
         # self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
         # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -183,18 +183,34 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model.head.drop.p = 0.5
+        model.head.fc.out_features = num_classes
+        self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
         # x1_t, x2_t, x3_t, x4_t = self.teacher(x0)
 
-        x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.avgpool(x3)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
+
+        x = self.model(x)
 
         return x
 
