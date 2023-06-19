@@ -69,7 +69,7 @@ class Mobile_netV2(nn.Module):
         # self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
         # self.teacher.conv1.stride = (1, 1)
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_small(weights='DEFAULT')
 
         self.model = model 
 
