@@ -210,7 +210,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x = self.model(x)
+        x = self.model(x0)
 
         return x
 
