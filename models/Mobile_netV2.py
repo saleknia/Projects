@@ -184,9 +184,12 @@ class Mobile_netV2(nn.Module):
         # self.load_state_dict(state_dict)
 
         model = timm.create_model('mvitv2_tiny', pretrained=True)
-        model.head.drop.p = 0.5
-        model.head.fc.out_features = num_classes
+
         self.model = model 
+
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -211,6 +214,8 @@ class Mobile_netV2(nn.Module):
         # x = self.classifier(x)
 
         x = self.model(x0)
+
+        # print(x.shape)
 
         return x
 
