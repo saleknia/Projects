@@ -39,7 +39,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         # model = torchvision.models.maxvit_t(weights='DEFAULT')
 
@@ -73,7 +73,7 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
         # self.avgpool = model.avgpool
 
@@ -82,18 +82,18 @@ class Mobile_netV2(nn.Module):
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        # for param in self.features[0:7].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:6].parameters():
+            param.requires_grad = False
 
         # self.features[0][0].stride = (1, 1)
 
         # model = resnet18(num_classes=365)
 
-        model = models.__dict__['resnet50'](num_classes=365)
+        # model = models.__dict__['resnet50'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model.load_state_dict(state_dict)
 
         # model = models.__dict__['densenet161'](num_classes=365)
 
@@ -103,22 +103,22 @@ class Mobile_netV2(nn.Module):
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         # model.load_state_dict(state_dict)
         
-        self.model_sce = model
-        self.model_seg = ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
-        self.model_obj = torchvision.models.resnet50(weights='DEFAULT')
+        # self.model_sce = model
+        # self.model_seg = ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        # self.model_obj = torchvision.models.resnet50(weights='DEFAULT')
 
 
-        for param in self.model_sce.parameters():
-            param.requires_grad = False
+        # for param in self.model_sce.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model_seg.parameters():
-            param.requires_grad = False
+        # for param in self.model_seg.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model_obj.parameters():
-            param.requires_grad = False
+        # for param in self.model_obj.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model_sce.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model_sce.layer4[-1].parameters():
+        #     param.requires_grad = True
 
         # model = resnet18(num_classes=365)
 
@@ -163,13 +163,13 @@ class Mobile_netV2(nn.Module):
 
         # self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
+        # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # self.classifier = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -186,57 +186,13 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-
-        x_seg = self.model_seg(x0)[0]
-
-        x_obj = self.model_obj.conv1(x0)
-        x_obj = self.model_obj.bn1(x_obj)
-        x_obj = self.model_obj.relu(x_obj)
-        x_obj = self.model_obj.maxpool(x_obj)
-        x_obj = self.model_obj.layer1(x_obj)
-        x_obj = self.model_obj.layer2(x_obj)
-        x_obj = self.model_obj.layer3(x_obj)
-        x_obj = self.model_obj.layer4(x_obj)
-
-        x_sce = self.model_sce.conv1(x0)
-        x_sce = self.model_sce.bn1(x_sce)
-        x_sce = self.model_sce.relu(x_sce)
-        x_sce = self.model_sce.maxpool(x_sce)
-        x_sce = self.model_sce.layer1(x_sce)
-        x_sce = self.model_sce.layer2(x_sce)
-        x_sce = self.model_sce.layer3(x_sce)
-        x_sce = self.model_sce.layer4(x_sce)
-
-        # x = self.model.conv1(x0)
-        # x = self.model.bn1(x)
-        # x = self.model.relu(x)
-        # x = self.model.layer1(x)
-        # x = self.model.layer2(x)
-        # x = self.model.layer3(x)
-        # x = self.model.layer4(x)
-
-        # print(x.shape)
-
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-
-        # if self.training==False:
-        #     x2 = self.pooling(x2)
-
-        # x3 = self.features[6:9](x2)
-
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         # x1_t, x2_t, x3_t, x4_t = self.teacher(x0)
 
-        # #
-
-        # x = self.model(x0)
-
-        x = x_seg + x_sce + x_obj
-
-        # # x = torch.cat([x_seg, x], dim=1)
-
-        x = self.avgpool(x)
+        x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
 
