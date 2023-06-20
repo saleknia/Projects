@@ -258,8 +258,8 @@ class Mobile_netV2(nn.Module):
 
         x_stem  = self.model.stem(x0)
         x_stage = self.model.stages(x_stem)
-        x_norm  = self.norm_pre(x_stage)
-        x       = self.head(x_norm)
+        x_norm  = self.model.norm_pre(x_stage)
+        x       = self.model.head(x_norm)
 
         # return x
 
@@ -465,8 +465,8 @@ class Mobile_netV2_teacher(nn.Module):
 
         x_stem  = self.model.stem(x0)
         x_stage = self.model.stages(x_stem)
-        x_norm  = self.norm_pre(x_stage)
-        x_head  = self.head(x_norm)
+        x_norm  = self.model.norm_pre(x_stage)
+        x_head  = self.model.head(x_norm)
 
         return torch.softmax(x_head, dim=1), x_norm
 
