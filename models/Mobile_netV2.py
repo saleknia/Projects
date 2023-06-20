@@ -72,22 +72,22 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_small(weights='DEFAULT')
 
-        # self.model = model 
+        self.model = model 
 
-        # self.model.classifier[2] = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.classifier[2] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.features[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.features[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.classifier.parameters():
-        #     param.requires_grad = True
+        for param in self.model.classifier.parameters():
+            param.requires_grad = True
 
         ############################################################
         ############################################################
@@ -221,22 +221,22 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
 
-        model = timm.create_model('convnextv2_large', pretrained=True)
+        # model = timm.create_model('convnextv2_large', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
 
     def forward(self, x0):
