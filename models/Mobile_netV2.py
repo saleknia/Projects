@@ -198,30 +198,13 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        model = timm.create_model('mvitv2_small_cls', pretrained=True)
-
-        self.model = model 
-
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        # model = timm.create_model('convnextv2_nano', pretrained=True)
+        # model = timm.create_model('mvitv2_small_cls', pretrained=True)
 
         # self.model = model 
 
-        # self.model.head.fc = nn.Sequential(
+        # self.model.head = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=640, out_features=num_classes, bias=True))
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
@@ -231,6 +214,23 @@ class Mobile_netV2(nn.Module):
 
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
+
+        model = timm.create_model('convnextv2_large', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1024, out_features=num_classes, bias=True))
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
 
     def forward(self, x0):
