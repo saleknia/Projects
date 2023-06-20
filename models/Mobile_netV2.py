@@ -27,14 +27,14 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_50/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teachr' in key:
-        #         pretrained_teacher.pop(key)
-        # self.teacher.load_state_dict(pretrained_teacher)
+        self.teacher = Mobile_netV2_teacher()
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_base_96_28/Mobile_NetV2_Standford40.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teachr' in key:
+                pretrained_teacher.pop(key)
+        self.teacher.load_state_dict(pretrained_teacher)
 
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
@@ -221,13 +221,13 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
 
-        model = timm.create_model('convnextv2_base', pretrained=True)
+        model = timm.create_model('convnextv2_tiny', pretrained=True)
 
         self.model = model 
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1024, out_features=num_classes, bias=True))
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -246,7 +246,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x1_t, x2_t, x3_t, x4_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -256,12 +256,13 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        return x
 
-        # if self.training:
-        #     return x, x1, x2, x3, x4, x1_t, x2_t, x3_t, x4_t
-        # else:
-        #     return x
+        # return x
+
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 # class Mobile_netV2(nn.Module):
@@ -413,38 +414,52 @@ class Mobile_netV2_teacher(nn.Module):
 
         # self.avgpool = self.teacher.avgpool
 
-        teacher = models.__dict__['resnet18'](num_classes=365)
-        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        teacher.load_state_dict(state_dict)
+        # teacher = models.__dict__['resnet18'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # teacher.load_state_dict(state_dict)
 
-        self.teacher = teacher
+        # self.teacher = teacher
 
-        self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
+        # self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
         # self.teacher.conv1.stride = (1, 1)
 
-        self.avgpool = self.teacher.avgpool
+        # self.avgpool = self.teacher.avgpool
 
-        for param in self.teacher.parameters():
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
+
+        model = timm.create_model('convnextv2_base', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1024, out_features=num_classes, bias=True))
+
+        for param in self.model.parameters():
             param.requires_grad = False
+
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x0 = self.teacher.conv1(x0)
-        x0 = self.teacher.bn1(x0)
-        x0 = self.teacher.relu(x0)
-        x0 = self.teacher.maxpool(x0)
-        x1 = self.teacher.layer1(x0)
-        x2 = self.teacher.layer2(x1)
-        x3 = self.teacher.layer3(x2)
-        x4 = self.teacher.layer4(x3)
+        # x0 = self.teacher.conv1(x0)
+        # x0 = self.teacher.bn1(x0)
+        # x0 = self.teacher.relu(x0)
+        # x0 = self.teacher.maxpool(x0)
+        # x1 = self.teacher.layer1(x0)
+        # x2 = self.teacher.layer2(x1)
+        # x3 = self.teacher.layer3(x2)
+        # x4 = self.teacher.layer4(x3)
 
         # x = self.avgpool(x3) 
         # x = x.view(x.size(0), -1)
         # x = self.teacher.fc(x)
 
-        return x1, x2, x3, x4
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
 
 
 # class Mobile_netV2(nn.Module):
