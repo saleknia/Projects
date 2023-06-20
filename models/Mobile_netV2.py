@@ -100,7 +100,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.features[0:4].parameters():
         #     param.requires_grad = False
 
-        for param in self.features[0:8].parameters():
+        for param in self.features[0:7].parameters():
             param.requires_grad = False
 
         # self.features[0][0].stride = (1, 1)
