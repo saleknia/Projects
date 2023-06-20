@@ -246,21 +246,25 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher(x0)
+        x_t, x_norm_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
         # print(x.shape)
 
+        x_stem  = self.model.stem(x0)
+        x_stage = self.model.stages(x_stem)
+        x_norm  = self.norm_pre(x_stage)
+        x       = self.head(x_norm)
 
         # return x
 
         if self.training:
-            return x, x_t
+            return x, x_norm, x_t, x_norm_t
         else:
             return x
 
@@ -457,9 +461,14 @@ class Mobile_netV2_teacher(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.teacher.fc(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
-        return torch.softmax(x, dim=1)
+        x_stem  = self.model.stem(x0)
+        x_stage = self.model.stages(x_stem)
+        x_norm  = self.norm_pre(x_stage)
+        x_head  = self.head(x_norm)
+
+        return torch.softmax(x_head, dim=1), x_norm
 
 
 # class Mobile_netV2(nn.Module):
