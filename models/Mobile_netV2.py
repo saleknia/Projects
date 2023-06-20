@@ -27,14 +27,14 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher()
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_nano_92_18/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teachr' in key:
-        #         pretrained_teacher.pop(key)
-        # self.teacher.load_state_dict(pretrained_teacher)
+        self.teacher = Mobile_netV2_teacher()
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_tiny_94_43/Mobile_NetV2_Standford40_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teachr' in key:
+                pretrained_teacher.pop(key)
+        self.teacher.load_state_dict(pretrained_teacher)
 
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
@@ -221,13 +221,13 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
 
-        model = timm.create_model('convnextv2_tiny', pretrained=True)
+        model = timm.create_model('convnextv2_nano', pretrained=True)
 
         self.model = model 
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+            nn.Linear(in_features=640, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -429,13 +429,13 @@ class Mobile_netV2_teacher(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        model = timm.create_model('convnextv2_nano', pretrained=True)
+        model = timm.create_model('convnextv2_tiny', pretrained=True)
 
         self.model = model 
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=640, out_features=num_classes, bias=True))
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
