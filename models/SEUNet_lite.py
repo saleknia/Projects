@@ -119,9 +119,9 @@ class SEUNet_lite(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        e3 = self.up3(e4) + e3
-        e2 = self.up2(e3) + e2
-        e1 = self.up1(e2) + e1
+        e3 = self.up3(e4, e3) 
+        e2 = self.up2(e3, e2) 
+        e1 = self.up1(e2, e1) 
 
         e = self.final_conv1(e1)
         e = self.final_relu1(e)

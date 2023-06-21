@@ -69,10 +69,10 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet = resnet_model.resnet18(pretrained=True)
 
         self.model = resnet
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True),nn.Linear(in_features=512, out_features=9, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.0, inplace=True),nn.Linear(in_features=512, out_features=8, bias=True))
 
 
     def forward(self, x):
