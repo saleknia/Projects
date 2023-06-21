@@ -69,12 +69,15 @@ class SEUNet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet18(pretrained=True)
+        resnet = resnet_model.resnet34(pretrained=True)
 
         self.model = resnet
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.0, inplace=True),nn.Linear(in_features=512, out_features=8, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.0, inplace=True),nn.Linear(in_features=512, out_features=9, bias=True))
 
-
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_pre/SEUNet_ISIC-2019_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        self.load_state_dict(pretrained_teacher)
+        
     def forward(self, x):
 
         # x = x.unsqueeze(dim=1)

@@ -78,33 +78,56 @@ class SEUNet_lite(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = SEUNet()
+        resnet = resnet_model.resnet34(pretrained=True)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_pre/SEUNet_ISIC-2019_best.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        resnet.load_state_dict(pretrained_teacher)
+        self.firstconv = resnet.conv1
+        self.firstbn   = resnet.bn1
+        self.firstrelu = resnet.relu
+        self.maxpool   = resnet.maxpool 
+        self.encoder1  = resnet.layer1
+        self.encoder2  = resnet.layer2
+        self.encoder3  = resnet.layer3
+        self.encoder4  = resnet.layer4[0:2]
 
-        for param in resnet.parameters():
-            param.requires_grad = False
-
-        self.firstconv = resnet.model.conv1
-        self.firstbn   = resnet.model.bn1
-        self.firstrelu = resnet.model.relu
-        self.maxpool   = resnet.model.maxpool 
-        self.encoder1  = resnet.model.layer1
-        self.encoder2  = resnet.model.layer2
-        self.encoder3  = resnet.model.layer3
-        self.encoder4  = resnet.model.layer4
-
-        self.up3 = UpBlock(in_channels=512, out_channels=256)
-        self.up2 = UpBlock(in_channels=256, out_channels=128)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 )
+        self.up3_1 = UpBlock(in_channels=512, out_channels=256)
+        self.up2_1 = UpBlock(in_channels=256, out_channels=128)
+        self.up1_1 = UpBlock(in_channels=128, out_channels=64 )
         
-        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv1_1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1_1 = nn.ReLU(inplace=True)
+        self.final_conv2_1 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2_1 = nn.ReLU(inplace=True)
+        self.final_conv3_1 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
+
+        self.encoder5  = resnet.layer4[2:4]
+
+        self.up3_2 = UpBlock(in_channels=512, out_channels=256)
+        self.up2_2 = UpBlock(in_channels=256, out_channels=128)
+        self.up1_2 = UpBlock(in_channels=128, out_channels=64 )
+        
+        self.final_conv1_2 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1_2 = nn.ReLU(inplace=True)
+        self.final_conv2_2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2_2 = nn.ReLU(inplace=True)
+        self.final_conv3_2 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
+        
+        self.encoder6  = resnet.layer4[4:6]
+
+        self.up3_3 = UpBlock(in_channels=512, out_channels=256)
+        self.up2_3 = UpBlock(in_channels=256, out_channels=128)
+        self.up1_3 = UpBlock(in_channels=128, out_channels=64 )
+        
+        self.final_conv1_3 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1_3 = nn.ReLU(inplace=True)
+        self.final_conv2_3 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2_3 = nn.ReLU(inplace=True)
+        self.final_conv3_3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -119,17 +142,48 @@ class SEUNet_lite(nn.Module):
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
 
-        e3 = self.up3(e4, e3) 
-        e2 = self.up2(e3, e2) 
-        e1 = self.up1(e2, e1) 
+        ##############################
+        e3 = self.up3_1(e4, e3) 
+        e2 = self.up2_1(e3, e2) 
+        e1 = self.up1_1(e2, e1) 
 
-        e = self.final_conv1(e1)
-        e = self.final_relu1(e)
-        e = self.final_conv2(e)
-        e = self.final_relu2(e)
-        e = self.final_conv3(e)
+        a = self.final_conv1_1(e1)
+        a = self.final_relu1_1(a)
+        a = self.final_conv2_1(a)
+        a = self.final_relu2_1(a)
+        a = self.final_conv3_1(a)
+        ##############################
 
-        return e
+        ##############################
+        # e5 = self.encoder5(e4)
+
+        # e3 = self.up3_2(e5, e3) 
+        # e2 = self.up2_2(e3, e2) 
+        # e1 = self.up1_2(e2, e1) 
+
+        # b = self.final_conv1_2(e1)
+        # b = self.final_relu1_2(b)
+        # b = self.final_conv2_2(b)
+        # b = self.final_relu2_2(b)
+        # b = self.final_conv3_2(b)
+        ##############################
+
+        ##############################
+        # e5 = self.encoder5(e4)
+        # e6 = self.encoder6(e5)
+
+        # e3 = self.up3_3(e6, e3) 
+        # e2 = self.up2_3(e3, e2) 
+        # e1 = self.up1_3(e2, e1) 
+
+        # c = self.final_conv1_3(e1)
+        # c = self.final_relu1_3(c)
+        # c = self.final_conv2_3(c)
+        # c = self.final_relu2_3(c)
+        # c = self.final_conv3_3(c)
+        ##############################
+
+        return a
 
 from torchvision import models as resnet_model
 import torchvision
