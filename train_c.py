@@ -514,11 +514,7 @@ def main(args):
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
 
-        print(1)
-
         trainset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_train)
-
-        print(2)
 
         subdirectories = trainset.classes
         class_weights = []
@@ -532,25 +528,20 @@ def main(args):
         for idx, (data, label) in enumerate(trainset):
             class_weight = class_weights[label]
             sample_weights[idx] = class_weight
+            print(idx)
 
+        torch.save(sample_weights)
+        
         from torch.utils.data import WeightedRandomSampler
         sampler = WeightedRandomSampler(
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
 
-        print(3)
-
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
-
-        print(4)
 
         testset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_test)
 
-        print(5)
-
         test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-
-        print(6)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
