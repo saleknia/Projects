@@ -518,6 +518,8 @@ def main(args):
 
         trainset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_train)
 
+        print(2)
+
         subdirectories = trainset.classes
         class_weights = []
 
@@ -536,14 +538,19 @@ def main(args):
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
 
-        print(2)
+        print(3)
 
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
 
-        print(3)
+        print(4)
 
         testset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_test)
+
+        print(5)
+
         test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        print(6)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
