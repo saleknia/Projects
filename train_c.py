@@ -530,8 +530,8 @@ def main(args):
             sample_weights[idx] = class_weight
             print(idx)
 
-        torch.save(sample_weights)
-        
+        torch.save(sample_weights, 'sample_weights.pt')
+
         from torch.utils.data import WeightedRandomSampler
         sampler = WeightedRandomSampler(
             sample_weights, num_samples=len(sample_weights), replacement=True
