@@ -502,6 +502,7 @@ def main(args):
             transforms.Resize((224, 224)),
             transforms.RandomHorizontalFlip(),
             transforms.RandomVerticalFlip(),
+            torchvision.transforms.RandomRotation(20),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
@@ -516,28 +517,30 @@ def main(args):
 
         trainset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_train)
 
-        subdirectories = trainset.classes
-        class_weights = []
+        # subdirectories = trainset.classes
+        # class_weights = []
 
-        for subdir in subdirectories:
-            files = os.listdir(os.path.join('/content/ISIC2019', subdir))
-            class_weights.append(1 / len(files))
+        # for subdir in subdirectories:
+        #     files = os.listdir(os.path.join('/content/ISIC2019', subdir))
+        #     class_weights.append(1 / len(files))
 
-        sample_weights = [0] * len(trainset)
+        # sample_weights = [0] * len(trainset)
 
-        for idx, (data, label) in enumerate(trainset):
-            class_weight = class_weights[label]
-            sample_weights[idx] = class_weight
-            print(idx)
+        # for idx, (data, label) in enumerate(trainset):
+        #     class_weight = class_weights[label]
+        #     sample_weights[idx] = class_weight
+        #     print(idx)
 
-        torch.save(sample_weights, 'sample_weights.pt')
+        # torch.save(sample_weights, 'sample_weights.pt')
+
+        sample_weights = torch.load('sample_weights.pt')
 
         from torch.utils.data import WeightedRandomSampler
         sampler = WeightedRandomSampler(
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
 
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, sampler=sampler)
 
         testset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_test)
 
