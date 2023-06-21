@@ -114,8 +114,8 @@ class SEUNet_lite(nn.Module):
         self.final_relu2_2 = nn.ReLU(inplace=True)
         self.final_conv3_2 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
-        # for param in self.parameters():
-        #     param.requires_grad = False
+        for param in self.parameters():
+            param.requires_grad = False
         
         self.encoder6  = resnet.layer4[4:6]
 
@@ -129,9 +129,12 @@ class SEUNet_lite(nn.Module):
         self.final_relu2_3 = nn.ReLU(inplace=True)
         self.final_conv3_3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/a.pth', map_location='cuda')
-        pretrained_teacher = loaded_data_teacher['net']
-        self.load_state_dict(pretrained_teacher)
+        # for param in self.parameters():
+        #     param.requires_grad = False
+
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # self.load_state_dict(pretrained_teacher)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -147,25 +150,25 @@ class SEUNet_lite(nn.Module):
         e4 = self.encoder4(e3)
 
         ##############################
-        # e3 = self.up3_1(e4, e3) 
-        # e2 = self.up2_1(e3, e2) 
-        # e1 = self.up1_1(e2, e1) 
+        w3 = self.up3_1(e4, e3) 
+        w2 = self.up2_1(w3, e2) 
+        w1 = self.up1_1(w2, e1) 
 
-        # a = self.final_conv1_1(e1)
-        # a = self.final_relu1_1(a)
-        # a = self.final_conv2_1(a)
-        # a = self.final_relu2_1(a)
-        # a = self.final_conv3_1(a)
+        a = self.final_conv1_1(w1)
+        a = self.final_relu1_1(a)
+        a = self.final_conv2_1(a)
+        a = self.final_relu2_1(a)
+        a = self.final_conv3_1(a)
         ##############################
 
         ##############################
         e5 = self.encoder5(e4)
 
-        e3 = self.up3_2(e5, e3) 
-        e2 = self.up2_2(e3, e2) 
-        e1 = self.up1_2(e2, e1) 
+        q3 = self.up3_2(e5, e3) 
+        q2 = self.up2_2(q3, e2) 
+        q1 = self.up1_2(q2, e1) 
 
-        b = self.final_conv1_2(e1)
+        b = self.final_conv1_2(q1)
         b = self.final_relu1_2(b)
         b = self.final_conv2_2(b)
         b = self.final_relu2_2(b)
@@ -173,21 +176,21 @@ class SEUNet_lite(nn.Module):
         ##############################
 
         ##############################
-        # e5 = self.encoder5(e4)
-        # e6 = self.encoder6(e5)
+        e5 = self.encoder5(e4)
+        e6 = self.encoder6(e5)
 
-        # e3 = self.up3_3(e6, e3) 
-        # e2 = self.up2_3(e3, e2) 
-        # e1 = self.up1_3(e2, e1) 
+        z3 = self.up3_3(e6, e3) 
+        z2 = self.up2_3(z3, e2) 
+        z1 = self.up1_3(z2, e1) 
 
-        # c = self.final_conv1_3(e1)
-        # c = self.final_relu1_3(c)
-        # c = self.final_conv2_3(c)
-        # c = self.final_relu2_3(c)
-        # c = self.final_conv3_3(c)
+        c = self.final_conv1_3(z1)
+        c = self.final_relu1_3(c)
+        c = self.final_conv2_3(c)
+        c = self.final_relu2_3(c)
+        c = self.final_conv3_3(c)
         ##############################
 
-        return b
+        return (a + b + c) 
 
 from torchvision import models as resnet_model
 import torchvision
