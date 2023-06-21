@@ -65,16 +65,20 @@ class SEUNet_lite(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        resnet = resnet_model.resnet34(pretrained=True)
+        resnet = SEUNet()
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.maxpool   = resnet.maxpool 
-        self.encoder1  = resnet.layer1[0]
-        self.encoder2  = resnet.layer2[0]
-        self.encoder3  = resnet.layer3[0]
-        self.encoder4  = resnet.layer4[0]
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_pre/SEUNet_ISIC-2019_best.pth', map_location='cuda')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # resnet.load_state_dict(pretrained_teacher)
+
+        self.firstconv = resnet.model.conv1
+        self.firstbn   = resnet.model.bn1
+        self.firstrelu = resnet.model.relu
+        self.maxpool   = resnet.model.maxpool 
+        self.encoder1  = resnet.model.layer1
+        self.encoder2  = resnet.model.layer2
+        self.encoder3  = resnet.model.layer3
+        self.encoder4  = resnet.model.layer4
 
         self.up3 = DecoderBottleneckLayer(in_channels=512, out_channels=256)
         self.up2 = DecoderBottleneckLayer(in_channels=256, out_channels=128)
@@ -110,3 +114,43 @@ class SEUNet_lite(nn.Module):
         e = self.final_conv3(e)
 
         return e
+
+from torchvision import models as resnet_model
+import torchvision
+import torch.nn as nn
+import torch
+import torch.nn.functional as F
+from torch.nn import Softmax
+import einops
+import timm
+
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+
+class SEUNet(nn.Module):
+    def __init__(self, n_channels=1, n_classes=9):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        resnet = resnet_model.resnet34(pretrained=True)
+
+        self.model = resnet
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True),nn.Linear(in_features=512, out_features=9, bias=True))
+
+    def forward(self, x):
+        
+        b, c, h, w = x.shape
+
+        x = self.model(x)
+
+        return x
+        
