@@ -67,9 +67,9 @@ class SEUNet_lite(nn.Module):
 
         resnet = SEUNet()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_pre/SEUNet_ISIC-2019_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # resnet.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_pre/SEUNet_ISIC-2019_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        resnet.load_state_dict(pretrained_teacher)
 
         self.firstconv = resnet.model.conv1
         self.firstbn   = resnet.model.bn1
