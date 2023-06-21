@@ -71,6 +71,15 @@ class SEUNet(nn.Module):
 
         resnet = resnet_model.resnet18(pretrained=True)
 
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer4.parameters():
+            param.requires_grad = True
+
+        for param in self.model.layer3.parameters():
+            param.requires_grad = True
+
         self.model = resnet
         self.model.fc = nn.Sequential(nn.Dropout(p=0.0, inplace=True),nn.Linear(in_features=512, out_features=8, bias=True))
 
