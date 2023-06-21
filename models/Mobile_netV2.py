@@ -249,25 +249,31 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher(x0)
+        x_t, x2_t, x3_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
+
 
         # print(x.shape)
 
-        # x_stem  = self.model.stem(x0)
-        # x_stage = self.model.stages(x_stem)
-        # x_norm  = self.model.norm_pre(x_stage)
-        # x       = self.model.head(x_norm)
+        x_stem  = self.model.stem(x0)
+
+        x0 = self.model.stages[0](x_stem)
+        x1 = self.model.stages[1](x0)
+        x2 = self.model.stages[2](x1)
+        x3 = self.model.stages[3](x2)
+
+        x_norm  = self.model.norm_pre(x3)
+        x       = self.model.head(x_norm)
 
         # return x
 
         if self.training:
-            return x, x_t
+            return x, x2, x3, x_t, x2_t, x3_t
         else:
             return x
 
@@ -464,14 +470,27 @@ class Mobile_netV2_teacher(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.teacher.fc(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
         # x_stem  = self.model.stem(x0)
         # x_stage = self.model.stages(x_stem)
         # x_norm  = self.model.norm_pre(x_stage)
         # x_head  = self.model.head(x_norm)
 
-        return x # torch.softmax(x, dim=1)
+        # return x # torch.softmax(x, dim=1)
+
+        x_stem  = self.model.stem(x0)
+
+        x0 = self.model.stages[0](x_stem)
+        x1 = self.model.stages[1](x0)
+        x2 = self.model.stages[2](x1)
+        x3 = self.model.stages[3](x2)
+
+        x_norm  = self.model.norm_pre(x3)
+        x       = self.model.head(x_norm)
+
+
+        return x, x2, x3
 
 
 # class Mobile_netV2(nn.Module):
