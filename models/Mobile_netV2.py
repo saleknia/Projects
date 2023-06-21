@@ -72,22 +72,22 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        # self.model = model 
+        self.model = model 
 
-        # self.model.classifier[2] = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.classifier[2] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.features[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.features[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.classifier.parameters():
-        #     param.requires_grad = True
+        for param in self.model.classifier.parameters():
+            param.requires_grad = True
 
         ############################################################
         ############################################################
@@ -204,22 +204,22 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        model = timm.create_model('mvitv2_base', pretrained=True)
+        # model = timm.create_model('mvitv2_base', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # model = timm.create_model('convnextv2_femto', pretrained=True)
 
