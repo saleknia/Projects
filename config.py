@@ -75,7 +75,7 @@ DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
-task_ids = ['1','2','3','4','5','6','7','8','9','10','11','12', '13','14','15','16']
+task_ids = ['1','2','3','4','5','6','7','8','9','10','11','12', '13','14','15','16','17']
 task_table = tabulate(
                     tabular_data=[
                         ['COVID-19', 1],
@@ -93,7 +93,8 @@ task_table = tabulate(
                         ['TNUI' ,13],
                         ['BU101+' ,14],
                         ['MIT-67' , 15],
-                        ['Scene-15' ,16]],
+                        ['Scene-15' ,16],
+                        ['ISIC-2019',17]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -170,6 +171,10 @@ elif task_id==15:
 elif task_id==16:
     NUM_CLASS = 15
     TASK_NAME = 'Scene-15'
+
+elif task_id==17:
+    NUM_CLASS = 9
+    TASK_NAME = 'ISIC-2019'
 
 model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33']
 model_table = tabulate(
