@@ -71,46 +71,9 @@ class SEUNet(nn.Module):
 
         resnet = resnet_model.resnet34(pretrained=True)
 
-        # model = torchvision.models.convnext_tiny(weights='DEFAULT').features
+        self.model = resnet
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True),nn.Linear(in_features=512, out_features=9, bias=True))
 
-        self.firstconv = resnet.conv1
-        self.firstbn   = resnet.bn1
-        self.firstrelu = resnet.relu
-        self.encoder1  = resnet.layer1
-        self.encoder2  = resnet.layer2
-        self.encoder3  = resnet.layer3
-        # self.encoder4  = resnet.layer4
-
-        self.up3 = UpBlock(in_channels=512, out_channels=256, nb_Conv=2)
-        self.up2 = UpBlock(in_channels=256, out_channels=128, nb_Conv=2)
-        self.up1 = UpBlock(in_channels=128, out_channels=64 , nb_Conv=2)
-        
-        self.final_conv =  nn.ConvTranspose2d(64, n_classes, (2,2), 2)
-
-        model = CrossFormer(img_size=224,
-            patch_size=[4, 8, 16, 32],
-            in_chans= 3,
-            num_classes=1000,
-            embed_dim=64,
-            depths=[1, 1, 8, 6],
-            num_heads=[2, 4, 8, 16],
-            group_size=[7, 7, 7, 7],
-            mlp_ratio=4.,
-            qkv_bias=True,
-            qk_scale=None,
-            drop_rate=0.0,
-            drop_path_rate=0.1,
-            ape=False,
-            patch_norm=True,
-            use_checkpoint=False,
-            merge_size=[[2, 4], [2, 4], [2, 4]]
-        )
-
-        # checkpoint = torch.load('/content/drive/MyDrive/crossformer-t.pth', map_location='cpu') 
-        # state_dict = checkpoint['model']
-        # model.load_pretrained(state_dict)
-
-        self.transformer = model.layers[2]
 
     def forward(self, x):
 
@@ -120,26 +83,28 @@ class SEUNet(nn.Module):
         # e0 = torch.cat([x, x, x], dim=1)
 
 
-        e0 = self.firstconv(x)
-        e0 = self.firstbn(e0)
-        e0 = self.firstrelu(e0)
+        # e0 = self.firstconv(x)
+        # e0 = self.firstbn(e0)
+        # e0 = self.firstrelu(e0)
 
-        e1 = self.encoder1(e0)
-        e2 = self.encoder2(e1)
-        e3 = self.encoder3(e2)
-        # e4 = self.encoder4(e3)
+        # e1 = self.encoder1(e0)
+        # e2 = self.encoder2(e1)
+        # e3 = self.encoder3(e2)
+        # # e4 = self.encoder4(e3)
 
-        tf, _ = self.transformer(e3.flatten(2).transpose(1, 2), 28, 28)
+        # tf, _ = self.transformer(e3.flatten(2).transpose(1, 2), 28, 28)
 
-        e4 = tf
+        # e4 = tf
 
-        e = self.up3(e4, e3)
-        e = self.up2(e , e2)
-        e = self.up1(e , e1)
+        # e = self.up3(e4, e3)
+        # e = self.up2(e , e2)
+        # e = self.up1(e , e1)
 
-        e = self.final_conv(e)
+        # e = self.final_conv(e)
 
-        return e
+        x = self.model(x)
+
+        return x
         
 
 
