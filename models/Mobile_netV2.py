@@ -80,6 +80,8 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=384, out_features=num_classes, bias=True))
 
+        self.model.classifier[0] = nn.Identity()
+        
         for param in self.model.parameters():
             param.requires_grad = False
 

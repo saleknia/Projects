@@ -54,6 +54,41 @@ class UpBlock(nn.Module):
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
+class knitt(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
+
+        self.convnext_v2 = knitt_net_conv()
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/conv.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        self.convnext_v2.load_state_dict(pretrained_teacher)
+
+        self.transformer = knitt_net_trans()
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/trans.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        self.transformer.load_state_dict(pretrained_teacher)
+
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
+
+        x = self.convnext_v2(x_input)
+        e = self.transformer(x_input)
+
+        return e + x
+
+
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         '''
@@ -66,19 +101,12 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.convnext_v2 = timm.create_model('convnext_tiny', features_only=True, pretrained=True)
-        self.transformer = timm.create_model('mvitv2_tiny', pretrained=True)
+        self.convnext_v2 = timm.create_model('convnext_tiny', features_only=True, pretrained=False)
 
-        self.up3_1 = UpBlock(in_channels=768, out_channels=384)
         self.up2_1 = UpBlock(in_channels=384, out_channels=192)
         self.up1_1 = UpBlock(in_channels=192, out_channels=96 )
 
-        self.up3_2 = UpBlock(in_channels=768, out_channels=384)
-        self.up2_2 = UpBlock(in_channels=384, out_channels=192)
-        self.up1_2 = UpBlock(in_channels=192, out_channels=96 )
-
         self.head_1 = nn.Sequential(nn.Conv2d(96,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
-        self.head_2 = nn.Sequential(nn.Conv2d(96,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
 
     def forward(self, x):
         # # Question here
@@ -87,30 +115,48 @@ class knitt_net(nn.Module):
 
         x0, x1, x2, x3 = self.convnext_v2(x_input)
 
-        x2 = self.up3_1(x3, x2)
         x1 = self.up2_1(x2, x1)
         x0 = self.up1_1(x1, x0)
 
         x = self.head_1(x0)
 
-        # e0 = self.transformer.patch_embed(x_input)
-        # e0 = self.transformer.stages[0](e0, feat_size=56)
-        # print(len(e0), e0.shape)
-        # e1 = self.transformer.stages[1](e0, feat_size=28)
-        # e2 = self.transformer.stages[2](e1, feat_size=14)
-        # e3 = self.transformer.stages[3](e2, feat_size=7)
-
-        # e2 = self.up3_2(e3, e2)
-        # e1 = self.up2_2(e2, e1)
-        # e0 = self.up1_2(e1, e0)
-
-        # e = self.head_2(e0)
-
         return x
 
 
 
+class knitt_net_trans(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        '''
+        n_channels : number of channels of the input.
+                        By default 3, because we have RGB images
+        n_labels : number of channels of the ouput.
+                      By default 3 (2 labels + 1 for the background)
+        '''
+        super().__init__()
+        self.n_channels = n_channels
+        self.n_classes = n_classes
 
+        self.transformer = timm.create_model('maxvit_tiny_rw_224', pretrained=True, features_only=True)
+
+        self.up2_2 = UpBlock(in_channels=256, out_channels=128)
+        self.up1_2 = UpBlock(in_channels=128, out_channels=64 )
+
+        self.head_2 = nn.Sequential(nn.Conv2d(64,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
+
+    def forward(self, x):
+        # # Question here
+        x_input = x.float()
+        B, C, H, W = x.shape
+
+
+        e0, e1, e2, e3, e4 = self.transformer(x_input)
+
+        e2 = self.up2_2(e3, e2)
+        e1 = self.up1_2(e2, e1)
+
+        e = self.head_2(e1)
+
+        return e
 
 
 
