@@ -221,7 +221,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
 
-        # model = timm.create_model('convnextv2_femto', pretrained=True)
+        # model = timm.create_model('convnextv2_tiny', pretrained=True)
 
         # self.model = model 
 
