@@ -157,35 +157,35 @@ class Cross_unet(nn.Module):
 
         channel = 96
 
-        # self.encoder = CrossFormer(img_size=224,
-        #                             patch_size=[4, 8, 16, 32],
-        #                             in_chans= 3,
-        #                             num_classes=1000,
-        #                             embed_dim=96,
-        #                             depths=[2, 2, 6, 2],
-        #                             num_heads=[3, 6, 12, 24],
-        #                             group_size=[7, 7, 7, 7],
-        #                             mlp_ratio=4.,
-        #                             qkv_bias=True,
-        #                             qk_scale=None,
-        #                             drop_rate=0.0,
-        #                             drop_path_rate=0.2,
-        #                             ape=False,
-        #                             patch_norm=True,
-        #                             use_checkpoint=False,
-        #                             merge_size=[[2, 4], [2,4], [2, 4]])
+        self.encoder = CrossFormer(img_size=224,
+                                    patch_size=[4, 8, 16, 32],
+                                    in_chans= 3,
+                                    num_classes=1000,
+                                    embed_dim=96,
+                                    depths=[2, 2, 6, 2],
+                                    num_heads=[3, 6, 12, 24],
+                                    group_size=[7, 7, 7, 7],
+                                    mlp_ratio=4.,
+                                    qkv_bias=True,
+                                    qk_scale=None,
+                                    drop_rate=0.0,
+                                    drop_path_rate=0.2,
+                                    ape=False,
+                                    patch_norm=True,
+                                    use_checkpoint=False,
+                                    merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True)
+        # self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True)
 
-        # self.norm_4 = LayerNormProxy(dim=768)
-        # self.norm_3 = LayerNormProxy(dim=384)
-        # self.norm_2 = LayerNormProxy(dim=192)
-        # self.norm_1 = LayerNormProxy(dim=96)
+        self.norm_4 = LayerNormProxy(dim=768)
+        self.norm_3 = LayerNormProxy(dim=384)
+        self.norm_2 = LayerNormProxy(dim=192)
+        self.norm_1 = LayerNormProxy(dim=96)
 
-        self.norm_4 = nn.Identity()
-        self.norm_3 = nn.Identity()
-        self.norm_2 = nn.Identity()
-        self.norm_1 = nn.Identity()
+        # self.norm_4 = nn.Identity()
+        # self.norm_3 = nn.Identity()
+        # self.norm_2 = nn.Identity()
+        # self.norm_1 = nn.Identity()
 
         self.knitt = knitt(channel=channel)
 
