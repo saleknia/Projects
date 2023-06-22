@@ -72,24 +72,24 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.classifier[2] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=num_classes, bias=True))
+        # self.model.classifier[2] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=384, out_features=num_classes, bias=True))
 
-        self.model.classifier[0] = nn.Identity()
+        # self.model.classifier[0] = nn.Identity()
         
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.features[4:6].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[4:6].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
         ############################################################
         ############################################################
@@ -223,32 +223,29 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
 
-        # model = timm.create_model('convnextv2_tiny', pretrained=True)
+        model = timm.create_model('convnextv2_tiny', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=384, out_features=num_classes, bias=True))
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.stages[2].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x = self.model.features[0:6](x0)
-        x = self.model.avgpool(x)
-        x = self.model.classifier(x)
+        # x = self.model.features[0:6](x0)
+        # x = self.model.avgpool(x)
+        # x = self.model.classifier(x)
 
 
         # x1 = self.features[0:4](x0)
@@ -261,7 +258,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        # x = self.model(x0)
+        x = self.model(x0)
 
 
         # print(x.shape)
