@@ -83,10 +83,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.features[-2].parameters():
+        for param in self.model.features[4:6].parameters():
             param.requires_grad = True
-
-        self.model.features[-1] = nn.Identity()
 
         for param in self.model.classifier.parameters():
             param.requires_grad = True
@@ -246,6 +244,10 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
+        x = self.model.features[0:6](x0)
+        x = self.model.avgpool(x)
+        x = self.model.classifier(x)
+
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
@@ -262,7 +264,7 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        x  = self.model(x0)
+        # x  = self.model(x0)
 
         # x0 = self.model.stages[0](x_stem)
         # x1 = self.model.stages[1](x0)
