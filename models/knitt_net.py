@@ -87,7 +87,7 @@ class knitt_net(nn.Module):
 
         x0, x1, x2, x3 = self.convnext_v2(x_input)
 
-        # x2 = self.up3_1(x3, x2)
+        x2 = self.up3_1(x3, x2)
         x1 = self.up2_1(x2, x1)
         x0 = self.up1_1(x1, x0)
 

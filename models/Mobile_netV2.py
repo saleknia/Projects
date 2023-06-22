@@ -78,13 +78,15 @@ class Mobile_netV2(nn.Module):
 
         self.model.classifier[2] = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+            nn.Linear(in_features=384, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.features[-1].parameters():
+        for param in self.model.features[-2].parameters():
             param.requires_grad = True
+
+        self.model.features[-1] = nn.Identity()
 
         for param in self.model.classifier.parameters():
             param.requires_grad = True
