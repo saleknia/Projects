@@ -66,7 +66,7 @@ class knitt_net(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        self.convnext_v2 = timm.create_model('convnextv2_tiny', features_only=True, pretrained=True)
+        self.convnext_v2 = timm.create_model('convnext_tiny', features_only=True, pretrained=True)
         self.transformer = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.up3_1 = UpBlock(in_channels=768, out_channels=384)
@@ -87,17 +87,18 @@ class knitt_net(nn.Module):
 
         x0, x1, x2, x3 = self.convnext_v2(x_input)
 
-        x2 = self.up3_1(x3, x2)
+        # x2 = self.up3_1(x3, x2)
         x1 = self.up2_1(x2, x1)
         x0 = self.up1_1(x1, x0)
 
         x = self.head_1(x0)
 
         # e0 = self.transformer.patch_embed(x_input)
-        # e0 = self.transformer.stages[0](e0)
-        # e1 = self.transformer.stages[1](e0)
-        # e2 = self.transformer.stages[2](e1)
-        # e3 = self.transformer.stages[3](e2)
+        # e0 = self.transformer.stages[0](e0, feat_size=56)
+        # print(len(e0), e0.shape)
+        # e1 = self.transformer.stages[1](e0, feat_size=28)
+        # e2 = self.transformer.stages[2](e1, feat_size=14)
+        # e3 = self.transformer.stages[3](e2, feat_size=7)
 
         # e2 = self.up3_2(e3, e2)
         # e1 = self.up2_2(e2, e1)
