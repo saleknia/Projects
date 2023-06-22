@@ -67,21 +67,18 @@ class knitt_net(nn.Module):
         self.n_classes = n_classes
 
         self.convnext_v2 = timm.create_model('convnextv2_tiny', features_only=True, pretrained=True)
-        # self.transformer = 
+        self.transformer = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.up3_1 = UpBlock(in_channels=768, out_channels=384)
         self.up2_1 = UpBlock(in_channels=384, out_channels=192)
         self.up1_1 = UpBlock(in_channels=192, out_channels=96 )
 
-        # self.up3_2 = UpBlock(in_channels=768, out_channels=384)
-        # self.up2_2 = UpBlock(in_channels=384, out_channels=192)
-        # self.up1_2 = UpBlock(in_channels=192, out_channels=96 )
+        self.up3_2 = UpBlock(in_channels=768, out_channels=384)
+        self.up2_2 = UpBlock(in_channels=384, out_channels=192)
+        self.up1_2 = UpBlock(in_channels=192, out_channels=96 )
 
         self.head_1 = nn.Sequential(nn.Conv2d(96,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
-        # self.head_2 = nn.Sequential(nn.Conv2d(96,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
-
-
-
+        self.head_2 = nn.Sequential(nn.Conv2d(96,  self.n_classes, 1, padding=0), nn.Upsample(scale_factor=4.0))
 
     def forward(self, x):
         # # Question here
@@ -96,4 +93,24 @@ class knitt_net(nn.Module):
 
         x = self.head_1(x0)
 
+        # e0 = self.transformer.patch_embed(x_input)
+        # e0 = self.transformer.stages[0](e0)
+        # e1 = self.transformer.stages[1](e0)
+        # e2 = self.transformer.stages[2](e1)
+        # e3 = self.transformer.stages[3](e2)
+
+        # e2 = self.up3_2(e3, e2)
+        # e1 = self.up2_2(e2, e1)
+        # e0 = self.up1_2(e1, e0)
+
+        # e = self.head_2(e0)
+
         return x
+
+
+
+
+
+
+
+
