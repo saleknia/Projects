@@ -486,7 +486,7 @@ class Mobile_netV2_teacher(nn.Module):
         # x_norm  = self.model.norm_pre(x_stage)
         # x_head  = self.model.head(x_norm)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
         # x_stem  = self.model.stem(x0)
 

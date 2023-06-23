@@ -60,7 +60,7 @@ def label_smoothing(labels, outputs_t):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.1
+    alpha = 0.0
     N, C = outputs_t.shape
     # N = 40  # batch_size
     # C = 40  # number of classes
@@ -222,7 +222,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
 
-        # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
+        loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
@@ -258,8 +258,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, targets.long()) + 1.0 * torch.nn.functional.mse_loss(outputs, outputs_t)
         
-        T = 4.0
-        loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T * 0.9)
+        # T = 3.0
+        # loss_ce = (0.1 * ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T * 0.9)
 
         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
