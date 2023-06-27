@@ -276,7 +276,7 @@ class Mobile_netV2(nn.Module):
         # x_norm  = self.model.norm_pre(x3)
         # x       = self.model.head(x_norm)
 
-        # return x
+        return x
 
         # if self.training:
         #     return x, x_t
