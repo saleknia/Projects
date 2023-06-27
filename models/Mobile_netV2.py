@@ -117,6 +117,7 @@ class Mobile_netV2(nn.Module):
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         # model.load_state_dict(state_dict)
+        # self.teacher = model 
 
         # model = models.__dict__['densenet161'](num_classes=365)
 
