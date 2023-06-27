@@ -226,7 +226,7 @@ class Mobile_netV2(nn.Module):
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
-        model = timm.create_model('convnextv2_tiny.fcmae', pretrained=True)
+        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
 
         self.model = model 
@@ -241,8 +241,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        for param in self.model.stages[2].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[2].parameters():
+        #     param.requires_grad = True
 
         for param in self.model.head.parameters():
             param.requires_grad = True
