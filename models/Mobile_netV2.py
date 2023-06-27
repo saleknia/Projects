@@ -32,7 +32,7 @@ class Mobile_netV2(nn.Module):
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
-            if 'teachr' in key:
+            if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.teacher.load_state_dict(pretrained_teacher)
 
