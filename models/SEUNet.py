@@ -123,6 +123,7 @@ class SEUNet(nn.Module):
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
         self.features = model.features
+        self.features[0][0].in_channels = 4
         self.avgpool = model.avgpool
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -170,7 +171,7 @@ class SEUNet(nn.Module):
             singleton_batch = {'img_data': x0}
             y = self.segmentation_module(singleton_batch, segSize=(224,224))
             predictions = torch.argmax(input=y,dim=1).long() / 150.0
-            predictions = torch.cat([predictions.unsqueeze(dim=1), predictions.unsqueeze(dim=1), predictions.unsqueeze(dim=1)], dim=1)
+            predictions = torch.cat([predictions.unsqueeze(dim=1), x0], dim=1)
 
         x = self.features(predictions)
         x = self.avgpool(x)
