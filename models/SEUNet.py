@@ -94,6 +94,9 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=67, bias=True))
 
+        self.dense_adapter = ConvBatchNorm(in_channels=1024, out_channels=1056, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+        self.res18_adapter = ConvBatchNorm(in_channels=1024, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
+
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/a.pth', map_location='cuda')
         # pretrained_teacher = loaded_data_teacher['net']
         # self.load_state_dict(pretrained_teacher)
@@ -115,12 +118,14 @@ class SEUNet(nn.Module):
         # x0 = x0.view(x0.size(0), -1)
         # x0 = self.fc_0(x0)
 
-        # x1 = self.layer41(x)
+        # x1 = self.res18_adapter(x)
+        # x1 = self.layer41(x1)
         # x1 = self.avgpool(x1)
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        x2 = self.layer42(x)
+        x2 = self.dense_adapter(x)
+        x2 = self.layer42(x2)
         x2 = self.avgpool(x2)
         x2 = x2.view(x2.size(0), -1)
         x2 = self.fc_2(x2)
@@ -131,7 +136,26 @@ class SEUNet(nn.Module):
 
 
 
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
+    else:
+        return nn.ReLU()
 
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
 
 
 
