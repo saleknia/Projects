@@ -80,9 +80,7 @@ class SEUNet(nn.Module):
         self.layer41 = model_1.layer4
         self.layer42 = model_2.features.denseblock4
 
-        self.avgpool_0 = model_0.avgpool
-        self.avgpool_1 = model_1.avgpool
-        self.avgpool_2 = model_2.avgpool
+        self.avgpool = model_0.avgpool
 
         self.fc_0 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -113,17 +111,17 @@ class SEUNet(nn.Module):
         x = self.layer3(x)
 
         # x0 = self.layer40(x)
-        # x0 = self.avgpool_0(x0)
+        # x0 = self.avgpool(x0)
         # x0 = x0.view(x0.size(0), -1)
         # x0 = self.fc_0(x0)
 
         # x1 = self.layer41(x)
-        # x1 = self.avgpool_1(x1)
+        # x1 = self.avgpool(x1)
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
         x2 = self.layer42(x)
-        x2 = self.avgpool_2(x2)
+        x2 = self.avgpool(x2)
         x2 = x2.view(x2.size(0), -1)
         x2 = self.fc_2(x2)
 
