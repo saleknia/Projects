@@ -23,9 +23,9 @@ from .wideresnet import recursion_change_bn
 
 from mit_semseg.models import ModelBuilder
 
-class Mobile_netV2(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(Mobile_netV2, self).__init__()
+        super(SEUNet, self).__init__()
 
         model_0 = models.__dict__['resnet50'](num_classes=365)
 
