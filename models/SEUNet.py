@@ -57,8 +57,8 @@ class SEUNet(nn.Module):
         #     param.requires_grad = False
 
 
-        for param in model_0.layer4.parameters():
-            param.requires_grad = True
+        # for param in model_0.layer4.parameters():
+        #     param.requires_grad = True
 
         # for param in model_1.layer4.parameters():
         #     param.requires_grad = True
@@ -95,10 +95,9 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/a.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_res_50_mit/SEUNet_MIT-67_best.pth', map_location='cuda')
+        pretrained_teacher = loaded_data_teacher['net']
+        self.load_state_dict(pretrained_teacher)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -111,7 +110,12 @@ class SEUNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+
+        x1 = self.layer4[0](x)
+        x2 = self.layer4[1](x1)
+        x3 = self.layer4[2](x2)
+
+        x = x1 + x2 + x3
 
         # x0 = self.layer40(x)
         # x0 = self.avgpool(x0)
@@ -124,13 +128,13 @@ class SEUNet(nn.Module):
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc_0(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.fc_0(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc_1(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.fc_1(x)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
