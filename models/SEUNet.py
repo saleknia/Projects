@@ -106,14 +106,17 @@ class SEUNet(nn.Module):
 
         x1 = self.layer41(x)
         x1 = self.avgpool_1(x1)
+        x1 = x1.view(x1.size(0), -1)
         x1 = self.fc_1(x1)
 
         # x2 = self.layer42(x)
         # x2 = self.avgpool_2(x2)
+        # x2 = x2.view(x2.size(0), -1)
         # x2 = self.fc_2(x2)
 
         # x3 = self.layer43(x)
         # x3 = self.avgpool_3(x3)
+        # x3 = x3.view(x3.size(0), -1)
         # x3 = self.fc_3(x3)
 
         return x1
