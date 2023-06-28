@@ -200,7 +200,7 @@ def main(args):
         model = DATUNet().to(DEVICE)
 
     elif MODEL_NAME=='SEUNet':
-        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
+        model = SEUNet(num_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='Cross_unet':
         model = Cross_unet().to(DEVICE)
