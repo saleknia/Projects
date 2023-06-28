@@ -51,16 +51,16 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_3.load_state_dict(state_dict)
 
-        for param in self.model_0.parameters():
+        for param in model_0.parameters():
             param.requires_grad = False
 
-        for param in self.model_1.layer4[-1].parameters():
+        for param in model_1.layer4[-1].parameters():
             param.requires_grad = True
 
-        for param in self.model_2.layer4[-1].parameters():
+        for param in model_2.layer4[-1].parameters():
             param.requires_grad = True
 
-        for param in self.model_3.layer4[-1].parameters():
+        for param in model_3.layer4[-1].parameters():
             param.requires_grad = True
 
         self.conv1   = model_0.conv1
