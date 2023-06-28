@@ -33,38 +33,38 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_0.load_state_dict(state_dict)
 
-        model_1 = models.__dict__['resnet18'](num_classes=365)
+        # model_1 = models.__dict__['resnet18'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_1.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model_1.load_state_dict(state_dict)
 
-        model_2 = models.__dict__['densenet161'](num_classes=365)
+        # model_2 = models.__dict__['densenet161'](num_classes=365)
 
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-        model_2.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # model_2.load_state_dict(state_dict)
 
         for param in model_0.parameters():
             param.requires_grad = False
 
-        for param in model_1.parameters():
-            param.requires_grad = False
+        # for param in model_1.parameters():
+        #     param.requires_grad = False
 
-        for param in model_2.parameters():
-            param.requires_grad = False
+        # for param in model_2.parameters():
+        #     param.requires_grad = False
 
 
         for param in model_0.layer4.parameters():
             param.requires_grad = True
 
-        for param in model_1.layer4.parameters():
-            param.requires_grad = True
+        # for param in model_1.layer4.parameters():
+        #     param.requires_grad = True
 
-        for param in model_2.features.denseblock4.parameters():
-            param.requires_grad = True
+        # for param in model_2.features.denseblock4.parameters():
+        #     param.requires_grad = True
 
 
         self.conv1   = model_0.conv1
@@ -75,10 +75,11 @@ class SEUNet(nn.Module):
         self.layer1 = model_0.layer1
         self.layer2 = model_0.layer2
         self.layer3 = model_0.layer3
+        self.layer4 = model_0.layer4
 
-        self.layer40 = model_0.layer4
-        self.layer41 = model_1.layer4
-        self.layer42 = model_2.features.denseblock4
+        # self.layer40 = model_0.layer4
+        # self.layer41 = model_1.layer4
+        # self.layer42 = model_2.features.denseblock4
 
         self.avgpool = model_0.avgpool
 
@@ -88,14 +89,12 @@ class SEUNet(nn.Module):
 
         self.fc_1 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512 , out_features=67, bias=True))
+            nn.Linear(in_features=2048, out_features=67, bias=True))
 
         self.fc_2 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2208, out_features=67, bias=True))
+            nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        self.dense_adapter = ConvBatchNorm(in_channels=1024, out_channels=1056, activation='ReLU', kernel_size=1, padding=0, dilation=1)
-        self.res18_adapter = ConvBatchNorm(in_channels=1024, out_channels=256, activation='ReLU', kernel_size=1, padding=0, dilation=1)
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/a.pth', map_location='cuda')
         # pretrained_teacher = loaded_data_teacher['net']
@@ -112,6 +111,7 @@ class SEUNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
+        x = self.layer4(x)
 
         # x0 = self.layer40(x)
         # x0 = self.avgpool(x0)
@@ -124,13 +124,11 @@ class SEUNet(nn.Module):
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        x2 = self.dense_adapter(x)
-        x2 = self.layer42(x2)
-        x2 = self.avgpool(x2)
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.fc_2(x2)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc_0(x)
 
-        return x2
+        return x
 
 
 
