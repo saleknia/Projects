@@ -128,6 +128,14 @@ class SEUNet(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc_0(x)
 
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc_1(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc_2(x)
+
         return x
 
 
