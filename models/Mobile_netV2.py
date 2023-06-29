@@ -24,7 +24,7 @@ from .wideresnet import recursion_change_bn
 from mit_semseg.models import ModelBuilder
 
 class Mobile_netV2(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
         # self.teacher = Mobile_netV2_teacher(num_classes=num_classes)
