@@ -34,38 +34,23 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_0.load_state_dict(state_dict)
 
-        # model_1 = models.__dict__['resnet18'](num_classes=365)
+        model_1 = models.__dict__['resnet50'](num_classes=365)
 
-        # checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model_1.load_state_dict(state_dict)
-
-        # model_2 = models.__dict__['densenet161'](num_classes=365)
-
-        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-        # model_2.load_state_dict(state_dict)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_1.load_state_dict(state_dict)
 
         for param in model_0.parameters():
             param.requires_grad = False
 
-        # for param in model_1.parameters():
-        #     param.requires_grad = False
+        for param in model_1.parameters():
+            param.requires_grad = False
 
-        # for param in model_2.parameters():
-        #     param.requires_grad = False
-
-        for param in model_0.layer4[-1].parameters():
+        for param in model_0.layer4.parameters():
             param.requires_grad = True
 
-        # for param in model_1.layer4.parameters():
-        #     param.requires_grad = True
-
-        # for param in model_2.features.denseblock4.parameters():
-        #     param.requires_grad = True
-
+        for param in model_1.layer4.parameters():
+            param.requires_grad = True
 
         self.conv1   = model_0.conv1
         self.bn1     = model_0.bn1
@@ -75,15 +60,19 @@ class SEUNet(nn.Module):
         self.layer1 = model_0.layer1
         self.layer2 = model_0.layer2
         self.layer3 = model_0.layer3
-        self.layer4 = model_0.layer4
+        # self.layer4 = model_0.layer4
 
-        # self.layer40 = model_0.layer4
-        # self.layer41 = model_1.layer4
-        # self.layer42 = model_2.features.denseblock4
+        self.layer40 = model_0.layer4[0:2]
+        self.layer41 = model_1.layer4[0:3]
 
-        self.avgpool = model_0.avgpool
+        self.avgpool_0 = model_0.avgpool
+        self.avgpool_1 = model_1.avgpool
 
-        self.fc = nn.Sequential(
+        self.fc_0 = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=67, bias=True))
+
+        self.fc_1 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
@@ -98,13 +87,19 @@ class SEUNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
-        x = self.layer4(x)
+        # x = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x0 = self.layer40(x)
+        x0 = self.avgpool_0(x0)
+        x0 = x.view(x0.size(0), -1)
+        x0 = self.fc_0(x0)
 
-        return x
+        # x1 = self.layer41(x)
+        # x1 = self.avgpool_1(x1)
+        # x1 = x.view(x1.size(0), -1)
+        # x1 = self.fc_1(x1)
+
+        return x0
 
 
 
