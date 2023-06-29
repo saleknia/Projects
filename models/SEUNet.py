@@ -34,17 +34,17 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_0.load_state_dict(state_dict)
 
-        # model_1 = models.__dict__['resnet50'](num_classes=365)
+        model_1 = models.__dict__['resnet50'](num_classes=365)
 
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model_1.load_state_dict(state_dict)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_1.load_state_dict(state_dict)
 
         for param in model_0.parameters():
             param.requires_grad = False
 
-        # for param in model_1.parameters():
-        #     param.requires_grad = False
+        for param in model_1.parameters():
+            param.requires_grad = False
 
         for param in model_0.layer4[-1].parameters():
             param.requires_grad = True
@@ -57,24 +57,24 @@ class SEUNet(nn.Module):
         self.relu    = model_0.relu 
         self.maxpool = model_0.maxpool
 
-        self.layer1 = model_0.layer1
-        self.layer2 = model_0.layer2
-        self.layer3 = model_0.layer3
-        self.layer4 = model_0.layer4
+        self.layer10 = model_0.layer1
+        self.layer20 = model_0.layer2
+        self.layer30 = model_0.layer3
+        self.layer40 = model_0.layer4
 
         # self.layer40 = model_0.layer4[0:2]
-        # self.layer41 = model_1.layer4[0:3]
+        self.layer41 = model_1.layer4
 
         self.avgpool_0 = model_0.avgpool
-        # self.avgpool_1 = model_1.avgpool
+        self.avgpool_1 = model_1.avgpool
 
         self.fc_0 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # self.fc_1 = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=2048, out_features=67, bias=True))
+        self.fc_1 = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=67, bias=True))
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -84,12 +84,12 @@ class SEUNet(nn.Module):
         x = self.relu(x)  
         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+        x = self.layer10(x)
+        x = self.layer20(x)
+        x = self.layer30(x)
 
-        x0 = self.avgpool_0(x)
+        x0 = self.layer40(x)
+        x0 = self.avgpool_0(x0)
         x0 = x0.view(x0.size(0), -1)
         x0 = self.fc_0(x0)
 
