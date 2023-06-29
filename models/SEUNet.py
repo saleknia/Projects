@@ -90,8 +90,8 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/B.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/B.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -110,17 +110,17 @@ class SEUNet(nn.Module):
         x0 = x0.view(x0.size(0), -1)
         x0 = self.fc_0(x0)
 
-        # x1 = self.layer41(x)
-        # x1 = self.avgpool_1(x1)
-        # x1 = x1.view(x1.size(0), -1)
-        # x1 = self.fc_1(x1)
+        x1 = self.layer41(x)
+        x1 = self.avgpool_1(x1)
+        x1 = x1.view(x1.size(0), -1)
+        x1 = self.fc_1(x1)
 
-        # x2 = self.layer42(x)
-        # x2 = self.avgpool_2(x2)
-        # x2 = x2.view(x2.size(0), -1)
-        # x2 = self.fc_2(x2)
+        x2 = self.layer42(x)
+        x2 = self.avgpool_2(x2)
+        x2 = x2.view(x2.size(0), -1)
+        x2 = self.fc_2(x2)
 
-        return x0
+        return x0 + x1 + x2
 
 
 
