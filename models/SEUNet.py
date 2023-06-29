@@ -99,7 +99,7 @@ class SEUNet(nn.Module):
         x1 = x1.view(x1.size(0), -1)
         x1 = self.fc_1(x1)
 
-        return x1
+        return x0
 
 
 
