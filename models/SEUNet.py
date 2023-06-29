@@ -90,8 +90,8 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/B.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_ensemble/SEUNet_MIT-67_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
     def forward(self, x0):
         b, c, w, h = x0.shape
