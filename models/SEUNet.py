@@ -46,10 +46,10 @@ class SEUNet(nn.Module):
         for param in model_1.parameters():
             param.requires_grad = False
 
-        for param in model_0.layer4.parameters():
+        for param in model_0.layer4[-2].parameters():
             param.requires_grad = True
 
-        for param in model_1.layer4.parameters():
+        for param in model_1.layer4[-1].parameters():
             param.requires_grad = True
 
         self.conv1   = model_0.conv1
@@ -89,17 +89,17 @@ class SEUNet(nn.Module):
         x = self.layer3(x)
         # x = self.layer4(x)
 
-        x0 = self.layer40(x)
-        x0 = self.avgpool_0(x0)
-        x0 = x0.view(x0.size(0), -1)
-        x0 = self.fc_0(x0)
+        # x0 = self.layer40(x)
+        # x0 = self.avgpool_0(x0)
+        # x0 = x0.view(x0.size(0), -1)
+        # x0 = self.fc_0(x0)
 
-        # x1 = self.layer41(x)
-        # x1 = self.avgpool_1(x1)
-        # x1 = x1.view(x1.size(0), -1)
-        # x1 = self.fc_1(x1)
+        x1 = self.layer41(x)
+        x1 = self.avgpool_1(x1)
+        x1 = x1.view(x1.size(0), -1)
+        x1 = self.fc_1(x1)
 
-        return x0
+        return x1
 
 
 
