@@ -105,22 +105,22 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        x0 = self.layer40(x)
-        x0 = self.avgpool_0(x0)
-        x0 = x0.view(x0.size(0), -1)
-        x0 = self.fc_0(x0)
+        # x0 = self.layer40(x)
+        # x0 = self.avgpool_0(x0)
+        # x0 = x0.view(x0.size(0), -1)
+        # x0 = self.fc_0(x0)
 
         # x1 = self.layer41(x)
         # x1 = self.avgpool_1(x1)
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        # x2 = self.layer42(x)
-        # x2 = self.avgpool_2(x2)
-        # x2 = x2.view(x2.size(0), -1)
-        # x2 = self.fc_2(x2)
+        x2 = self.layer42(x)
+        x2 = self.avgpool_2(x2)
+        x2 = x2.view(x2.size(0), -1)
+        x2 = self.fc_2(x2)
 
-        return x0
+        return x2
 
 
 
