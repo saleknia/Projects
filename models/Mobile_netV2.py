@@ -39,7 +39,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
+
 
         # model = torchvision.models.maxvit_t(weights='DEFAULT')
 
@@ -94,19 +94,23 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # model.features[0][0].stride = (1, 1)
+        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
 
-        # self.features = model.features
+        model.features[0][0].stride = (1, 1)
 
-        # self.avgpool = model.avgpool
+        self.features = model.features
 
-        # self.pooling = nn.AvgPool2d(2, stride=2)
+        self.avgpool = model.avgpool
 
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:6].parameters():
+            param.requires_grad = False
 
-        # for param in self.features[0:7].parameters():
-        #     param.requires_grad = False
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+
+        ############################################################
+        ############################################################
 
         # self.features[0][0].stride = (1, 1)
 
@@ -207,22 +211,22 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        model = timm.create_model('mvitv2_base', pretrained=True)
+        # model = timm.create_model('mvitv2_base', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -254,17 +258,17 @@ class Mobile_netV2(nn.Module):
         # x = self.model.classifier(x)
 
 
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
+        x1 = self.features[0:4](x0)
+        x2 = self.features[4:6](x1)
+        x3 = self.features[6:9](x2)
 
         # x_t = self.teacher(x0)
 
-        # x = self.avgpool(x3)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.avgpool(x3)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
 
         # print(x.shape)
