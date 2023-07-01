@@ -216,6 +216,8 @@ class Mobile_netV2(nn.Module):
 
         teacher = mvit_teacher()
         self.teacher = teacher
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         self.model.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -285,12 +287,12 @@ class Mobile_netV2(nn.Module):
         # x_norm  = self.model.norm_pre(x3)
         # x       = self.model.head(x_norm)
 
-        return x_t
+        # return x_t
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
