@@ -94,7 +94,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = efficientnet_v2_m(weights=EfficientNet_V2_M_Weights)
+        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
         model.features[0][0].stride = (1, 1)
 
