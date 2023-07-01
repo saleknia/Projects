@@ -67,8 +67,8 @@ def label_smoothing(labels, outputs_t):
     smoothed_labels = torch.full(size=(N, C), fill_value= alpha / (C - 1)).cuda()
     smoothed_labels.scatter_(dim=1, index=torch.unsqueeze(labels, dim=1), value=1-alpha)
 
-    smoothed_labels = (smoothed_labels + outputs_t) / 2.0
-    # smoothed_labels = outputs_t
+    # smoothed_labels = (smoothed_labels + outputs_t) / 2.0
+    smoothed_labels = outputs_t
 
     return smoothed_labels
 
