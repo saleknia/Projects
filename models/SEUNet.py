@@ -20,7 +20,7 @@ from PIL import Image
 import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
-from .Mobile_netV2 import Mobile_netV2
+from .Mobile_netV2 import Mobile_netV2, mvit_teacher
 from mit_semseg.models import ModelBuilder, SegmentationModule
 from mit_semseg.models import ModelBuilder
 from mit_semseg.models import ModelBuilder, SegmentationModule
@@ -93,9 +93,9 @@ class SEUNet(nn.Module):
 
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_ensemble/SEUNet_MIT-67_best.pth', map_location='cpu')
         self.load_state_dict(checkpoint['net'])
-        self.mobile = Mobile_netV2()
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
-        self.mobile.load_state_dict(checkpoint['net'])
+        self.mobile = mvit_teacher()
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
+        # self.mobile.load_state_dict(checkpoint['net'])
         
     def forward(self, x0):
         b, c, w, h = x0.shape
