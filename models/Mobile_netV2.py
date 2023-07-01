@@ -362,12 +362,12 @@ class mvit_teacher(nn.Module):
         super(mvit_teacher, self).__init__()
 
         self.small = mvit_small()
-        self.tiny  = mvit_tiny()
+        # self.tiny  = mvit_tiny()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = (self.small(x0) + self.tiny(x0)) / 2.0
+        x = self.small(x0)
 
         return torch.softmax(x, dim=1)
 
