@@ -60,7 +60,7 @@ def label_smoothing(labels, outputs_t):
     """
     loss function for label smoothing regularization
     """
-    alpha = 0.1
+    alpha = 0.0
     N, C = outputs_t.shape
     # N = 40  # batch_size
     # C = 40  # number of classes
