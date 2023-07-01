@@ -211,7 +211,7 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_small', pretrained=True)
 
         self.model = model 
 
