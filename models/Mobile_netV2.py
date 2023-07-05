@@ -27,7 +27,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        self.teacher = Mobile_netV2_teacher(num_classes=num_classes)
+        # self.teacher = Mobile_netV2_teacher(num_classes=num_classes)
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_base_next_89_38/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
         # pretrained_teacher = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
@@ -36,8 +36,8 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.teacher.load_state_dict(pretrained_teacher)
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
 
         # model = torchvision.models.maxvit_t(weights='DEFAULT')
@@ -93,20 +93,20 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        for param in self.features[0:6].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:6].parameters():
+        #     param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
@@ -210,26 +210,26 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
-        # self.model = model 
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        self.model = model 
 
-        # teacher = mvit_teacher()
-        # self.teacher = teacher
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        teacher = mvit_teacher()
+        self.teacher = teacher
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -261,15 +261,15 @@ class Mobile_netV2(nn.Module):
         # x = self.model.classifier(x)
 
 
-        x1 = self.features[0:4](x0)
-        x2 = self.features[4:6](x1)
-        x3 = self.features[6:9](x2)
+        # x1 = self.features[0:4](x0)
+        # x2 = self.features[4:6](x1)
+        # x3 = self.features[6:9](x2)
 
         outputs_t = self.teacher(x0)
 
-        x = self.avgpool(x3)
-        outputs_s = x.view(x.size(0), -1)
-        x = self.classifier(outputs_s)
+        # x = self.avgpool(x3)
+        # outputs_s = x.view(x.size(0), -1)
+        # x = self.classifier(outputs_s)
 
         # x = self.model(x0)
 
@@ -278,13 +278,14 @@ class Mobile_netV2(nn.Module):
 
         # x  = self.model(x0)
 
-        # x0 = self.model.stages[0](x_stem)
-        # x1 = self.model.stages[1](x0)
-        # x2 = self.model.stages[2](x1)
-        # x3 = self.model.stages[3](x2)
+        x0 = self.model.stages[0](x_stem)
+        x1 = self.model.stages[1](x0)
+        x2 = self.model.stages[2](x1)
+        x3 = self.model.stages[3](x2)
 
-        # x_norm  = self.model.norm_pre(x3)
-        # x       = self.model.head(x_norm)
+        outputs_s  = self.model.norm_pre(x3)
+        print(outputs_s.shape)
+        x          = self.model.head(outputs_s)
 
         # return x
 
@@ -315,8 +316,8 @@ class mvit_small(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')['net']
-        self.load_state_dict(state_dict)
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')['net']
+        # self.load_state_dict(state_dict)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -366,9 +367,13 @@ class mvit_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.small(x0)
+        x0 = self.small.model.stages[0](x_stem)
+        x1 = self.small.model.stages[1](x0)
+        x2 = self.small.model.stages[2](x1)
+        x3 = self.small.model.stages[3](x2)
+        x  = self.small.model.norm_pre(x3)
 
-        return torch.softmax(x, dim=1)
+        return x
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
