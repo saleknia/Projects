@@ -210,15 +210,12 @@ class Mobile_netV2(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
+
         model = timm.create_model('mvitv2_tiny', pretrained=True)
+
         self.model = model 
 
-        teacher = mvit_teacher()
-        self.teacher = teacher
-        for param in self.teacher.parameters():
-            param.requires_grad = False
-
-        self.model.head = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
@@ -228,8 +225,12 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        self.model.head = torch.nn.Identity()
+
+        teacher = mvit_teacher()
+        self.teacher = teacher
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -278,14 +279,10 @@ class Mobile_netV2(nn.Module):
 
         # x  = self.model(x0)
 
-        x0 = self.model.stages[0](x_stem)
-        x1 = self.model.stages[1](x0)
-        x2 = self.model.stages[2](x1)
-        x3 = self.model.stages[3](x2)
 
-        outputs_s  = self.model.norm_pre(x3)
+        outputs_s = self.model(x0)
         print(outputs_s.shape)
-        x          = self.model.head(outputs_s)
+        x         = self.classifier(outputs_s)
 
         # return x
 
@@ -303,7 +300,7 @@ class mvit_small(nn.Module):
 
         self.model = model 
 
-        self.model.head = nn.Sequential(
+        self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
@@ -313,8 +310,10 @@ class mvit_small(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        self.model.head = torch.nn.Identity()
+
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
@@ -323,7 +322,7 @@ class mvit_small(nn.Module):
         b, c, w, h = x0.shape
 
         x = self.model(x0)
-
+        # x = self.classifier(x)
         return x # torch.softmax(x, dim=1)
 
 class mvit_tiny(nn.Module):
@@ -367,11 +366,7 @@ class mvit_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x0 = self.small.model.stages[0](x_stem)
-        x1 = self.small.model.stages[1](x0)
-        x2 = self.small.model.stages[2](x1)
-        x3 = self.small.model.stages[3](x2)
-        x  = self.small.model.norm_pre(x3)
+        x = self.small(x0)
 
         return x
 
