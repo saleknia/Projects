@@ -281,7 +281,7 @@ class Mobile_netV2(nn.Module):
 
 
         outputs_s = self.model(x0)
-        print(outputs_s.shape)
+        # print(outputs_s.shape)
         x         = self.classifier(outputs_s)
 
         # return x
