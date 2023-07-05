@@ -296,7 +296,7 @@ class mvit_small(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_small, self).__init__()
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_large', pretrained=True)
 
         self.model = model 
 
