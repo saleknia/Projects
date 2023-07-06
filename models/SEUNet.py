@@ -123,7 +123,7 @@ class SEUNet(nn.Module):
         self.avgpool_seg = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
         for param in self.seg.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         # self.fc_1 = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
