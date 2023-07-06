@@ -80,7 +80,7 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         model_dense.load_state_dict(state_dict)
-        model_dense.classifier = nn.Identity()
+        # model_dense.classifier = nn.Identity()
         self.dense = model_dense
         for param in self.dense.parameters():
             param.requires_grad = False
@@ -127,8 +127,8 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/b_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
@@ -168,8 +168,10 @@ class SEUNet(nn.Module):
         # print(x_dense.shape)
         # print(x11.shape)
 
+        # return x13 
+
         if self.training:
-            return x13, x12, x_dense
+            return x13, x13, x_dense
         else:
             return x13
 
