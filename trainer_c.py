@@ -162,7 +162,7 @@ def importance_maps_distillation(s, t, exp=4):
 def distillation(outputs_s, outputs_t):
     distances_s = torch.cdist(outputs_s, outputs_s, p=2.0)
     distances_t = torch.cdist(outputs_t, outputs_t, p=2.0)
-    loss = torch.nn.functional.mse_loss(input=distances_s, target=distances_t)
+    loss = torch.norm(distances_t - distances_s, p=2.0)
     return loss * 0.001
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
