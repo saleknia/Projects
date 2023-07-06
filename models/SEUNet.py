@@ -40,51 +40,54 @@ class SEUNet(nn.Module):
         for param in model_0.parameters():
             param.requires_grad = False
 
-        ###############################################################################################
-        ###############################################################################################
-        model_1 = models.__dict__['resnet50'](num_classes=365)
-
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_1.load_state_dict(state_dict)
-
-        for param in model_1.parameters():
-            param.requires_grad = False
-
-        for param in model_1.layer4[-1].conv3.parameters():
+        for param in model_0.layer4[-1].conv3.parameters():
             param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
-        model_2 = models.__dict__['resnet50'](num_classes=365)
+        # model_1 = models.__dict__['resnet50'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_2.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model_1.load_state_dict(state_dict)
 
-        for param in model_2.parameters():
-            param.requires_grad = False
+        # for param in model_1.parameters():
+        #     param.requires_grad = False
 
-        for param in model_2.layer4[-1].conv3.parameters():
-            param.requires_grad = True
+        # for param in model_1.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
 
-        for param in model_2.layer4[-1].conv2.parameters():
-            param.requires_grad = True
+        ###############################################################################################
+        ###############################################################################################
+        # model_2 = models.__dict__['resnet50'](num_classes=365)
+
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model_2.load_state_dict(state_dict)
+
+        # for param in model_2.parameters():
+        #     param.requires_grad = False
+
+        # for param in model_2.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
+
+        # for param in model_2.layer4[-1].conv2.parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
 
-        model_3 = models.__dict__['resnet50'](num_classes=365)
+        # model_3 = models.__dict__['resnet50'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_3.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model_3.load_state_dict(state_dict)
 
-        for param in model_3.parameters():
-            param.requires_grad = False
+        # for param in model_3.parameters():
+        #     param.requires_grad = False
 
-        for param in model_3.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in model_3.layer4[-1].parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
@@ -100,33 +103,42 @@ class SEUNet(nn.Module):
         self.layer30 = model_0.layer3
 
         self.layer40 = model_0.layer4
-        self.layer41 = model_1.layer4
-        self.layer42 = model_2.layer4
-        self.layer43 = model_3.layer4
+        # self.layer41 = model_1.layer4
+        # self.layer42 = model_2.layer4
+        # self.layer43 = model_3.layer4
 
         self.avgpool_0 = model_0.avgpool
-        self.avgpool_1 = model_1.avgpool
-        self.avgpool_2 = model_2.avgpool
-        self.avgpool_3 = model_3.avgpool
+        # self.avgpool_1 = model_1.avgpool
+        # self.avgpool_2 = model_2.avgpool
+        # self.avgpool_3 = model_3.avgpool
 
         self.fc_0 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        self.fc_1 = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+        from mit_semseg.models import ModelBuilder
+        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        model.conv1.stride = (1, 1)
+        self.seg = model
+        self.avgpool_seg = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
-        self.fc_2 = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+        for param in self.seg.parameters():
+            param.requires_grad = True
 
-        self.fc_3 = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+        # self.fc_1 = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/b_best.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
+        # self.fc_2 = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True))
+
+        # self.fc_3 = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True))
+
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/c_best.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
@@ -138,6 +150,7 @@ class SEUNet(nn.Module):
 
         # x_dense = self.dense(x0)
         # x_res   = self.res(x0)
+        x_seg = self.avgpool_seg(self.seg(x0)[0])
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -148,27 +161,27 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        # x0 = self.layer40(x)
-        # x0 = self.avgpool_0(x0)
-        # x0 = x0.view(x0.size(0), -1)
-        # x0 = self.fc_0(x0)
+        x0 = self.layer40(x)
+        x0 = self.avgpool_0(x0) + x_seg
+        x0 = x0.view(x0.size(0), -1)
+        x0 = self.fc_0(x0)
 
         # x1 = self.layer41(x)
         # x1 = self.avgpool_1(x1)
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        x2 = self.layer42(x)
-        x2 = self.avgpool_2(x2)
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.fc_2(x2)
+        # x2 = self.layer42(x)
+        # x2 = self.avgpool_2(x2)
+        # x2 = x2.view(x2.size(0), -1)
+        # x2 = self.fc_2(x2)
 
         # x3 = self.layer43(x)
         # x3 = self.avgpool_3(x3)
         # x3 = x3.view(x3.size(0), -1)
         # x3 = self.fc_3(x3)
 
-        return x2
+        return x0
 
 
 def get_activation(activation_type):
