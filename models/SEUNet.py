@@ -165,8 +165,11 @@ class SEUNet(nn.Module):
         # x22 = x21.view(x21.size(0), -1)
         # x23 = self.fc_2(x22)
 
+        # print(x_dense.shape)
+        # print(x11.shape)
+
         if self.training:
-            return x13, x11, x_dense
+            return x13, x12, x_dense
         else:
             return x13
 
