@@ -40,7 +40,7 @@ class SEUNet(nn.Module):
         for param in model_0.parameters():
             param.requires_grad = False
 
-        for param in model_0.layer4[-1].conv3.parameters():
+        for param in model_0.layer4[-1].parameters():
             param.requires_grad = True
 
         ###############################################################################################
@@ -112,18 +112,27 @@ class SEUNet(nn.Module):
         # self.avgpool_2 = model_2.avgpool
         # self.avgpool_3 = model_3.avgpool
 
+        # self.fc_0 = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True))
+
         self.fc_0 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+            nn.Linear(in_features=2048, out_features=512, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=512 , out_features=256, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=256 , out_features=67 , bias=True),
+        )
 
-        from mit_semseg.models import ModelBuilder
-        model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
-        model.conv1.stride = (1, 1)
-        self.seg = model
-        self.avgpool_seg = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
+        # from mit_semseg.models import ModelBuilder
+        # model =  ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
+        # model.conv1.stride = (1, 1)
+        # self.seg = model
+        # self.avgpool_seg = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
-        for param in self.seg.parameters():
-            param.requires_grad = False
+        # for param in self.seg.parameters():
+        #     param.requires_grad = False
 
         # self.fc_1 = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -150,7 +159,7 @@ class SEUNet(nn.Module):
 
         # x_dense = self.dense(x0)
         # x_res   = self.res(x0)
-        x_seg = self.avgpool_seg(self.seg(x0)[0])
+        # x_seg = self.avgpool_seg(self.seg(x0)[0])
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -162,7 +171,7 @@ class SEUNet(nn.Module):
         x = self.layer30(x)
 
         x0 = self.layer40(x)
-        x0 = self.avgpool_0(x0) + x_seg
+        x0 = self.avgpool_0(x0) 
         x0 = x0.view(x0.size(0), -1)
         x0 = self.fc_0(x0)
 
