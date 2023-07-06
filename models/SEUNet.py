@@ -40,7 +40,7 @@ class SEUNet(nn.Module):
         for param in model_0.parameters():
             param.requires_grad = False
 
-        for param in model_0.layer4[-1].conv1.parameters():
+        for param in model_0.layer4[-1].conv3.parameters():
             param.requires_grad = True
 
         ###############################################################################################
@@ -53,6 +53,9 @@ class SEUNet(nn.Module):
 
         for param in model_1.parameters():
             param.requires_grad = False
+
+        for param in model_1.layer4[-1].conv3.parameters():
+            param.requires_grad = True
 
         for param in model_1.layer4[-1].conv2.parameters():
             param.requires_grad = True
@@ -69,6 +72,12 @@ class SEUNet(nn.Module):
             param.requires_grad = False
 
         for param in model_2.layer4[-1].conv3.parameters():
+            param.requires_grad = True
+            
+        for param in model_2.layer4[-1].conv2.parameters():
+            param.requires_grad = True
+
+        for param in model_2.layer4[-1].conv1.parameters():
             param.requires_grad = True
 
         ###############################################################################################
@@ -121,22 +130,22 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        x0 = self.layer40(x)
-        x0 = self.avgpool_0(x0) 
-        x0 = x0.view(x0.size(0), -1)
-        x0 = self.fc_0(x0)
+        # x0 = self.layer40(x)
+        # x0 = self.avgpool_0(x0) 
+        # x0 = x0.view(x0.size(0), -1)
+        # x0 = self.fc_0(x0)
 
         # x1 = self.layer41(x)
         # x1 = self.avgpool_1(x1)
         # x1 = x1.view(x1.size(0), -1)
         # x1 = self.fc_1(x1)
 
-        # x2 = self.layer42(x)
-        # x2 = self.avgpool_2(x2)
-        # x2 = x2.view(x2.size(0), -1)
-        # x2 = self.fc_2(x2)
+        x2 = self.layer42(x)
+        x2 = self.avgpool_2(x2)
+        x2 = x2.view(x2.size(0), -1)
+        x2 = self.fc_2(x2)
 
-        return x0
+        return x2
 
 
 def get_activation(activation_type):
