@@ -127,8 +127,8 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/b_best.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
@@ -150,15 +150,15 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        # x00 = self.layer40(x)
-        # x01 = self.avgpool_0(x00)
-        # x02 = x01.view(x01.size(0), -1)
-        # x03 = self.fc_0(x02)
+        x00 = self.layer40(x)
+        x01 = self.avgpool_0(x00)
+        x02 = x01.view(x01.size(0), -1)
+        x03 = self.fc_0(x02)
 
-        x10 = self.layer41(x)
-        x11 = self.avgpool_1(x10)
-        x12 = x11.view(x11.size(0), -1)
-        x13 = self.fc_1(x12)
+        # x10 = self.layer41(x)
+        # x11 = self.avgpool_1(x10)
+        # x12 = x11.view(x11.size(0), -1)
+        # x13 = self.fc_1(x12)
 
         # x20 = self.layer42(x)
         # x21 = self.avgpool_2(x20)
@@ -168,12 +168,12 @@ class SEUNet(nn.Module):
         # print(x_dense.shape)
         # print(x11.shape)
 
-        # return x13 
+        return x03 
 
-        if self.training:
-            return x13, x13, x_dense
-        else:
-            return x13
+        # if self.training:
+        #     return x13, x13, x_dense
+        # else:
+        #     return x13
 
 
 def get_activation(activation_type):
