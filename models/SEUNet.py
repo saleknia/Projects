@@ -165,7 +165,10 @@ class SEUNet(nn.Module):
         # x22 = x21.view(x21.size(0), -1)
         # x23 = self.fc_2(x22)
 
-        return x13, x11, x_res
+        if self.training:
+            return x13, x11, x_res
+        else:
+            return x13
 
 
 def get_activation(activation_type):
