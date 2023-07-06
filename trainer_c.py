@@ -222,7 +222,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
         # outputs = model(inputs)
-        outputs, outputs_t = model(inputs)
+        outputs, emb_s, emb_t = model(inputs)
 
         # outputs, x2, x3, outputs_t, x2_t, x3_t = model(inputs)
 
@@ -293,7 +293,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0.0
-        loss_disparity = rkd(outputs, outputs_t)
+        loss_disparity = rkd(emb_s, emb_t)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
@@ -360,11 +360,16 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
 class RKD(nn.Module):
 
-	def __init__(self):
+	def __init__(self, w_dist=25, w_angle=50):
 		super(RKD, self).__init__()
 
+		self.w_dist  = w_dist
+		self.w_angle = w_angle
+
 	def forward(self, feat_s, feat_t):
-		loss = self.rkd_dist(feat_s, feat_t)
+		loss = self.w_dist * self.rkd_dist(feat_s, feat_t) + \
+			   self.w_angle * self.rkd_angle(feat_s, feat_t)
+
 		return loss
 
 	def rkd_dist(self, feat_s, feat_t):
@@ -380,6 +385,20 @@ class RKD(nn.Module):
 
 		return loss
 
+	def rkd_angle(self, feat_s, feat_t):
+		# N x C --> N x N x C
+		feat_t_vd = (feat_t.unsqueeze(0) - feat_t.unsqueeze(1))
+		norm_feat_t_vd = F.normalize(feat_t_vd, p=2, dim=2)
+		feat_t_angle = torch.bmm(norm_feat_t_vd, norm_feat_t_vd.transpose(1, 2)).view(-1)
+
+		feat_s_vd = (feat_s.unsqueeze(0) - feat_s.unsqueeze(1))
+		norm_feat_s_vd = F.normalize(feat_s_vd, p=2, dim=2)
+		feat_s_angle = torch.bmm(norm_feat_s_vd, norm_feat_s_vd.transpose(1, 2)).view(-1)
+
+		loss = F.smooth_l1_loss(feat_s_angle, feat_t_angle)
+
+		return loss
+
 	def pdist(self, feat, squared=False, eps=1e-12):
 		feat_square = feat.pow(2).sum(dim=1)
 		feat_prod   = torch.mm(feat, feat.t())
@@ -392,7 +411,6 @@ class RKD(nn.Module):
 		feat_dist[range(len(feat)), range(len(feat))] = 0
 
 		return feat_dist
-
 
 
 
