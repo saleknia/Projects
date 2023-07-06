@@ -199,6 +199,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     else:
         ce_loss = CrossEntropyLoss(label_smoothing=0.0)
 
+    rkd = RKD()
+
     # disparity_loss = loss_function
     ##################################################################
 
@@ -219,8 +221,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        outputs = model(inputs)
-        # outputs, outputs_s, outputs_t = model(inputs)
+        # outputs = model(inputs)
+        outputs, outputs_s, outputs_t = model(inputs)
 
         # outputs, x2, x3, outputs_t, x2_t, x3_t = model(inputs)
 
@@ -290,8 +292,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
-        # loss_disparity = distillation(outputs_s, outputs_t)
+        # loss_disparity = 0.0
+        loss_disparity = rkd(outputs_s, outputs_t)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
@@ -356,6 +358,40 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if ckpt is not None:
         ckpt.save_last(acc=acc, acc_per_class=acc, epoch=epoch_num, net=model, optimizer=optimizer,lr_scheduler=lr_scheduler)
 
+class RKD(nn.Module):
+
+	def __init__(self):
+		super(RKD, self).__init__()
+
+	def forward(self, feat_s, feat_t):
+		loss = self.rkd_dist(feat_s, feat_t)
+		return loss
+
+	def rkd_dist(self, feat_s, feat_t):
+		feat_t_dist = self.pdist(feat_t, squared=False)
+		mean_feat_t_dist = feat_t_dist[feat_t_dist>0].mean()
+		feat_t_dist = feat_t_dist / mean_feat_t_dist
+
+		feat_s_dist = self.pdist(feat_s, squared=False)
+		mean_feat_s_dist = feat_s_dist[feat_s_dist>0].mean()
+		feat_s_dist = feat_s_dist / mean_feat_s_dist
+
+		loss = F.smooth_l1_loss(feat_s_dist, feat_t_dist)
+
+		return loss
+
+	def pdist(self, feat, squared=False, eps=1e-12):
+		feat_square = feat.pow(2).sum(dim=1)
+		feat_prod   = torch.mm(feat, feat.t())
+		feat_dist   = (feat_square.unsqueeze(0) + feat_square.unsqueeze(1) - 2 * feat_prod).clamp(min=eps)
+
+		if not squared:
+			feat_dist = feat_dist.sqrt()
+
+		feat_dist = feat_dist.clone()
+		feat_dist[range(len(feat)), range(len(feat))] = 0
+
+		return feat_dist
 
 
 

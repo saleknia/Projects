@@ -40,7 +40,7 @@ class SEUNet(nn.Module):
         for param in model_0.parameters():
             param.requires_grad = False
 
-        for param in model_0.layer4[-1].conv3.parameters():
+        for param in model_0.layer4[-1].parameters():
             param.requires_grad = True
 
         ###############################################################################################
@@ -54,10 +54,7 @@ class SEUNet(nn.Module):
         for param in model_1.parameters():
             param.requires_grad = False
 
-        for param in model_1.layer4[-1].conv3.parameters():
-            param.requires_grad = True
-
-        for param in model_1.layer4[-1].conv2.parameters():
+        for param in model_1.layer4[-1].parameters():
             param.requires_grad = True
 
         ###############################################################################################
@@ -71,14 +68,32 @@ class SEUNet(nn.Module):
         for param in model_2.parameters():
             param.requires_grad = False
 
-        for param in model_2.layer4[-1].conv3.parameters():
-            param.requires_grad = True
-            
-        for param in model_2.layer4[-1].conv2.parameters():
-            param.requires_grad = True
+        for param in model_2.layer4[-1].parameters():
+            param.requires_grad = True   
 
-        for param in model_2.layer4[-1].conv1.parameters():
-            param.requires_grad = True
+        ###############################################################################################
+        ###############################################################################################
+        model_dense = models.__dict__['densenet161'](num_classes=365)
+
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        model_dense.load_state_dict(state_dict)
+        model_dense.classifier = nn.Identity()
+        self.dense = model_dense
+        for param in self.dense.parameters():
+            param.requires_grad = False
+
+        model_res = models.__dict__['resnet50'](num_classes=365)
+
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_res.load_state_dict(state_dict)
+        model_res.fc = nn.Identity()
+        self.res = model_res
+        for param in self.res.parameters():
+            param.requires_grad = False
 
         ###############################################################################################
         ###############################################################################################
@@ -112,7 +127,7 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/c_best.pth', map_location='cpu')
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
         # self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
@@ -120,6 +135,11 @@ class SEUNet(nn.Module):
         
     def forward(self, x0):
         b, c, w, h = x0.shape
+
+        # x_m = self.mobile(x0)
+
+        x_dense = self.dense(x0)
+        # x_res   = self.res(x0)
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -130,22 +150,25 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        # x0 = self.layer40(x)
-        # x0 = self.avgpool_0(x0) 
-        # x0 = x0.view(x0.size(0), -1)
-        # x0 = self.fc_0(x0)
+        # x00 = self.layer40(x)
+        # x01 = self.avgpool_0(x00)
+        # x02 = x01.view(x01.size(0), -1)
+        # x03 = self.fc_0(x02)
 
-        # x1 = self.layer41(x)
-        # x1 = self.avgpool_1(x1)
-        # x1 = x1.view(x1.size(0), -1)
-        # x1 = self.fc_1(x1)
+        x10 = self.layer41(x)
+        x11 = self.avgpool_1(x10)
+        x12 = x11.view(x11.size(0), -1)
+        x13 = self.fc_1(x12)
 
-        x2 = self.layer42(x)
-        x2 = self.avgpool_2(x2)
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.fc_2(x2)
+        # x20 = self.layer42(x)
+        # x21 = self.avgpool_2(x20)
+        # x22 = x21.view(x21.size(0), -1)
+        # x23 = self.fc_2(x22)
 
-        return x2
+        if self.training:
+            return x13, x11, x_dense
+        else:
+            return x13
 
 
 def get_activation(activation_type):
@@ -168,7 +191,6 @@ class ConvBatchNorm(nn.Module):
         out = self.conv(x)
         out = self.norm(out)
         return self.activation(out)
-
 
 
 
