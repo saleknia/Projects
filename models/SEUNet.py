@@ -37,7 +37,6 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_0.load_state_dict(state_dict)
 
-
         for param in model_0.parameters():
             param.requires_grad = False
 
@@ -51,7 +50,6 @@ class SEUNet(nn.Module):
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_1.load_state_dict(state_dict)
-
 
         for param in model_1.parameters():
             param.requires_grad = False
@@ -129,8 +127,8 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_ensemble/SEUNet_MIT-67_best.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
@@ -141,7 +139,7 @@ class SEUNet(nn.Module):
         # x_m = self.mobile(x0)
 
         # x_dense = self.dense(x0)
-        # x_res   = self.res(x0)
+        x_res   = self.res(x0)
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -152,22 +150,22 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        x00 = self.layer40(x)
-        x01 = self.avgpool_0(x00)
-        x02 = x01.view(x01.size(0), -1)
-        x03 = self.fc_0(x02)
+        # x00 = self.layer40(x)
+        # x01 = self.avgpool_0(x00)
+        # x02 = x01.view(x01.size(0), -1)
+        # x03 = self.fc_0(x02)
 
-        # x10 = self.layer41(x)
-        # x11 = self.avgpool_1(x10)
-        # x12 = x11.view(x11.size(0), -1)
-        # x13 = self.fc_1(x12)
+        x10 = self.layer41(x)
+        x11 = self.avgpool_1(x10)
+        x12 = x11.view(x11.size(0), -1)
+        x13 = self.fc_1(x12)
 
         # x20 = self.layer42(x)
         # x21 = self.avgpool_2(x20)
         # x22 = x21.view(x21.size(0), -1)
         # x23 = self.fc_2(x22)
 
-        return x03
+        return x13, x11, x_res
 
 
 def get_activation(activation_type):
