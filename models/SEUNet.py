@@ -80,7 +80,7 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         model_dense.load_state_dict(state_dict)
-        model_dense.classifier = nn.Identity()
+        # model_dense.classifier = nn.Identity()
         self.dense = model_dense
         for param in self.dense.parameters():
             param.requires_grad = False
@@ -169,7 +169,7 @@ class SEUNet(nn.Module):
         # print(x11.shape)
 
         if self.training:
-            return x13, x12, x_dense
+            return x13, x_dense
         else:
             return x13
 

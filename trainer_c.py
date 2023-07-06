@@ -222,7 +222,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
         # outputs = model(inputs)
-        outputs, outputs_s, outputs_t = model(inputs)
+        outputs, outputs_t = model(inputs)
 
         # outputs, x2, x3, outputs_t, x2_t, x3_t = model(inputs)
 
@@ -293,7 +293,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0.0
-        loss_disparity = rkd(outputs_s, outputs_t)
+        loss_disparity = rkd(outputs, outputs_t)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
