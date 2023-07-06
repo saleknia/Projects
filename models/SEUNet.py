@@ -29,38 +29,74 @@ class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
 
+        ###############################################################################################
+        ###############################################################################################
         model_0 = models.__dict__['resnet50'](num_classes=365)
 
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_0.load_state_dict(state_dict)
 
+
+        for param in model_0.parameters():
+            param.requires_grad = False
+
+        for param in model_0.layer4[-1].parameters():
+            param.requires_grad = True
+
+        ###############################################################################################
+        ###############################################################################################
         model_1 = models.__dict__['resnet50'](num_classes=365)
 
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_1.load_state_dict(state_dict)
 
+
+        for param in model_1.parameters():
+            param.requires_grad = False
+
+        for param in model_1.layer4[-1].parameters():
+            param.requires_grad = True
+
+        ###############################################################################################
+        ###############################################################################################
         model_2 = models.__dict__['resnet50'](num_classes=365)
 
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_2.load_state_dict(state_dict)
 
-        for param in model_0.parameters():
-            param.requires_grad = False
-
-        for param in model_1.parameters():
-            param.requires_grad = False
-
         for param in model_2.parameters():
             param.requires_grad = False
 
-        for param in model_1.layer4[2:3].parameters():
-            param.requires_grad = True
+        for param in model_2.layer4[-1].parameters():
+            param.requires_grad = True   
 
-        for param in model_2.layer4[1:3].parameters():
-            param.requires_grad = True
+        ###############################################################################################
+        ###############################################################################################
+        model_dense = models.__dict__['densenet161'](num_classes=365)
+
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_dense.load_state_dict(state_dict)
+        model_dense.classifier = nn.Identity()
+        self.dense = model_dense
+        for param in self.dense.parameters():
+            param.requires_grad = False
+
+        model_res = models.__dict__['resnet50'](num_classes=365)
+
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model_res.load_state_dict(state_dict)
+        model_res.fc = nn.Identity()
+        self.res = model_res
+        for param in self.res.parameters():
+            param.requires_grad = False
+
+        ###############################################################################################
+        ###############################################################################################
 
         self.conv1   = model_0.conv1
         self.bn1     = model_0.bn1
@@ -70,8 +106,8 @@ class SEUNet(nn.Module):
         self.layer10 = model_0.layer1
         self.layer20 = model_0.layer2
         self.layer30 = model_0.layer3
-        self.layer40 = model_0.layer4
 
+        self.layer40 = model_0.layer4
         self.layer41 = model_1.layer4
         self.layer42 = model_2.layer4
 
@@ -91,15 +127,20 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_ensemble/SEUNet_MIT-67_best.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
-        self.mobile = mvit_teacher()
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_ensemble/SEUNet_MIT-67_best.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
+
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
         
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x_m = self.mobile(x0)
+
+        # x_m = self.mobile(x0)
+
+        # x_dense = self.dense(x0)
+        # x_res   = self.res(x0)
+
         x = self.conv1(x0)
         x = self.bn1(x)   
         x = self.relu(x)  
@@ -109,25 +150,22 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        x0 = self.layer40(x)
-        x0 = self.avgpool_0(x0)
-        x0 = x0.view(x0.size(0), -1)
-        x0 = self.fc_0(x0)
+        x00 = self.layer40(x)
+        x01 = self.avgpool_0(x00)
+        x02 = x01.view(x01.size(0), -1)
+        x03 = self.fc_0(x02)
 
-        x1 = self.layer41(x)
-        x1 = self.avgpool_1(x1)
-        x1 = x1.view(x1.size(0), -1)
-        x1 = self.fc_1(x1)
+        # x10 = self.layer41(x)
+        # x11 = self.avgpool_1(x10)
+        # x12 = x11.view(x11.size(0), -1)
+        # x13 = self.fc_1(x12)
 
-        x2 = self.layer42(x)
-        x2 = self.avgpool_2(x2)
-        x2 = x2.view(x2.size(0), -1)
-        x2 = self.fc_2(x2)
+        # x20 = self.layer42(x)
+        # x21 = self.avgpool_2(x20)
+        # x22 = x21.view(x21.size(0), -1)
+        # x23 = self.fc_2(x22)
 
-        return torch.softmax(x0 + x1, dim=1) + torch.softmax(x_m, dim=1)
-
-
-
+        return x03
 
 
 def get_activation(activation_type):
