@@ -160,10 +160,20 @@ def importance_maps_distillation(s, t, exp=4):
 #     return loss
  
 def distillation(outputs_s, outputs_t):
+
     distances_s = torch.cdist(outputs_s, outputs_s, p=2.0)
     distances_t = torch.cdist(outputs_t, outputs_t, p=2.0)
-    loss = torch.norm(distances_t - distances_s, p=2.0)
-    return loss * 0.001
+
+    distances_s = (distances_s - distances_s.min()) 
+    distances_t = (distances_t - distances_t.min())
+
+    distances_s = distances_s / (distances_s.max())
+    distances_t = distances_t / (distances_t.max())
+
+    # loss = torch.norm(distances_t - distances_s)
+    loss = torch.nn.functional.mse_loss(input=distances_s, target=distances_t) 
+
+    return loss
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)

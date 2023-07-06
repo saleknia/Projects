@@ -138,8 +138,8 @@ class SEUNet(nn.Module):
 
         # x_m = self.mobile(x0)
 
-        # x_dense = self.dense(x0)
-        x_res   = self.res(x0)
+        x_dense = self.dense(x0)
+        # x_res   = self.res(x0)
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -160,13 +160,15 @@ class SEUNet(nn.Module):
         x12 = x11.view(x11.size(0), -1)
         x13 = self.fc_1(x12)
 
+        # print(x_dense.shape)
+
         # x20 = self.layer42(x)
         # x21 = self.avgpool_2(x20)
         # x22 = x21.view(x21.size(0), -1)
         # x23 = self.fc_2(x22)
 
         if self.training:
-            return x13, x11, x_res
+            return x13, x12, x_dense
         else:
             return x13
 
