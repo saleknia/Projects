@@ -79,6 +79,8 @@ class SEUNet(nn.Module):
 
         checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         model_dense.load_state_dict(state_dict)
         model_dense.classifier = nn.Identity()
         self.dense = model_dense
