@@ -211,27 +211,25 @@ class Mobile_netV2(nn.Module):
         # self.load_state_dict(state_dict)
 
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_base', pretrained=True)
 
         self.model = model 
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
+        for param in self.model.stages[3].blocks[-1].parameters():
             param.requires_grad = True
 
-        self.model.head = nn.Identity()
-
-        self.classifier = nn.Sequential(
+        self.model.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        teacher = timm.create_model('mvitv2_base', pretrained=True)
-        self.teacher = teacher
-        self.teacher.head = nn.Identity()
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # teacher = timm.create_model('mvitv2_base', pretrained=True)
+        # self.teacher = teacher
+        # self.teacher.head = nn.Identity()
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -267,7 +265,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        emb_t = self.teacher(x0)
+        # emb_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # outputs_s = x.view(x.size(0), -1)
@@ -281,16 +279,16 @@ class Mobile_netV2(nn.Module):
         # x  = self.model(x0)
 
 
-        emb_s = self.model(x0)
+        x = self.model(x0)
 
-        x = self.classifier(emb_s)
+        # x = self.classifier(emb_s)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, emb_s, emb_t
-        else:
-            return x
+        # if self.training:
+        #     return x, emb_s, emb_t
+        # else:
+        #     return x
 
 
 class mvit_small(nn.Module):
