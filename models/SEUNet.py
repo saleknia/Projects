@@ -47,29 +47,15 @@ class SEUNet(nn.Module):
         ###############################################################################################
         model_1 = models.__dict__['resnet50'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_1.load_state_dict(state_dict)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model_1.load_state_dict(state_dict)
 
         for param in model_1.parameters():
             param.requires_grad = False
 
-        for param in model_1.layer4[-1].parameters():
-            param.requires_grad = True
-
-        ###############################################################################################
-        ###############################################################################################
-        model_2 = models.__dict__['resnet50'](num_classes=365)
-
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model_2.load_state_dict(state_dict)
-
-        for param in model_2.parameters():
-            param.requires_grad = False
-
-        for param in model_2.layer4[-1].parameters():
-            param.requires_grad = True   
+        for param in model_1.layer4.parameters():
+            param.requires_grad = True  
 
         ###############################################################################################
         ###############################################################################################
@@ -109,11 +95,9 @@ class SEUNet(nn.Module):
 
         self.layer40 = model_0.layer4
         self.layer41 = model_1.layer4
-        self.layer42 = model_2.layer4
 
         self.avgpool_0 = model_0.avgpool
         self.avgpool_1 = model_1.avgpool
-        self.avgpool_2 = model_2.avgpool
 
         self.fc_0 = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -123,11 +107,7 @@ class SEUNet(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        self.fc_2 = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
-
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/b_best.pth', map_location='cpu')
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
         # self.load_state_dict(checkpoint['net'])
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
@@ -168,7 +148,7 @@ class SEUNet(nn.Module):
         # print(x_dense.shape)
         # print(x11.shape)
 
-        # return x03 
+        # return x03 + x13
 
         if self.training:
             return x13, x12, x_dense
