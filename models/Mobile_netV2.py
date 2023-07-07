@@ -215,19 +215,17 @@ class Mobile_netV2(nn.Module):
 
         self.model = model 
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
         for param in self.model.parameters():
             param.requires_grad = False
 
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        self.model.head = torch.nn.Identity()
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        teacher = mvit_teacher()
+        teacher = timm.create_model('mvitv2_base', pretrained=True)
         self.teacher = teacher
         for param in self.teacher.parameters():
             param.requires_grad = False
@@ -266,7 +264,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        outputs_t = self.teacher(x0)
+        emb_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # outputs_s = x.view(x.size(0), -1)
@@ -280,16 +278,14 @@ class Mobile_netV2(nn.Module):
         # x  = self.model(x0)
 
 
-        outputs_s = self.model(x0)
-        # print(outputs_s.shape)
-        x         = self.classifier(outputs_s)
+        emb_s = self.model(x0)
 
         # return x
 
         if self.training:
-            return x, outputs_s, outputs_t
+            return emb_s, emb_s, emb_t
         else:
-            return x
+            return emb_s
 
 
 class mvit_small(nn.Module):
