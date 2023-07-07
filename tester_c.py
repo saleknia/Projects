@@ -45,6 +45,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
     loader = dataloader
+    model_outputs = []
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
@@ -59,6 +60,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # prob = torch.softmax(outputs, dim=1)
 
             # print(outputs)
+            model_outputs.append(outputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())
             loss = loss_ce
@@ -94,7 +96,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
         # acc = 100 * accuracy.avg
         # acc = 100 * accuracy.value().item()
 
-
+        torch.save(model_outputs, f='/content/outputs.pth')
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss: {loss_total.avg:.4f} , Accuracy: {acc:.2f}') 
 
 

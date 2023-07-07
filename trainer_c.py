@@ -199,6 +199,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     else:
         ce_loss = CrossEntropyLoss(label_smoothing=0.0)
 
+    rkd = RKD()
+
     # disparity_loss = loss_function
     ##################################################################
 
@@ -219,8 +221,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        outputs = model(inputs)
-        # outputs, emb_s, emb_t = model(inputs)
+        # outputs = model(inputs)
+        
+        outputs, emb_s, emb_t = model(inputs)
 
         # outputs, x2, x3, outputs_t, x2_t, x3_t = model(inputs)
 
@@ -290,8 +293,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
-        # loss_disparity = rkd(emb_s, emb_t)
+        # loss_disparity = 0.0
+        loss_disparity = rkd(emb_s, emb_t)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
@@ -358,7 +361,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
 class RKD(nn.Module):
 
-	def __init__(self, w_dist=25, w_angle=50):
+	def __init__(self, w_dist=50, w_angle=100):
 		super(RKD, self).__init__()
 
 		self.w_dist  = w_dist

@@ -225,6 +225,10 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
+
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
+        self.load_state_dict(state_dict)
+
         # teacher = timm.create_model('mvitv2_base', pretrained=True)
         # self.teacher = teacher
         # self.teacher.head = nn.Identity()

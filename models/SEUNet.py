@@ -80,7 +80,7 @@ class SEUNet(nn.Module):
         state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
         model_dense.load_state_dict(state_dict)
-        # model_dense.classifier = nn.Identity()
+        model_dense.classifier = nn.Identity()
         self.dense = model_dense
         for param in self.dense.parameters():
             param.requires_grad = False
@@ -138,7 +138,7 @@ class SEUNet(nn.Module):
 
         # x_m = self.mobile(x0)
 
-        # x_dense = self.dense(x0)
+        x_dense = self.dense(x0)
         # x_res   = self.res(x0)
 
         x = self.conv1(x0)
@@ -150,10 +150,10 @@ class SEUNet(nn.Module):
         x = self.layer20(x)
         x = self.layer30(x)
 
-        x00 = self.layer40(x)
-        x01 = self.avgpool_0(x00)
-        x02 = x01.view(x01.size(0), -1)
-        x03 = self.fc_0(x02)
+        # x00 = self.layer40(x)
+        # x01 = self.avgpool_0(x00)
+        # x02 = x01.view(x01.size(0), -1)
+        # x03 = self.fc_0(x02)
 
         x10 = self.layer41(x)
         x11 = self.avgpool_1(x10)
@@ -168,12 +168,12 @@ class SEUNet(nn.Module):
         # print(x_dense.shape)
         # print(x11.shape)
 
-        return x03 + x13
+        # return x03 + x13
 
-        # if self.training:
-        #     return x13, x13, x_dense
-        # else:
-        #     return x13
+        if self.training:
+            return x13, x12, x_dense
+        else:
+            return x13
 
 
 def get_activation(activation_type):
