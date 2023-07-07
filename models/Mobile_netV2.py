@@ -221,12 +221,15 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        self.model.head = nn.Sequential(
+        self.model.head = nn.Identity()
+
+        self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         teacher = timm.create_model('mvitv2_base', pretrained=True)
         self.teacher = teacher
+        self.teacher.head = nn.Identity()
         for param in self.teacher.parameters():
             param.requires_grad = False
 
@@ -280,12 +283,14 @@ class Mobile_netV2(nn.Module):
 
         emb_s = self.model(x0)
 
+        x = self.classifier(emb_s)
+
         # return x
 
         if self.training:
-            return emb_s, emb_s, emb_t
+            return x, emb_s, emb_t
         else:
-            return emb_s
+            return x
 
 
 class mvit_small(nn.Module):
