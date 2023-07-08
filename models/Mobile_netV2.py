@@ -213,7 +213,7 @@ class Mobile_netV2(nn.Module):
         # self.load_state_dict(state_dict)
 
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_small', pretrained=True)
 
         self.model = model 
 
@@ -227,11 +227,11 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.teacher = mvit_small()
+        # self.teacher = mvit_small()
         
         # self.teacher = mvit_tiny()
 
-        # self.teacher = mvit_teacher()
+        self.teacher = mvit_teacher()
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -318,7 +318,7 @@ class mvit_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small_self_distilled/MVITV2_small.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
