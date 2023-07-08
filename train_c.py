@@ -406,17 +406,17 @@ def main(args):
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
-        trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/train/', transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-
-        testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
-        test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
-
-        # trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
+        # trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/train/', transform=transform_train)
         # train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/', transform=transform_test)
+        # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
+
+        trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        testset = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/', transform=transform_test)
+        test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
