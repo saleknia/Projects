@@ -213,7 +213,7 @@ class Mobile_netV2(nn.Module):
         # self.load_state_dict(state_dict)
 
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model 
 
@@ -226,6 +226,8 @@ class Mobile_netV2(nn.Module):
         self.model.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        self.teacher = mvit_small()
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
@@ -262,7 +264,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # emb_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -280,25 +282,21 @@ class Mobile_netV2(nn.Module):
 
         # x = self.classifier(emb_s)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, emb_s, emb_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_small, self).__init__()
 
-        model = timm.create_model('mvitv2_large', pretrained=True)
+        model = timm.create_model('mvitv2_small', pretrained=True)
 
         self.model = model 
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -306,13 +304,15 @@ class mvit_small(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        self.model.head = torch.nn.Identity()
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')['net']
-        # self.load_state_dict(state_dict)
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint/MVIT_small_MIT-67_best.pth', map_location='cpu')['net']
+        self.load_state_dict(state_dict)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
