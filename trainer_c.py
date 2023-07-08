@@ -296,7 +296,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
         # loss_disparity = (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
