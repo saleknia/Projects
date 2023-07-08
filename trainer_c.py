@@ -221,9 +221,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        outputs = model(inputs)
+        # outputs = model(inputs)
 
-        # outputs, outputs_t = model(inputs)
+        outputs, outputs_t = model(inputs)
 
         # outputs, x2, x3, outputs_t, x2_t, x3_t = model(inputs)
 
@@ -243,9 +243,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
-        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0) + (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0)
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0) + (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0)
 
 
         # loss_ce = torch.nn.functional.cross_entropy(outputs, targets.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
@@ -296,8 +296,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # print(x3_t.shape)
 
         # loss_disparity = distillation(outputs, targets.long())
-        loss_disparity = 0.0
-        # loss_disparity = (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0)
+        # loss_disparity = 0.0
+        loss_disparity = (F.kl_div(F.log_softmax(outputs/4.0, dim=1),F.softmax(outputs_t/4.0, dim=1),reduction='batchmean') * 16.0)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 

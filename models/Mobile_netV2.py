@@ -229,6 +229,8 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = mvit_small()
 
+        self.teacher = mvit_teacher()
+
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
         # model = timm.create_model('convnextv2_nano.fcmae_ft_in1k', pretrained=True)
@@ -264,7 +266,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -282,12 +284,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.classifier(emb_s)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
@@ -325,7 +327,7 @@ class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_tiny, self).__init__()
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model 
 
@@ -342,7 +344,7 @@ class mvit_tiny(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_tiny/MVITV2_tiny.pth', map_location='cpu')['net']
         self.load_state_dict(state_dict)
 
     def forward(self, x0):
@@ -357,12 +359,12 @@ class mvit_teacher(nn.Module):
         super(mvit_teacher, self).__init__()
 
         self.small = mvit_small()
-        # self.tiny  = mvit_tiny()
+        self.tiny  = mvit_tiny()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.small(x0)
+        x = (self.small(x0) + self.tiny(x0)) / 2.0
 
         return x
 
