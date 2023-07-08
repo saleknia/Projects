@@ -297,13 +297,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = distillation(outputs, targets.long())
         # loss_disparity = 0.0
         temp = 4.0
+        alpha = 0.1
         loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
-        loss = loss_ce + loss_disparity
+        loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
         ###############################################
 
 
