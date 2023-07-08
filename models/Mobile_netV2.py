@@ -227,7 +227,7 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.teacher = mvit_small()
+        self.teacher = mvit_small()
         
         # self.teacher = mvit_tiny()
 
@@ -268,7 +268,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -286,12 +286,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.classifier(emb_s)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
