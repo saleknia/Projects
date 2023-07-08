@@ -227,9 +227,9 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.teacher = mvit_small()
+        self.teacher = mvit_small()
         
-        self.teacher = mvit_tiny()
+        # self.teacher = mvit_tiny()
 
         # self.teacher = mvit_teacher()
 
