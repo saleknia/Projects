@@ -84,7 +84,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.features[4:6].parameters():
+        for param in self.model.features[7].parameters():
             param.requires_grad = True
 
         for param in self.model.classifier.parameters():
