@@ -172,9 +172,9 @@ class SEUNet(nn.Module):
         for param in self.dense.parameters():
             param.requires_grad = False
 
-        for i, module in enumerate(model.features.denseblock4):
+        for i, module in enumerate(self.dense.features.denseblock4):
             if 8 < i: 
-                for param in model.features.denseblock4[module].parameters():
+                for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
         self.dense.classifier = nn.Sequential(
