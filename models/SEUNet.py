@@ -20,7 +20,7 @@ from PIL import Image
 import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
-from .Mobile_netV2 import Mobile_netV2, mvit_teacher
+from .Mobile_netV2 import Mobile_netV2, mvit_teacher, convnext_small, mvit_small
 from mit_semseg.models import ModelBuilder, SegmentationModule
 from mit_semseg.models import ModelBuilder
 from mit_semseg.models import ModelBuilder, SegmentationModule
@@ -155,6 +155,78 @@ from mit_semseg.models import ModelBuilder, SegmentationModule
 #         else:
 #             return x13
 
+# class SEUNet(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(SEUNet, self).__init__()
+
+#         model_dense = models.__dict__['densenet161'](num_classes=365)
+
+#         checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+#         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+#         state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+#         state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+#         model_dense.load_state_dict(state_dict)
+
+#         self.dense = model_dense
+
+#         for param in self.dense.parameters():
+#             param.requires_grad = False
+
+#         for i, module in enumerate(self.dense.features.denseblock4):
+#             if 20 <= i: 
+#                 for param in self.dense.features.denseblock4[module].parameters():
+#                     param.requires_grad = True
+
+#         self.dense.classifier = nn.Sequential(
+#             nn.Dropout(p=0.5, inplace=True),
+#             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+
+#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
+#         # self.load_state_dict(checkpoint['net'])
+
+#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
+#         # self.mobile.load_state_dict(checkpoint['net'])
+        
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
+
+#         x_dense = self.dense(x0)
+        
+#         return x_dense
+
+
+# class SEUNet(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(SEUNet, self).__init__()
+
+#         self.convnext = convnext_small()
+#         self.mvit = mvit_small()
+
+#         self.dense_1 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint/18_best.pth', map_location='cpu')
+#         self.dense_1.load_state_dict(checkpoint['net'])
+
+#         self.dense_2 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint/20_best.pth', map_location='cpu')
+#         self.dense_2.load_state_dict(checkpoint['net'])
+        
+#         self.dense_3 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint/22_best.pth', map_location='cpu')
+#         self.dense_3.load_state_dict(checkpoint['net'])
+        
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
+
+#         x_dense = torch.softmax(self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0), dim=1) 
+#         # x_trans = torch.softmax(self.mvit(x0) ,dim=1)
+#         # x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+#         # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+#         return x_dense
+
+
 class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
@@ -173,7 +245,7 @@ class SEUNet(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 20 <= i: 
+            if 22 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
