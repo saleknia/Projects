@@ -228,12 +228,15 @@ class SEUNet(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        
-        x_dense = torch.softmax(self.dense_1(x0)  ,dim=1) 
+
+        x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)) / 3.0 ,dim=1) 
         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
-        output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+        # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+
+        output = x_dense + x_trans + x_next
+
         return output
 
 
