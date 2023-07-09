@@ -211,14 +211,14 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512, out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256, out_features=num_classes, bias=True),
-        # )
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=256, out_features=num_classes, bias=True),
+        )
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
@@ -305,7 +305,7 @@ class Mobile_netV2(nn.Module):
 
         # x = self.classifier(emb_s)
 
-        x = (self.convnext(x0) + self.mvit(x0)) / 2.0
+        x = self.convnext(x0)
 
         return x
 
