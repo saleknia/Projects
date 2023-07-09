@@ -71,7 +71,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_small(weights='DEFAULT')
+        model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         self.model = model 
 
