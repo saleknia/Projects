@@ -175,6 +175,10 @@ class SEUNet(nn.Module):
         for param in self.dense.features.denseblock4.parameters():
             param.requires_grad = True
 
+        self.dense.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
         # self.load_state_dict(checkpoint['net'])
 
