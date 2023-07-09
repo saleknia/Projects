@@ -195,41 +195,41 @@ from mit_semseg.models import ModelBuilder, SegmentationModule
 #         return x_dense
 
 
+# class SEUNet(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(SEUNet, self).__init__()
+
+#         self.convnext = convnext_small()
+#         self.mvit = mvit_small()
+
+#         self.dense_1 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+#         self.dense_1.load_state_dict(checkpoint['net'])
+
+#         self.dense_2 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
+#         self.dense_2.load_state_dict(checkpoint['net'])
+        
+#         self.dense_3 = dense_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+#         self.dense_3.load_state_dict(checkpoint['net'])
+        
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
+
+#         x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)) / 3.0, dim=1) 
+#         x_trans = torch.softmax(self.mvit(x0) ,dim=1)
+#         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+#         output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+#         return output
+
+
 class SEUNet(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
-
-        self.convnext = convnext_small()
-        self.mvit = mvit_small()
-
-        self.dense_1 = dense_model()
-
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-        self.dense_1.load_state_dict(checkpoint['net'])
-
-        self.dense_2 = dense_model()
-
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
-        self.dense_2.load_state_dict(checkpoint['net'])
-        
-        self.dense_3 = dense_model()
-
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-        self.dense_3.load_state_dict(checkpoint['net'])
-        
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-
-        x_dense = torch.softmax(self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0), dim=1) 
-        # x_trans = torch.softmax(self.mvit(x0) ,dim=1)
-        # x_next  = torch.softmax(self.convnext(x0) ,dim=1)
-        # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
-        return x_dense
-
-
-class dense_model(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(dense_model, self).__init__()
+        super(SEUNet, self).__init__()
 
         model_dense = models.__dict__['densenet161'](num_classes=365)
 
@@ -245,7 +245,7 @@ class dense_model(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 22 <= i: 
+            if 19 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
