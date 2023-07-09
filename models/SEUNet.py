@@ -173,7 +173,7 @@ class SEUNet(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 8 < i: 
+            if 12 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
