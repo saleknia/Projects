@@ -71,7 +71,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_small(weights='DEFAULT')
 
         self.model = model 
 
@@ -259,7 +259,7 @@ class Mobile_netV2(nn.Module):
 
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
-
+        # self.model = convnext_teacher()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -391,6 +391,111 @@ class mvit_teacher(nn.Module):
         x = (self.small(x0) + self.tiny(x0)) / 2.0
 
         return x
+
+
+class convnext_small(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(convnext_small, self).__init__()
+
+        model = torchvision.models.convnext_small(weights='DEFAULT')
+
+        self.model = model 
+
+        self.model.classifier[2] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        self.model.classifier[0] = nn.Identity()
+        
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.features[7].parameters():
+            param.requires_grad = True
+
+        for param in self.model.classifier.parameters():
+            param.requires_grad = True
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
+        # self.load_state_dict(state_dict)
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+        # x = self.classifier(x)
+        return x # torch.softmax(x, dim=1)
+
+class convnext_tiny(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(convnext_tiny, self).__init__()
+
+        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+
+        self.model = model 
+
+        self.model.classifier[2] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        self.model.classifier[0] = nn.Identity()
+        
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.features[7].parameters():
+            param.requires_grad = True
+
+        for param in self.model.classifier.parameters():
+            param.requires_grad = True
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
+        # self.load_state_dict(state_dict)
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/tiny_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+        # x = self.classifier(x)
+        return x # torch.softmax(x, dim=1)
+
+
+class convnext_teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(convnext_teacher, self).__init__()
+
+        self.small = convnext_small()
+        self.tiny  = convnext_tiny()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = (self.small(x0) + self.tiny(x0)) / 2.0
+
+        return x
+
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
