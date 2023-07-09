@@ -218,21 +218,22 @@ class SEUNet(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
         self.dense_3.load_state_dict(checkpoint['net'])
 
-        self.dense_1 = tta.ClassificationTTAWrapper(self.dense_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        self.dense_2 = tta.ClassificationTTAWrapper(self.dense_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        self.dense_3 = tta.ClassificationTTAWrapper(self.dense_3, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        # self.dense_1 = tta.ClassificationTTAWrapper(self.dense_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        # self.dense_2 = tta.ClassificationTTAWrapper(self.dense_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        # self.dense_3 = tta.ClassificationTTAWrapper(self.dense_3, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
         
-        self.mvit = tta.ClassificationTTAWrapper(self.mvit, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        self.convnext = tta.ClassificationTTAWrapper(self.convnext, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        # self.mvit = tta.ClassificationTTAWrapper(self.mvit, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+        # self.convnext = tta.ClassificationTTAWrapper(self.convnext, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
 
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        with torch.autocast(device_type='cuda', dtype=torch.float16):
-            x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)), dim=1) 
-            x_trans = torch.softmax(self.mvit(x0) ,dim=1)
-            x_next  = torch.softmax(self.convnext(x0) ,dim=1)
-            output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+        
+        x_dense = torch.softmax(self.dense_1(x0)  ,dim=1) 
+        x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
+        x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+
+        output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
         return output
 
 
