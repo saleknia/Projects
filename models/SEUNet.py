@@ -242,9 +242,9 @@ import ttach as tta
 
 #         return output
 
-class dense_model_distilled(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(dense_model_distilled, self).__init__()
+        super(SEUNet, self).__init__()
 
         model_dense = models.__dict__['densenet161'](num_classes=365)
 
@@ -312,7 +312,7 @@ class dense_model(nn.Module):
         self.dense.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
-            
+
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
         self.load_state_dict(checkpoint['net'])
 
