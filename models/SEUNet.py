@@ -196,48 +196,54 @@ import ttach as tta
 #         return x_dense
 
 
-# class SEUNet(nn.Module):
-#     def __init__(self, num_classes=40, pretrained=True):
-#         super(SEUNet, self).__init__()
+class SEUNet(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(SEUNet, self).__init__()
 
-#         self.convnext = convnext_small()
-#         self.mvit = mvit_small()
+        self.convnext = convnext_small()
+        self.mvit = mvit_small()
 
-#         # self.convnext = convnext_tiny()
-#         # self.mvit = mvit_tiny()
+        # self.convnext = convnext_tiny()
+        # self.mvit = mvit_tiny()
 
-#         # self.teacher = teacher()
+        # self.teacher = teacher()
 
-#         self.dense_1 = dense_model()
+        self.dense = dense_model()
 
-#         self.dense_2 = dense_model()
+        # self.dense_2 = dense_model()
 
-#         self.dense_3 = dense_model()
+        # self.dense_3 = dense_model()
 
-#         checkpoint_dense_1 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
-#         self.dense_1.load_state_dict(checkpoint_dense_1['net'])
+        checkpoint_dense = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
+        pretrained_teacher = checkpoint_dense['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.dense.load_state_dict(pretrained_teacher)
 
-#         checkpoint_dense_2 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/21_best.pth', map_location='cpu')
-#         self.dense_2.load_state_dict(checkpoint_dense_2['net'])
 
-#         checkpoint_dense_3 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-#         self.dense_3.load_state_dict(checkpoint_dense_3['net'])
+        # checkpoint_dense_2 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/21_best.pth', map_location='cpu')
+        # self.dense_2.load_state_dict(checkpoint_dense_2['net'])
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-#         # self.dense_3.load_state_dict(checkpoint['net'])
+        # checkpoint_dense_3 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+        # self.dense_3.load_state_dict(checkpoint_dense_3['net'])
 
-#     def forward(self, x0):
-#         b, c, w, h = x0.shape
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+        # self.dense_3.load_state_dict(checkpoint['net'])
 
-#         x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)) / 3.0 ,dim=1) 
-#         # x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
-#         # x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+    def forward(self, x0):
+        b, c, w, h = x0.shape
 
-#         # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+        x_dense = torch.softmax(self.dense(x0)    ,dim=1) 
+        x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
+        x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
-#         # output = x_dense + x_trans + x_next
+        output  = torch.softmax(torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1), dim=1) 
 
-#         return x_dense
+        # output = x_dense + x_trans + x_next
+
+        return output
 
 # class SEUNet(nn.Module):
 #     def __init__(self, num_classes=67, pretrained=True):
@@ -364,8 +370,8 @@ class res_model(nn.Module):
 
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_best.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
         # for param in self.parameters():
         #     param.requires_grad = False
