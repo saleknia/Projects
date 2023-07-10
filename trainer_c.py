@@ -304,8 +304,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
-        loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
-        # loss = loss_ce + loss_disparity
+        # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
+        loss = loss_ce + loss_disparity
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
