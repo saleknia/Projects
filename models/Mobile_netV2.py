@@ -71,7 +71,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_small(weights='DEFAULT')
 
         self.model = model 
 
@@ -99,7 +99,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.classifier.parameters():
             param.requires_grad = True
 
-        self.teacher = convnext_teacher()
+        # self.teacher = convnext_teacher()
+        self.teacher = convnext_small()
 
         ############################################################
         ############################################################

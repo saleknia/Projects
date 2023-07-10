@@ -196,42 +196,41 @@ import ttach as tta
 #         return x_dense
 
 
-# class SEUNet(nn.Module):
-#     def __init__(self, num_classes=40, pretrained=True):
-#         super(SEUNet, self).__init__()
+class SEUNet(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(SEUNet, self).__init__()
 
-#         self.convnext = convnext_small()
-#         self.mvit = mvit_small()
+        self.convnext = convnext_small()
+        self.mvit = mvit_small()
 
-#         # self.convnext = convnext_tiny()
-#         # self.mvit = mvit_tiny()
+        # self.convnext = convnext_tiny()
+        # self.mvit = mvit_tiny()
 
-#         # self.teacher = teacher()
+        # self.teacher = teacher()
 
-#         self.res_1 = res_model()
-#         self.res_2 = res_model()
+        self.dense = dense_model()
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_1_best.pth', map_location='cpu')
-#         self.res_1.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+        self.dense.load_state_dict(checkpoint['net'])
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_2_best.pth', map_location='cpu')
-#         self.res_2.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_2_best.pth', map_location='cpu')
+        # self.res_2.load_state_dict(checkpoint['net'])
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-#         # self.dense_3.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+        # self.dense_3.load_state_dict(checkpoint['net'])
 
-#     def forward(self, x0):
-#         b, c, w, h = x0.shape
+    def forward(self, x0):
+        b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax(self.res_1(x0) + self.res_2(x0) ,dim=1) 
-#         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
-#         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+        x_dense = torch.softmax(self.dense(x0)    ,dim=1) 
+        x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
+        x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
-#         output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+        output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
 
-#         # output = x_dense + x_trans + x_next
+        # output = x_dense + x_trans + x_next
 
-#         return output
+        return output
 
 # class SEUNet(nn.Module):
 #     def __init__(self, num_classes=67, pretrained=True):
@@ -320,9 +319,9 @@ class dense_model(nn.Module):
         
         return x_dense
 
-class SEUNet(nn.Module):
+class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
