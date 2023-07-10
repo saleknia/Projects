@@ -242,9 +242,9 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = mvit_small()
         
-        # self.teacher = mvit_tiny()
+        self.teacher = mvit_tiny()
 
-        self.teacher = mvit_teacher()
+        # self.teacher = mvit_teacher()
 
         #################################################################################
         #################################################################################
@@ -378,7 +378,7 @@ class mvit_tiny(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_tiny/MVITV2_tiny.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/tiny_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/tiny_distilled_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
