@@ -196,52 +196,52 @@ import ttach as tta
 #         return x_dense
 
 
-class SEUNet(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+# class SEUNet(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(SEUNet, self).__init__()
 
-        # self.convnext = convnext_small()
-        # self.mvit = mvit_small()
+#         # self.convnext = convnext_small()
+#         # self.mvit = mvit_small()
 
 
-        self.convnext = convnext_tiny()
-        self.mvit = mvit_tiny()
+#         self.convnext = convnext_tiny()
+#         self.mvit = mvit_tiny()
 
-        self.dense_1 = dense_model()
+#         self.dense_1 = dense_model()
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-        self.dense_1.load_state_dict(checkpoint['net'])
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+#         self.dense_1.load_state_dict(checkpoint['net'])
 
-        self.dense_2 = dense_model()
+#         self.dense_2 = dense_model()
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
-        self.dense_2.load_state_dict(checkpoint['net'])
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
+#         self.dense_2.load_state_dict(checkpoint['net'])
         
-        self.dense_3 = dense_model()
+#         self.dense_3 = dense_model()
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-        self.dense_3.load_state_dict(checkpoint['net'])
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+#         self.dense_3.load_state_dict(checkpoint['net'])
 
-        # self.dense_1 = tta.ClassificationTTAWrapper(self.dense_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        # self.dense_2 = tta.ClassificationTTAWrapper(self.dense_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        # self.dense_3 = tta.ClassificationTTAWrapper(self.dense_3, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+#         # self.dense_1 = tta.ClassificationTTAWrapper(self.dense_1, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+#         # self.dense_2 = tta.ClassificationTTAWrapper(self.dense_2, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+#         # self.dense_3 = tta.ClassificationTTAWrapper(self.dense_3, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
         
-        # self.mvit = tta.ClassificationTTAWrapper(self.mvit, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
-        # self.convnext = tta.ClassificationTTAWrapper(self.convnext, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+#         # self.mvit = tta.ClassificationTTAWrapper(self.mvit, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
+#         # self.convnext = tta.ClassificationTTAWrapper(self.convnext, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
 
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
 
-        x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)) / 3.0 ,dim=1) 
-        x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
-        x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+#         x_dense = torch.softmax(self.dense_1(x0)  ,dim=1) 
+#         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
+#         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
-        # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+#         output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
 
-        output = x_dense + x_trans + x_next
+#         # output = x_dense + x_trans + x_next
 
-        return output
+#         return output
 
 
 class dense_model(nn.Module):
@@ -283,6 +283,62 @@ class dense_model(nn.Module):
         
         return x_dense
 
+class SEUNet(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(SEUNet, self).__init__()
+
+        ###############################################################################################
+        ###############################################################################################
+        model = models.__dict__['resnet50'](num_classes=365)
+
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model.load_state_dict(state_dict)
+
+        for param in model.parameters():
+            param.requires_grad = False
+
+        for param in model.layer4.conv2.parameters():
+            param.requires_grad = True
+
+        for param in model.layer4.conv3.parameters():
+            param.requires_grad = True
+
+        ###############################################################################################
+        ###############################################################################################
+
+        self.conv1   = model.conv1
+        self.bn1     = model.bn1
+        self.relu    = model.relu 
+        self.maxpool = model.maxpool
+
+        self.layer1 = model.layer1
+        self.layer2 = model.layer2
+        self.layer3 = model.layer3
+        self.layer4 = model.layer4
+
+        self.avgpool = model.avgpool
+
+        self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
+        
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.conv1(x0)
+        x = self.bn1(x)   
+        x = self.relu(x)  
+        x = self.maxpool(x)
+
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x = self.layer3(x)
+        x = self.layer4(x)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+
+        return x
 
 def get_activation(activation_type):
     activation_type = activation_type.lower()
