@@ -206,17 +206,16 @@ import ttach as tta
 #         # self.convnext = convnext_tiny()
 #         # self.mvit = mvit_tiny()
 
-#         self.teacher = teacher()
+#         # self.teacher = teacher()
 
-#         # self.dense_1 = dense_model()
-#         # self.dense_2 = dense_model()
-#         # self.dense_3 = dense_model()
+#         self.res_1 = res_model()
+#         self.res_2 = res_model()
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-#         # self.dense_1.load_state_dict(checkpoint['net'])
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_1_best.pth', map_location='cpu')
+#         self.res_1.load_state_dict(checkpoint['net'])
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
-#         # self.dense_2.load_state_dict(checkpoint['net'])
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_2_best.pth', map_location='cpu')
+#         self.res_2.load_state_dict(checkpoint['net'])
 
 #         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
 #         # self.dense_3.load_state_dict(checkpoint['net'])
@@ -224,7 +223,7 @@ import ttach as tta
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax(self.teacher(x0)  ,dim=1) 
+#         x_dense = torch.softmax(self.res_1(x0) + self.res_2(x0) ,dim=1) 
 #         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
 #         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
