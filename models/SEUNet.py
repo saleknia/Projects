@@ -310,8 +310,8 @@ class dense_model(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
         self.load_state_dict(checkpoint['net'])
 
-        # for param in self.dense.parameters():
-        #     param.requires_grad = False
+        for param in self.dense.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
