@@ -20,7 +20,7 @@ from PIL import Image
 import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
-from .Mobile_netV2 import Mobile_netV2, mvit_teacher, convnext_small, mvit_small
+from .Mobile_netV2 import Mobile_netV2, mvit_teacher, convnext_small, mvit_small, convnext_tiny, mvit_tiny
 from mit_semseg.models import ModelBuilder, SegmentationModule
 from mit_semseg.models import ModelBuilder
 from mit_semseg.models import ModelBuilder, SegmentationModule
@@ -200,8 +200,12 @@ class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
 
-        self.convnext = convnext_small()
-        self.mvit = mvit_small()
+        # self.convnext = convnext_small()
+        # self.mvit = mvit_small()
+
+
+        self.convnext = convnext_tiny()
+        self.mvit = mvit_tiny()
 
         self.dense_1 = dense_model()
 
