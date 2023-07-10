@@ -208,15 +208,20 @@ import ttach as tta
 
 #         # self.teacher = teacher()
 
-#         self.dense = dense_model()
+#         self.dense_1 = dense_model()
 
-#         self.res   = res_model()
+#         self.dense_2 = dense_model()
 
-#         checkpoint_dense = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-#         self.dense.load_state_dict(checkpoint_dense['net'])
+#         self.dense_3 = dense_model()
 
-#         checkpoint_res = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_2_best.pth', map_location='cpu')
-#         self.res.load_state_dict(checkpoint_res['net'])
+#         checkpoint_dense_1 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/20_best.pth', map_location='cpu')
+#         self.dense_1.load_state_dict(checkpoint_dense_1['net'])
+
+#         checkpoint_dense_2 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/21_best.pth', map_location='cpu')
+#         self.dense_2.load_state_dict(checkpoint_dense_2['net'])
+
+#         checkpoint_dense_3 = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+#         self.dense_3.load_state_dict(checkpoint_dense_3['net'])
 
 #         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
 #         # self.dense_3.load_state_dict(checkpoint['net'])
@@ -224,15 +229,15 @@ import ttach as tta
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax((self.dense(x0) + self.res(x0)) / 2.0 ,dim=1) 
-#         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
-#         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+#         x_dense = torch.softmax((self.dense_1(x0) + self.dense_2(x0) + self.dense_3(x0)) / 3.0 ,dim=1) 
+#         # x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
+#         # x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
-#         output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
+#         # output  = torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1) 
 
 #         # output = x_dense + x_trans + x_next
 
-#         return output
+#         return x_dense
 
 # class SEUNet(nn.Module):
 #     def __init__(self, num_classes=67, pretrained=True):
@@ -321,9 +326,9 @@ class dense_model(nn.Module):
         
         return x_dense
 
-class SEUNet(nn.Module):
+class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -336,11 +341,11 @@ class SEUNet(nn.Module):
         for param in model.parameters():
             param.requires_grad = False
 
-        for param in model.layer4[-1].conv1.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv1.parameters():
+        #     param.requires_grad = True
 
-        for param in model.layer4[-1].conv2.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
