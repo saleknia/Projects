@@ -244,9 +244,9 @@ import ttach as tta
 #         return output
 
 
-class dense_model(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(dense_model, self).__init__()
+        super(SEUNet, self).__init__()
 
         model_dense = models.__dict__['densenet161'](num_classes=365)
 
@@ -262,7 +262,7 @@ class dense_model(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 21 <= i: 
+            if 18 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
@@ -275,17 +275,24 @@ class dense_model(nn.Module):
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         # self.mobile.load_state_dict(checkpoint['net'])
+
+        self.teacher = res_model()
         
     def forward(self, x0):
         b, c, w, h = x0.shape
 
+        x_t = self.teacher(x0)
+
         x_dense = self.dense(x0)
         
-        return x_dense
+        if self.training:
+            return x_dense, x_t
+        else:
+            return x_dense
 
-class SEUNet(nn.Module):
+class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -320,7 +327,10 @@ class SEUNet(nn.Module):
         self.avgpool = model.avgpool
 
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
-        
+
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
