@@ -202,13 +202,32 @@ import ttach as tta
 
 #         self.convnext = convnext_small()
 #         self.mvit = mvit_small()
-#         self.teacher = teacher()
+#         # self.teacher = teacher()
 
+#         self.res_model_1 = res_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
+#         pretrained_teacher = checkpoint['net']
+#         a = pretrained_teacher.copy()
+#         for key in a.keys():
+#             if 'teacher' in key:
+#                 pretrained_teacher.pop(key)
+#         self.res_model_1.load_state_dict(pretrained_teacher)
+
+#         self.res_model_2 = res_model()
+
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
+#         pretrained_teacher = checkpoint['net']
+#         a = pretrained_teacher.copy()
+#         for key in a.keys():
+#             if 'teacher' in key:
+#                 pretrained_teacher.pop(key)
+#         self.res_model_2.load_state_dict(pretrained_teacher)
 
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax(self.teacher(x0)  ,dim=1) 
+        # x_dense = torch.softmax((self.res_model_1(x0) + self.res_model_2(x0)) / 2.0 ,dim=1) 
 #         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
 #         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
 
@@ -340,11 +359,11 @@ class res_model(nn.Module):
 
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
-        for param in self.parameters():
-            param.requires_grad = False
+        # for param in self.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
