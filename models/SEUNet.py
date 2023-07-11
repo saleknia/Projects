@@ -214,9 +214,9 @@ import ttach as tta
 #                 pretrained_teacher.pop(key)
 #         self.res_model_1.load_state_dict(pretrained_teacher)
 
-#         self.res_model_2 = res_model()
+#         self.res_model_2 = dense_model()
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
 #         pretrained_teacher = checkpoint['net']
 #         a = pretrained_teacher.copy()
 #         for key in a.keys():
@@ -236,7 +236,7 @@ import ttach as tta
 #         output_dense  = torch.softmax((torch.softmax(torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1), dim=1)), dim=1)
 #         output_res50  = torch.softmax((torch.softmax(torch.softmax(x_res50 + x_trans,dim=1) + torch.softmax(x_res50 + x_next,dim=1), dim=1)), dim=1)
 
-#         output = output_dense 
+#         output = output_dense + output_res50
 
 #         # output = self.teacher(x0)
 
@@ -364,11 +364,11 @@ class res_model(nn.Module):
 
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
-        # for param in self.parameters():
-        #     param.requires_grad = False
+        for param in self.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -465,13 +465,13 @@ class teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(teacher, self).__init__()
         self.dense = dense_model()
-        # self.res50 = res_model()
+        self.res50 = res_model()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # output = (self.dense(x0) + self.res50(x0)) / 2.0
-        output = self.dense(x0)
+        output = (self.dense(x0) + self.res50(x0)) / 2.0
+        # output = self.dense(x0)
         return output
 
 def get_activation(activation_type):
