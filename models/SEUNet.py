@@ -402,9 +402,9 @@ class SEUNet(nn.Module):
         for param in model_50.parameters():
             param.requires_grad = False
 
-        model_18 = models.__dict__['resnet50'](num_classes=365)
+        model_18 = models.__dict__['resnet18'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        checkpoint = torch.load('/content/resnet18_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model_18.load_state_dict(state_dict)
 
@@ -437,11 +437,6 @@ class SEUNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        self.layer4 = nn.Sequential(
-            self.adapter,
-            self.layer4,
-        )
-
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
         # pretrained_teacher = checkpoint['net']
         # a = pretrained_teacher.copy()
@@ -463,6 +458,7 @@ class SEUNet(nn.Module):
         x = self.layer1(x)
         x = self.layer2(x)
         x = self.layer3(x)
+        x = self.adapter(x)
         x = self.layer4(x)
 
         x = self.avgpool(x)

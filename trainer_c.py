@@ -220,15 +220,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
-        outputs, outputs_t = model(inputs)
+        # outputs, outputs_t = model(inputs)
 
         ################################################################
         ################################################################
-        weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0) + 1.0
-        loss_ce = F.cross_entropy(outputs  , targets.long(), reduce=False, label_smoothing=0.0) * weights
-        loss_ce = torch.mean(loss_ce)
+        # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0) + 1.0
+        # loss_ce = F.cross_entropy(outputs  , targets.long(), reduce=False, label_smoothing=0.0) * weights
+        # loss_ce = torch.mean(loss_ce)
         ################################################################
         ################################################################
 
@@ -250,7 +250,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
         
         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
