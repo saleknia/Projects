@@ -227,11 +227,16 @@ import ttach as tta
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-        # x_dense = torch.softmax((self.res_model_1(x0) + self.res_model_2(x0)) / 2.0 ,dim=1) 
-#         x_trans = torch.softmax(self.mvit(x0)     ,dim=1)
-#         x_next  = torch.softmax(self.convnext(x0) ,dim=1)
+#         x_dense = torch.softmax(self.res_model_2(x0) ,dim=1) 
+#         x_res50 = torch.softmax(self.res_model_1(x0) ,dim=1) 
 
-#         output  = torch.softmax(torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1), dim=1) 
+#         x_trans = torch.softmax(self.mvit(x0)        ,dim=1)
+#         x_next  = torch.softmax(self.convnext(x0)    ,dim=1)
+
+#         output_dense  = torch.softmax((torch.softmax(torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1), dim=1)), dim=1)
+#         output_res50  = torch.softmax((torch.softmax(torch.softmax(x_res50 + x_trans,dim=1) + torch.softmax(x_res50 + x_next,dim=1), dim=1)), dim=1)
+
+#         output = output_dense 
 
 #         # output = self.teacher(x0)
 
