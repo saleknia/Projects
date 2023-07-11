@@ -302,9 +302,9 @@ class dense_model(nn.Module):
         
         return x_dense
 
-class res_model(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(res_model, self).__init__()
+        super(SEUNet, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -365,9 +365,9 @@ class res_model(nn.Module):
 
         return x
 
-class SEUNet(nn.Module):
+class res_model_distilled(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model_distilled, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
