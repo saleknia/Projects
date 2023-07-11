@@ -313,7 +313,7 @@ class dense_model(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/24_best.pth', map_location='cpu')
         self.load_state_dict(checkpoint['net'])
 
         for param in self.dense.parameters():
@@ -325,6 +325,11 @@ class dense_model(nn.Module):
         x_dense = self.dense(x0)
         
         return x_dense
+
+from torchvision import transforms
+
+transform_train = transforms.Resize((384, 384))
+
 
 class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -372,7 +377,7 @@ class res_model(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-
+        x0 = transform_train(x0)
         x = self.conv1(x0)
         x = self.bn1(x)   
         x = self.relu(x)  
@@ -468,14 +473,14 @@ class SEUNet(nn.Module):
 class teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(teacher, self).__init__()
-        self.dense = dense_model()
+        # self.dense = dense_model()
         self.res50 = res_model()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        output = (self.dense(x0) + self.res50(x0)) / 2.0
-        # output = self.dense(x0)
+        # output = (self.dense(x0) + self.res50(x0)) / 2.0
+        output = self.res50(x0)
         return output
 
 def get_activation(activation_type):
