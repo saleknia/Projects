@@ -432,18 +432,14 @@ class SEUNet(nn.Module):
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
 
         self.adapter = nn.Sequential(
-            [
-                nn.Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False),
-                nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
-                nn.ReLU(inplace=True)
-            ]
+            nn.Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.ReLU(inplace=True)
         )
 
         self.layer4 = nn.Sequential(
-            [
-                self.adapter,
-                self.layer4
-            ]
+            self.adapter,
+            self.layer4,
         )
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
