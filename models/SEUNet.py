@@ -328,12 +328,10 @@ class dense_model(nn.Module):
 
 from torchvision import transforms
 
-transform_train = transforms.Resize((384, 384))
 
-
-class res_model(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(res_model, self).__init__()
+        super(SEUNet, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -377,7 +375,6 @@ class res_model(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x0 = transform_train(x0)
         x = self.conv1(x0)
         x = self.bn1(x)   
         x = self.relu(x)  
@@ -394,80 +391,80 @@ class res_model(nn.Module):
 
         return x
 
-class SEUNet(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+# class SEUNet(nn.Module):
+#     def __init__(self, num_classes=40, pretrained=True):
+#         super(SEUNet, self).__init__()
 
-        ###############################################################################################
-        ###############################################################################################
-        model = models.__dict__['resnet50'](num_classes=365)
+#         ###############################################################################################
+#         ###############################################################################################
+#         model = models.__dict__['resnet50'](num_classes=365)
 
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        model.load_state_dict(state_dict)
+#         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+#         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+#         model.load_state_dict(state_dict)
 
-        for param in model.parameters():
-            param.requires_grad = False
+#         for param in model.parameters():
+#             param.requires_grad = False
 
-        for param in model.layer4[-1].conv2.parameters():
-            param.requires_grad = True
+#         for param in model.layer4[-1].conv2.parameters():
+#             param.requires_grad = True
 
-        for param in model.layer4[-1].conv3.parameters():
-            param.requires_grad = True
+#         for param in model.layer4[-1].conv3.parameters():
+#             param.requires_grad = True
 
-        ###############################################################################################
-        ###############################################################################################
+#         ###############################################################################################
+#         ###############################################################################################
 
-        self.conv1   = model.conv1
-        self.bn1     = model.bn1
-        self.relu    = model.relu 
-        self.maxpool = model.maxpool
+#         self.conv1   = model.conv1
+#         self.bn1     = model.bn1
+#         self.relu    = model.relu 
+#         self.maxpool = model.maxpool
 
-        self.layer1 = model.layer1
-        self.layer2 = model.layer2
-        self.layer3 = model.layer3
-        self.layer4 = model.layer4
+#         self.layer1 = model.layer1
+#         self.layer2 = model.layer2
+#         self.layer3 = model.layer3
+#         self.layer4 = model.layer4
 
-        self.avgpool = model.avgpool
+#         self.avgpool = model.avgpool
 
-        self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
+#         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
-        # pretrained_teacher = checkpoint['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
+#         # pretrained_teacher = checkpoint['net']
+#         # a = pretrained_teacher.copy()
+#         # for key in a.keys():
+#         #     if 'teacher' in key:
+#         #         pretrained_teacher.pop(key)
+#         # self.load_state_dict(pretrained_teacher)
 
-        # for param in self.parameters():
-        #     param.requires_grad = False
+#         # for param in self.parameters():
+#         #     param.requires_grad = False
 
-        self.teacher = teacher()
+#         self.teacher = teacher()
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
 
-        x = self.conv1(x0)
-        x = self.bn1(x)   
-        x = self.relu(x)  
-        x = self.maxpool(x)
+#         x = self.conv1(x0)
+#         x = self.bn1(x)   
+#         x = self.relu(x)  
+#         x = self.maxpool(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
-        x = self.layer4(x)
+#         x = self.layer1(x)
+#         x = self.layer2(x)
+#         x = self.layer3(x)
+#         x = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+#         x = self.avgpool(x)
+#         x = x.view(x.size(0), -1)
+#         x = self.fc(x)
 
-        x_t = self.teacher(x0)
+#         x_t = self.teacher(x0)
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+#         if self.training:
+#             return x, x_t
+#         else:
+#             return x
         
 
 class teacher(nn.Module):
