@@ -411,29 +411,34 @@ class SEUNet(nn.Module):
         for param in model_18.parameters():
             param.requires_grad = False
 
-        for param in model_18.layer4.parameters():
-            param.requires_grad = True
+        # for param in model_18.layer4.parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
 
-        self.conv1   = model_50.conv1
-        self.bn1     = model_50.bn1
-        self.relu    = model_50.relu 
-        self.maxpool = model_50.maxpool
+        self.conv1_50   = model_50.conv1
+        self.bn1_50     = model_50.bn1
+        self.relu_50    = model_50.relu 
+        self.maxpool_50 = model_50.maxpool
 
-        self.layer1 = model_50.layer1
-        self.layer2 = model_50.layer2
-        self.layer3 = model_50.layer3
-        self.layer4 = model_18.layer4
+        self.layer1_50 = model_50.layer1
+        self.layer2_50 = model_50.layer2
+        self.layer3_50 = model_50.layer3
 
-        self.avgpool = model_50.avgpool
+        self.conv1_18   = model_18.conv1
+        self.bn1_18     = model_18.bn1
+        self.relu_18    = model_18.relu 
+        self.maxpool_18 = model_18.maxpool
 
-        self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=67, bias=True))
+        self.layer1_18 = model_18.layer1
+        self.layer2_18 = model_18.layer2
+        self.layer3_18 = model_18.layer3
+
 
         self.adapter = nn.Sequential(
-            nn.Conv2d(1024, 512, kernel_size=(1, 1), stride=(1, 1), bias=False),
-            nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            nn.Conv2d(1024, 256, kernel_size=(1, 1), stride=(1, 1), bias=False),
+            nn.BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
             nn.ReLU(inplace=True)
         )
 
@@ -450,22 +455,26 @@ class SEUNet(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x = self.conv1(x0)
-        x = self.bn1(x)   
-        x = self.relu(x)  
-        x = self.maxpool(x)
+        x = self.conv1_50(x0)
+        x = self.bn1_50(x)   
+        x = self.relu_50(x)  
+        x = self.maxpool_50(x)
 
-        x = self.layer1(x)
-        x = self.layer2(x)
-        x = self.layer3(x)
+        x = self.layer1_50(x)
+        x = self.layer2_50(x)
+        x = self.layer3_50(x)
         x = self.adapter(x)
-        x = self.layer4(x)
+    
+        y = self.conv1_50(x0)
+        y = self.bn1_50(y)   
+        y = self.relu_50(y)  
+        y = self.maxpool_50(y)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        y = self.layer1_50(y)
+        y = self.layer2_50(y)
+        y = self.layer3_50(y)
 
-        return x
+        return x, y
 
 # class SEUNet(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
