@@ -441,7 +441,7 @@ class teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(teacher, self).__init__()
         self.dense = dense_model()
-        self.res50 = res_model()
+        # self.res50 = res_model()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
