@@ -485,8 +485,8 @@ class teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        output = (self.dense(x0) + self.res50(x0)) / 2.0
-        # output = self.res50(x0)
+        # output = (self.dense(x0) + self.res50(x0)) / 2.0
+        output = self.dense(x0)
         return output
 
 def get_activation(activation_type):
