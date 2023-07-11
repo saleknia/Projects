@@ -204,88 +204,71 @@ import ttach as tta
 #         self.mvit = mvit_small()
 #         # self.teacher = teacher()
 
-#         self.res_model_1 = res_model()
+#         self.dense_model = dense_model()
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
 #         pretrained_teacher = checkpoint['net']
 #         a = pretrained_teacher.copy()
 #         for key in a.keys():
 #             if 'teacher' in key:
 #                 pretrained_teacher.pop(key)
-#         self.res_model_1.load_state_dict(pretrained_teacher)
-
-#         self.res_model_2 = dense_model()
-
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-#         pretrained_teacher = checkpoint['net']
-#         a = pretrained_teacher.copy()
-#         for key in a.keys():
-#             if 'teacher' in key:
-#                 pretrained_teacher.pop(key)
-#         self.res_model_2.load_state_dict(pretrained_teacher)
+#         self.dense_model.load_state_dict(pretrained_teacher)
 
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax(self.res_model_2(x0) ,dim=1) 
-#         x_res50 = torch.softmax(self.res_model_1(x0) ,dim=1) 
-
+#         x_dense = torch.softmax(self.dense_model(x0) ,dim=1) 
 #         x_trans = torch.softmax(self.mvit(x0)        ,dim=1)
 #         x_next  = torch.softmax(self.convnext(x0)    ,dim=1)
 
 #         output_dense  = torch.softmax((torch.softmax(torch.softmax(x_dense + x_trans,dim=1) + torch.softmax(x_dense + x_next,dim=1), dim=1)), dim=1)
-#         output_res50  = torch.softmax((torch.softmax(torch.softmax(x_res50 + x_trans,dim=1) + torch.softmax(x_res50 + x_next,dim=1), dim=1)), dim=1)
 
-#         output = output_dense + output_res50
+#         return output_dense
 
-#         # output = self.teacher(x0)
+class SEUNet(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(SEUNet, self).__init__()
 
-#         return output
+        model_dense = models.__dict__['densenet161'](num_classes=365)
 
-# class SEUNet(nn.Module):
-#     def __init__(self, num_classes=67, pretrained=True):
-#         super(SEUNet, self).__init__()
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        model_dense.load_state_dict(state_dict)
 
-#         model_dense = models.__dict__['densenet161'](num_classes=365)
+        self.dense = model_dense
 
-#         checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-#         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-#         state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-#         state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-#         model_dense.load_state_dict(state_dict)
+        for param in self.dense.parameters():
+            param.requires_grad = False
 
-#         self.dense = model_dense
+        for i, module in enumerate(self.dense.features.denseblock4):
+            if 22 <= i: 
+                for param in self.dense.features.denseblock4[module].parameters():
+                    param.requires_grad = True
 
-#         for param in self.dense.parameters():
-#             param.requires_grad = False
+        self.dense.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2208, out_features=num_classes, bias=True))
 
-#         for i, module in enumerate(self.dense.features.denseblock4):
-#             if 22 <= i: 
-#                 for param in self.dense.features.denseblock4[module].parameters():
-#                     param.requires_grad = True
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
-#         self.dense.classifier = nn.Sequential(
-#             nn.Dropout(p=0.5, inplace=True),
-#             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint/a_best.pth', map_location='cpu')
-#         # self.load_state_dict(checkpoint['net'])
+        self.teacher = teacher()
 
-#         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-#         # self.load_state_dict(checkpoint['net'])
+    def forward(self, x0):
+        b, c, w, h = x0.shape
 
-#         self.teacher = teacher()
-
-#     def forward(self, x0):
-#         b, c, w, h = x0.shape
-
-#         x_dense = self.dense(x0)
-#         x_t     = self.teacher(x0)
+        x_dense = self.dense(x0)
+        x_t     = self.teacher(x0)
         
-#         if self.training:
-#             return x_dense, x_t
-#         else:
-#             return x_t
+        if self.training:
+            return x_dense, x_t
+        else:
+            return x_t
 
 class dense_model(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -305,7 +288,7 @@ class dense_model(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 18 <= i: 
+            if 22 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
@@ -313,7 +296,7 @@ class dense_model(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/24_best.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
         self.load_state_dict(checkpoint['net'])
 
         for param in self.dense.parameters():
@@ -326,12 +309,10 @@ class dense_model(nn.Module):
         
         return x_dense
 
-from torchvision import transforms
 
-
-class SEUNet(nn.Module):
+class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -367,11 +348,16 @@ class SEUNet(nn.Module):
 
         self.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
+        # pretrained_teacher = checkpoint['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
-        for param in self.parameters():
-            param.requires_grad = False
+        # for param in self.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -470,14 +456,15 @@ class SEUNet(nn.Module):
 class teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(teacher, self).__init__()
-        # self.dense = dense_model()
-        self.res50 = res_model()
+        self.dense = dense_model()
+        # self.res50 = res_model()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         # output = (self.dense(x0) + self.res50(x0)) / 2.0
-        output = self.res50(x0)
+        output = self.dense(x0)
+
         return output
 
 def get_activation(activation_type):
