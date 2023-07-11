@@ -465,14 +465,14 @@ class SEUNet(nn.Module):
         x = self.layer3_50(x)
         x = self.adapter(x)
     
-        y = self.conv1_50(x0)
-        y = self.bn1_50(y)   
-        y = self.relu_50(y)  
-        y = self.maxpool_50(y)
+        y = self.conv1_18(x0)
+        y = self.bn1_18(y)   
+        y = self.relu_18(y)  
+        y = self.maxpool_18(y)
 
-        y = self.layer1_50(y)
-        y = self.layer2_50(y)
-        y = self.layer3_50(y)
+        y = self.layer1_18(y)
+        y = self.layer2_18(y)
+        y = self.layer3_18(y)
 
         return x, y
 
