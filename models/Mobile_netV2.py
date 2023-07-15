@@ -7,6 +7,7 @@ from torchvision.models.segmentation import DeepLabV3_ResNet50_Weights, DeepLabV
 from torchvision.models import efficientnet_v2_m, EfficientNet_V2_M_Weights
 from torchvision.models import efficientnet_v2_l, EfficientNet_V2_L_Weights
 import random
+from torchvision.models import resnet50, efficientnet_b4, EfficientNet_B4_Weights
 from torch.nn import init
 from .Mobile_netV2_loss import Mobile_netV2_loss
 
@@ -107,20 +108,20 @@ class Mobile_netV2(nn.Module):
 
         # # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b4(weights=EfficientNet_B4_Weights)
 
-        # # model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:6].parameters():
+            param.requires_grad = False
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1792, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
@@ -250,26 +251,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnextv2_tiny', pretrained=True)
+        # # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
-        model = timm.create_model('convnextv2_pico.fcmae_ft_in1k', pretrained=True)
+        # model = timm.create_model('convnextv2_pico.fcmae_ft_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=512, out_features=num_classes, bias=True))
-        self.model.head.drop.p = 0.5
+        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        # self.model.head.drop.p = 0.5
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
-
-        # for param in self.model.stages[2].blocks[-1].parameters():
+        # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # # for param in self.model.stages[2].blocks[-1].parameters():
+        # #     param.requires_grad = True
+
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # self.convnext = convnext_small()
         # self.mvit = mvit_small()
