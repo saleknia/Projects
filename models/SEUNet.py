@@ -206,7 +206,7 @@ import ttach as tta
 
 #         self.dense_model = dense_model()
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
 #         pretrained_teacher = checkpoint['net']
 #         a = pretrained_teacher.copy()
 #         for key in a.keys():
@@ -216,7 +216,7 @@ import ttach as tta
 
 #         self.dense_model_c = dense_model()
 
-#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/24_best.pth', map_location='cpu')
+#         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_distilled.pth', map_location='cpu')
 #         pretrained_teacher = checkpoint['net']
 #         a = pretrained_teacher.copy()
 #         for key in a.keys():
@@ -227,7 +227,7 @@ import ttach as tta
 #     def forward(self, x0):
 #         b, c, w, h = x0.shape
 
-#         x_dense = torch.softmax((self.dense_model(x0) + self.dense_model_c(x0) / 2.0) ,dim=1) 
+#         x_dense = self.dense_model(x0)
 #         # x_trans = torch.softmax(self.mvit(x0)        ,dim=1)
 #         # x_next  = torch.softmax(self.convnext(x0)    ,dim=1)
 
@@ -278,7 +278,7 @@ class SEUNet(nn.Module):
         if self.training:
             return x_dense, x_t
         else:
-            return x_t
+            return x_dense
 
 class dense_model(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -306,18 +306,18 @@ class dense_model(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
-        self.load_state_dict(checkpoint['net'])
+        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+        # self.load_state_dict(checkpoint['net'])
 
-        for param in self.dense.parameters():
-            param.requires_grad = False
+        # for param in self.dense.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         x_dense = self.dense(x0)
         
-        return x_dense # torch.softmax(x_dense, dim=1)
+        return torch.softmax(x_dense, dim=1)
 
 
 class res_model(nn.Module):
@@ -338,8 +338,8 @@ class res_model(nn.Module):
         # for param in model.layer4[-1].conv2.parameters():
         #     param.requires_grad = True
 
-        for param in model.layer4[-1].conv3.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
@@ -360,16 +360,16 @@ class res_model(nn.Module):
             nn.Dropout(p=0.5, inplace=True), 
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
-        # pretrained_teacher = checkpoint['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50.pth', map_location='cpu')
+        pretrained_teacher = checkpoint['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
-        # for param in self.parameters():
-        #     param.requires_grad = False
+        for param in self.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -387,7 +387,7 @@ class res_model(nn.Module):
         x = x.view(x.size(0), -1)
         x = self.fc(x)
 
-        return x
+        return torch.softmax(x, dim=1)
 
 # class SEUNet(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
@@ -469,13 +469,14 @@ class teacher(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(teacher, self).__init__()
         self.dense = dense_model()
-        # self.res50 = res_model()
+        self.res50 = res_model()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         # output = (self.dense(x0) + self.res50(x0)) / 2.0
-        output = self.dense(x0)
+
+        output = self.res_model(x0)
 
         return output
 

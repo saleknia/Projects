@@ -250,7 +250,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
         # loss_ce = torch.nn.functional.mse_loss(outputs, outputs_t, size_average=None, reduce=None, reduction='mean')
         
@@ -281,7 +281,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             loss_ce = ce_loss(outputs, targets.long()) * weights
             loss_ce = torch.mean(loss_ce)
 
-        # loss_ce = ce_loss(outputs, outputs_t)
+        loss_ce = ce_loss(outputs, outputs_t)
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
@@ -304,19 +304,19 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
 
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
 
-        temp = 4.0
-        alpha = 0.1
-        loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
+        # temp = 4.0
+        # alpha = 0.1
+        # loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
 
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
-        loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
-        # loss = loss_ce + loss_disparity
+        # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
+        loss = loss_ce + loss_disparity
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
