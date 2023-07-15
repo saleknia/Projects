@@ -338,8 +338,8 @@ class SEUNet(nn.Module):
         # for param in model.layer4[-1].conv2.parameters():
         #     param.requires_grad = True
 
-        # for param in model.layer4[-1].conv3.parameters():
-        #     param.requires_grad = True
+        for param in model.layer4[-1].conv3.parameters():
+            param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
@@ -358,12 +358,7 @@ class SEUNet(nn.Module):
 
         self.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True), 
-            nn.Linear(in_features=2048, out_features=512, bias=True),
-            nn.Dropout(p=0.5, inplace=True), 
-            nn.Linear(in_features=512 , out_features=256, bias=True),
-            nn.Dropout(p=0.5, inplace=True), 
-            nn.Linear(in_features=256 , out_features=67, bias=True),
-            )
+            nn.Linear(in_features=2048, out_features=67, bias=True))
 
         # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/res_50_distilled.pth', map_location='cpu')
         # pretrained_teacher = checkpoint['net']
