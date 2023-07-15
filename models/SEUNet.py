@@ -235,9 +235,9 @@ import ttach as tta
 
 #         return x_dense
 
-class dense_model_distillation(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(dense_model_distillation, self).__init__()
+        super(SEUNet, self).__init__()
 
         model_dense = models.__dict__['densenet161'](num_classes=365)
 
@@ -253,7 +253,7 @@ class dense_model_distillation(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 22 <= i: 
+            if 18 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
@@ -298,7 +298,7 @@ class dense_model(nn.Module):
             param.requires_grad = False
 
         for i, module in enumerate(self.dense.features.denseblock4):
-            if 22 <= i: 
+            if 18 <= i: 
                 for param in self.dense.features.denseblock4[module].parameters():
                     param.requires_grad = True
 
@@ -306,23 +306,23 @@ class dense_model(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=num_classes, bias=True))
 
-        # checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/22_best.pth', map_location='cpu')
-        # self.load_state_dict(checkpoint['net'])
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/18_best.pth', map_location='cpu')
+        self.load_state_dict(checkpoint['net'])
 
-        # for param in self.dense.parameters():
-        #     param.requires_grad = False
+        for param in self.dense.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         x_dense = self.dense(x0)
         
-        return torch.softmax(x_dense, dim=1)
+        return x_dense # torch.softmax(x_dense, dim=1)
 
 
-class SEUNet(nn.Module):
+class res_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
