@@ -71,36 +71,36 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_small(weights='DEFAULT')
+        # model = torchvision.models.convnext_small(weights='DEFAULT')
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.classifier[2] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.classifier[2] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.classifier[0] = nn.Identity()
+        # self.model.classifier[0] = nn.Identity()
         
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        # for param in self.model.features[5][6:9].parameters():
+        # # for param in self.model.features[5][6:9].parameters():
+        # #     param.requires_grad = True
+
+        # for param in self.model.features[5][18:27].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[5][18:27].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[6].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[6].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[7][0].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[7][0].parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
-
-        # self.teacher = convnext_teacher()
-        self.teacher = convnext_small()
+        # # self.teacher = convnext_teacher()
+        # self.teacher = convnext_small()
 
         ############################################################
         ############################################################
