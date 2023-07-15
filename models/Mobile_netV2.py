@@ -256,7 +256,7 @@ class Mobile_netV2(nn.Module):
 
         self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=640, out_features=num_classes, bias=True))
         self.model.head.drop.p = 0.5
 
         for param in self.model.parameters():
