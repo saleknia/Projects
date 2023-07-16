@@ -108,20 +108,20 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
-        # self.features = model.features
+        self.features = model.features
 
-        # self.avgpool = model.avgpool
+        self.avgpool = model.avgpool
 
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
 
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1536, out_features=num_classes, bias=True))
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1408, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
@@ -281,16 +281,16 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.features(x0)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
+        x = self.features(x0)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -310,12 +310,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
@@ -565,7 +565,7 @@ class B2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1480, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1408, out_features=num_classes, bias=True))
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B2_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
