@@ -121,7 +121,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1538, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
