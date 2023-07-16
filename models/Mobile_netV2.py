@@ -275,7 +275,7 @@ class Mobile_netV2(nn.Module):
         # # self.convnext = convnext_small()
         # # self.mvit = mvit_small()
 
-        # self.teacher = efficientnet_teacher()
+        self.teacher = efficientnet_teacher()
 
 
     def forward(self, x0):
@@ -290,7 +290,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -310,12 +310,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x_t
 
 
 class mvit_small(nn.Module):
@@ -503,7 +503,7 @@ class efficientnet_teacher(nn.Module):
         super(efficientnet_teacher, self).__init__()
 
         self.b2 = B2()
-        self.b1 = B1()
+        self.b3 = B3()
 
         for param in self.parameters():
             param.requires_grad = False
@@ -511,18 +511,18 @@ class efficientnet_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = (self.b2(x0) + self.b1(x0)) / 2.0
+        x = (self.b2(x0) + self.b3(x0)) / 2.0
 
         return x
 
 
-class B1(nn.Module):
+class B3(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(B1, self).__init__()
+        super(B3, self).__init__()
 
-        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
@@ -533,9 +533,9 @@ class B1(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B1_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B3_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -557,7 +557,7 @@ class B2(nn.Module):
 
         model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
 
