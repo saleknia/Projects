@@ -108,7 +108,7 @@ class Mobile_netV2(nn.Module):
 
         # # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = efficientnet_b4(weights=EfficientNet_B4_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
         # model.features[0][0].stride = (1, 1)
 
@@ -121,7 +121,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1792, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
