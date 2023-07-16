@@ -505,6 +505,9 @@ class efficientnet_teacher(nn.Module):
         self.b2 = B2()
         self.b1 = B1()
 
+        for param in self.model.parameters():
+            param.requires_grad = False
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
