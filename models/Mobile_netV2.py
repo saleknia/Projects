@@ -108,20 +108,20 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
 
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
+        # self.features = model.features
 
-        self.avgpool = model.avgpool
+        # self.avgpool = model.avgpool
 
-        for param in self.features[0:4].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:4].parameters():
+        #     param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
@@ -275,20 +275,22 @@ class Mobile_netV2(nn.Module):
         # # self.convnext = convnext_small()
         # # self.mvit = mvit_small()
 
+        self.teacher = efficientnet_teacher()
+
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.features(x0)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.features(x0)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -496,6 +498,90 @@ class convnext_teacher(nn.Module):
 
         return x
 
+class efficientnet_teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(efficientnet_teacher, self).__init__()
+
+        self.b2 = B2()
+        self.b1 = B1()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = (self.b2(x0) + self.b1(x0)) / 2.0
+
+        return x
+
+
+class B1(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(B1, self).__init__()
+
+        model = efficientnet_b1(weights=EfficientNet_B1_Weights)
+
+        model.features[0][0].stride = (1, 1)
+
+        self.features = model.features
+
+        self.avgpool = model.avgpool
+
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B1_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+        x = self.features(x0)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
+
+class B2(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(B2, self).__init__()
+
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+
+        model.features[0][0].stride = (1, 1)
+
+        self.features = model.features
+
+        self.avgpool = model.avgpool
+
+        for param in self.features[0:4].parameters():
+            param.requires_grad = False
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1480, out_features=num_classes, bias=True))
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B2_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+        x = self.features(x0)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
