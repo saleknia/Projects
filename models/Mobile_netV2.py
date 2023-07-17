@@ -266,7 +266,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[3].blocks[0].parameters():
             param.requires_grad = True
 
-        for param in self.model.stages[2].blocks[24:27].parameters():
+        for param in self.model.stages[2].blocks[18:27].parameters():
             param.requires_grad = True
 
         for param in self.model.head.parameters():
