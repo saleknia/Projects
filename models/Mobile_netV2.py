@@ -281,22 +281,22 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.features(x0)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.features(x0)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher(x0)
+        # x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        # x = self.model(x0)
+        x = self.model(x0)
 
 
         # print(x.shape)
@@ -310,12 +310,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x_t
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x_t
 
 
 class mvit_small(nn.Module):
