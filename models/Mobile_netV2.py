@@ -339,7 +339,7 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/small_best.pth', map_location='cpu')['net']
         self.load_state_dict(state_dict)
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_distilled_best.pth', map_location='cpu')
