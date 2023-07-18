@@ -452,7 +452,7 @@ class SEUNet(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x0 = transform_test(x0)
+        # x0 = transform_test(x0)
         x = self.conv1(x0)
         x = self.bn1(x)   
         x = self.relu(x)  
@@ -463,18 +463,17 @@ class SEUNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        x_s = x
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        y = self.avgpool(x)
+        y = y.view(y.size(0), -1)
+        y = self.fc(y)
 
         x_t = self.teacher(x0)
 
         if self.training:
-            return x, x_s, x_t
+            return y, x, x_t
         else:
-            return x
+            return y
         
 
 class teacher(nn.Module):
