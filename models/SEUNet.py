@@ -324,9 +324,9 @@ class dense_model(nn.Module):
         return x_dense
 
 
-class res_model(nn.Module):
+class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(res_model, self).__init__()
+        super(SEUNet, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -339,11 +339,11 @@ class res_model(nn.Module):
         for param in model.parameters():
             param.requires_grad = False
 
-        for param in model.layer4[-1].conv2.parameters():
+        for param in model.layer4[-1].parameters():
             param.requires_grad = True
 
-        for param in model.layer4[-1].conv3.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
         ###############################################################################################
         ###############################################################################################
 
@@ -391,16 +391,16 @@ class res_model(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        # x = self.fc(x)
+        x = self.fc(x)
 
         return x
 
 from torchvision import transforms
 transform_test = transforms.Compose([transforms.Resize((448, 448))])
 
-class SEUNet(nn.Module):
+class res_model_distill(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(SEUNet, self).__init__()
+        super(res_model_distill, self).__init__()
 
         ###############################################################################################
         ###############################################################################################
@@ -413,17 +413,17 @@ class SEUNet(nn.Module):
         for param in model.parameters():
             param.requires_grad = False
 
-        for param in model.layer4[-1].conv2.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv2.parameters():
+        #     param.requires_grad = True
 
-        for param in model.layer4[-1].conv3.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].conv3.parameters():
+        #     param.requires_grad = True
 
         # for param in model.layer3.parameters():
         #     param.requires_grad = True
 
-        # for param in model.layer4[-1].parameters():
-        #     param.requires_grad = True
+        for param in model.layer4[-1].parameters():
+            param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
