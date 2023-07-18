@@ -100,7 +100,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.classifier.parameters():
         #     param.requires_grad = True
 
-        # # self.teacher = convnext_teacher()
+        self.teacher = convnext_teacher()
         # self.teacher = convnext_small()
 
         ############################################################
@@ -228,21 +228,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        # model = timm.create_model('mvitv2_small', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.teacher = mvit_small()
+        # self.teacher = mvit_small()
         
         # self.teacher = mvit_tiny()
 
@@ -296,7 +296,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x = self.model(x0)
+        # x = self.model(x0)
 
 
         # print(x.shape)
@@ -310,12 +310,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x_t
 
-        if self.training:
-            return x, x_t
-        else:
-            return x_t
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x_t
 
 
 class mvit_small(nn.Module):
@@ -481,14 +481,48 @@ class convnext_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
+class next_tiny(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(next_tiny, self).__init__()
+
+        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head.drop.p = 0.5
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.stages[3].blocks[-1].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext_v2/tiny_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+        # x = self.classifier(x)
+        return torch.softmax(x, dim=1)
 
 class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(convnext_teacher, self).__init__()
 
-        self.small = convnext_small()
+        self.small = next_tiny()
         self.tiny  = convnext_tiny()
 
     def forward(self, x0):
