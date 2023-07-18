@@ -377,6 +377,9 @@ class res_model(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
+
+        x0 = transform_test(x0)
+
         x = self.conv1(x0)
         x = self.bn1(x)   
         x = self.relu(x)  
