@@ -389,8 +389,8 @@ class res_model(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
         # x = self.fc(x)
 
         return x
@@ -463,9 +463,9 @@ class SEUNet(nn.Module):
         x = self.layer4(x)
 
 
-        y = self.avgpool(x)
-        y = y.view(y.size(0), -1)
-        y = self.fc(y)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        y = self.fc(x)
 
         x_t = self.teacher(x0)
 
