@@ -377,7 +377,7 @@ class res_model(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x0 = transform_test(x0)
+        # x0 = transform_test(x0)
 
         x = self.conv1(x0)
         x = self.bn1(x)   
@@ -419,8 +419,8 @@ class SEUNet(nn.Module):
         # for param in model.layer4[-1].conv3.parameters():
         #     param.requires_grad = True
 
-        for param in model.layer3.parameters():
-            param.requires_grad = True
+        # for param in model.layer3.parameters():
+        #     param.requires_grad = True
 
         for param in model.layer4.parameters():
             param.requires_grad = True
