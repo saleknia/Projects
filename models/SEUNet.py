@@ -387,14 +387,14 @@ class res_model(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.fc(x)
 
         return x
 
 from torchvision import transforms
-transform_test = transforms.Compose([transforms.Resize((384, 224))])
+transform_test = transforms.Compose([transforms.Resize((448, 448))])
 
 class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
@@ -460,6 +460,8 @@ class SEUNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
 
+        x_s = x
+
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
@@ -467,7 +469,7 @@ class SEUNet(nn.Module):
         x_t = self.teacher(x0)
 
         if self.training:
-            return x, x_t
+            return x, x_s, x_t
         else:
             return x
         
@@ -483,6 +485,7 @@ class teacher(nn.Module):
 
         # output = (self.dense(x0) + self.res50(x0)) / 2.0
 
+        # output = self.res_model(x0)
         output = self.res_model(x0)
 
         # output = (self.dense(x0) + self.res_model(x0)) / 2.0

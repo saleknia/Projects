@@ -125,6 +125,7 @@ def at(x, exp):
     """
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
+
 def importance_maps_distillation(s, t, exp=4):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
@@ -135,8 +136,8 @@ def importance_maps_distillation(s, t, exp=4):
     :param t: teacher feature maps
     :return: imd loss value
     """
-    # if s.shape[2] != t.shape[2]:
-    #     s = F.interpolate(s, t.size()[-2:], mode='bilinear')
+    if s.shape[2] != t.shape[2]:
+        s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
 
 # def distillation(outputs, labels):
@@ -220,7 +221,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        outputs = model(inputs)
+        # outputs = model(inputs)
+
+        outputs, x_s, x_t = model(inputs)
 
         # outputs, outputs_t = model(inputs)
 
@@ -311,7 +314,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
 
         # loss_disparity = disparity_loss(labels=targets, outputs=outputs)
-        # loss_disparity = 1.0 * importance_maps_distillation(s=x_norm, t=x_norm_t) 
+        loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
