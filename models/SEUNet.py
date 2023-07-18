@@ -413,17 +413,17 @@ class SEUNet(nn.Module):
         for param in model.parameters():
             param.requires_grad = False
 
-        # for param in model.layer4[-1].conv2.parameters():
-        #     param.requires_grad = True
+        for param in model.layer4[-1].conv2.parameters():
+            param.requires_grad = True
 
-        # for param in model.layer4[-1].conv3.parameters():
-        #     param.requires_grad = True
+        for param in model.layer4[-1].conv3.parameters():
+            param.requires_grad = True
 
         # for param in model.layer3.parameters():
         #     param.requires_grad = True
 
-        for param in model.layer4.parameters():
-            param.requires_grad = True
+        # for param in model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
         ###############################################################################################
         ###############################################################################################
