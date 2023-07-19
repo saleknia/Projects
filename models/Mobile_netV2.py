@@ -278,6 +278,8 @@ class Mobile_netV2(nn.Module):
         # self.teacher = efficientnet_teacher()
         self.teacher = convnext_teacher()
 
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
