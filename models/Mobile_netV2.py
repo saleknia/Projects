@@ -309,7 +309,6 @@ class Mobile_netV2(nn.Module):
 
         # x  = self.model(x0)
 
-
         x = self.model(x0)
 
         # x = self.classifier(emb_s)
@@ -321,7 +320,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x_t
+            return x
 
 
 class mvit_small(nn.Module):
