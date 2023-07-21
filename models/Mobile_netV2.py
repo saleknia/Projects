@@ -106,22 +106,21 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
-        # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        self.model = model 
 
-        # # model.features[0][0].stride = (1, 1)
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head.drop.p = 0.5
 
-        # self.features = model.features
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.avgpool = model.avgpool
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # for param in self.features[0:4].parameters():
-        #     param.requires_grad = False
-
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1536, out_features=num_classes, bias=True))
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         ############################################################
         ############################################################
@@ -253,21 +252,21 @@ class Mobile_netV2(nn.Module):
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
-        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        # model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-        self.model.head.drop.p = 0.5
+        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head.drop.p = 0.5
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # for param in self.model.stages[3].blocks[0].parameters():
         #     param.requires_grad = True
@@ -479,7 +478,7 @@ class convnext_tiny(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/tiny_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/tiny_best_0.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -514,13 +513,16 @@ class convnextv2_tiny(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnextv2/tiny_distilled_best.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/tiny_best_0.pth', map_location='cpu')['net']
+        self.load_state_dict(state_dict)
+
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnextv2/tiny_distilled_best.pth', map_location='cpu')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
