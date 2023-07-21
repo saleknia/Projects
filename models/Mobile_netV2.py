@@ -321,7 +321,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x
+            return x_t
 
 
 class mvit_small(nn.Module):
