@@ -344,16 +344,16 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_best.pth', map_location='cpu')['net']
-        self.load_state_dict(state_dict)
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_best.pth', map_location='cpu')['net']
+        # self.load_state_dict(state_dict)
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_distilled_best.pth', map_location='cpu')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_distilled_best.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -508,7 +508,7 @@ class convnextv2_tiny(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnextv2/tiny_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnextv2/tiny_distilled_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():

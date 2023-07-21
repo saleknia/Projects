@@ -307,7 +307,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
 
-        loss_disparity = 0.0
+        # loss_disparity = 0.0
 
         temp = 3.0
         alpha = 0.1
