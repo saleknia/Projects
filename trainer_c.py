@@ -310,7 +310,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = 0.0
 
         temp = 4.0
-        alpha = 0.1
+        alpha = 0.2
         loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
 
         # loss_disparity = rkd(x_s, x_t)
