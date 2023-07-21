@@ -221,11 +221,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
         # outputs, x_s, x_t = model(inputs)
 
-        outputs, outputs_t = model(inputs)
+        # outputs, outputs_t = model(inputs)
 
         ################################################################
         ################################################################
@@ -307,11 +307,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
 
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
 
-        temp = 3.0
-        alpha = 0.1
-        loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
+        # temp = 4.0
+        # alpha = 0.1
+        # loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
 
         # loss_disparity = rkd(x_s, x_t)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
@@ -338,7 +338,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         optimizer.zero_grad()
         loss.backward()
         # if epoch_num==1:
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
+        # torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
         optimizer.step()
 
         # scaler.scale(loss).backward()
