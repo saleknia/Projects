@@ -395,7 +395,7 @@ def main(args):
             transforms.RandomResizedCrop(224, scale=(0.25, 1.0)),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomVerticalFlip(p=0.5),
-            transforms.RandomPerspective(distortion_scale=0.8, p=0.5),
+            transforms.RandomRotation(20),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
