@@ -316,10 +316,10 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.features(x0)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
+        # x = self.features(x0)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.classifier(x)
 
         # x1 = self.features[0:4](x0)
         # x2 = self.features[4:6](x1)
@@ -335,7 +335,7 @@ class Mobile_netV2(nn.Module):
 
         # print(x.shape)
 
-        # x  = self.model(x0)
+        x  = self.model(x0)
 
         # x = self.model(x0)
 
