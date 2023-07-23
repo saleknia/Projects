@@ -390,9 +390,9 @@ def main(args):
     elif TASK_NAME=='MIT-67':
 
         transform_train = transforms.Compose([
-            # transforms.Resize((256, 256)),
+            transforms.Resize((224, 224)),
             # transforms.CenterCrop(224),
-            transforms.RandomResizedCrop(384),
+            # transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(p=0.5),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
@@ -401,7 +401,7 @@ def main(args):
         ])
 
         transform_test = transforms.Compose([
-            transforms.Resize((384, 384)),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])

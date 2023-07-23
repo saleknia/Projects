@@ -106,41 +106,41 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
 
-        # # model = timm.create_model('timm/convnext_nano_ols.d1h_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnext_nano_ols.d1h_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-        # self.model.head.drop.p = 0.5
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head.drop.p = 0.5
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        ############################################################
-        ############################################################
-
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
-        # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
-
-        # model.features[0][0].stride = (1, 1)
-
-        self.features = model.features
-        self.avgpool = model.avgpool
-
-        for param in self.features[0:6].parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=67, bias=True))
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        ############################################################
+        ############################################################
+
+        # model = efficientnet_b3(weights=EfficientNet_B3_Weights)
+        # # model = efficientnet_v2_s(weights=EfficientNet_V2_S_Weights)
+
+        # # model.features[0][0].stride = (1, 1)
+
+        # self.features = model.features
+        # self.avgpool = model.avgpool
+
+        # for param in self.features[0:7].parameters():
+        #     param.requires_grad = False
+
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1536, out_features=67, bias=True))
 
         ############################################################
         ############################################################
