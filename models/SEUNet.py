@@ -201,9 +201,9 @@ class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
 
-        # self.convnext = convnextv2_tiny()
-        # self.mvit = mvit_small()
-        self.teacher = convnext_teacher()
+        self.convnext = convnext_small()
+        self.mvit     = mvit_small()
+        # self.teacher = convnext_teacher()
 
         self.dense_model = dense_model()
 
@@ -229,37 +229,19 @@ class SEUNet(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x_res   = torch.softmax(self.res_model(x0), dim=1)
-        # x_desne = torch.softmax(self.desne_model(x0), dim=1)
+        x_res   = torch.softmax(self.res_model(x0), dim=1)
+        x_dense = torch.softmax(self.dense_model(x0), dim=1)
 
-        # x_trans = torch.softmax(self.mvit(x0)    ,dim=1)
-        # x_next  = torch.softmax(self.convnext(x0),dim=1)
+        x_trans = torch.softmax(self.mvit(x0)    ,dim=1)
+        x_next  = torch.softmax(self.convnext(x0),dim=1)
 
-        x_res   = self.res_model(x0)
-        x_dense = self.dense_model(x0)
+        output_1  = torch.softmax(x_res   + x_trans, dim=1)
+        output_2  = torch.softmax(x_dense + x_next , dim=1)
 
-        x_res     = torch.softmax(x_res, dim=1)
-        x_dense   = torch.softmax(x_dense, dim=1)
+        output_3  = torch.softmax(x_res   + x_trans, dim=1)
+        output_4  = torch.softmax(x_dense + x_next , dim=1)
 
-        x_teacher = self.teacher(x0)
-        x_teacher = torch.softmax(x_teacher, dim=1)
-
-        # x_desne = self.dense_model(x0)
-
-        # x_trans = self.mvit(x0)    
-        # x_next  = self.convnext(x0)
-
-        output_1  = torch.softmax(x_res   + x_teacher, dim=1)
-        output_2  = torch.softmax(x_dense + x_teacher, dim=1)
-
-        # output_3  = torch.softmax(x_desne + x_trans, dim=1)
-        # output_4  = torch.softmax(x_desne + x_next , dim=1)
-
-        # output_1  = torch.softmax(output_1 + output_2, dim=1)
-        # output_2  = torch.softmax(output_2 + output_3, dim=1)
-
-
-        return output_1 + output_2
+        return output_1 + output_2 + output_3 + output_4
 
 class dense_model_distillation(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):

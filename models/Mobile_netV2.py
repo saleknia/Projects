@@ -349,7 +349,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x_t
+            return x
 
 
 class mvit_small(nn.Module):
@@ -466,12 +466,11 @@ class convnext_small(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')['net']
-        self.load_state_dict(state_dict)
-
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
+
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
+        self.load_state_dict(state_dict)
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
@@ -578,12 +577,14 @@ class convnext_teacher(nn.Module):
         super(convnext_teacher, self).__init__()
 
         self.small = convnext_small()
-        self.tiny  = convnext_tiny()
+        # self.tiny  = convnext_tiny()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = (self.small(x0) + self.tiny(x0)) / 2.0
+        # x = (self.small(x0) + self.tiny(x0)) / 2.0
+
+        x = self.small(x)
 
         return x
 
