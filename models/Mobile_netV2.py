@@ -510,7 +510,7 @@ class convnext_tiny(nn.Module):
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint/tiny_best.pth', map_location='cpu')['net']
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/tiny_best.pth', map_location='cpu')['net']
         self.load_state_dict(state_dict)
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
