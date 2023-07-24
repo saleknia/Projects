@@ -106,7 +106,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         # model = timm.create_model('timm/convnext_nano_ols.d1h_in1k', pretrained=True)
 
@@ -576,15 +576,15 @@ class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(convnext_teacher, self).__init__()
 
-        self.small = convnext_small()
-        # self.tiny  = convnext_tiny()
+        # self.small = convnext_small()
+        self.tiny  = convnext_tiny()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         # x = (self.small(x0) + self.tiny(x0)) / 2.0
 
-        x = self.small(x0)
+        x = self.tiny(x0)
 
         return x
 
