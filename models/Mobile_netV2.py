@@ -584,7 +584,7 @@ class convnext_teacher(nn.Module):
 
         # x = (self.small(x0) + self.tiny(x0)) / 2.0
 
-        x = self.small(x)
+        x = self.small(x0)
 
         return x
 
