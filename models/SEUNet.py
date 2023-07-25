@@ -215,7 +215,7 @@ class SEUNet(nn.Module):
                 pretrained_teacher.pop(key)
         self.dense_model.load_state_dict(pretrained_teacher)
 
-        self.res_model = res_model()
+        self.res_model_2 = res_model()
 
         checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/2_res_best.pth', map_location='cpu')
         pretrained_teacher = checkpoint['net']
@@ -223,25 +223,46 @@ class SEUNet(nn.Module):
         for key in a.keys():
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
-        self.res_model.load_state_dict(pretrained_teacher)
+        self.res_model_2.load_state_dict(pretrained_teacher)
 
+        self.res_model_0 = res_model()
+
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/0_res_best.pth', map_location='cpu')
+        pretrained_teacher = checkpoint['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.res_model_0.load_state_dict(pretrained_teacher)
+
+        self.cos = torch.nn.CosineSimilarity(dim=1, eps=1e-6)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_res   = torch.softmax(self.res_model(x0), dim=1)
-        x_dense = torch.softmax(self.dense_model(x0), dim=1)
+        x_res_0, feature_0   = self.res_model_0(x0)  
+        x_res_2, feature_2   = self.res_model_2(x0)  
 
-        x_trans = torch.softmax(self.mvit(x0)    ,dim=1)
-        x_next  = torch.softmax(self.convnext(x0),dim=1)
+        # x_dense = self.dense_model(x0)
 
-        output_1  = torch.softmax(x_res   + x_trans, dim=1)
-        output_2  = torch.softmax(x_dense + x_next , dim=1)
+        x_trans = self.mvit(x0)    
+        # x_next  = self.convnext(x0)
 
-        output_3  = torch.softmax(x_res   + x_trans, dim=1)
-        output_4  = torch.softmax(x_dense + x_next , dim=1)
+        
+        distance = torch.abs(self.cos(feature_0, feature_2))[0]
 
-        return output_1 + output_2 + output_3 + output_4
+        # output_1  = torch.softmax(x_res + x_next, dim=1)
+        # output_2  = torch.softmax(x_next , dim=1)
+
+        # x_dense = torch.softmax(x_dense, dim=1)
+        x_res   = torch.softmax(x_res_2, dim=1)
+        x_trans = torch.softmax(x_trans, dim=1)
+        # x_next  = torch.softmax(x_next , dim=1)
+
+        # output_1  = torch.softmax(x_res + x_dense + x_next , dim=1)
+        # output_2  = torch.softmax(x_res + x_dense + x_trans, dim=1)
+
+        return (x_res * (1.0)) #+ (x_trans)
 
 class dense_model_distillation(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -286,7 +307,7 @@ class dense_model_distillation(nn.Module):
         if self.training:
             return x_dense, x_t
         else:
-            return x_dense
+            return torch.softmax(x_dense,dim=1) # x_dense
 
 
 class dense_model(nn.Module):
@@ -399,9 +420,9 @@ class res_model(nn.Module):
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        y = self.fc(x)
 
-        return x
+        return y, x 
 
 from torchvision import transforms
 transform_test = transforms.Compose([transforms.Resize((448, 448))])
