@@ -106,7 +106,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         # model = timm.create_model('timm/convnext_nano_ols.d1h_in1k', pretrained=True)
 
@@ -119,8 +119,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
         for param in self.model.stages[2].parameters():
             param.requires_grad = True
@@ -309,10 +309,10 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = efficientnet_teacher()
         
-        self.teacher = convnext_teacher()
+        # self.teacher = convnext_teacher()
 
-        for param in self.teacher.parameters():
-            param.requires_grad = False
+        # for param in self.teacher.parameters():
+        #     param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -326,7 +326,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher(x0)
+        # x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -344,12 +344,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x
 
 
 class mvit_small(nn.Module):
@@ -376,7 +376,7 @@ class mvit_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_mvitv2/small_distilled_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -491,7 +491,7 @@ class convnext_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext_/small_distilled_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
