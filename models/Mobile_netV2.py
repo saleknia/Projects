@@ -309,10 +309,10 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = efficientnet_teacher()
         
-        # self.teacher = convnext_teacher()
+        self.teacher = convnext_teacher()
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        for param in self.teacher.parameters():
+            param.requires_grad = False
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -326,17 +326,17 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        # x = self.model(x0)
+        x = self.model(x0)
 
         # print(x.shape)
 
-        x  = self.model(x0)
+        # x  = self.model(x0)
 
         # x = self.model(x0)
 
@@ -344,12 +344,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class mvit_small(nn.Module):
@@ -479,6 +479,9 @@ class convnext_small(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
+        for param in self.model.stages[2].parameters():
+            param.requires_grad = True
+
         for param in self.model.head.parameters():
             param.requires_grad = True
 
@@ -488,7 +491,7 @@ class convnext_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -518,6 +521,9 @@ class convnext_tiny(nn.Module):
             param.requires_grad = False
 
         for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.stages[2].parameters():
             param.requires_grad = True
 
         for param in self.model.head.parameters():
@@ -592,15 +598,15 @@ class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(convnext_teacher, self).__init__()
 
-        # self.small = convnext_small()
+        self.small = convnext_small()
         self.tiny  = convnext_tiny()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = (self.small(x0) + self.tiny(x0)) / 2.0
+        x = (self.small(x0) + self.tiny(x0)) / 2.0
 
-        x = self.tiny(x0)
+        # x = self.tiny(x0)
 
         return x
 
