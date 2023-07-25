@@ -201,7 +201,7 @@ class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
 
-        self.convnext = convnext_tiny()
+        self.convnext = convnext_small()
         self.mvit     = mvit_small()
         # self.teacher = convnext_teacher()
 
