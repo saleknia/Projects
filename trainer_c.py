@@ -221,9 +221,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        # outputs = model(inputs)
+        outputs = model(inputs)
 
-        outputs, outputs_t = model(inputs)
+        # outputs, outputs_t = model(inputs)
 
         ################################################################
         ################################################################
@@ -305,22 +305,22 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = distillation(outputs, targets.long())
 
-        # loss_disparity = 0.0
+        loss_disparity = 0.0
 
-        temp = 4.0
-        alpha = 0.1
-        loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
+        # temp = 4.0
+        # alpha = 0.1
+        # loss_disparity = (F.kl_div(F.log_softmax(outputs/temp, dim=1),F.softmax(outputs_t/temp, dim=1),reduction='batchmean') * temp * temp)
 
         # loss_disparity = rkd(x_s, x_t)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
-        loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
-        # loss = loss_ce + loss_disparity
+        # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
+        loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.8     
+        lr_ = 0.005 * (1.0 - iter_num / max_iterations) ** 0.8     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
