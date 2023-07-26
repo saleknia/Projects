@@ -494,7 +494,7 @@ class convnext_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext_/small_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext_/small_distilled_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -613,6 +613,11 @@ class convnext_teacher(nn.Module):
 
         return x
 
+from torchvision import transforms
+transform_test = transforms.Compose([
+    transforms.Resize((384, 384)),
+])
+
 class efficientnet_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(efficientnet_teacher, self).__init__()
@@ -625,7 +630,7 @@ class efficientnet_teacher(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-
+        x = transform_test(x0)
         x = (self.b2(x0) + self.b3(x0)) / 2.0
 
         return x
