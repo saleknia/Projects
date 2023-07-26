@@ -106,7 +106,7 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         # model = timm.create_model('timm/convnext_nano_ols.d1h_in1k', pretrained=True)
 
@@ -122,11 +122,11 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        for param in self.model.stages[3].blocks[1:3].parameters():
-            param.requires_grad = False
+        # for param in self.model.stages[3].blocks[1:3].parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[2].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[2].parameters():
+        #     param.requires_grad = True
 
         for param in self.model.head.parameters():
             param.requires_grad = True
@@ -494,7 +494,7 @@ class convnext_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_convnext_/small_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -535,7 +535,7 @@ class convnext_tiny(nn.Module):
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint/tiny_best.pth', map_location='cpu')['net']
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext_/tiny_best.pth', map_location='cpu')['net']
         self.load_state_dict(state_dict)
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']

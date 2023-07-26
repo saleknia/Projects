@@ -239,11 +239,17 @@ class SEUNet(nn.Module):
         # x_trans = torch.softmax(x_trans, dim=1)
         # x_next  = torch.softmax(x_next , dim=1)
 
-        output_1  = torch.softmax(x_res + x_next , dim=1)
-        output_2  = torch.softmax(x_res + x_trans, dim=1)
+        # output_1  = torch.softmax(x_res  + x_dense, dim=1)
+        # output_2  = torch.softmax(x_next + x_trans, dim=1)
 
+        # out_1 = torch.softmax(output_1 + output_2, dim=1)
+
+        output_1  = torch.softmax(x_res   + x_next , dim=1)
+        output_2  = torch.softmax(x_res   + x_trans, dim=1)
         output_3  = torch.softmax(x_dense + x_next , dim=1)
         output_4  = torch.softmax(x_dense + x_trans, dim=1)
+
+        # out_2 = torch.softmax(output_1 + output_2 + output_3 + output_4, dim=1)
 
         return output_1 + output_2 + output_3 + output_4
 
