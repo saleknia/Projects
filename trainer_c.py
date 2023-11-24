@@ -289,7 +289,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = ce_loss(outputs, targets.long()) + 1.0 * torch.nn.functional.mse_loss(outputs, outputs_t)
         
         T = 4.0
-        loss_ce = (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T * 0.9) # + (0.1 * ce_loss(outputs, targets.long())) 
+        loss_ce = (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T * 0.9) + (0.1 * ce_loss(outputs, targets.long())) 
 
         # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long())
 
