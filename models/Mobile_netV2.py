@@ -264,7 +264,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model 
 
@@ -521,7 +521,7 @@ class mvit_teacher(nn.Module):
 
         # x = (self.small(x0) + self.tiny(x0) + self.base(x0)) / 2.0
 
-        x = self.small(x0)
+        x = self.base(x0)
 
         return x
 
