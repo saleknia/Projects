@@ -362,7 +362,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x
+            return x_t
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -442,7 +442,7 @@ class mvit_small(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -482,14 +482,14 @@ class mvit_tiny(nn.Module):
 
         x = self.model(x0)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_teacher, self).__init__()
 
         self.base  = mvit_base()
-        self.small = mvit_small()
+        self.small = mvit_tiny()
         self.tiny  = mvit_tiny()
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_base.pth', map_location='cpu')
@@ -500,7 +500,7 @@ class mvit_teacher(nn.Module):
                 pretrained_teacher.pop(key)
         self.base.load_state_dict(pretrained_teacher)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -508,7 +508,7 @@ class mvit_teacher(nn.Module):
                 pretrained_teacher.pop(key)
         self.small.load_state_dict(pretrained_teacher)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny_s.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -521,9 +521,10 @@ class mvit_teacher(nn.Module):
 
         # x = (self.small(x0) + self.tiny(x0) + self.base(x0)) / 2.0
 
-        x = self.base(x0)
+        x_t = self.tiny(x0)
+        x_s = self.small(x0)
 
-        return x
+        return x_t, x_s
 
 
 class convnext_small(nn.Module):

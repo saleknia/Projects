@@ -201,8 +201,8 @@ class SEUNet(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(SEUNet, self).__init__()
 
-        self.convnext = convnext_small()
-        self.mvit     = mvit_small()
+        # self.convnext = convnext_small()
+        self.mvit     = mvit_teacher()
         # self.teacher  = efficientnet_teacher()
 
         self.dense_model = dense_model()
@@ -217,7 +217,7 @@ class SEUNet(nn.Module):
 
         self.res_model = res_model()
 
-        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/2_res_best.pth', map_location='cpu')
+        checkpoint = torch.load('/content/drive/MyDrive/checkpoint_dense_ensemble/3_res_best.pth', map_location='cpu')
         pretrained_teacher = checkpoint['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -229,31 +229,33 @@ class SEUNet(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x_res   = self.res_model(x0)  
-        # x_dense = self.dense_model(x0)
-        # x_trans = self.mvit(x0)    
-        x_next  = self.convnext(x0)
+        x_res      = self.res_model(x0)  
+        x_dense    = self.dense_model(x0)
+        x_t, x_t_s = self.mvit(x0)   
 
-        # x_dense = torch.softmax(x_res  , dim=1)
-        # x_res   = torch.softmax(x_dense, dim=1)
+        # x_next  = self.convnext(x0)
+
+        x_dense = torch.softmax(x_res  , dim=1)
+        x_res   = torch.softmax(x_dense, dim=1)
+
         # x_trans = torch.softmax(x_trans, dim=1)
         # x_next  = torch.softmax(x_next , dim=1)
 
-        # output_1  = torch.softmax(x_res  + x_dense, dim=1)
-        # output_2  = torch.softmax(x_next + x_trans, dim=1)
+        output_1  = torch.softmax(x_res + x_t  , dim=1)
+        output_2  = torch.softmax(x_res + x_t_s, dim=1)
 
         # out_1 = torch.softmax(output_1 + output_2, dim=1)
 
         # output_1  = torch.softmax(x_res   + x_next , dim=1)
         # output_2  = torch.softmax(x_res   + x_trans, dim=1)
 
-        # output_3  = torch.softmax(x_dense + x_next , dim=1)
-        # output_4  = torch.softmax(x_dense + x_trans, dim=1)
+        output_3  = torch.softmax(x_dense + x_t  , dim=1)
+        output_4  = torch.softmax(x_dense + x_t_s, dim=1)
 
 
         # out_2 = torch.softmax(output_1 + output_2 + output_3 + output_4, dim=1)
 
-        return x_next # output_1 + output_2 + output_3 + output_4
+        return output_1 + output_3 
 
 class dense_model_distillation(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
