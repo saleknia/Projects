@@ -235,8 +235,8 @@ class SEUNet(nn.Module):
 
         # x_next  = self.convnext(x0)
 
-        x_dense = torch.softmax(x_res  , dim=1)
-        x_res   = torch.softmax(x_dense, dim=1)
+        x_res   = torch.softmax(x_res  , dim=1)
+        x_dense = torch.softmax(x_dense, dim=1)
 
         # x_trans = torch.softmax(x_trans, dim=1)
         # x_next  = torch.softmax(x_next , dim=1)
@@ -255,7 +255,7 @@ class SEUNet(nn.Module):
 
         # out_2 = torch.softmax(output_1 + output_2 + output_3 + output_4, dim=1)
 
-        return output_1 + output_3 
+        return output_1 + output_3
 
 class dense_model_distillation(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
