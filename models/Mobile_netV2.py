@@ -115,7 +115,7 @@ class Mobile_netV2(nn.Module):
 
 
 
-        model = torchvision.models.convnext_small(weights='DEFAULT')
+        model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
         self.model = model 
 
@@ -154,7 +154,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = True
 
         # self.teacher = convnext_teacher()
-        # self.teacher = convnext_small()
+        self.teacher = convnext_small()
 
         ############################################################
         ############################################################
@@ -382,7 +382,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher(x0)
+        x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -400,12 +400,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x_t
+        if self.training:
+            return x, x_t
+        else:
+            return x_t
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -590,17 +590,17 @@ class convnext_small(nn.Module):
         # for param in self.model.features[5][6:9].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[5][18:27].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[5][18:27].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[6].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[6].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[7][0].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[7][0].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
@@ -608,7 +608,7 @@ class convnext_small(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
