@@ -405,7 +405,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x_t
+            return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -635,7 +635,7 @@ class convnext_tiny(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.classifier[0] = nn.Identity()
+        # self.model.classifier[0] = nn.Identity()
         
         for param in self.model.parameters():
             param.requires_grad = False
@@ -643,20 +643,20 @@ class convnext_tiny(nn.Module):
         # for param in self.model.features[5][6:9].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[5][18:27].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[5][18:27].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[6].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[6].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.features[7][0].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[7][0].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
 
-        state_dict = torch.load('/content/drive/MyDrive/checkpoint/tiny_best.pth', map_location='cpu')['net']
+        state_dict = torch.load('/content/drive/MyDrive/checkpoint/next_tiny.pth', map_location='cpu')['net']
         self.load_state_dict(state_dict)
 
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_mvitv2_small/MVITV2_small.pth', map_location='cpu')['net']
