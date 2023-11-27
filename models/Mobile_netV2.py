@@ -115,7 +115,7 @@ class Mobile_netV2(nn.Module):
 
 
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        model = torchvision.models.convnext_small(weights='DEFAULT')
 
         self.model = model 
 
@@ -144,8 +144,8 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.features[5][18:27].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[6].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[6].parameters():
+        #     param.requires_grad = True
 
         for param in self.model.features[7].parameters():
             param.requires_grad = True
