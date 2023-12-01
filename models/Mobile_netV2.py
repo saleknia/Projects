@@ -49,24 +49,25 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        # teacher = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # teacher.load_state_dict(state_dict)
+        model.load_state_dict(state_dict)
 
-        # self.teacher = teacher
+        self.model = model
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.teacher.layer4[-1].parameters():
+        # for param in self.model.layer4[-1].parameters():
         #     param.requires_grad = True
 
-        # self.teacher.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+
         # self.teacher.conv1.stride = (1, 1)
 
         ############################################################
@@ -115,18 +116,18 @@ class Mobile_netV2(nn.Module):
 
 
 
-        model = torchvision.models.convnext_tiny(weights='DEFAULT')
+        # model = torchvision.models.convnext_tiny(weights='DEFAULT')
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.classifier[2] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.classifier[2] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.model.classifier[0] = nn.Identity()
+        # # self.model.classifier[0] = nn.Identity()
         
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
 
         # for param in self.model.features[5][-3].parameters():
@@ -147,11 +148,11 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.features[6].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[7].parameters():
-            param.requires_grad = True
+        # for param in self.model.features[7].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
         # self.teacher = convnext_teacher()
         # self.teacher = convnext_small()
