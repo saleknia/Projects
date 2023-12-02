@@ -49,26 +49,26 @@ class Mobile_netV2(nn.Module):
 
         # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        model.load_state_dict(state_dict)
+        # model.load_state_dict(state_dict)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
-        # self.teacher.conv1.stride = (1, 1)
+        # # self.teacher.conv1.stride = (1, 1)
 
         ############################################################
         ############################################################
@@ -308,19 +308,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # # self.teacher = mvit_small()
         
