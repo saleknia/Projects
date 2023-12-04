@@ -486,7 +486,7 @@ class mvit_small(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
