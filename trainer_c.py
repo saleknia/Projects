@@ -221,9 +221,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         
-        outputs = model(inputs)
+        # outputs = model(inputs)
 
-        # outputs, outputs_t = model(inputs)
+        outputs, outputs_t = model(inputs)
 
         ################################################################
         ################################################################
@@ -249,9 +249,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
 
-        # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
+        loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
 
         # loss_ce = torch.nn.functional.mse_loss(outputs, outputs_t, size_average=None, reduce=None, reduction='mean')
         
