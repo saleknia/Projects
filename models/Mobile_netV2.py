@@ -553,11 +553,11 @@ class convnext_small(nn.Module):
         ###########################################################################
         ###########################################################################
 
-        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('convnextv2_base.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=1024, out_features=num_classes, bias=True))
         self.model.head.drop.p = 0.5
 
 
