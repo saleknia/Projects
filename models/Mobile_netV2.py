@@ -73,27 +73,27 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = torchvision.models.convnext_small(weights='DEFAULT')
+        # model = torchvision.models.convnext_small(weights='DEFAULT')
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.classifier[2] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.classifier[2] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.classifier[0] = nn.Identity()
+        # self.model.classifier[0] = nn.Identity()
         
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        # for param in self.model.features[6].parameters():
+        # # for param in self.model.features[6].parameters():
+        # #     param.requires_grad = True
+
+        # for param in self.model.features[7].parameters():
         #     param.requires_grad = True
 
-        for param in self.model.features[7].parameters():
-            param.requires_grad = True
-
-        for param in self.model.classifier.parameters():
-            param.requires_grad = True
+        # for param in self.model.classifier.parameters():
+        #     param.requires_grad = True
 
         # # self.teacher = convnext_teacher()
         # # self.teacher = convnext_small()
@@ -249,19 +249,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_base', pretrained=True)
+        model = timm.create_model('mvitv2_base', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].blocks[-1].parameters():
+            param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # self.teacher = mvit_small()
         
@@ -274,21 +274,21 @@ class Mobile_netV2(nn.Module):
 
         # model = timm.create_model('convnextv2_tiny', pretrained=True)
         
-        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        # model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-        self.model.head.drop.p = 0.5
+        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head.drop.p = 0.5
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # for param in self.model.stages[3].blocks[0].parameters():
         #     param.requires_grad = True
@@ -307,7 +307,7 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = efficientnet_teacher()
         
-        self.teacher = convnext_small()
+        # self.teacher = convnext_small()
 
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
@@ -324,7 +324,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher(x0)
+        # x_t = self.teacher(x0)
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -342,12 +342,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
