@@ -222,7 +222,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_base', pretrained=True)
 
         self.model = model 
 
@@ -477,13 +477,13 @@ class mvit_teacher(nn.Module):
         self.small = mvit_small()
         self.tiny  = mvit_tiny()
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_base.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.base.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_base.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.base.load_state_dict(pretrained_teacher)
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
@@ -504,7 +504,7 @@ class mvit_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = (self.small(x0) + self.tiny(x0) + self.base(x0)) / 3.0
+        x = (self.small(x0) + self.tiny(x0)) / 2.0
 
         # x_t = self.tiny(x0)
         # x_s = self.small(x0)
