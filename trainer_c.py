@@ -250,8 +250,14 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = 1.0 * importance_maps_distillation(s=x3, t=x3_t) 
 
         # loss_ce = ce_loss(outputs, label_smoothing(targets.long(), outputs_t))
+        
+        ####################################################################################################
+        ####################################################################################################
 
         loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        
+        ####################################################################################################
+        ####################################################################################################
 
         # loss_ce = torch.nn.functional.mse_loss(outputs, outputs_t, size_average=None, reduce=None, reduction='mean')
         
@@ -324,7 +330,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
+        lr_ = 0.0001 * (1.0 - iter_num / max_iterations) ** 0.9     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
