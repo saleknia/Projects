@@ -533,7 +533,7 @@ class convnext_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_tiny_s.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
