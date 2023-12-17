@@ -252,7 +252,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.head.drop.p = 0.0
+        self.model.head.drop.p = 0.5
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -263,7 +263,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        self.teacher_n = convnext_small()
+        # self.teacher_n = convnext_small()
 
         #################################################################################
         #################################################################################
