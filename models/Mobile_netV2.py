@@ -245,7 +245,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
@@ -262,7 +262,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        # self.teacher_n = convnext_small()
+        self.teacher_n = convnext_small()
 
         #################################################################################
         #################################################################################
@@ -320,7 +320,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        # x_t = self.teacher_t(x0) 
+        x_t = self.teacher_n(x0) 
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -338,12 +338,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        return x
+        # return x_t
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -585,7 +585,7 @@ class convnext_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 
 
