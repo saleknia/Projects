@@ -222,7 +222,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model 
 
@@ -236,7 +236,10 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.teacher_t = mvit_small()
+        # self.teacher_t = mvit_small()
+
+        # self.small = mvit_small()
+        # self.tiny  = mvit_tiny()
 
 
         #################################################################################
@@ -317,7 +320,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher_t(x0) 
+        # x_t = self.teacher_t(x0) 
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -335,12 +338,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -387,7 +390,7 @@ class mvit_small(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_small, self).__init__()
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model 
 
@@ -404,10 +407,10 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')['net']
+        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/tiny_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -420,7 +423,7 @@ class mvit_small(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
