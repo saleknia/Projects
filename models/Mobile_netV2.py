@@ -81,13 +81,13 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.model.classifier[0] = nn.Identity()
+        # # self.model.classifier[0] = nn.Identity()
         
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # # for param in self.model.features[6].parameters():
-        # #     param.requires_grad = True
+        # for param in self.model.features[6].parameters():
+        #     param.requires_grad = True
 
         # for param in self.model.features[7].parameters():
         #     param.requires_grad = True
@@ -252,7 +252,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.head.drop.p = 0.5
+        self.model.head.drop.p = 0.0
 
         for param in self.model.parameters():
             param.requires_grad = False
