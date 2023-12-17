@@ -339,7 +339,7 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        # return x_t
 
         if self.training:
             return x, x_t
@@ -513,43 +513,6 @@ class convnext_small(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(convnext_small, self).__init__()
 
-        # model = torchvision.models.convnext_small(weights='DEFAULT')
-
-        # self.model = model 
-
-        # self.model.classifier[2] = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        # # self.model.classifier[0] = nn.Identity()
-        
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.features[5][6:9].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.features[5][18:27].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.features[6].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.features[7][0].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.classifier.parameters():
-        #     param.requires_grad = True
-
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint/small_best.pth', map_location='cpu')['net']
-        # self.load_state_dict(state_dict)
-
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_convnext/small_distilled_best.pth', map_location='cpu')['net']
-        # self.load_state_dict(state_dict)
-
-        ###########################################################################
-        ###########################################################################
-
         model = timm.create_model('convnext_small.fb_in1k', pretrained=True)
 
         self.model = model 
@@ -560,11 +523,17 @@ class convnext_small(nn.Module):
 
         for param in self.model.parameters():
             param.requires_grad = False
-        
-        ###########################################################################
-        ###########################################################################
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_small.pth', map_location='cpu')
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_tiny_s.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -604,7 +573,6 @@ class convnext_tiny(nn.Module):
             param.requires_grad = False
 
 
-
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_tiny.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
@@ -618,7 +586,23 @@ class convnext_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
+
+
+
+class convnext_teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(convnext_teacher, self).__init__()
+
+        self.small = convnext_small()
+        self.tiny  = convnext_tiny()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = (self.small(x0) + self.tiny(x0)) / 2.0
+
+        return x
 
 class convnextv2_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -659,22 +643,6 @@ class convnextv2_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x
-
-class convnext_teacher(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(convnext_teacher, self).__init__()
-
-        self.small = convnext_small()
-        self.tiny  = convnext_tiny()
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-
-        # x = (self.small(x0) + self.tiny(x0)) / 2.0
-
-        x = self.small(x0)
-
         return x
 
 from torchvision import transforms
