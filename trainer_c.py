@@ -345,14 +345,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         optimizer.zero_grad()
         loss.backward()
-        # if epoch_num==0:
-        #     torch.nn.utils.clip_grad_norm_(model.parameters(), 5.0)
         optimizer.step()
 
+        # optimizer.zero_grad()
         # scaler.scale(loss).backward()
         # scaler.step(optimizer)
         # scaler.update()
-        # optimizer.zero_grad()
 
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
