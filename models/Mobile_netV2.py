@@ -238,10 +238,8 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher_t = mvit_small()
 
-        # self.teacher_t = mvit_base()
+        self.teacher_t = mvit_base()
         # self.tiny  = mvit_tiny()
-
-        self.teacher_t = mvit_teacher()
 
 
         #################################################################################
@@ -345,7 +343,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x, x_t
         else:
-            return x_t
+            return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -384,7 +382,7 @@ class mvit_base(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return torch.softmax(x, dim=1)
+        return x #torch.softmax(x, dim=1)
 
 
 
@@ -472,7 +470,7 @@ class mvit_teacher(nn.Module):
         super(mvit_teacher, self).__init__()
 
         self.base  = mvit_base()
-        # self.small = mvit_small()
+        self.small = mvit_small()
         self.tiny  = mvit_tiny()
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_base.pth', map_location='cpu')
@@ -483,13 +481,13 @@ class mvit_teacher(nn.Module):
                 pretrained_teacher.pop(key)
         self.base.load_state_dict(pretrained_teacher)
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
-        # pretrained_teacher  = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.small.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.small.load_state_dict(pretrained_teacher)
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
@@ -502,7 +500,7 @@ class mvit_teacher(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = (self.base(x0) + self.tiny(x0)) / 2.0
+        x = (self.base(x0) + self.small(x0) + self.tiny(x0)) / 3.0
 
         # x_t = self.tiny(x0)
         # x_s = self.small(x0)
