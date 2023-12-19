@@ -222,7 +222,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_base', pretrained=True)
 
         self.model = model 
 
@@ -238,7 +238,7 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher_t = mvit_small()
 
-        self.teacher_t = mvit_base()
+        # self.teacher_t = mvit_base()
         # self.tiny  = mvit_tiny()
 
 
@@ -320,7 +320,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher_t(x0) 
+        # x_t = self.teacher_t(x0) 
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -338,12 +338,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
