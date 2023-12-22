@@ -41,32 +41,25 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = False
 
 
-        # model = torchvision.models.maxvit_t(weights='DEFAULT')
 
-        # model = timm.create_model('maxvit_tiny_tf_224.in1k', pretrained=True, num_classes=67)
+        model = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # model = torchvision.models.regnet_y_400mf(weights='DEFAULT')
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model.load_state_dict(state_dict)
 
-        # model = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        self.model = model
 
-        # # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-
-        # model.load_state_dict(state_dict)
-
-        # self.model = model
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # for param in self.model.layer4[-1].parameters():
         #     param.requires_grad = True
 
-        # self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
+        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         # # self.teacher.conv1.stride = (1, 1)
 
@@ -221,21 +214,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.teacher_t = mvit_small()
+        # self.teacher_t = mvit_small()
 
         # self.teacher_t = mvit_teacher()
 
@@ -320,7 +313,7 @@ class Mobile_netV2(nn.Module):
         # x2 = self.features[4:6](x1)
         # x3 = self.features[6:9](x2)
 
-        x_t = self.teacher_t(x0) 
+        # x_t = self.teacher_t(x0) 
 
         # x = self.avgpool(x3)
         # x = x.view(x.size(0), -1)
@@ -338,12 +331,12 @@ class Mobile_netV2(nn.Module):
 
         # x = self.convnext(x0)
 
-        # return x_t
+        return x
 
-        if self.training:
-            return x, x_t
-        else:
-            return x
+        # if self.training:
+        #     return x, x_t
+        # else:
+        #     return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
