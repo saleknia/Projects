@@ -219,9 +219,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         targets = targets.float()
 
-        # with torch.autocast(device_type=device, dtype=torch.float16):
-
-        outputs = model(inputs)
+        with torch.autocast(device_type=device, dtype=torch.float16):
+            outputs = model(inputs)
 
         # outputs, outputs_t = model(inputs)
 
@@ -254,7 +253,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.0)
+        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
         
         ####################################################################################################
         ####################################################################################################

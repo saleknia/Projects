@@ -110,8 +110,8 @@ class Mobile_netV2(nn.Module):
         # self.model = model
         # # self.avgpool = model.avgpool
 
-        # for param in self.model.features[0:4].parameters():
-        #     param.requires_grad = False
+        # # for param in self.model.features.parameters():
+        # #     param.requires_grad = False
 
         # self.model.classifier[0].p            = 0.5
         # self.model.classifier[1].out_features = 67
@@ -238,6 +238,7 @@ class Mobile_netV2(nn.Module):
         # self.teacher_t = mvit_small()
 
         # self.teacher_t = mvit_teacher()
+
         # self.tiny  = mvit_tiny()
 
 
@@ -462,7 +463,7 @@ class mvit_tiny(nn.Module):
 
         x = self.model(x0)
 
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 class mvit_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -504,7 +505,7 @@ class mvit_teacher(nn.Module):
         # x_t = self.tiny(x0)
         # x_s = self.small(x0)
 
-        return x # x_t + x_s
+        return torch.softmax(x, dim=1)
 
 
 class convnext_small(nn.Module):
