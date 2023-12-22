@@ -113,9 +113,8 @@ class Mobile_netV2(nn.Module):
         for param in self.features[0:7].parameters():
             param.requires_grad = False
 
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=67, bias=True))
+        self.classifier[0].p            = 0.5
+        self.classifier[1].out_features = 67
 
         ############################################################
         ############################################################
