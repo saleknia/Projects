@@ -107,14 +107,14 @@ class Mobile_netV2(nn.Module):
 
         # model.features[0][0].stride = (1, 1)
 
-        self.features = model.features
-        self.avgpool = model.avgpool
+        self.model = model.features
+        # self.avgpool = model.avgpool
 
-        for param in self.features[0:7].parameters():
+        for param in self.model.features[0:7].parameters():
             param.requires_grad = False
 
-        self.classifier[0].p            = 0.5
-        self.classifier[1].out_features = 67
+        self.model.classifier[0].p            = 0.5
+        self.model.classifier[1].out_features = 67
 
         ############################################################
         ############################################################
