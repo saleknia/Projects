@@ -95,14 +95,14 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         model.features[0][0].stride = (1, 1)
 
         self.model = model
         # self.avgpool = model.avgpool
 
-        for param in self.model.features[0:4].parameters():
+        for param in self.model.features[0:5].parameters():
             param.requires_grad = False
 
         self.model.classifier[0].p            = 0.5
