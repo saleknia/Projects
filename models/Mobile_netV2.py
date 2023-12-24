@@ -213,19 +213,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # self.teacher_t = mvit_small()
 
@@ -259,47 +259,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
+        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
-        # model = timm.create_model('convnextv2_tiny', pretrained=True)
+        self.model = model 
+
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head.drop.p = 0.5
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        #################################################################################
+        #################################################################################
+
         
-        # model = timm.create_model('convnextv2_base.fcmae_ft_in1k', pretrained=True)
-
-        # self.model = model 
-
-        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=1024, out_features=num_classes, bias=True))
-        # self.model.head.drop.p = 0.5
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages[3].blocks[0].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages[3].downsample.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages[2].blocks[6:9].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        # self.convnext = convnext_small()
-        # self.mvit = mvit_small()
-
-        # self.teacher = efficientnet_teacher()
-        
-        # self.teacher = convnext_small()
-
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
-
     def forward(self, x0):
         b, c, w, h = x0.shape
 
