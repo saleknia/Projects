@@ -57,9 +57,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.float()
 
             outputs = model(inputs)
+
             # prob = torch.softmax(outputs, dim=1)
 
-            # print(outputs)
             # model_outputs.append(outputs)
 
             loss_ce = ce_loss(outputs, targets[:].long())

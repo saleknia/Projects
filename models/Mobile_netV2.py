@@ -213,19 +213,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        self.model = B2()
 
         #################################################################################
         #################################################################################
@@ -288,7 +290,7 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.classifier(x)
 
-        x   = self.model(x0)
+        x = self.model(x0)
 
         # print(x.shape)
 
@@ -306,6 +308,41 @@ class Mobile_netV2(nn.Module):
         #     return x, x_t
         # else:
         #     return x
+
+from torchvision import transforms
+transform_test = transforms.Compose([
+    transforms.Resize((448, 448)),
+])
+class B2(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(B2, self).__init__()
+
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+
+        # model.features[0][0].stride = (1, 1)
+
+        self.model = model
+        # self.avgpool = model.avgpool
+
+        for param in self.model.features[0:5].parameters():
+            param.requires_grad = False
+
+        self.model.classifier[0].p            = 0.5
+        self.model.classifier[1].out_features = 67
+
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+        x = transform_test(x0)
+        x = self.model(x0)
+        return x # torch.softmax(x, dim=1)
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -409,13 +446,13 @@ class mvit_tiny(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_tiny/MVITV2_tiny.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
 
     def forward(self, x0):
@@ -423,7 +460,7 @@ class mvit_tiny(nn.Module):
 
         x = self.model(x0)
 
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -604,10 +641,10 @@ class convnextv2_tiny(nn.Module):
         # x = self.classifier(x)
         return x
 
-from torchvision import transforms
-transform_test = transforms.Compose([
-    transforms.Resize((384, 384)),
-])
+# from torchvision import transforms
+# transform_test = transforms.Compose([
+#     transforms.Resize((384, 384)),
+# ])
 
 class efficientnet_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -627,75 +664,8 @@ class efficientnet_teacher(nn.Module):
         return x
 
 
-class B3(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(B3, self).__init__()
 
-        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
-        # model.features[0][0].stride = (1, 1)
-
-        self.features = model.features
-
-        self.avgpool = model.avgpool
-
-        for param in self.features[0:4].parameters():
-            param.requires_grad = False
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=num_classes, bias=True))
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B3_best.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-        x = self.features(x0)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
-
-class B2(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(B2, self).__init__()
-
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
-
-        # model.features[0][0].stride = (1, 1)
-
-        self.features = model.features
-
-        self.avgpool = model.avgpool
-
-        for param in self.features[0:4].parameters():
-            param.requires_grad = False
-
-        self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=num_classes, bias=True))
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_efficientnet/B2_best.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-        x = self.features(x0)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
 
 # class Mobile_netV2(nn.Module):
 #     def __init__(self, num_classes=40, pretrained=True):
