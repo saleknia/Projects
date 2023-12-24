@@ -95,18 +95,18 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        # model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
-        self.model = model
-        # self.avgpool = model.avgpool
+        # self.model = model
+        # # self.avgpool = model.avgpool
 
-        for param in self.model.features[0:5].parameters():
-            param.requires_grad = False
+        # for param in self.model.features[0:5].parameters():
+        #     param.requires_grad = False
 
-        self.model.classifier[0].p            = 0.5
-        self.model.classifier[1].out_features = 67
+        # self.model.classifier[0].p            = 0.5
+        # self.model.classifier[1].out_features = 67
 
         ############################################################
         ############################################################
@@ -213,19 +213,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # self.teacher_t = mvit_small()
 
