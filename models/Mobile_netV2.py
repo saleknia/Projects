@@ -319,16 +319,17 @@ class B2(nn.Module):
 
         model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
-        # model.features[0][0].stride = (1, 1)
+        model.features[0][0].stride = (1, 1)
 
-        self.model = model
-        # self.avgpool = model.avgpool
+        self.features = model.features
+        self.avgpool  = model.avgpool
 
-        for param in self.model.features[0:5].parameters():
+        for param in self.features[0:4].parameters():
             param.requires_grad = False
 
-        self.model.classifier[0].p            = 0.5
-        self.model.classifier[1].out_features = 67
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1408, out_features=67, bias=True))
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
@@ -340,7 +341,7 @@ class B2(nn.Module):
 
     def forward(self, x0):
         b, c, w, h = x0.shape
-        x = transform_test(x0)
+        # x = transform_test(x0)
         x = self.model(x0)
         return x # torch.softmax(x, dim=1)
 
