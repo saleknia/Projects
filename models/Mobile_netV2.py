@@ -342,7 +342,10 @@ class B2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
         # x = transform_test(x0)
-        x = self.model(x0)
+        x = self.features(x0)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
         return x # torch.softmax(x, dim=1)
 
 class mvit_base(nn.Module):
