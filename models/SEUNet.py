@@ -50,7 +50,7 @@ class SEUNet(nn.Module):
 
         out = torch.softmax(output_1 + output_2 + output_3, dim=1)
 
-        return out
+        return output_3
 
 class B2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
