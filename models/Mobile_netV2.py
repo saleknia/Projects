@@ -323,7 +323,7 @@ class B2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1536, out_features=67, bias=True))
+            nn.Linear(in_features=1792, out_features=67, bias=True))
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
