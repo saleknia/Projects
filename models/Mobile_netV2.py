@@ -61,8 +61,6 @@ class Mobile_netV2(nn.Module):
 
         self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
-        # # self.teacher.conv1.stride = (1, 1)
-
         ############################################################
         ############################################################
 
@@ -313,7 +311,7 @@ class B2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(B2, self).__init__()
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         model.features[0][0].stride = (1, 1)
 
@@ -325,7 +323,7 @@ class B2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=67, bias=True))
+            nn.Linear(in_features=1536, out_features=67, bias=True))
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
