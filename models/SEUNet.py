@@ -72,6 +72,7 @@ class B2(nn.Module):
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
+        pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
         a = pretrained_teacher.copy()
         for key in a.keys():
             if 'teacher' in key:
@@ -157,7 +158,7 @@ class convnextv2_tiny(nn.Module):
         return torch.softmax(x, dim=1)
 
 class res_model(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=67, pretrained=True):
         super(res_model, self).__init__()
 
         model = models.__dict__['resnet50'](num_classes=365)
