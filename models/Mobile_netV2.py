@@ -309,10 +309,6 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-from torchvision import transforms
-transform_test = transforms.Compose([
-    transforms.Resize((448, 448)),
-])
 class B2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(B2, self).__init__()
@@ -386,8 +382,6 @@ class mvit_base(nn.Module):
         x = self.model(x0)
         # x = self.classifier(x)
         return x #torch.softmax(x, dim=1)
-
-
 
 class mvit_small(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
