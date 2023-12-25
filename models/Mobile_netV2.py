@@ -311,19 +311,19 @@ class B2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(B2, self).__init__()
 
-        model = efficientnet_b4(weights=EfficientNet_B4_Weights)
+        model = efficientnet_b3(weights=EfficientNet_B3_Weights)
 
         model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool  = model.avgpool
 
-        for param in self.features[0:4].parameters():
+        for param in self.features[0:5].parameters():
             param.requires_grad = False
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1792, out_features=67, bias=True))
+            nn.Linear(in_features=1536, out_features=67, bias=True))
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
