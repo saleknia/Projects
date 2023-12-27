@@ -310,7 +310,7 @@ class B5(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-        for param in self.model.parameters():
+        for param in self.parameters():
             param.requires_grad = False
 
     def forward(self, x0):
