@@ -40,8 +40,6 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-
-
         # model = models.__dict__['resnet50'](num_classes=365)
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
@@ -225,7 +223,8 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model = B2()
+        self.model   = B2()
+        # self.teacher = B5()
 
         #################################################################################
         #################################################################################
@@ -273,32 +272,9 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x = self.features(x0)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
-
-        # x1 = self.features[0:4](x0)
-        # x2 = self.features[4:6](x1)
-        # x3 = self.features[6:9](x2)
-
         # x_t = self.teacher_t(x0) 
 
-        # x = self.avgpool(x3)
-        # x = x.view(x.size(0), -1)
-        # x = self.classifier(x)
-
         x = self.model(x0)
-
-        # print(x.shape)
-
-        # x  = self.model(x0)
-
-        # x = self.model(x0)
-
-        # x = self.classifier(emb_s)
-
-        # x = self.convnext(x0)
 
         return x
 
@@ -307,11 +283,50 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
+class B5(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(B5, self).__init__()
+
+        model = efficientnet_b5(weights=EfficientNet_B5_Weights)
+
+        model.features[0][0].stride = (1, 1)
+
+        self.features = model.features
+        self.avgpool  = model.avgpool
+
+        for param in self.features[0:5].parameters():
+            param.requires_grad = False
+
+        self.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=67, bias=True))
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+        # x = transform_test(x0)
+        x = self.features(x0)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.classifier(x)
+        return x # torch.softmax(x, dim=1)
+
 class B2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(B2, self).__init__()
 
-        model = efficientnet_b5(weights=EfficientNet_B5_Weights)
+        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
 
         model.features[0][0].stride = (1, 1)
 
