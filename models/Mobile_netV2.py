@@ -301,7 +301,7 @@ class B5(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn_B5.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
         a = pretrained_teacher.copy()
@@ -312,7 +312,7 @@ class B5(nn.Module):
 
         for param in self.model.parameters():
             param.requires_grad = False
-            
+
     def forward(self, x0):
         b, c, w, h = x0.shape
         # x = transform_test(x0)
