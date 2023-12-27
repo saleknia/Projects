@@ -299,7 +299,7 @@ class B5(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True))
+            nn.Linear(in_features=1408, out_features=67, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
