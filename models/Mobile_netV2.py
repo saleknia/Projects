@@ -224,7 +224,7 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         self.model   = B2()
-        # self.teacher = B5()
+        self.teacher = B5()
 
         #################################################################################
         #################################################################################
@@ -272,16 +272,16 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x_t = self.teacher_t(x0) 
+        x_t = self.teacher_t(x0) 
 
         x = self.model(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 class B5(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -301,9 +301,6 @@ class B5(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
-
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
@@ -313,6 +310,9 @@ class B5(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
+        for param in self.model.parameters():
+            param.requires_grad = False
+            
     def forward(self, x0):
         b, c, w, h = x0.shape
         # x = transform_test(x0)
