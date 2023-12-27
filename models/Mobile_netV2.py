@@ -272,7 +272,7 @@ class Mobile_netV2(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_t = self.teacher_t(x0) 
+        x_t = self.teacher(x0) 
 
         x = self.model(x0)
 
