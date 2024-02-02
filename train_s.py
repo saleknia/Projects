@@ -52,6 +52,7 @@ from models.TransFuse import TransFuse_S
 from models.DATUNet import DATUNet
 from models.Cross_unet import Cross_unet
 from models.knitt_net import knitt_net
+from models.MVIT import MVIT
 
 # from models.original_UNet import original_UNet
 import utils
@@ -209,6 +210,9 @@ def main(args):
     elif MODEL_NAME=='Knitt_Net':
         model = knitt_net().to(DEVICE)
 
+    elif MODEL_NAME=='MVIT':
+        model = MVIT().to(DEVICE)
+        
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
