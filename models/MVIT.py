@@ -69,21 +69,25 @@ class MVIT(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True)
+        self.convnext = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
 
-        self.norm_4 = LayerNormProxy(dim=768)
-        self.norm_3 = LayerNormProxy(dim=384)
-        self.norm_2 = LayerNormProxy(dim=192)
-        self.norm_1 = LayerNormProxy(dim=96)
+        self.norm_t_2 = LayerNormProxy(dim=384)
+        self.norm_t_1 = LayerNormProxy(dim=192)
+        self.norm_t_0 = LayerNormProxy(dim=96)
 
-        filters = [96, 192, 384, 768]
+        self.norm_c_2 = LayerNormProxy(dim=384)
+        self.norm_c_1 = LayerNormProxy(dim=192)
+        self.norm_c_0 = LayerNormProxy(dim=96)
 
-        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
-        self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
+        self.up_2_0 = UpBlock(384, 192)
+        self.up_1_0 = UpBlock(192, 96 )
 
-        self.final_conv1 = nn.ConvTranspose2d(filters[0], 48, 4, 2, 1)
+        self.up_2_1 = UpBlock(384, 192)
+        self.up_1_1 = UpBlock(192, 96 )
+
+        self.concat = _make_nConv(192, 96, 2, 'ReLU')
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
@@ -94,25 +98,81 @@ class MVIT(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x1, x2, x3, x4 = self.transformer(x)
+        t0, t1, t2 = self.transformer(x)
+        c0, c1, c2 = self.convnext(x)
 
-        x4 = self.norm_4(x4) 
-        x3 = self.norm_3(x3) 
-        x2 = self.norm_2(x2) 
-        x1 = self.norm_1(x1)
+        t2 = self.norm_2(t2) 
+        t1 = self.norm_1(t1) 
+        t0 = self.norm_0(t0)
 
-        d4 = self.decoder4(x4) + x3
-        d3 = self.decoder3(d4) + x2
-        d2 = self.decoder2(d3) + x1
+        c2 = self.norm_2(c2) 
+        c1 = self.norm_1(c1) 
+        c0 = self.norm_0(c0)
 
-        out1 = self.final_conv1(d2)
-        out1 = self.final_relu1(out1)
-        out = self.final_conv2(out1)
+        a = self.up_2_0(t2, c1)
+        a = self.up_1_0(a , t0)
+
+        b = self.up_2_1(c2, t1)
+        b = self.up_1_1(b , c0)
+
+        x = self.concat(torch.cat([a, b], dim=1))
+
+        out = self.final_conv1(x)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
         out = self.final_relu2(out)
         out = self.final_conv3(out)
         out = self.final_upsample(out)
 
         return out
+
+import torch.nn as nn
+import torch
+
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
+    else:
+        return nn.ReLU()
+
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+
+    for _ in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+    return nn.Sequential(*layers)
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU'):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels,
+                              kernel_size=3, padding=1)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
+
+class UpBlock(nn.Module):
+    """Upscaling then conv"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
+        super(UpBlock, self).__init__()
+
+        # self.up = nn.Upsample(scale_factor=2)
+        self.up     = nn.ConvTranspose2d(in_channels//2,in_channels//2,(2,2),2)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+    def forward(self, x, skip_x):
+        out = self.up(x)
+        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        return self.nConvs(x)
 
 class LayerNormProxy(nn.Module):
     
@@ -728,7 +788,7 @@ class CrossFormer(nn.Module):
         checkpoint = torch.load('/content/drive/MyDrive/crossformer-s.pth', map_location='cpu')
         state_dict = checkpoint['model']
         self.load_state_dict(state_dict, strict=False)
-        # self.layers[3] = None
+        self.layers[3] = None
 
         # for param in self.layers[1].parameters():
         #     param.requires_grad = False
@@ -758,8 +818,8 @@ class CrossFormer(nn.Module):
         x = self.pos_drop(x)
 
         outs = []
-        # for i, layer in enumerate(self.layers[0:3]):
-        for i, layer in enumerate(self.layers):
+        for i, layer in enumerate(self.layers[0:3]):
+        # for i, layer in enumerate(self.layers):
             feat, x = layer(x, H //4 //(2 ** i), W //4 //(2 ** i))
             outs.append(feat)
 
