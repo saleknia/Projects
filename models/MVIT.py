@@ -98,24 +98,37 @@ class MVIT(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        t0, t1, t2 = self.transformer(x)
+        # t0, t1, t2 = self.transformer(x)
         c0, c1, c2 = self.convnext(x)
 
-        t2 = self.norm_t_2(t2) 
-        t1 = self.norm_t_1(t1) 
-        t0 = self.norm_t_0(t0)
+        # t2 = self.norm_t_2(t2) 
+        # t1 = self.norm_t_1(t1) 
+        # t0 = self.norm_t_0(t0)
 
         c2 = self.norm_c_2(c2) 
         c1 = self.norm_c_1(c1) 
         c0 = self.norm_c_0(c0)
 
-        a = self.up_2_0(t2, c1)
-        a = self.up_1_0(a , t0)
 
-        b = self.up_2_1(c2, t1)
-        b = self.up_1_1(b , c0)
+        #########################################
+        #########################################
 
-        x = self.concat(torch.cat([a, b], dim=1))
+        x = self.up_2_0(c2, c1)
+        x = self.up_1_0(x , c0)
+
+        #########################################
+        #########################################
+
+        # a = self.up_2_0(t2, c1)
+        # a = self.up_1_0(a , t0)
+
+        # b = self.up_2_1(c2, t1)
+        # b = self.up_1_1(b , c0)
+
+        #########################################
+        #########################################
+
+        # x = self.concat(torch.cat([a, b], dim=1))
 
         out = self.final_conv1(x)
         out = self.final_relu1(out)
