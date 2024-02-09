@@ -332,7 +332,7 @@ class efficientnet_teacher(nn.Module):
         for key in a.keys():
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
-        self.model.load_state_dict(pretrained_teacher)
+        self.load_state_dict(pretrained_teacher)
 
     def forward(self, x0):
         b, c, w, h = x0.shape
