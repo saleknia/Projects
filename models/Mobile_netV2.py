@@ -256,39 +256,40 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnextv2_tiny', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-        self.model.head.drop.p = 0.5
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[3].blocks[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        #################################################################################
-        #################################################################################
-
-        # model = timm.create_model('tf_efficientnetv2_b2', pretrained=True)
+        # model = timm.create_model('convnextv2_tiny', pretrained=True)
 
         # self.model = model 
 
-        # self.model.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1408, out_features=num_classes, bias=True),
-        # )
+        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head.drop.p = 0.5
 
-        # for param in self.model.blocks[0:5].parameters():
+        # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.conv_stem.parameters():
-        #     param.requires_grad = False
+        # for param in self.model.stages[3].blocks[-1].parameters():
+        #     param.requires_grad = True
+
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
+
+        #################################################################################
+        #################################################################################
+
+        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
+        model.conv_stem.stride = (1, 1)
+
+        self.model = model 
+
+        self.model.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1408, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.blocks[0:5].parameters():
+            param.requires_grad = False
+
+        for param in self.model.conv_stem.parameters():
+            param.requires_grad = False
 
         # self.teacher = efficientnet_teacher(num_classes=num_classes)
 
