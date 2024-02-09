@@ -214,21 +214,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # # self.model.head = nn.Identity()
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.teacher = mvit_small()
 
         # self.model   = B2()
         # self.teacher = B5()
@@ -275,21 +275,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
-        model.conv_stem.stride = (1, 1)
+        # model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
+        # model.conv_stem.stride = (1, 1)
 
-        self.model = model 
+        # self.model = model 
 
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=num_classes, bias=True),
-        )
+        # self.model.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.blocks[0:5].parameters():
-            param.requires_grad = False
+        # for param in self.model.blocks[0:5].parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.conv_stem.parameters():
-            param.requires_grad = False
+        # for param in self.model.conv_stem.parameters():
+        #     param.requires_grad = False
 
         # self.teacher = efficientnet_teacher(num_classes=num_classes)
 
@@ -297,18 +297,19 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = True
 
     def forward(self, x0):
+
         b, c, w, h = x0.shape
 
-        # x_t = self.teacher(x0) 
+        x_t = self.teacher(x0) 
 
         x = self.model(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class efficientnet_teacher(nn.Module):
@@ -457,7 +458,7 @@ class mvit_base(nn.Module):
         return x #torch.softmax(x, dim=1)
 
 class mvit_small(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(mvit_small, self).__init__()
 
         model = timm.create_model('mvitv2_small', pretrained=True)
@@ -477,10 +478,10 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
+
         for key in a.keys():
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
@@ -491,7 +492,7 @@ class mvit_small(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
