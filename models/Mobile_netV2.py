@@ -275,13 +275,13 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b2', pretrained=True)
 
         self.model = model 
 
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+            nn.Linear(in_features=1408, out_features=num_classes, bias=True),
         )
 
         for param in self.model.blocks[0:5].parameters():
