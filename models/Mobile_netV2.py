@@ -275,7 +275,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('tf_efficientnetv2_b1', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
 
         self.model = model 
 
