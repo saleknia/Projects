@@ -275,7 +275,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('tf_efficientnetv2_b2', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b1', pretrained=True)
 
         self.model = model 
 
@@ -290,7 +290,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.conv_stem.parameters():
             param.requires_grad = False
 
-        self.teacher = efficientnet_teacher()
+        self.teacher = efficientnet_teacher(num_classes=num_classes)
 
         # for param in self.model.blocks[5][10:15].parameters():
         #     param.requires_grad = True
