@@ -716,22 +716,22 @@ class convnextv2_tiny(nn.Module):
 #     transforms.Resize((384, 384)),
 # ])
 
-class efficientnet_teacher(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(efficientnet_teacher, self).__init__()
+# class efficientnet_teacher(nn.Module):
+#     def __init__(self, num_classes=67, pretrained=True):
+#         super(efficientnet_teacher, self).__init__()
 
-        self.b2 = B2()
-        self.b3 = B3()
+#         self.b2 = B2()
+#         self.b3 = B3()
 
-        for param in self.parameters():
-            param.requires_grad = False
+#         for param in self.parameters():
+#             param.requires_grad = False
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-        x = transform_test(x0)
-        x = (self.b2(x0) + self.b3(x0)) / 2.0
+#     def forward(self, x0):
+#         b, c, w, h = x0.shape
+#         x = transform_test(x0)
+#         x = (self.b2(x0) + self.b3(x0)) / 2.0
 
-        return x
+#         return x
 
 
 
