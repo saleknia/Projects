@@ -223,7 +223,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         outputs = model(inputs)
 
-        # outputs, outputs_t = model(inputs)
+        if len(outputs) > 1:
+            outputs, outputs_t = outputs[0], outputs[1]
 
         ################################################################
         ################################################################
@@ -240,9 +241,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
 
-        loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
+        # loss_ce = loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
 
-        # loss_ce = ce_loss(outputs, outputs_t)
+        loss_ce = ce_loss(outputs, outputs_t)
         
         ####################################################################################################
         ####################################################################################################

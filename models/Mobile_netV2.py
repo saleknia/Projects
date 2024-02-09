@@ -275,7 +275,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('tf_efficientnetv2_b1', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b2', pretrained=True)
 
         self.model = model 
 
@@ -290,22 +290,57 @@ class Mobile_netV2(nn.Module):
         for param in self.model.conv_stem.parameters():
             param.requires_grad = False
 
+        self.teacher = efficientnet_teacher()
+
         # for param in self.model.blocks[5][10:15].parameters():
         #     param.requires_grad = True
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        # x_t = self.teacher(x0) 
+        x_t = self.teacher(x0) 
 
         x = self.model(x0)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+        if self.training:
+            return x, x_t
+        else:
+            return x
+
+
+class efficientnet_teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(efficientnet_teacher, self).__init__()
+
+        model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
+
+        self.model = model 
+
+        self.model.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/enet_small.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.model.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
+
 
 class B5(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
