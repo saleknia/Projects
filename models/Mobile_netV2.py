@@ -214,12 +214,12 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnext_tiny', pretrained=True)
+        # model = timm.create_model('convnextv2_tiny', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
@@ -228,14 +228,14 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=384, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=192, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=192, out_features=num_classes, bias=True),
-        )
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=384, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=384, out_features=192, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=192, out_features=num_classes, bias=True),
+        # )
 
         # self.teacher = mvit_small()
 
@@ -270,16 +270,51 @@ class Mobile_netV2(nn.Module):
         # self.model = model 
 
         # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-        # self.model.head.drop.p = 0.5
+
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=384, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=384, out_features=192, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=192, out_features=num_classes, bias=True),
+        # )
+
+        # self.model.head.drop.p = 0.0
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.stages[3].blocks[-1].parameters():
-        #     param.requires_grad = True
+        # # for param in self.model.stages[3].blocks[-1].parameters():
+        # #     param.requires_grad = True
 
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
+
+        #################################################################################
+        #################################################################################
+
+        model = timm.create_model('swinv2_cr_tiny_224', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=384, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=384, out_features=192, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=192, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        # for param in self.model.stages[3].blocks[-1].parameters():
+        #     param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
