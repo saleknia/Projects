@@ -294,7 +294,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('swinv2_cr_tiny_224', pretrained=True)
+        model = timm.create_model('swinv2_tiny_window8_256', pretrained=True)
 
         self.model = model 
 
