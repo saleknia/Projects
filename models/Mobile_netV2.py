@@ -40,31 +40,31 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        scene = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # scene = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
         # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        scene.load_state_dict(state_dict)
+        # scene.load_state_dict(state_dict)
 
-        self.scene = scene
+        # self.scene = scene
 
-        for param in self.scene.parameters():
-            param.requires_grad = False
+        # for param in self.scene.parameters():
+        #     param.requires_grad = False
 
         # for param in self.scene.layer4[-1].parameters():
         #     param.requires_grad = True
 
         # self.scene.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=768, bias=True))
 
-        self.scene.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=768, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768 , out_features=67 , bias=True),
-        )
+        # self.scene.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=768, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768 , out_features=67 , bias=True),
+        # )
 
         ############################################################
         ############################################################
@@ -216,12 +216,13 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnextv2_tiny', pretrained=True)
+        model = timm.create_model('convnextv2_tiny', pretrained=True)
 
-        # self.model = model 
+        self.model = model
+        self.scene = scene()
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
@@ -238,6 +239,17 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=192, out_features=num_classes, bias=True),
         # )
+
+        self.model.head.fc = nn.Identitiy()
+
+        self.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=384, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=384, out_features=192, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=192, out_features=num_classes, bias=True),
+        )
 
         # self.teacher = mvit_small()
 
@@ -330,9 +342,11 @@ class Mobile_netV2(nn.Module):
 
         # x_t = self.teacher(x0) 
 
-        # x = self.model(x0)
+        x_obj   = self.model(x0)
 
-        x = self.scene(x0)
+        x_scene = self.scene(x0)
+
+        x = self.head(x_obj + x_scene)
 
 
         return x
@@ -342,6 +356,45 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
+class scene(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(scene, self).__init__()
+
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+
+        scene.load_state_dict(state_dict)
+
+        self.scene = scene
+
+        for param in self.scene.parameters():
+            param.requires_grad = False
+
+        self.scene.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=768, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768 , out_features=67 , bias=True),
+        )
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+        self.scene.fc = self.scene.fc[1]
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.scene(x0)
+
+        return x
 
 class efficientnet_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
