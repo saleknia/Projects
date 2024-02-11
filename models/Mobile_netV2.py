@@ -40,29 +40,31 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # scene = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
         # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # scene.load_state_dict(state_dict)
+        scene.load_state_dict(state_dict)
 
-        # self.scene = scene
+        self.scene = scene
 
-        # for param in self.scene.parameters():
-        #     param.requires_grad = False
+        for param in self.scene.parameters():
+            param.requires_grad = False
 
         # for param in self.scene.layer4[-1].parameters():
         #     param.requires_grad = True
 
         # self.scene.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=768, bias=True))
 
-        # self.scene.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=2048, out_features=768, bias=True),
-        # )
+        self.scene.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=768, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768 , out_features=67 , bias=True),
+        )
 
         ############################################################
         ############################################################
@@ -295,21 +297,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
 
-        model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
+        # model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=640, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=640, out_features=320, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=320, out_features=num_classes, bias=True),
-        )
+        # self.model.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=640, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=640, out_features=320, bias=True),
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=320, out_features=num_classes, bias=True),
+        # )
 
         # for param in self.model.blocks[0:5].parameters():
         #     param.requires_grad = False
@@ -328,7 +330,10 @@ class Mobile_netV2(nn.Module):
 
         # x_t = self.teacher(x0) 
 
-        x = self.model(x0)
+        # x = self.model(x0)
+
+        x = self.scene(x0)
+
 
         return x
 
