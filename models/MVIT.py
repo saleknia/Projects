@@ -51,6 +51,20 @@ class MVIT(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(MVIT, self).__init__()
 
+        self.transformer = transformer()
+        # self.convnext = convnext()
+
+    def forward(self, x):
+        b, c, h, w = x.shape
+
+        x = self.tranformer(x)
+
+        return x
+
+class transformer(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        super(transformer, self).__init__()
+
         self.transformer = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
@@ -69,23 +83,12 @@ class MVIT(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        self.convnext = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.norm_2 = LayerNormProxy(dim=384)
+        self.norm_1 = LayerNormProxy(dim=192)
+        self.norm_0 = LayerNormProxy(dim=96)
 
-        self.norm_t_2 = LayerNormProxy(dim=384)
-        self.norm_t_1 = LayerNormProxy(dim=192)
-        self.norm_t_0 = LayerNormProxy(dim=96)
-
-        self.norm_c_2 = LayerNormProxy(dim=384)
-        self.norm_c_1 = LayerNormProxy(dim=192)
-        self.norm_c_0 = LayerNormProxy(dim=96)
-
-        self.up_2_0 = UpBlock(384, 192)
-        self.up_1_0 = UpBlock(192, 96 )
-
-        self.up_2_1 = UpBlock(384, 192)
-        self.up_1_1 = UpBlock(192, 96 )
-
-        self.concat = _make_nConv(192, 96, 2, 'ReLU')
+        self.up_2 = UpBlock(384, 192)
+        self.up_1 = UpBlock(192, 96 )
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -94,43 +97,60 @@ class MVIT(nn.Module):
         self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
         self.final_upsample = nn.Upsample(scale_factor=2.0)
 
+    def forward(self, x):
+        b, c, h, w = x.shape
+
+        t0, t1, t2 = self.transformer(x)
+
+        t2 = self.norm_2(t2) 
+        t1 = self.norm_1(t1) 
+        t0 = self.norm_0(t0)
+
+        t = self.up_2(t2, t1)
+        t = self.up_1(t , t0)
+
+        out = self.final_conv1(t)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
+        out = self.final_upsample(out)
+
+        return out
+
+class convnext(nn.Module):
+    def __init__(self, n_channels=3, n_classes=1):
+        super(convnext, self).__init__()
+
+        self.convnext = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+
+        self.norm_2 = LayerNormProxy(dim=384)
+        self.norm_1 = LayerNormProxy(dim=192)
+        self.norm_0 = LayerNormProxy(dim=96)
+
+        self.up_2 = UpBlock(384, 192)
+        self.up_1 = UpBlock(192, 96 )
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_upsample = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
-        # t0, t1, t2 = self.transformer(x)
         c0, c1, c2 = self.convnext(x)
 
-        # t2 = self.norm_t_2(t2) 
-        # t1 = self.norm_t_1(t1) 
-        # t0 = self.norm_t_0(t0)
+        c2 = self.norm_2(c2) 
+        c1 = self.norm_1(c1) 
+        c0 = self.norm_0(c0)
 
-        c2 = self.norm_c_2(c2) 
-        c1 = self.norm_c_1(c1) 
-        c0 = self.norm_c_0(c0)
+        c = self.up_2(c2, c1)
+        c = self.up_1(c , c0)
 
-
-        #########################################
-        #########################################
-
-        x = self.up_2_0(c2, c1)
-        x = self.up_1_0(x , c0)
-
-        #########################################
-        #########################################
-
-        # a = self.up_2_0(t2, c1)
-        # a = self.up_1_0(a , t0)
-
-        # b = self.up_2_1(c2, t1)
-        # b = self.up_1_1(b , c0)
-
-        #########################################
-        #########################################
-
-        # x = self.concat(torch.cat([a, b], dim=1))
-
-        out = self.final_conv1(x)
+        out = self.final_conv1(c)
         out = self.final_relu1(out)
         out = self.final_conv2(out)
         out = self.final_relu2(out)
