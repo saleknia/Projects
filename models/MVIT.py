@@ -57,7 +57,7 @@ class MVIT(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x = self.tranformer(x)
+        x = self.transformer(x)
 
         return x
 
