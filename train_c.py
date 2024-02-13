@@ -462,7 +462,7 @@ def main(args):
         ])
 
         transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((448, 448)),
             transforms.ToTensor(),
             transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
         ])
@@ -525,6 +525,14 @@ def main(args):
 
         trainset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_train)
 
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS)
+
+        testset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_test)
+
+        test_loader  = torch.utils.data.DataLoader(testset  , batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+
+        data_loader={'train':train_loader,'valid':test_loader}
+
         # subdirectories = trainset.classes
         # class_weights = []
 
@@ -541,20 +549,14 @@ def main(args):
 
         # torch.save(sample_weights, 'sample_weights.pt')
 
-        sample_weights = torch.load('sample_weights.pt')
+        # sample_weights = torch.load('sample_weights.pt')
 
-        from torch.utils.data import WeightedRandomSampler
-        sampler = WeightedRandomSampler(
-            sample_weights, num_samples=len(sample_weights), replacement=True
-        )
+        # from torch.utils.data import WeightedRandomSampler
+        # sampler = WeightedRandomSampler(
+        #     sample_weights, num_samples=len(sample_weights), replacement=True
+        # )
 
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=False, num_workers=NUM_WORKERS, sampler=sampler)
 
-        testset = torchvision.datasets.ImageFolder(root='/content/ISIC2019/', transform=transform_test)
-
-        test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
-
-        data_loader={'train':train_loader,'valid':test_loader}
 
     elif TASK_NAME=='TCIA':
 

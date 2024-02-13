@@ -1,3 +1,4 @@
+from re import S
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -40,14 +41,32 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # scene = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        scene = models.__dict__['densenet161'](num_classes=365)
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        scene.load_state_dict(state_dict)
 
-        # scene.load_state_dict(state_dict)
+        for param in scene.parameters():
+            param.requires_grad = False
+
+        # scene.classifier =  nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True), 
+        #     nn.Linear(in_features=2208, out_features=40, bias=True))
+
+        scene.classifier =  nn.Identity()
+
+        self.scene = scene
+
+        # for i, module in enumerate(self.model.features.denseblock4):
+        #     if 20 <= i: 
+        #         for param in self.model.features.denseblock4[module].parameters():
+        #             param.requires_grad = True
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # self.scene = scene
 
@@ -216,40 +235,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnextv2_tiny', pretrained=True)
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model
-        self.scene = scene()
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
+        # self.model.head  = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=384, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=384, out_features=192, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=192, out_features=num_classes, bias=True),
-        # )
-
-        self.model.head.fc = nn.Identitiy()
-
-        self.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=384, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=192, bias=True),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=192, out_features=num_classes, bias=True),
-        )
 
         # self.teacher = mvit_small()
 
@@ -309,29 +307,20 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
 
-        # model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.blocks[0:5].parameters():
+            param.requires_grad = False
 
-        # self.model.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=640, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=640, out_features=320, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=320, out_features=num_classes, bias=True),
-        # )
+        for param in self.model.conv_stem.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.blocks[0:5].parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.conv_stem.parameters():
-        #     param.requires_grad = False
-
-        # self.teacher = efficientnet_teacher(num_classes=num_classes)
+        self.model.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        )
 
         # for param in self.model.blocks[5][10:15].parameters():
         #     param.requires_grad = True
@@ -340,14 +329,7 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x0.shape
 
-        # x_t = self.teacher(x0) 
-
-        x_obj   = self.model(x0)
-
-        x_scene = self.scene(x0)
-
-        x = self.head(x_obj + x_scene)
-
+        x = self.model(x0)
 
         return x
 
@@ -356,9 +338,48 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-class scene(nn.Module):
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
+
+
+
+class SEAttention(nn.Module):
+
+    def __init__(self, in_channel, out_channel, reduction=8):
+        super().__init__()
+        # self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(in_channel, in_channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(in_channel // reduction, out_channel, bias=False),
+            nn.Sigmoid()
+        )
+
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                init.constant_(m.weight, 1)
+                init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    init.constant_(m.bias, 0)
+
+    def forward(self, obj, scene):
+        scene = self.fc(scene)
+        return obj * scene
+
+
+class s(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(scene, self).__init__()
+        super(s, self).__init__()
 
         scene = models.__dict__['resnet50'](num_classes=365)
         checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')

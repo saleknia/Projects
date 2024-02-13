@@ -51,7 +51,7 @@ class MVIT(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(MVIT, self).__init__()
 
-        self.transformer = transformer()
+        self.transformer = trans()
         # self.convnext = convnext()
 
     def forward(self, x):
@@ -61,11 +61,11 @@ class MVIT(nn.Module):
 
         return x
 
-class transformer(nn.Module):
+class trans(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
-        super(transformer, self).__init__()
+        super(trans, self).__init__()
 
-        self.transformer = CrossFormer(img_size=224,
+        self.trans = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
                                     in_chans= 3,
                                     num_classes=1000,
@@ -100,7 +100,7 @@ class transformer(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        t0, t1, t2 = self.transformer(x)
+        t0, t1, t2 = self.trans(x)
 
         t2 = self.norm_2(t2) 
         t1 = self.norm_1(t1) 
