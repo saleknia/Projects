@@ -13,6 +13,27 @@ import timm
 from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
+import ml_collections
+from .CTrans import ChannelTransformer
+
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 288  
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    # config.transformer.embeddings_dropout_rate = 0.3
+    # config.transformer.attention_dropout_rate  = 0.3
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0
+    # config.patch_sizes = [16,8,4,2]
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 96 # base channel of U-Net
+    config.n_classes = 1
+    return config
+
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -87,8 +108,8 @@ class trans(nn.Module):
         self.norm_1 = LayerNormProxy(dim=192)
         self.norm_0 = LayerNormProxy(dim=96)
 
-        self.up_2 = UpBlock(384, 192)
-        self.up_1 = UpBlock(192, 96 )
+        self.up_2 = UpBlock(96, 96)
+        self.up_1 = UpBlock(96, 96)
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         self.final_relu1 = nn.ReLU(inplace=True)
@@ -97,14 +118,20 @@ class trans(nn.Module):
         self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
         self.final_upsample = nn.Upsample(scale_factor=2.0)
 
+        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+
     def forward(self, x):
         b, c, h, w = x.shape
 
         t0, t1, t2 = self.trans(x)
 
-        t2 = self.norm_2(t2) 
-        t1 = self.norm_1(t1) 
-        t0 = self.norm_0(t0)
+        t2 = self.reduce_2(self.norm_2(t2)) 
+        t1 = self.reduce_1(self.norm_1(t1)) 
+        t0 = self.reduce_0(self.norm_0(t0))
 
         t = self.up_2(t2, t1)
         t = self.up_1(t , t0)
@@ -198,8 +225,8 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
 
-        # self.up = nn.Upsample(scale_factor=2)
-        self.up     = nn.ConvTranspose2d(in_channels       ,in_channels//2,(2,2),2)
+        self.up = nn.Upsample(scale_factor=2)
+        # self.up     = nn.ConvTranspose2d(in_channels       ,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
