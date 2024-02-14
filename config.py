@@ -43,25 +43,25 @@ if log:
     logger.info(f'Logging Directory: {logging_log}')   
 ##########################################################################
 
-LEARNING_RATE = 0.01
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 40
-NUM_EPOCHS = 30
-NUM_WORKERS = 4
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 224
-PIN_MEMORY = True
-early_stopping = 200
-
-# LEARNING_RATE = 5e-5
+# LEARNING_RATE = 0.01
 # DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-# BATCH_SIZE = 16
+# BATCH_SIZE = 40
 # NUM_EPOCHS = 30
 # NUM_WORKERS = 4
 # IMAGE_HEIGHT = 224
 # IMAGE_WIDTH = 224
 # PIN_MEMORY = True
 # early_stopping = 200
+
+LEARNING_RATE = 5e-5
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+BATCH_SIZE = 16
+NUM_EPOCHS = 30
+NUM_WORKERS = 4
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 224
+PIN_MEMORY = True
+early_stopping = 200
 
 LOAD_MODEL = True
 CONTINUE = True
@@ -366,20 +366,19 @@ logger.info(table)
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    # config.KV_size = 960  # KV_size = Q1 + Q2 + Q3 + Q4
-    config.KV_size = 270  # KV_size = Q1 + Q2 + Q3 + Q4
+    config.KV_size = 288  
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     # config.transformer.embeddings_dropout_rate = 0.3
     # config.transformer.attention_dropout_rate  = 0.3
-    config.transformer.embeddings_dropout_rate = 0.0
-    config.transformer.attention_dropout_rate  = 0.0
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0
     # config.patch_sizes = [16,8,4,2]
-    config.patch_sizes = [8,4,2,1]
-    config.base_channel = 18 # base channel of U-Net
-    config.n_classes = NUM_CLASS
+    config.patch_sizes = [4,2,1]
+    config.base_channel = 96 # base channel of U-Net
+    config.n_classes = 1
     return config
 
 n_channels = 1
