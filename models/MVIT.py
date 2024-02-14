@@ -133,6 +133,8 @@ class trans(nn.Module):
         t1 = self.reduce_1(self.norm_1(t1)) 
         t0 = self.reduce_0(self.norm_0(t0))
 
+        t0, t1, t2 = self.mtc(t0, t1, t2)
+
         t = self.up_2(t2, t1)
         t = self.up_1(t , t0)
 
