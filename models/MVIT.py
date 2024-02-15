@@ -106,6 +106,8 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
+        self.head = SegFormerHead()
+
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -116,8 +118,10 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x = self.up_2(x2, x1)
-        x = self.up_1(x , x0)
+        x1 = self.up_2(x2, x1)
+        x0 = self.up_1(x1 , x0)
+
+        x = self.head(x0, x1, x2)
 
         out = self.final_conv1(x)
         out = self.final_relu1(out)
@@ -127,6 +131,51 @@ class MVIT(nn.Module):
         out = self.final_upsample(out)
 
         return out
+
+class SegFormerHead(nn.Module):
+    """
+    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
+    """
+    def __init__(self):
+        super(SegFormerHead, self).__init__()
+
+        embedding_dim = 96
+
+        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
+
+        self.pooling = nn.AdaptiveAvgPool2d(1)
+
+        self.fc1 = nn.Linear(96, 48)
+        self.fc2 = nn.Linear(48, 3)
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_3 = nn.Upsample(scale_factor=4.0)
+
+    def forward(self, c1, c2, c3):
+
+        ############## MLP decoder on C1-C3 ###########
+        n, _, h, w = c4.shape
+
+        c3 = self.up_3(c3)
+        c2 = self.up_2(c2)
+
+        y3 = self.pooling(c3)
+        y2 = self.pooling(c2)
+        y1 = self.pooling(c1)
+
+        y = y1 + y2 + y3
+
+        coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(n, -1)))))
+
+        c1 = c1 * coeff[:,0].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c1)
+        c2 = c2 * coeff[:,1].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c2)
+        c3 = c3 * coeff[:,2].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c3)
+
+        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
+
+        return c
 
 class trans(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
