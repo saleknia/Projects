@@ -156,7 +156,8 @@ class SegFormerHead(nn.Module):
     def forward(self, c1, c2, c3):
 
         ############## MLP decoder on C1-C3 ###########
-        
+        n, _, h, w = c1.shape
+
         c3 = self.up_3(c3)
         c2 = self.up_2(c2)
 
