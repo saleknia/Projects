@@ -34,38 +34,55 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class BasicConv2d(nn.Module):
+    def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
+        super(BasicConv2d, self).__init__()
 
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
+        self.conv = nn.Conv2d(in_planes, out_planes,
+                              kernel_size=kernel_size, stride=stride,
+                              padding=padding, dilation=dilation, bias=False)
+        self.bn = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
+        x = self.conv(x)
+        x = self.bn(x)
+        return x
+        
+class Linear_Eca_block(nn.Module):
+    """docstring for Eca_block"""
+    def __init__(self):
+        super(Linear_Eca_block, self).__init__()
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
+        self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x, gamma=2, b=1):
+        #N, C, H, W = x.size()
+        y = self.avgpool(x)
+        y = self.conv1d(y.squeeze(-1).transpose(-1, -2))
+        y = y.transpose(-1, -2).unsqueeze(-1)
+        y = self.sigmoid(y)
+        return y.expand_as(x)
+
+class HybridAttention(nn.Module):
+    def __init__(self, channels):
+        super(HybridAttention, self).__init__()
+
+        self.eca     = Linear_Eca_block()
+        self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
+        self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
+        self.sigmoid = nn.Sigmoid()
+        self.final_conv = ConvBatchNorm(in_channels=channels*2 , out_channels=channels, activation='ReLU', kernel_size=1, padding=0)
+
+    def forward(self, x_t, x_c):
+
+        sa = self.sigmoid(self.down_c(x_c))
+        gc = self.eca(x_t)
+        x_c = self.conv(x_c)
+        x_c = x_c * gc
+        x_t = x_t * sa
+        x = self.final_conv(torch.cat((x_t, x_c), 1))
         return x
 
 class MVIT(nn.Module):
@@ -73,14 +90,43 @@ class MVIT(nn.Module):
         super(MVIT, self).__init__()
 
         self.transformer = trans()
-        # self.convnext = convnext()
+        self.convnext    = convnext()
+
+        self.up_2 = UpBlock(96, 96)
+        self.up_1 = UpBlock(96, 96)
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_upsample = nn.Upsample(scale_factor=2.0)
+
+        self.HA_2 = HybridAttention(channels=96)
+        self.HA_1 = HybridAttention(channels=96)
+        self.HA_0 = HybridAttention(channels=96)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
-        x = self.transformer(x)
+        t0, t1, t2 = self.transformer(x)
+        c0, c1, c2 = self.convnext(x)
 
-        return x
+        x0 = self.HA_0(t0, c0)
+        x1 = self.HA_1(t1, c1)        
+        x2 = self.HA_2(t2, c2)
+
+        x = self.up_2(x2, x1)
+        x = self.up_1(x , x0)
+
+        out = self.final_conv1(x)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
+        out = self.final_upsample(out)
+
+        return out
 
 class trans(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -108,21 +154,21 @@ class trans(nn.Module):
         self.norm_1 = LayerNormProxy(dim=192)
         self.norm_0 = LayerNormProxy(dim=96)
 
-        self.up_2 = UpBlock(96, 96)
-        self.up_1 = UpBlock(96, 96)
+        # self.up_2 = UpBlock(96, 96)
+        # self.up_1 = UpBlock(96, 96)
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=2.0)
+        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.final_upsample = nn.Upsample(scale_factor=2.0)
 
         self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -133,19 +179,17 @@ class trans(nn.Module):
         t1 = self.reduce_1(self.norm_1(t1)) 
         t0 = self.reduce_0(self.norm_0(t0))
 
-        t0, t1, t2 = self.mtc(t0, t1, t2)
+        # t = self.up_2(t2, t1)
+        # t = self.up_1(t , t0)
 
-        t = self.up_2(t2, t1)
-        t = self.up_1(t , t0)
+        # out = self.final_conv1(t)
+        # out = self.final_relu1(out)
+        # out = self.final_conv2(out)
+        # out = self.final_relu2(out)
+        # out = self.final_conv3(out)
+        # out = self.final_upsample(out)
 
-        out = self.final_conv1(t)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-        out = self.final_upsample(out)
-
-        return out
+        return t0, t1, t2
 
 class convnext(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -157,36 +201,21 @@ class convnext(nn.Module):
         self.norm_1 = LayerNormProxy(dim=192)
         self.norm_0 = LayerNormProxy(dim=96)
 
-        self.up_2 = UpBlock(384, 192)
-        self.up_1 = UpBlock(192, 96 )
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=2.0)
+        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         c0, c1, c2 = self.convnext(x)
 
-        c2 = self.norm_2(c2) 
-        c1 = self.norm_1(c1) 
-        c0 = self.norm_0(c0)
+        c2 = self.reduce_2(self.norm_2(c2)) 
+        c1 = self.reduce_1(self.norm_1(c1)) 
+        c0 = self.reduce_0(self.norm_0(c0))
 
-        c = self.up_2(c2, c1)
-        c = self.up_1(c , c0)
-
-        out = self.final_conv1(c)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-        out = self.final_upsample(out)
-
-        return out
+        return c0, c1, c2
 
 import torch.nn as nn
 import torch
