@@ -60,11 +60,11 @@ class Mobile_netV2(nn.Module):
 
         self.scene = scene
 
-        obj = timm.create_model('convnextv2_tiny', pretrained=True)
+        obj = timm.create_model('mvitv2_tiny', pretrained=True)
         for param in obj.parameters():
             param.requires_grad = False
         self.obj = obj 
-        self.obj.head.fc = nn.Sequential(nn.Linear(in_features=768, out_features=224, bias=True))
+        self.obj.head = nn.Sequential(nn.Linear(in_features=768, out_features=224, bias=True))
 
         # for i, module in enumerate(self.model.features.denseblock4):
         #     if 20 <= i: 
@@ -313,7 +313,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
 
-        model = timm.create_model('tf_efficientnetv2_b0', pretrained=True)
+        model = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
         self.model = model 
 
@@ -331,17 +331,24 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.blocks[5][10:15].parameters():
         #     param.requires_grad = True
 
+        # self.avgpool = torch.nn.AvgPool2d(kernel_size=4, stride=4, padding=0)
+
     def forward(self, x0):
 
         b, c, w, h = x0.shape
 
-        obj   = self.obj(x0)
-        scene = self.scene(x0)
-        obj   = obj.unsqueeze(dim=1)
-        scene = scene.unsqueeze(dim=1)
-        fusion = (torch.matmul(obj.transpose(2, 1), scene).unsqueeze(dim=1))
+        obj    = self.obj(x0)
+        # scene = self.scene(x0)
+        obj    = obj.unsqueeze(dim=1)
+        # scene = scene.unsqueeze(dim=1)
+        fusion = (torch.matmul(obj.transpose(2, 1), obj).unsqueeze(dim=1))
+
+        # fusion = (fusion - fusion.min()) 
+        # fusion = (fusion / fusion.max())
 
         x = torch.cat([fusion, fusion, fusion], dim=1)
+
+        # x = self.avgpool(x)
 
         x = self.model(x)
 
