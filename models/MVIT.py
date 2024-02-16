@@ -124,7 +124,7 @@ class MVIT(nn.Module):
         x0, x1, x2 = self.mtc(x0, x1, x2)
 
         x1 = self.up_2(x2, x1)
-        x0 = self.up_1(x1 , x0)
+        x0 = self.up_1(x1, x0)
 
         x = self.head(x0, x1, x2)
 
@@ -312,12 +312,12 @@ class UpBlock(nn.Module):
 
         self.up     = nn.Upsample(scale_factor=2)
         # self.up   = nn.ConvTranspose2d(in_channels       ,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels * 2, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return self.nConvs(x)
+        # x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        return self.nConvs(out+skip_x)
 
 class LayerNormProxy(nn.Module):
     
