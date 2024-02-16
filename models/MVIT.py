@@ -70,7 +70,7 @@ class HybridAttention(nn.Module):
         super(HybridAttention, self).__init__()
 
         self.eca     = Linear_Eca_block()
-        self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
+        # self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
         self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
         self.sigmoid = nn.Sigmoid()
         self.final_conv = ConvBatchNorm(in_channels=channels*2 , out_channels=channels, activation='ReLU', kernel_size=1, padding=0)
@@ -79,7 +79,7 @@ class HybridAttention(nn.Module):
 
         sa = self.sigmoid(self.down_c(x_c))
         gc = self.eca(x_t)
-        x_c = self.conv(x_c)
+        # x_c = self.conv(x_c)
         x_c = x_c * gc
         x_t = x_t * sa
         x = self.final_conv(torch.cat((x_t, x_c), 1))
@@ -95,18 +95,21 @@ class MVIT(nn.Module):
         self.up_2 = UpBlock(96, 96)
         self.up_1 = UpBlock(96, 96)
 
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3    = nn.Conv2d(96, n_classes, 1, padding=0)
-        self.final_upsample = nn.Upsample(scale_factor=4.0)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_upsample = nn.Upsample(scale_factor=2.0)
 
         self.HA_2 = HybridAttention(channels=96)
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
         self.head = SegFormerHead()
+
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -118,16 +121,18 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
+        x0, x1, x2 = self.mtc(x0, x1, x2)
+
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1 , x0)
 
         x = self.head(x0, x1, x2)
 
-        # out = self.final_conv1(x)
-        # out = self.final_relu1(out)
-        # out = self.final_conv2(out)
-        # out = self.final_relu2(out)
-        out = self.final_conv3(x)
+        out = self.final_conv1(x)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
         out = self.final_upsample(out)
 
         return out
