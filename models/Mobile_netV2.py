@@ -41,24 +41,30 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        scene = models.__dict__['densenet161'](num_classes=365)
-        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
         scene.load_state_dict(state_dict)
 
         for param in scene.parameters():
             param.requires_grad = False
 
-        # scene.classifier =  nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True), 
-        #     nn.Linear(in_features=2208, out_features=40, bias=True))
+        scene.fc =  nn.Sequential(nn.Linear(in_features=2048, out_features=224, bias=True))
 
-        scene.classifier =  nn.Identity()
+        # print(scene)
+
+        # scene.classifier =  nn.Identity()
 
         self.scene = scene
+
+        obj = timm.create_model('convnextv2_tiny', pretrained=True)
+        for param in obj.parameters():
+            param.requires_grad = False
+        self.obj = obj 
+        self.obj.head.fc = nn.Sequential(nn.Linear(in_features=768, out_features=224, bias=True))
 
         # for i, module in enumerate(self.model.features.denseblock4):
         #     if 20 <= i: 
@@ -311,11 +317,11 @@ class Mobile_netV2(nn.Module):
 
         self.model = model 
 
-        for param in self.model.blocks[0:5].parameters():
-            param.requires_grad = False
+        # for param in self.model.blocks[0:5].parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.conv_stem.parameters():
-            param.requires_grad = False
+        # for param in self.model.conv_stem.parameters():
+        #     param.requires_grad = False
 
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -329,7 +335,15 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x0.shape
 
-        x = self.model(x0)
+        obj   = self.obj(x0)
+        scene = self.scene(x0)
+        obj   = obj.unsqueeze(dim=1)
+        scene = scene.unsqueeze(dim=1)
+        fusion = (torch.matmul(obj.transpose(2, 1), scene).unsqueeze(dim=1))
+
+        x = torch.cat([fusion, fusion, fusion], dim=1)
+
+        x = self.model(x)
 
         return x
 
