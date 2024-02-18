@@ -360,8 +360,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         # outputs, outputs_t, e1, e2, e3, e1_t, e2_t, e3_t = model(inputs)
 
         if type(outputs)==tuple:
-            loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
-            loss_dice = dice_loss(inputs=outputs, targets=targets) 
+            loss_ce   = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
+            loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets)
             loss_att  = 0.0
             loss = loss_ce + loss_dice 
             # loss = structure_loss(outputs[0], targets.unsqueeze(dim=1)) + structure_loss(outputs[1], targets.unsqueeze(dim=1)) 
