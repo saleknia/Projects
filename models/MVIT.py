@@ -108,7 +108,7 @@ class MVIT(nn.Module):
 
         # self.head = SegFormerHead()
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
     def forward(self, x):
@@ -121,7 +121,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1, x0)
@@ -425,11 +425,11 @@ class UpBlock(nn.Module):
         self.up     = nn.Upsample(scale_factor=2)
         # self.up   = nn.ConvTranspose2d(in_channels       ,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels * 2, out_channels, nb_Conv, activation)
-        self.attention = ParallelPolarizedSelfAttention(channel=in_channels)
+        # self.attention = ParallelPolarizedSelfAttention(channel=in_channels)
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.attention(out)
+        # out = self.attention(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
