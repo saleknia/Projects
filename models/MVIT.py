@@ -213,13 +213,17 @@ class trans(nn.Module):
 
         # self.up_2 = UpBlock(96, 96)
         # self.up_1 = UpBlock(96, 96)
+        
+        filters = [96, 192, 384]
+        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        # self.final_upsample = nn.Upsample(scale_factor=2.0)
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        self.final_upsample = nn.Upsample(scale_factor=2.0)
 
         self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
