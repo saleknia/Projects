@@ -21,8 +21,8 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 288  
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 2
-    config.expand_ratio           = 2  # MLP channel dimension expand ratio
+    config.transformer.num_layers = 1
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
     # config.transformer.embeddings_dropout_rate = 0.3
     # config.transformer.attention_dropout_rate  = 0.3
     config.transformer.embeddings_dropout_rate = 0.1
@@ -411,13 +411,13 @@ class UpBlock(nn.Module):
         self.up     = nn.Upsample(scale_factor=2)
         # self.up   = nn.ConvTranspose2d(in_channels       ,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels * 2, out_channels, nb_Conv, activation)
-        self.attention = SelfAttention(channel=in_channels)
+        # self.attention = SelfAttention(channel=in_channels)
 
     def forward(self, x, skip_x):
         out = self.up(x)
         # out = self.attention(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return self.nConvs(x)
+        return (self.nConvs(x))
 
 class LayerNormProxy(nn.Module):
     
