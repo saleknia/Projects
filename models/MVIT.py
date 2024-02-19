@@ -21,8 +21,8 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 288  
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.num_layers = 2
+    config.expand_ratio           = 2  # MLP channel dimension expand ratio
     # config.transformer.embeddings_dropout_rate = 0.3
     # config.transformer.attention_dropout_rate  = 0.3
     config.transformer.embeddings_dropout_rate = 0.1
@@ -108,7 +108,7 @@ class MVIT(nn.Module):
 
         # self.head = SegFormerHead()
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
     def forward(self, x):
@@ -415,7 +415,7 @@ class UpBlock(nn.Module):
 
     def forward(self, x, skip_x):
         out = self.up(x)
-        out = self.attention(out)
+        # out = self.attention(out)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return self.nConvs(x)
 
