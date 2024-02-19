@@ -21,7 +21,7 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 288  
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 1
+    config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     # config.transformer.embeddings_dropout_rate = 0.3
     # config.transformer.attention_dropout_rate  = 0.3
@@ -106,9 +106,16 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
+        self.FAMBlock1 = FAMBlock(channels=96)
+        self.FAMBlock2 = FAMBlock(channels=96)
+        self.FAMBlock3 = FAMBlock(channels=96)
+        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(4)])
+        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
+        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(4)])
+
         # self.head = SegFormerHead()
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
     def forward(self, x):
@@ -121,7 +128,14 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        for i in range(4):
+            x2 = self.FAM3[i](x2)
+        for i in range(4):
+            x1 = self.FAM2[i](x1)
+        for i in range(4):
+            x0 = self.FAM1[i](x0)
+
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1, x0)
@@ -139,6 +153,25 @@ class MVIT(nn.Module):
             return out, out_trans, out_cnext
         else:
             return out
+
+class FAMBlock(nn.Module):
+    def __init__(self, channels):
+        super(FAMBlock, self).__init__()
+
+        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
+
+        self.relu3 = nn.ReLU(inplace=True)
+        self.relu1 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x3 = self.conv3(x)
+        x3 = self.relu3(x3)
+        x1 = self.conv1(x)
+        x1 = self.relu1(x1)
+        out = x3 + x1
+
+        return out
 
 class SelfAttention(nn.Module):
 
