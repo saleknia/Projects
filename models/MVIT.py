@@ -158,7 +158,7 @@ class MVIT(nn.Module):
         if self.training:
             return out_0, out_1, out_2, out_trans, out_cnext
         else:
-            return (out_0 + out_1 + out_2) / 3.0
+            return out_0
 
 
 class SegFormerHead(nn.Module):
