@@ -112,8 +112,8 @@ class MVIT(nn.Module):
         self.transformer = trans()
         self.convnext    = convnext()
 
-        # self.up_2 = UpBlock(96, 96)
-        # self.up_1 = UpBlock(96, 96)
+        self.up_2 = UpBlock(96, 96)
+        self.up_1 = UpBlock(96, 96)
 
         # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
         # self.final_relu1 = nn.ReLU(inplace=True)
@@ -129,10 +129,10 @@ class MVIT(nn.Module):
         # self.head = SegFormerHead()
 
         self.final_head_0 = final_head(num_classes=n_classes, scale_factor=2.0)
-        self.final_head_1 = final_head(num_classes=n_classes, scale_factor=4.0)
-        self.final_head_2 = final_head(num_classes=n_classes, scale_factor=8.0)
+        # self.final_head_1 = final_head(num_classes=n_classes, scale_factor=4.0)
+        # self.final_head_2 = final_head(num_classes=n_classes, scale_factor=8.0)
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
     def forward(self, x):
@@ -145,18 +145,18 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        # x1 = self.up_2(x2, x1)
-        # x0 = self.up_1(x1, x0)
+        x1 = self.up_2(x2, x1)
+        x0 = self.up_1(x1, x0)
 
         out_0 = self.final_head_0(x0)
-        out_1 = self.final_head_1(x1)
-        out_2 = self.final_head_2(x2)
+        # out_1 = self.final_head_1(x1)
+        # out_2 = self.final_head_2(x2)
 
 
         if self.training:
-            return out_0, out_1, out_2, out_trans, out_cnext
+            return out_0, out_trans, out_cnext
         else:
             return out_0
 
