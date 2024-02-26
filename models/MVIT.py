@@ -142,8 +142,8 @@ class MVIT(nn.Module):
         t0, t1, t2, out_trans = self.transformer(x)
         c0, c1, c2, out_cnext = self.convnext(x)
 
-        t0, t1, t2 = self.mtc(t0, t1, t2)
-        c0, c1, c2 = self.mtc(c0, c1, c2)
+        t0, t1, t2 = self.mtc_trans(t0, t1, t2)
+        c0, c1, c2 = self.mtc_cnext(c0, c1, c2)
 
         x0 = self.HA_0(t0, c0)
         x1 = self.HA_1(t1, c1)        
