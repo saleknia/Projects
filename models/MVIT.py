@@ -34,6 +34,26 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class final_head(nn.Module):
+    def __init__(self, num_classes=1.0, scale_factor=2.0):
+        super(final_head, self).__init__()
+
+        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.Conv2d(48, num_classes, 3, padding=1)
+        self.final_upsample = nn.Upsample(scale_factor=scale_factor)
+
+    def forward(self, x):
+        out = self.final_conv1(x)
+        out = self.final_relu1(out)
+        out = self.final_conv2(out)
+        out = self.final_relu2(out)
+        out = self.final_conv3(out)
+        out = self.final_upsample(out)
+        return out
+
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
         super(BasicConv2d, self).__init__()
@@ -92,30 +112,27 @@ class MVIT(nn.Module):
         self.transformer = trans()
         self.convnext    = convnext()
 
-        self.up_2 = UpBlock(96, 96)
-        self.up_1 = UpBlock(96, 96)
+        # self.up_2 = UpBlock(96, 96)
+        # self.up_1 = UpBlock(96, 96)
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=2.0)
+        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
+        # self.final_upsample = nn.Upsample(scale_factor=2.0)
 
         self.HA_2 = HybridAttention(channels=96)
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.FAMBlock1 = FAMBlock(channels=96)
-        self.FAMBlock2 = FAMBlock(channels=96)
-        self.FAMBlock3 = FAMBlock(channels=96)
-        self.FAM1 = nn.ModuleList([self.FAMBlock1 for i in range(4)])
-        self.FAM2 = nn.ModuleList([self.FAMBlock2 for i in range(4)])
-        self.FAM3 = nn.ModuleList([self.FAMBlock3 for i in range(4)])
-
         # self.head = SegFormerHead()
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.final_head_0 = final_head(num_classes=n_classes, scale_factor=2.0)
+        self.final_head_1 = final_head(num_classes=n_classes, scale_factor=4.0)
+        self.final_head_2 = final_head(num_classes=n_classes, scale_factor=8.0)
+
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
     def forward(self, x):
@@ -128,77 +145,21 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        for i in range(4):
-            x2 = self.FAM3[i](x2)
-        for i in range(4):
-            x1 = self.FAM2[i](x1)
-        for i in range(4):
-            x0 = self.FAM1[i](x0)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x1 = self.up_2(x2, x1)
+        # x0 = self.up_1(x1, x0)
 
-        x1 = self.up_2(x2, x1)
-        x0 = self.up_1(x1, x0)
+        out_0 = self.final_head_0(x0)
+        out_1 = self.final_head_1(x1)
+        out_2 = self.final_head_2(x2)
 
-        # x = self.head(x0, x1, x2)
-
-        out = self.final_conv1(x0)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-        out = self.final_upsample(out)
 
         if self.training:
-            return out, out_trans, out_cnext
+            return out_0, out_1, out_2, out_trans, out_cnext
         else:
-            return out
+            return (out_0 + out_1 + out_2) / 3.0
 
-class FAMBlock(nn.Module):
-    def __init__(self, channels):
-        super(FAMBlock, self).__init__()
-
-        self.conv3 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=3, padding=1)
-        self.conv1 = nn.Conv2d(in_channels=channels, out_channels=channels, kernel_size=1)
-
-        self.relu3 = nn.ReLU(inplace=True)
-        self.relu1 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x3 = self.conv3(x)
-        x3 = self.relu3(x3)
-        x1 = self.conv1(x)
-        x1 = self.relu1(x1)
-        out = x3 + x1
-
-        return out
-
-class SelfAttention(nn.Module):
-
-    def __init__(self, channel=512):
-        super().__init__()
-        self.softmax_spatial=nn.Softmax(-1)
-        self.sigmoid=nn.Sigmoid()
-        self.sp_wv=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.sp_wq=nn.Conv2d(channel,channel//2,kernel_size=(1,1))
-        self.agp=nn.AdaptiveAvgPool2d((1,1))
-
-    def forward(self, x):
-        b, c, h, w = x.size()
-
-        #Spatial-only Self-Attention
-        spatial_wv=self.sp_wv(x) #bs,c//2,h,w
-        spatial_wq=self.sp_wq(x) #bs,c//2,h,w
-        spatial_wq=self.agp(spatial_wq) #bs,c//2,1,1
-        spatial_wv=spatial_wv.reshape(b,c//2,-1) #bs,c//2,h*w
-        spatial_wq=spatial_wq.permute(0,2,3,1).reshape(b,1,c//2) #bs,1,c//2
-        spatial_wq=self.softmax_spatial(spatial_wq)
-        spatial_wz=torch.matmul(spatial_wq,spatial_wv) #bs,1,h*w
-        spatial_weight=1.0 - self.sigmoid(spatial_wz.reshape(b,1,h,w)) #bs,1,h,w
-        spatial_out=(spatial_weight*x) + x
-        out=spatial_out
-        
-        return out
 
 class SegFormerHead(nn.Module):
     """
