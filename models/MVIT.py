@@ -132,7 +132,7 @@ class MVIT(nn.Module):
         # self.final_head_1 = final_head(num_classes=n_classes, scale_factor=4.0)
         # self.final_head_2 = final_head(num_classes=n_classes, scale_factor=8.0)
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
         # self.mtc_cnext = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
 
@@ -146,7 +146,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         # x0, x1, x2 = t0, t1, t2
         # x0, x1, x2 = c0, c1, c2
@@ -160,7 +160,7 @@ class MVIT(nn.Module):
 
 
         if self.training:
-            return out_0 # , out_trans, out_cnext
+            return out_0, out_trans, out_cnext
         else:
             return out_0
 
