@@ -135,7 +135,7 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        # self.cnn_decoder = cnn_decoder()
+        self.cnn_decoder   = cnn_decoder()
         self.trans_decoder = trans_decoder()
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
@@ -150,16 +150,17 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # out_cnn = self.cnn_decoder(x0, x1, x2)
+        out_convolution = self.cnn_decoder(x0, x1, x2)
+        out_transformer = self.trans_decoder(x0, x1, x2)
 
-        out_trans = self.trans_decoder(x0, x1, x2)
+        out = out_convolution + out_transformer
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         if self.training:
-            return out_trans, out_trans, out_cnext
+            return out, out_trans, out_cnext
         else:
-            return out_trans
+            return out
 
 
 class SegFormerHead(nn.Module):
@@ -1210,7 +1211,7 @@ class HybridSenmentic(nn.Module):
         self.sigmoid = nn.Sigmoid()
 
         self.upsample = nn.Upsample(scale_factor=2.0)
-        
+
     def forward(self, x):
         B = x.shape[0]
         #c = x.shape[1]
