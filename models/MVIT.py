@@ -42,8 +42,10 @@ class final_head(nn.Module):
         self.final_relu1 = nn.ReLU(inplace=True)
         self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
         self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, num_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=scale_factor)
+        self.final_conv3 = nn.ConvTranspose2d(48, num_classes, 4, 2, 1)
+
+        # self.final_conv3 = nn.Conv2d(48, num_classes, 3, padding=1)
+        # self.final_upsample = nn.Upsample(scale_factor=scale_factor)
 
     def forward(self, x):
         out = self.final_conv1(x)
@@ -51,8 +53,23 @@ class final_head(nn.Module):
         out = self.final_conv2(out)
         out = self.final_relu2(out)
         out = self.final_conv3(out)
-        out = self.final_upsample(out)
+        # out = self.final_upsample(out)
         return out
+
+class cnn_decoder(nn.Module):
+    def __init__(self, num_classes=1.0, scale_factor=2.0):
+        super(cnn_decoder, self).__init__()
+        
+        self.up_2 = UpBlock(96, 96)
+        self.up_1 = UpBlock(96, 96)
+        self.final_head = final_head(num_classes=1.0, scale_factor=2.0)
+
+    def forward(self, x0, x1, x2):
+
+        x1 = self.up_2(x2, x1)
+        x0 = self.up_1(x1, x0)
+
+        return x0
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
@@ -112,29 +129,13 @@ class MVIT(nn.Module):
         self.transformer = trans()
         self.convnext    = convnext()
 
-        self.up_2 = UpBlock(96, 96)
-        self.up_1 = UpBlock(96, 96)
-
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        # self.final_upsample = nn.Upsample(scale_factor=2.0)
-
         self.HA_2 = HybridAttention(channels=96)
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        # self.head = SegFormerHead()
-
-        self.final_head_0 = final_head(num_classes=n_classes, scale_factor=2.0)
-        # self.final_head_1 = final_head(num_classes=n_classes, scale_factor=4.0)
-        # self.final_head_2 = final_head(num_classes=n_classes, scale_factor=8.0)
+        self.cnn_decoder = cnn_decoder()
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
-        # self.mtc_cnext = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
-
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -146,23 +147,14 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
+        out_cnn = self.cnn_decoder(x0, x1, x2)
+
         # x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        # x0, x1, x2 = t0, t1, t2
-        # x0, x1, x2 = c0, c1, c2
-
-        x1 = self.up_2(x2, x1)
-        x0 = self.up_1(x1, x0)
-
-        out_0 = self.final_head_0(x0)
-        # out_1 = self.final_head_1(x1)
-        # out_2 = self.final_head_2(x2)
-
-
         if self.training:
-            return out_0, out_trans, out_cnext
+            return out_cnn, out_trans, out_cnext
         else:
-            return out_0
+            return out_cnn
 
 
 class SegFormerHead(nn.Module):
@@ -235,55 +227,34 @@ class trans(nn.Module):
         self.norm_2 = LayerNormProxy(dim=384)
         self.norm_1 = LayerNormProxy(dim=192)
         self.norm_0 = LayerNormProxy(dim=96)
-
-        # self.up_2 = UpBlock(96, 96)
-        # self.up_1 = UpBlock(96, 96)
         
         filters = [96, 192, 384]
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
-
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=2.0)
+        
+        self.final_head = final_head()
 
         self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         t0, t1, t2 = self.trans(x)
 
+        t2 = self.norm_2(t2)
+        t1 = self.norm_1(t1)
+        t0 = self.norm_0(t0)
+
         d0 = self.decoder2(t2) + t1
         d0 = self.decoder1(d0) + t0
 
-        out = self.final_conv1(d0)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-        out = self.final_upsample(out)
+        out = self.final_head(d0)
 
-        t2 = self.reduce_2(self.norm_2(t2)) 
-        t1 = self.reduce_1(self.norm_1(t1)) 
-        t0 = self.reduce_0(self.norm_0(t0))
-
-        # t = self.up_2(t2, t1)
-        # t = self.up_1(t , t0)
-
-        # out = self.final_conv1(t)
-        # out = self.final_relu1(out)
-        # out = self.final_conv2(out)
-        # out = self.final_relu2(out)
-        # out = self.final_conv3(out)
-        # out = self.final_upsample(out)
+        t2 = self.reduce_2(t2)
+        t1 = self.reduce_1(t1)
+        t0 = self.reduce_0(t0)
 
         return t0, t1, t2, out
 
@@ -297,40 +268,33 @@ class convnext(nn.Module):
         self.norm_1 = LayerNormProxy(dim=192)
         self.norm_0 = LayerNormProxy(dim=96)
 
-
-        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-
         filters = [96, 192, 384]
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(48, n_classes, 3, padding=1)
-        self.final_upsample = nn.Upsample(scale_factor=2.0)
+        self.final_head = final_head()
+
+        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         c0, c1, c2 = self.convnext(x)
 
+        c2 = self.norm_2(c2)
+        c1 = self.norm_1(c1)
+        c0 = self.norm_0(c0)
+
         d0 = self.decoder2(c2) + c1
         d0 = self.decoder1(d0) + c0
 
-        out = self.final_conv1(d0)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
-        out = self.final_upsample(out)
+        out = self.final_head(d0)
 
-        c2 = self.reduce_2(self.norm_2(c2)) 
-        c1 = self.reduce_1(self.norm_1(c1)) 
-        c0 = self.reduce_0(self.norm_0(c0))
+        c2 = self.reduce_2(c2)
+        c1 = self.reduce_1(c1)
+        c0 = self.reduce_0(c0)
 
         return c0, c1, c2, out
 
