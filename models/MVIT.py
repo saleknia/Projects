@@ -35,7 +35,7 @@ def get_CTranS_config():
     return config
 
 class final_head(nn.Module):
-    def __init__(self, num_classes=1.0, scale_factor=2.0):
+    def __init__(self, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
 
         self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
@@ -62,7 +62,7 @@ class cnn_decoder(nn.Module):
         
         self.up_2 = UpBlock(96, 96)
         self.up_1 = UpBlock(96, 96)
-        self.final_head = final_head(num_classes=1.0, scale_factor=2.0)
+        self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
     def forward(self, x0, x1, x2):
 
