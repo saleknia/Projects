@@ -1053,6 +1053,37 @@ class CrossFormer(nn.Module):
 
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
+class DWConv_Mulit(nn.Module):
+    def __init__(self, dim=768):
+        super(DWConv_Mulit, self).__init__()
+        self.dwconv = nn.Conv2d(dim, dim, 3, 1, 1, bias=True, groups=dim)
+    def forward(self, x, H, W):
+        B, N, C = x.shape
+        x = x.transpose(1, 2).view(B, C, H, W)
+        x = self.dwconv(x)
+        x = x.flatten(2).transpose(1, 2)
+        return x
+
+class Mlp_decode(nn.Module):
+    def __init__(self, in_features, hidden_features=None, out_features=None, act_layer=nn.GELU, drop=0.):
+        super().__init__()
+        out_features = out_features or in_features
+        hidden_features = hidden_features or in_features
+        self.fc1 = nn.Linear(in_features, hidden_features)
+        self.dwconv = DWConv_Mulit(hidden_features)
+        self.act = act_layer()
+        self.fc2 = nn.Linear(hidden_features, out_features)
+        self.drop = nn.Dropout(drop)
+
+    def forward(self, x, H, W):
+        x = self.fc1(x)
+        x = self.dwconv(x, H, W)
+        x = self.act(x)
+        x = self.drop(x)
+        x = self.fc2(x)
+        x = self.drop(x)
+        return x
+
 class OverlapPatchEmbed(nn.Module):
     """ Image to Patch Embedding
     """
@@ -1111,7 +1142,7 @@ class Block(nn.Module):
         # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
         self.norm2 = norm_layer(dim)
         mlp_hidden_dim = int(dim * mlp_ratio)
-        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+        self.mlp = Mlp_decode(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
     def forward(self, x, H, W):
         msa, q, k = self.attn(self.norm1(x), H, W)
@@ -1119,8 +1150,6 @@ class Block(nn.Module):
         x = x + self.mlp(self.norm2(x), H, W)
 
         return x, q, k
-
-
 
 class Attention_decode(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., sr_ratio=1):
@@ -1180,6 +1209,8 @@ class HybridSenmentic(nn.Module):
         self.down_c = BasicConv2d(out_planes, 1, 3, 1, padding=1)
         self.sigmoid = nn.Sigmoid()
 
+        self.upsample = nn.Upsample(scale_factor=2.0)
+        
     def forward(self, x):
         B = x.shape[0]
         #c = x.shape[1]
@@ -1207,8 +1238,6 @@ class trans_decoder(nn.Module):
                  attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
                  depths=[3, 4, 6, 3], sr_ratios=[0, 0, 0, 0]):
         super(trans_decoder, self).__init__()
-
-        self.upsample = nn.Upsample(scale_factor=2.0)
 
         self.hs0 = HybridSenmentic(96, 96)
         self.hs1 = HybridSenmentic(96, 96)
