@@ -135,7 +135,8 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.cnn_decoder = cnn_decoder()
+        # self.cnn_decoder = cnn_decoder()
+        self.trans_decoder = trans_decoder()
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
@@ -149,14 +150,16 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        out_cnn = self.cnn_decoder(x0, x1, x2)
+        # out_cnn = self.cnn_decoder(x0, x1, x2)
+
+        out_trans = self.trans_decoder(x0, x1, x2)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         if self.training:
-            return out_cnn, out_trans, out_cnext
+            return out_trans, out_trans, out_cnext
         else:
-            return out_cnn
+            return out_trans
 
 
 class SegFormerHead(nn.Module):
@@ -1046,38 +1049,185 @@ class CrossFormer(nn.Module):
 
 
 
+################################################################################################
 
+from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 
-class MVIT_V2(torch.nn.Module):
-    def __init__(self):
-        super(MVIT_V2, self).__init__()
+class OverlapPatchEmbed(nn.Module):
+    """ Image to Patch Embedding
+    """
 
-        self.patch_embed = timm.create_model('mvitv2_tiny').patch_embed
-        self.stage_0     = timm.create_model('mvitv2_tiny').stages[0]
-        self.stage_1     = timm.create_model('mvitv2_tiny').stages[1]
-        self.stage_2     = timm.create_model('mvitv2_tiny').stages[2]
-        self.stage_3     = timm.create_model('mvitv2_tiny').stages[3]
+    def __init__(self, img_size=224, patch_size=7, stride=4, in_chans=3, embed_dim=768):
+        super().__init__()
+        img_size = to_2tuple(img_size)
+        patch_size = to_2tuple(patch_size)
+
+        self.img_size = img_size
+        self.patch_size = patch_size
+        self.H, self.W = img_size[0] // patch_size[0], img_size[1] // patch_size[1]
+        self.num_patches = self.H * self.W
+        self.proj = nn.Conv2d(in_chans, embed_dim, kernel_size=patch_size, stride=stride,
+                              padding=(patch_size[0] // 2, patch_size[1] // 2))
+        self.norm = nn.LayerNorm(embed_dim)
 
     def forward(self, x):
+        x = self.proj(x)
 
-        batch_size, _, H, W = x.shape
+        _, _, H, W = x.shape
+        x = x.flatten(2).transpose(1, 2)
+        x = self.norm(x)
+        return x, H, W
 
-        x0, feat_size = self.patch_embed(x)
-        x1, feat_size = self.stage_0(x0, feat_size)
-        x2, feat_size = self.stage_1(x1, feat_size)
-        x3, feat_size = self.stage_2(x2, feat_size)
-        x4, feat_size = self.stage_3(x3, feat_size)
+class Bottleneck(nn.Module):
+    def __init__(self, in_planes, out_planes):
+        super(Bottleneck, self).__init__()
+        self.map = nn.Conv2d(in_planes, out_planes, kernel_size=1, padding=0, bias=False)
+        self.conv0 = nn.Conv2d(in_planes, out_planes // 4, kernel_size=1, padding=0, bias=False)
+        self.conv1 = nn.Conv2d(out_planes // 4, out_planes // 4, kernel_size=3, padding=1, bias=False)
+        self.conv2 = nn.Conv2d(out_planes // 4, out_planes, kernel_size=1, padding=0, bias=False)
+        self.bn0 = nn.BatchNorm2d(out_planes // 4)
+        self.bn1 = nn.BatchNorm2d(out_planes // 4)
+        self.bn2 = nn.BatchNorm2d(out_planes)
+        self.bn_map = nn.BatchNorm2d(out_planes)
+        self.relu = nn.ReLU(inplace=True)
 
-        x1 = x1.reshape(batch_size, H//4 , W//4 , -1)
-        x2 = x2.reshape(batch_size, H//8 , W//8 , -1)
-        x3 = x3.reshape(batch_size, H//16, W//16, -1)
-        x4 = x4.reshape(batch_size, H//32, W//32, -1)
+    def forward(self, x):
+        x_ = self.bn_map(self.map(x))
+        x = self.relu(self.bn0(self.conv0(x)))
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(x_ + self.bn2(self.conv2(x)))
+        return x
 
-        x1 = torch.permute(x1, (0, 3, 1, 2))
-        x2 = torch.permute(x2, (0, 3, 1, 2))        
-        x3 = torch.permute(x3, (0, 3, 1, 2))
-        x4 = torch.permute(x4, (0, 3, 1, 2))
+class Block(nn.Module):
 
-        return x1, x2, x3, x4
+    def __init__(self, dim, num_heads=1, mlp_ratio=4., qkv_bias=False, qk_scale=None, drop=0., attn_drop=0.,
+                 act_layer=nn.GELU, norm_layer=nn.LayerNorm, sr_ratio=0):
+        super().__init__()
+        self.norm1 = norm_layer(dim)
+        self.attn = Attention(
+            dim,
+            num_heads=num_heads, qkv_bias=qkv_bias, qk_scale=qk_scale,
+            attn_drop=attn_drop, proj_drop=drop, sr_ratio=sr_ratio)
+        # NOTE: drop path for stochastic depth, we shall see if this is better than dropout here
+        self.norm2 = norm_layer(dim)
+        mlp_hidden_dim = int(dim * mlp_ratio)
+        self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
+
+    def forward(self, x, H, W):
+        msa, q, k = self.attn(self.norm1(x), H, W)
+        x = x + msa
+        x = x + self.mlp(self.norm2(x), H, W)
+
+        return x, q, k
+
+
+
+class Attention(nn.Module):
+    def __init__(self, dim, num_heads=8, qkv_bias=False, qk_scale=None, attn_drop=0., proj_drop=0., sr_ratio=1):
+        super().__init__()
+        assert dim % num_heads == 0, f"dim {dim} should be divided by num_heads {num_heads}."
+
+        self.dim = dim
+        self.num_heads = num_heads
+        head_dim = dim // num_heads
+        self.scale = qk_scale or head_dim ** -0.5
+
+        self.q = nn.Linear(dim, dim, bias=qkv_bias)
+        self.kv = nn.Linear(dim, dim * 2, bias=qkv_bias)
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+        self.sr_ratio = sr_ratio
+        if sr_ratio > 1:
+            self.sr = nn.Conv2d(dim, dim, kernel_size=sr_ratio, stride=sr_ratio)
+            self.norm = nn.LayerNorm(dim)
+
+    def forward(self, x, H, W):
+        B, N, C = x.shape
+        q = self.q(x).reshape(B, N, self.num_heads, C // self.num_heads).permute(0, 2, 1, 3)
+
+        if self.sr_ratio > 1:
+            x_ = x.permute(0, 2, 1).reshape(B, C, H, W)
+            x_ = self.sr(x_).reshape(B, C, -1).permute(0, 2, 1)
+            x_ = self.norm(x_)
+            kv = self.kv(x_).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        else:
+            kv = self.kv(x).reshape(B, -1, 2, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
+        k, v = kv[0], kv[1]
+
+        attn = (q @ k.transpose(-2, -1)) * self.scale
+        attn = attn.softmax(dim=-1)
+        attn = self.attn_drop(attn)
+
+        x = (attn @ v).transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+
+        return x, q, k
+
+
+class HybridSenmentic(nn.Module):
+    def __init__(self, in_planes, out_planes):
+        super(HybridSenmentic, self).__init__()
+
+        self.patch_embed = OverlapPatchEmbed(img_size=224 // 4, patch_size=3, stride=1, in_chans=in_planes,
+                                             embed_dim=out_planes)
+        self.block = Block(dim=out_planes)
+        self.norm = nn.LayerNorm(out_planes)
+        self.gc = Linear_Eca_block()
+        self.conv = Bottleneck(in_planes, out_planes)
+        self.down_c = BasicConv2d(out_planes, 1, 3, 1, padding=1)
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, x):
+        B = x.shape[0]
+        #c = x.shape[1]
+        #x_t, x_c = torch.split(x, c // 2, dim=1)
+        x_t, H, W = self.patch_embed(x)
+        x_t, q, k = self.block(x_t, H, W)
+        x_t = self.norm(x_t)
+        x_t = x_t.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        q = q.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        k = q.reshape(B, H, W, -1).permute(0, 3, 1, 2).contiguous()
+        atten = q * k
+        atten_c = self.gc(atten)
+        atten_s = self.sigmoid(self.down_c(atten))
+        x_t = x_t * atten_c * atten_s
+        #x_t = self.upsample(x_t)
+        x_c = self.conv(x)
+        #x_c = self.upsample(x_c)
+        x = x_t * x_c
+        x = self.upsample(x)
+        return x
+
+class trans_decoder(nn.Module):
+    def __init__(self, img_size=224,  in_chans=3,  embed_dims=[512, 320, 128, 64],
+                 num_heads=[1, 2, 4, 8], mlp_ratios=[4, 4, 4, 4], qkv_bias=False, qk_scale=None, drop_rate=0.,
+                 attn_drop_rate=0., drop_path_rate=0., norm_layer=nn.LayerNorm,
+                 depths=[3, 4, 6, 3], sr_ratios=[0, 0, 0, 0]):
+        super(trans_decoder, self).__init__()
+
+        self.upsample = nn.Upsample(scale_factor=2.0)
+
+        self.hs0 = HybridSenmentic(96, 96)
+        self.hs1 = HybridSenmentic(96, 96)
+
+        self.final_head = final_head()
+
+    def forward(self, x0, x1, x2):
+
+        x = self.hs1(x2)
+        x = x * x1
+
+        x = self.hs0(x)
+        x = x * x0
+
+        x = self.final_head(x)
+
+
+        return x
+
+
 
 
