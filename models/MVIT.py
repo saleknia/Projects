@@ -62,16 +62,16 @@ class cnn_decoder(nn.Module):
         
         self.up_2 = UpBlock(96, 96)
         self.up_1 = UpBlock(96, 96)
-        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+        # self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
     def forward(self, x0, x1, x2):
 
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1, x0)
 
-        x  = self.final_head(x0)
+        # x0 = self.final_head(x0)
 
-        return x
+        return x0
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
@@ -138,6 +138,9 @@ class MVIT(nn.Module):
         self.cnn_decoder   = cnn_decoder()
         self.trans_decoder = trans_decoder()
 
+        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+
+
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
@@ -153,7 +156,7 @@ class MVIT(nn.Module):
         out_convolution = self.cnn_decoder(x0, x1, x2)
         out_transformer = self.trans_decoder(x0, x1, x2)
 
-        out = out_convolution + out_transformer
+        out = self.final_head(out_convolution + out_transformer)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
 
@@ -1243,7 +1246,7 @@ class trans_decoder(nn.Module):
         self.hs0 = HybridSenmentic(96, 96)
         self.hs1 = HybridSenmentic(96, 96)
 
-        self.final_head = final_head()
+        # self.final_head = final_head()
 
     def forward(self, x0, x1, x2):
 
@@ -1253,7 +1256,7 @@ class trans_decoder(nn.Module):
         x = self.hs0(x)
         x = x * x0
 
-        x = self.final_head(x)
+        # x = self.final_head(x)
 
 
         return x
