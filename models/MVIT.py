@@ -34,6 +34,34 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
+class msff(nn.Module):
+    def __init__(self):
+        super(msff, self).__init__()
+        
+        self.reduce_0 = ConvBatchNorm(in_channels=96, out_channels=18, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=96, out_channels=36, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=96, out_channels=72, activation='ReLU', kernel_size=1, padding=0)
+
+        self.expand_0 = ConvBatchNorm(in_channels=18, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_1 = ConvBatchNorm(in_channels=36, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_2 = ConvBatchNorm(in_channels=72, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+
+        self.HR = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
+
+    def forward(self, x0, x1, x2):
+        
+        y0 = self.reduce_0(x0)
+        y1 = self.reduce_1(x1)
+        y2 = self.reduce_2(x2)
+
+        y0, y1, y2 = self.HR([y0, y1, y2])
+
+        y0 = self.expand_0(y0)
+        y1 = self.expand_1(y1)
+        y2 = self.expand_2(y2)     
+
+        return x0 + y0, x1 + y1, x2 + y2
+
 class final_head(nn.Module):
     def __init__(self, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
@@ -62,14 +90,14 @@ class cnn_decoder(nn.Module):
         
         self.up_2 = UpBlock(96, 96)
         self.up_1 = UpBlock(96, 96)
-        # self.final_head = final_head(num_classes=1, scale_factor=2.0)
+        self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
     def forward(self, x0, x1, x2):
 
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1, x0)
 
-        # x0 = self.final_head(x0)
+        x0 = self.final_head(x0)
 
         return x0
 
@@ -136,9 +164,10 @@ class MVIT(nn.Module):
         self.HA_0 = HybridAttention(channels=96)
 
         self.cnn_decoder   = cnn_decoder()
-        self.trans_decoder = trans_decoder()
+        self.msff          = msff()
+        # self.trans_decoder = trans_decoder()
 
-        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+        # self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
@@ -153,10 +182,12 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        out_convolution = self.cnn_decoder(x0, x1, x2)
-        out_transformer = self.trans_decoder(x0, x1, x2)
+        x0, x1, x2 = self.msff(x0, x1, x2)
 
-        out = self.final_head(out_convolution + out_transformer)
+        out = self.cnn_decoder(x0, x1, x2)
+        # out_transformer = self.trans_decoder(x0, x1, x2)
+
+        # out = self.final_head(out_convolution + out_transformer)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
 
