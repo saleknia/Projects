@@ -69,7 +69,9 @@ class cnn_decoder(nn.Module):
         x1 = self.up_2(x2, x1)
         x0 = self.up_1(x1, x0)
 
-        return x0
+        x  = self.final_head(x0)
+
+        return x
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
