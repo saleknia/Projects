@@ -60,7 +60,7 @@ class msff(nn.Module):
         y1 = self.expand_1(y1)
         y2 = self.expand_2(y2)     
 
-        return x0 + y0, x1 + y1, x2 + y2
+        return y0, y1, y2
 
 class final_head(nn.Module):
     def __init__(self, num_classes=1, scale_factor=2.0):
@@ -163,12 +163,13 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.cnn_decoder   = cnn_decoder()
-        self.msff          = msff()
+        self.cnn_decoder    = cnn_decoder()
+        self.hybrid_decoder = hybrid_decoder()
+
+        # self.msff          = msff()
         # self.trans_decoder = trans_decoder()
 
         # self.final_head = final_head(num_classes=1, scale_factor=2.0)
-
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
@@ -182,9 +183,10 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.msff(x0, x1, x2)
+        # x0, x1, x2 = self.msff(x0, x1, x2)
 
-        out = self.cnn_decoder(x0, x1, x2)
+        out = self.hybrid_decoder(x0, x1, x2)
+        
         # out_transformer = self.trans_decoder(x0, x1, x2)
 
         # out = self.final_head(out_convolution + out_transformer)
@@ -1292,6 +1294,36 @@ class trans_decoder(nn.Module):
 
         return x
 
+class hybrid_decoder(nn.Module):
+    def __init__(self, num_classes=1.0, scale_factor=2.0):
+        super(hybrid_decoder, self).__init__()
+        
+        self.up_0 = UpBlock(96, 96)
+        self.up_1 = UpBlock(96, 96)
+
+        self.hs_0 = HybridSenmentic(96, 96)
+        self.hs_1 = HybridSenmentic(96, 96)
+
+        self.ha_0 = HybridAttention(channels=96)
+        self.ha_1 = HybridAttention(channels=96)
+
+        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+
+    def forward(self, x0, x1, x2):
+
+        x_c = self.up_1(x2, x1)
+        x_t = self.hs_1(x2) * x1
+
+        x1  = self.ha_1(x_t, x_c)
+
+        x_c = self.up_0(x1, x0)
+        x_t = self.hs_0(x1) * x0
+
+        x0  = self.ha_0(x_t, x_c)
+
+        x0  = self.final_head(x0)
+
+        return x0
 
 
 
