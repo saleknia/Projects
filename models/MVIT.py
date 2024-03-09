@@ -21,14 +21,11 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 288  
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
+    config.transformer.num_layers = 2
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    # config.transformer.embeddings_dropout_rate = 0.3
-    # config.transformer.attention_dropout_rate  = 0.3
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
     config.transformer.dropout_rate = 0
-    # config.patch_sizes = [16,8,4,2]
     config.patch_sizes = [4,2,1]
     config.base_channel = 96 # base channel of U-Net
     config.n_classes = 1
@@ -163,7 +160,7 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.cnn_decoder    = cnn_decoder()
+        # self.cnn_decoder    = cnn_decoder()
         self.hybrid_decoder = hybrid_decoder()
 
         # self.msff          = msff()
@@ -171,7 +168,7 @@ class MVIT(nn.Module):
 
         # self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -183,10 +180,10 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # x0, x1, x2 = self.msff(x0, x1, x2)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
-        
+
         # out_transformer = self.trans_decoder(x0, x1, x2)
 
         # out = self.final_head(out_convolution + out_transformer)
