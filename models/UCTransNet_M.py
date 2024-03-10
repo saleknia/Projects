@@ -27,9 +27,9 @@ class Channel_Embeddings(nn.Module):
     def forward(self, x):
         if x is None:
             return None
-        x = self.patch_embeddings(x)  # (B, hidden, n_patches^(1/2), n_patches^(1/2)) ----> hidden = (out_channels=in_channels)
-        x = x.flatten(2) # (B, hidden=Ci, n_patches)
-        x = x.transpose(-1, -2)  # (B, n_patches, hidden=Ci)
+        x = self.patch_embeddings(x)  # (B, hidden. n_patches^(1/2), n_patches^(1/2))
+        x = x.flatten(2)
+        x = x.transpose(-1, -2)  # (B, n_patches, hidden)
         embeddings = x + self.position_embeddings
         embeddings = self.dropout(embeddings)
         return embeddings
@@ -331,9 +331,9 @@ class ChannelTransformer(nn.Module):
         self.patchSize_1 = patchSize[0]
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size   , in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//2, in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//4, in_channels=channel_num[2])
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//4 , in_channels=channel_num[0])
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//8 , in_channels=channel_num[1])
+        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2])
 
         self.M_return = True
         self.encoder = Encoder(config, vis, channel_num, M_return=self.M_return)
