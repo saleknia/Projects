@@ -182,7 +182,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x1, x2, x3, probs1, probs2, probs3 = self.mtc(x0, x1, x2)
+        x0, x1, x2, probs1, probs2, probs3 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 

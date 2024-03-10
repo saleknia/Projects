@@ -295,7 +295,7 @@ class Encoder(nn.Module):
         self.encoder_norm3 = LayerNorm(channel_num[2],eps=1e-6)
 
         for i in range(config.transformer["num_layers"]):
-            if i==2 and self.M_return:
+            if i==1 and self.M_return:
                 layer = Block_ViT(config, vis, channel_num, M_return=self.M_return)
                 self.layer.append(copy.deepcopy(layer))
             else:
@@ -305,7 +305,7 @@ class Encoder(nn.Module):
     def forward(self, emb1,emb2,emb3):
         attn_weights = []
         for i,layer_block in enumerate(self.layer):
-            if i==2 and self.M_return:
+            if i==1 and self.M_return:
                 emb1,emb2,emb3, weights, probs1, probs2, probs3 = layer_block(emb1,emb2,emb3)
                 if self.vis:
                     attn_weights.append(weights)
