@@ -39,7 +39,7 @@ class M_loss(nn.Module):
             diag = prob * (torch.eye(prob.shape[0],prob.shape[1]))
             prob = prob - diag
             loss = loss + torch.norm(prob)
-        return loss
+        return loss * 0.01
 
 class IoULoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
