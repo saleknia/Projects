@@ -21,7 +21,7 @@ def get_CTranS_config():
     config.transformer = ml_collections.ConfigDict()
     config.KV_size = 288  
     config.transformer.num_heads  = 4
-    config.transformer.num_layers = 4
+    config.transformer.num_layers = 2
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.1
     config.transformer.attention_dropout_rate  = 0.1
@@ -168,19 +168,23 @@ class MVIT(nn.Module):
 
         # self.final_head = final_head(num_classes=1, scale_factor=2.0)
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc_trans = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc_cnext = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         t0, t1, t2, out_trans = self.transformer(x)
+        t0, t1, t2            = self.mtc_trans(t0, t1, t2)
+
         c0, c1, c2, out_cnext = self.convnext(x)
+        c0, c1, c2            = self.mtc_cnext(c0, c1, c2)
 
         x0 = self.HA_0(t0, c0)
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
