@@ -21,6 +21,26 @@ warnings.filterwarnings("ignore")
 ALPHA = 0.8
 GAMMA = 2
 
+class M_loss(nn.Module):
+    def __init__(self):
+        super(M_loss, self).__init__()
+        self.Ci_num = [96, 96, 96]
+    def forward(self, probs1, probs2, probs3):
+        loss = 0.0
+        probs_total = [probs1, probs2, probs3]
+        for i , prob in enumerate(probs_total):
+            prob = prob.to('cpu')
+            B, H, Ci, Csigma = prob.shape
+            if i==0:
+                prob = prob[:,:,:,0:self.Ci_num[0]]
+            else:
+                prob = prob[:,:,:,self.Ci_num[i-1]:(self.Ci_num[i-1]+self.Ci_num[i])]
+            prob = prob.sum(dim=0).sum(dim=1)
+            diag = prob * (torch.eye(prob.shape[0],prob.shape[1]))
+            prob = prob - diag
+            loss = loss + torch.norm(prob)
+        return loss
+
 class IoULoss(nn.Module):
     def __init__(self, weight=None, size_average=True):
         super(IoULoss, self).__init__()
@@ -314,6 +334,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     # pos_weight = dataloader['pos_weight']
     dice_loss = DiceLoss()
     ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
+    att_loss = M_loss()
 
 
     base_iter = (epoch_num-1) * total_batchs
@@ -362,8 +383,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         if type(outputs)==tuple:
             loss_ce   = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs[0], targets=targets) + dice_loss(inputs=outputs[1], targets=targets) + dice_loss(inputs=outputs[2], targets=targets) 
-            loss_att  = 0.0
-            loss = loss_ce + loss_dice 
+            loss_att  = att_loss(outputs[3][0], outputs[3][1], outputs[3][2])
+            loss = loss_ce + loss_dice + loss_att
             # loss = structure_loss(outputs[0], targets.unsqueeze(dim=1)) + structure_loss(outputs[1], targets.unsqueeze(dim=1)) 
         else:
             # loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
