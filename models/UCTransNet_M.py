@@ -305,7 +305,7 @@ class Encoder(nn.Module):
     def forward(self, emb1,emb2,emb3):
         attn_weights = []
         for i,layer_block in enumerate(self.layer):
-            if i==3 and self.M_return:
+            if i==2 and self.M_return:
                 emb1,emb2,emb3, weights, probs1, probs2, probs3 = layer_block(emb1,emb2,emb3)
                 if self.vis:
                     attn_weights.append(weights)
