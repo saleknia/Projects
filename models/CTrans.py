@@ -245,9 +245,9 @@ class Block_ViT(nn.Module):
             if tmp_var is not None:
                 embcat.append(tmp_var)
 
-        # emb_all = torch.cat(embcat,dim=2)
+        emb_all = torch.cat(embcat,dim=2)
 
-        emb_all = emb1 + emb2 + emb3
+        # emb_all = emb1 + emb2 + emb3
 
 
         cx1 = self.attn_norm1(emb1) if emb1 is not None else None

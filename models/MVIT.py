@@ -20,13 +20,13 @@ from .CTrans import ChannelTransformer
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 96  
+    config.KV_size = 288  
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.1
-    config.transformer.attention_dropout_rate  = 0.1
-    config.transformer.dropout_rate = 0
+    config.transformer.embeddings_dropout_rate = 0.0
+    config.transformer.attention_dropout_rate  = 0.0
+    config.transformer.dropout_rate = 0.0
     config.patch_sizes = [4,2,1]
     config.base_channel = 96 # base channel of U-Net
     config.n_classes = 1
@@ -40,9 +40,9 @@ class msff(nn.Module):
         self.reduce_1 = ConvBatchNorm(in_channels=96, out_channels=36, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_2 = ConvBatchNorm(in_channels=96, out_channels=72, activation='ReLU', kernel_size=1, padding=0)
 
-        self.expand_0 = ConvBatchNorm(in_channels=18, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.expand_1 = ConvBatchNorm(in_channels=36, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.expand_2 = ConvBatchNorm(in_channels=72, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_0 = ConvBatchNorm(in_channels=114, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_1 = ConvBatchNorm(in_channels=132, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.expand_2 = ConvBatchNorm(in_channels=168, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
         self.HR = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
 
@@ -54,9 +54,9 @@ class msff(nn.Module):
 
         y0, y1, y2 = self.HR([y0, y1, y2])
 
-        y0 = self.expand_0(y0)
-        y1 = self.expand_1(y1)
-        y2 = self.expand_2(y2)     
+        y0 = self.expand_0(torch.cat([x0, y0], dim=1))
+        y1 = self.expand_1(torch.cat([x1, y1], dim=1))
+        y2 = self.expand_2(torch.cat([x2, y2], dim=1))     
 
         return y0, y1, y2
 
@@ -164,7 +164,7 @@ class MVIT(nn.Module):
 
         # self.cnn_decoder    = cnn_decoder()
         self.hybrid_decoder = hybrid_decoder()
-
+        # self.mtc = msff()
         self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
