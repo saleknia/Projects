@@ -245,7 +245,10 @@ class Block_ViT(nn.Module):
             if tmp_var is not None:
                 embcat.append(tmp_var)
 
-        emb_all = torch.cat(embcat,dim=2)
+        # emb_all = torch.cat(embcat,dim=2)
+
+        emb_all = emb1 + emb2 + emb3
+
 
         cx1 = self.attn_norm1(emb1) if emb1 is not None else None
         cx2 = self.attn_norm2(emb2) if emb2 is not None else None
@@ -331,13 +334,13 @@ class ChannelTransformer(nn.Module):
         x2 = self.reconstruct_2(encoded2) if en2 is not None else None
         x3 = self.reconstruct_3(encoded3) if en3 is not None else None
 
-        # x1 = x1 + en1  if en1 is not None else None
-        # x2 = x2 + en2  if en2 is not None else None
-        # x3 = x3 + en3  if en3 is not None else None
+        x1 = x1 + en1  if en1 is not None else None
+        x2 = x2 + en2  if en2 is not None else None
+        x3 = x3 + en3  if en3 is not None else None
 
-        x1 = torch.cat([x1, en1], dim=1) if en1 is not None else None
-        x2 = torch.cat([x2, en2], dim=1) if en2 is not None else None
-        x3 = torch.cat([x3, en3], dim=1) if en3 is not None else None
+        # x1 = torch.cat([x1, en1], dim=1) if en1 is not None else None
+        # x2 = torch.cat([x2, en2], dim=1) if en2 is not None else None
+        # x3 = torch.cat([x3, en3], dim=1) if en3 is not None else None
 
         return x1, x2, x3
 
