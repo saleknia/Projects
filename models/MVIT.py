@@ -14,8 +14,8 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
-# from .CTrans import ChannelTransformer
-from .UCTransNet_M import ChannelTransformer
+from .CTrans import ChannelTransformer
+# from .UCTransNet_M import ChannelTransformer
 
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
