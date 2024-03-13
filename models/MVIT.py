@@ -165,13 +165,7 @@ class MVIT(nn.Module):
         # self.cnn_decoder    = cnn_decoder()
         self.hybrid_decoder = hybrid_decoder()
 
-        # self.msff          = msff()
-        # self.trans_decoder = trans_decoder()
-
-        # self.final_head = final_head(num_classes=1, scale_factor=2.0)
-
         self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
-        # self.mtc_cnext = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
         self.combine_0 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.combine_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
@@ -188,6 +182,10 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         x0, x1, x2 = self.mtc(x0, x1, x2)
+
+        x0 = self.combine_0(x0)
+        x1 = self.combine_1(x1)
+        x2 = self.combine_2(x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
