@@ -70,18 +70,18 @@ class final_head(nn.Module):
         # self.final_relu2 = nn.ReLU(inplace=True)
         # self.final_conv3 = nn.ConvTranspose2d(48, num_classes, 4, 2, 1)
 
-        # self.head = nn.Sequential(
-        #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
-        #     nn.ReLU(inplace=True),
-        #     nn.Conv2d(48, 48, 3, padding=1),
-        #     nn.ReLU(inplace=True),
-        #     nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
-        # )
-
         self.head = nn.Sequential(
-            nn.Conv2d(96, num_classes, 1, padding=0),
-            nn.Upsample(scale_factor=4.0)
+            nn.ConvTranspose2d(96, 48, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(48, 48, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
         )
+
+        # self.head = nn.Sequential(
+        #     nn.Conv2d(96, num_classes, 1, padding=0),
+        #     nn.Upsample(scale_factor=4.0)
+        # )
 
     def forward(self, x):
         # out = self.final_conv1(x)
