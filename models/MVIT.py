@@ -64,22 +64,35 @@ class final_head(nn.Module):
     def __init__(self, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
 
-        self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.ConvTranspose2d(48, num_classes, 4, 2, 1)
+        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
+        # self.final_relu1 = nn.ReLU(inplace=True)
+        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
+        # self.final_relu2 = nn.ReLU(inplace=True)
+        # self.final_conv3 = nn.ConvTranspose2d(48, num_classes, 4, 2, 1)
 
-        # self.final_conv3 = nn.Conv2d(48, num_classes, 3, padding=1)
-        # self.final_upsample = nn.Upsample(scale_factor=scale_factor)
+        # self.head = nn.Sequential(
+        #     nn.ConvTranspose2d(96, 48, 4, 2, 1),
+        #     nn.ReLU(inplace=True),
+        #     nn.Conv2d(48, 48, 3, padding=1),
+        #     nn.ReLU(inplace=True),
+        #     nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
+        # )
+
+        self.head = nn.Sequential(
+            nn.Conv2d(96, num_classes, 1, padding=0),
+            nn.Upsample(scale_factor=4.0)
+        )
 
     def forward(self, x):
-        out = self.final_conv1(x)
-        out = self.final_relu1(out)
-        out = self.final_conv2(out)
-        out = self.final_relu2(out)
-        out = self.final_conv3(out)
+        # out = self.final_conv1(x)
+        # out = self.final_relu1(out)
+        # out = self.final_conv2(out)
+        # out = self.final_relu2(out)
+        # out = self.final_conv3(out)
+
         # out = self.final_upsample(out)
+        out = self.head(x)
+
         return out
 
 class cnn_decoder(nn.Module):
@@ -162,10 +175,9 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        # self.cnn_decoder    = cnn_decoder()
         self.hybrid_decoder = hybrid_decoder()
-        # self.mtc = msff()
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -177,7 +189,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
