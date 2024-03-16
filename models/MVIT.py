@@ -229,17 +229,17 @@ class MetaFormer(nn.Module):
         x0_up = self.up_sample0(x0)
         x1_up = self.up_sample1(x1)
 
-        cd0 = self.se0(x0_up)
-        cd1 = self.se1(x1_up)
-        cd2 = self.se2(x2)
+        # cd0 = self.se0(x0_up)
+        # cd1 = self.se1(x1_up)
+        # cd2 = self.se2(x2)
 
-        tmp0 = cd0 * org0
-        tmp1 = cd1 * org1
-        tmp2 = cd2 * org2
+        # tmp0 = cd0 * org0
+        # tmp1 = cd1 * org1
+        # tmp2 = cd2 * org2
 
-        x0 = org0 + self.sa0(tmp0)
-        x1 = org1 + self.sa1(tmp1)
-        x2 = org2 + self.sa2(tmp2)
+        x0 = org0 + self.sa0(x0_up)
+        x1 = org1 + self.sa1(x1_up)
+        x2 = org2 + self.sa2(x2)
 
         return x0, x1, x2
 
@@ -256,9 +256,9 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = hybrid_decoder()
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48], patchSize=[4, 2, 1])
 
-        # self.MetaFormer = MetaFormer()
+        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -270,9 +270,9 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        # x0, x1, x2 = self.MetaFormer(x0, x1, x2)
+        x0, x1, x2 = self.MetaFormer(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 

@@ -28,7 +28,7 @@ class Channel_Embeddings(nn.Module):
         n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
 
         self.patch_embeddings = Conv2d(in_channels=in_channels,
-                                       out_channels=in_channels // 2,
+                                       out_channels=in_channels,
                                        kernel_size=patch_size,
                                        stride=patch_size)
         self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, in_channels))
