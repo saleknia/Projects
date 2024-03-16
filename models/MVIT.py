@@ -143,6 +143,7 @@ class Linear_Eca_block(nn.Module):
         y = self.sigmoid(y)
         return y.expand_as(x)
 
+
 class HybridAttention(nn.Module):
     def __init__(self, channels):
         super(HybridAttention, self).__init__()
@@ -164,6 +165,84 @@ class HybridAttention(nn.Module):
         
         return x
 
+class ChannelPool(nn.Module):
+    def forward(self, x):
+        return torch.cat((torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
+
+class SpatialGate(nn.Module):
+    def __init__(self):
+        super(SpatialGate, self).__init__()
+        kernel_size = 7
+        self.compress = ChannelPool()
+        self.spatial = nn.Conv2d(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2)
+    def forward(self, x):
+        x_compress = self.compress(x)
+        x_out = self.spatial(x_compress)
+        scale = F.sigmoid(x_out)
+        return x * scale
+
+class MetaFormer(nn.Module):
+    def __init__(self, ):
+        super().__init__()
+
+        embd_dim = 96
+        fuse_dim = embd_dim * 3
+
+        self.fuse_conv0 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
+        self.fuse_conv1 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
+        self.fuse_conv2 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
+
+        self.se0 = Linear_Eca_block()
+        self.se1 = Linear_Eca_block()
+        self.se2 = Linear_Eca_block()
+
+        self.down_sample0 = nn.AvgPool2d(4)
+        self.down_sample1 = nn.AvgPool2d(2)
+
+        self.up_sample0 = nn.Upsample(scale_factor=4)
+        self.up_sample1 = nn.Upsample(scale_factor=2)
+
+        self.sa0 = SpatialGate()
+        self.sa1 = SpatialGate()
+        self.sa2 = SpatialGate()
+
+    def forward(self, x0, x1, x2):
+        """
+        x: B, H*W, C
+        """
+        org0 = x0
+        org1 = x1
+        org2 = x2
+
+        x0_d = self.down_sample0(x0)
+        x1_d = self.down_sample1(x1)
+
+        features = [x0_d, x1_d, x2]
+
+        # --------------------Concat sum------------------------------
+        fuse = torch.cat(features, dim=1)
+
+        x0 = self.fuse_conv0(fuse)
+        x1 = self.fuse_conv1(fuse)
+        x2 = self.fuse_conv2(fuse)
+
+        x0_up = self.up_sample0(x0)
+        x1_up = self.up_sample1(x1)
+
+        cd0 = self.se0(x0_up)
+        cd1 = self.se1(x1_up)
+        cd2 = self.se2(x2)
+
+        tmp0 = cd0 * org0
+        tmp1 = cd1 * org1
+        tmp2 = cd2 * org2
+
+        x0 = org0 + self.sa0(tmp0)
+        x1 = org1 + self.sa1(tmp1)
+        x2 = org2 + self.sa2(tmp2)
+
+        return x0, x1, x2
+
 class MVIT(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(MVIT, self).__init__()
@@ -175,9 +254,11 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.hybrid_decoder = cnn_decoder()
+        self.hybrid_decoder = hybrid_decoder()
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+
+        self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -190,6 +271,8 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
+
+        x0, x1, x2 = self.MetaFormer(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
