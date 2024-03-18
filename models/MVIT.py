@@ -20,14 +20,15 @@ from .CTrans import ChannelTransformer
 def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 288  
+    config.KV_size = 168  
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
     config.expand_ratio           = 4  # MLP channel dimension expand ratio
     config.transformer.embeddings_dropout_rate = 0.0
     config.transformer.attention_dropout_rate  = 0.0
     config.transformer.dropout_rate = 0.0
-    config.patch_sizes = [4,2,1]
+    config.patch_sizes = [4, 2, 1]
+    config.embed_dims  = [24, 48, 96]
     config.base_channel = 96 # base channel of U-Net
     config.n_classes = 1
     return config
@@ -256,9 +257,9 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = hybrid_decoder()
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[48, 48, 48], patchSize=[4, 2, 1])
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[24, 48, 96])
 
-        self.MetaFormer = MetaFormer()
+        # self.MetaFormer = MetaFormer()
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -270,9 +271,9 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        x0, x1, x2 = self.MetaFormer(x0, x1, x2)
+        # x0, x1, x2 = self.MetaFormer(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 

@@ -21,17 +21,17 @@ logger = logging.getLogger(__name__)
 class Channel_Embeddings(nn.Module):
     """Construct the embeddings from patch, position embeddings.
     """
-    def __init__(self,config, patchsize, img_size, in_channels):
+    def __init__(self,config, patchsize, img_size, in_channels, embed_dim):
         super().__init__()
         img_size = _pair(img_size)
         patch_size = _pair(patchsize)
         n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
 
         self.patch_embeddings = Conv2d(in_channels=in_channels,
-                                       out_channels=in_channels,
+                                       out_channels=embed_dim,
                                        kernel_size=patch_size,
                                        stride=patch_size)
-        self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, in_channels))
+        self.position_embeddings = nn.Parameter(torch.zeros(1, n_patches, embed_dim))
         self.dropout = Dropout(config.transformer["embeddings_dropout_rate"])
 
     def forward(self, x):
@@ -72,11 +72,11 @@ class Reconstruct(nn.Module):
         return out
 
 class Attention_org(nn.Module):
-    def __init__(self, config, vis,channel_num):
+    def __init__(self, config, vis,embed_dims):
         super(Attention_org, self).__init__()
         self.vis = vis
         self.KV_size = config.KV_size
-        self.channel_num = channel_num
+        self.embed_dims = embed_dims
         self.num_attention_heads = config.transformer["num_heads"]
 
         self.query1 = nn.ModuleList()
@@ -86,9 +86,9 @@ class Attention_org(nn.Module):
         self.value = nn.ModuleList()
 
         for _ in range(config.transformer["num_heads"]):
-            query1 = nn.Linear(channel_num[0], channel_num[0], bias=False)
-            query2 = nn.Linear(channel_num[1], channel_num[1], bias=False)
-            query3 = nn.Linear(channel_num[2], channel_num[2], bias=False)
+            query1 = nn.Linear(embed_dims[0], embed_dims[0], bias=False)
+            query2 = nn.Linear(embed_dims[1], embed_dims[1], bias=False)
+            query3 = nn.Linear(embed_dims[2], embed_dims[2], bias=False)
             key = nn.Linear( self.KV_size,  self.KV_size, bias=False)
             value = nn.Linear(self.KV_size,  self.KV_size, bias=False)
             self.query1.append(copy.deepcopy(query1))
@@ -98,9 +98,9 @@ class Attention_org(nn.Module):
             self.value.append(copy.deepcopy(value))
         self.psi = nn.InstanceNorm2d(self.num_attention_heads)
         self.softmax = Softmax(dim=3)
-        self.out1 = nn.Linear(channel_num[0], channel_num[0], bias=False)
-        self.out2 = nn.Linear(channel_num[1], channel_num[1], bias=False)
-        self.out3 = nn.Linear(channel_num[2], channel_num[2], bias=False)
+        self.out1 = nn.Linear(embed_dims[0], embed_dims[0], bias=False)
+        self.out2 = nn.Linear(embed_dims[1], embed_dims[1], bias=False)
+        self.out3 = nn.Linear(embed_dims[2], embed_dims[2], bias=False)
         self.attn_dropout = Dropout(config.transformer["attention_dropout_rate"])
         self.proj_dropout = Dropout(config.transformer["attention_dropout_rate"])
 
@@ -214,23 +214,23 @@ class Mlp(nn.Module):
         return x
 
 class Block_ViT(nn.Module):
-    def __init__(self, config, vis, channel_num):
+    def __init__(self, config, vis, embed_dims):
         super(Block_ViT, self).__init__()
         expand_ratio = config.expand_ratio
-        self.attn_norm1 = LayerNorm(channel_num[0],eps=1e-6)
-        self.attn_norm2 = LayerNorm(channel_num[1],eps=1e-6)
-        self.attn_norm3 = LayerNorm(channel_num[2],eps=1e-6)
+        self.attn_norm1 = LayerNorm(embed_dims[0],eps=1e-6)
+        self.attn_norm2 = LayerNorm(embed_dims[1],eps=1e-6)
+        self.attn_norm3 = LayerNorm(embed_dims[2],eps=1e-6)
 
         self.attn_norm =  LayerNorm(config.KV_size,eps=1e-6)
-        self.channel_attn = Attention_org(config, vis, channel_num)
+        self.channel_attn = Attention_org(config, vis, embed_dims)
 
-        self.ffn_norm1 = LayerNorm(channel_num[0],eps=1e-6)
-        self.ffn_norm2 = LayerNorm(channel_num[1],eps=1e-6)
-        self.ffn_norm3 = LayerNorm(channel_num[2],eps=1e-6)
+        self.ffn_norm1 = LayerNorm(embed_dims[0],eps=1e-6)
+        self.ffn_norm2 = LayerNorm(embed_dims[1],eps=1e-6)
+        self.ffn_norm3 = LayerNorm(embed_dims[2],eps=1e-6)
         
-        self.ffn1 = Mlp(config,channel_num[0],channel_num[0]*expand_ratio)
-        self.ffn2 = Mlp(config,channel_num[1],channel_num[1]*expand_ratio)
-        self.ffn3 = Mlp(config,channel_num[2],channel_num[2]*expand_ratio)
+        self.ffn1 = Mlp(config,embed_dims[0],embed_dims[0]*expand_ratio)
+        self.ffn2 = Mlp(config,embed_dims[1],embed_dims[1]*expand_ratio)
+        self.ffn3 = Mlp(config,embed_dims[2],embed_dims[2]*expand_ratio)
 
 
     def forward(self, emb1,emb2,emb3):
@@ -248,7 +248,6 @@ class Block_ViT(nn.Module):
         emb_all = torch.cat(embcat,dim=2)
 
         # emb_all = emb1 + emb2 + emb3
-
 
         cx1 = self.attn_norm1(emb1) if emb1 is not None else None
         cx2 = self.attn_norm2(emb2) if emb2 is not None else None
@@ -282,15 +281,15 @@ class Block_ViT(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, config, vis, channel_num):
+    def __init__(self, config, vis, embed_dims):
         super(Encoder, self).__init__()
         self.vis = vis
         self.layer = nn.ModuleList()
-        self.encoder_norm1 = LayerNorm(channel_num[0],eps=1e-6)
-        self.encoder_norm2 = LayerNorm(channel_num[1],eps=1e-6)
-        self.encoder_norm3 = LayerNorm(channel_num[2],eps=1e-6)
+        self.encoder_norm1 = LayerNorm(embed_dims[0],eps=1e-6)
+        self.encoder_norm2 = LayerNorm(embed_dims[1],eps=1e-6)
+        self.encoder_norm3 = LayerNorm(embed_dims[2],eps=1e-6)
         for _ in range(config.transformer["num_layers"]):
-            layer = Block_ViT(config, vis, channel_num)
+            layer = Block_ViT(config, vis, embed_dims)
             self.layer.append(copy.deepcopy(layer))
 
     def forward(self, emb1,emb2,emb3):
@@ -308,20 +307,20 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[96, 96, 96], patchSize=[4, 2, 1]):
+    def __init__(self, config, vis, img_size, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[24, 48, 96]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
         self.patchSize_2 = patchSize[1]
         self.patchSize_3 = patchSize[2]
-        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//4 , in_channels=channel_num[0])
-        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//8 , in_channels=channel_num[1])
-        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2])
-        self.encoder = Encoder(config, vis, channel_num)
+        self.embeddings_1 = Channel_Embeddings(config,self.patchSize_1, img_size=img_size//4 , in_channels=channel_num[0], embed_dim=embed_dims[0])
+        self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//8 , in_channels=channel_num[1], embed_dim=embed_dims[1])
+        self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2], embed_dim=embed_dims[2])
+        self.encoder = Encoder(config, vis, embed_dims)
 
-        self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
-        self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
-        self.reconstruct_3 = Reconstruct(channel_num[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
+        self.reconstruct_1 = Reconstruct(embed_dims[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
+        self.reconstruct_2 = Reconstruct(embed_dims[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
+        self.reconstruct_3 = Reconstruct(embed_dims[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
 
     def forward(self,en1,en2,en3):
 
