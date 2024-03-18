@@ -180,7 +180,7 @@ class SpatialGate(nn.Module):
         x_compress = self.compress(x)
         x_out = self.spatial(x_compress)
         scale = F.sigmoid(x_out)
-        return x * scale
+        return scale
 
 class MetaFormer(nn.Module):
     def __init__(self, ):
@@ -238,9 +238,9 @@ class MetaFormer(nn.Module):
         # tmp1 = cd1 * org1
         # tmp2 = cd2 * org2
 
-        x0 = org0 + self.sa0(x0_up)
-        x1 = org1 + self.sa1(x1_up)
-        x2 = org2 + self.sa2(x2)
+        x0 = org0 + (org0 * self.sa0(x0_up))
+        x1 = org1 + (org1 * self.sa1(x1_up))
+        x2 = org2 + (org2 * self.sa2(x2))
 
         return x0, x1, x2
 
