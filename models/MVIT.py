@@ -1267,7 +1267,7 @@ class hybrid_decoder(nn.Module):
         self.ha_0 = HybridAttention(channels=96)
         self.ha_1 = HybridAttention(channels=96)
 
-        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+        self.final_head = final_head(num_classes=num_classes, scale_factor=2.0)
 
     def forward(self, x0, x1, x2):
 
