@@ -33,43 +33,9 @@ def get_CTranS_config():
     config.n_classes = 1
     return config
 
-class msff(nn.Module):
-    def __init__(self):
-        super(msff, self).__init__()
-        
-        self.reduce_0 = ConvBatchNorm(in_channels=96, out_channels=18, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_1 = ConvBatchNorm(in_channels=96, out_channels=36, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=96, out_channels=72, activation='ReLU', kernel_size=1, padding=0)
-
-        self.expand_0 = ConvBatchNorm(in_channels=114, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.expand_1 = ConvBatchNorm(in_channels=132, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.expand_2 = ConvBatchNorm(in_channels=168, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-
-        self.HR = timm.create_model('hrnet_w18', pretrained=True, features_only=True).stage3
-
-    def forward(self, x0, x1, x2):
-        
-        y0 = self.reduce_0(x0)
-        y1 = self.reduce_1(x1)
-        y2 = self.reduce_2(x2)
-
-        y0, y1, y2 = self.HR([y0, y1, y2])
-
-        y0 = self.expand_0(torch.cat([x0, y0], dim=1))
-        y1 = self.expand_1(torch.cat([x1, y1], dim=1))
-        y2 = self.expand_2(torch.cat([x2, y2], dim=1))     
-
-        return y0, y1, y2
-
 class final_head(nn.Module):
     def __init__(self, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
-
-        # self.final_conv1 = nn.ConvTranspose2d(96, 48, 4, 2, 1)
-        # self.final_relu1 = nn.ReLU(inplace=True)
-        # self.final_conv2 = nn.Conv2d(48, 48, 3, padding=1)
-        # self.final_relu2 = nn.ReLU(inplace=True)
-        # self.final_conv3 = nn.ConvTranspose2d(48, num_classes, 4, 2, 1)
 
         self.head = nn.Sequential(
             nn.ConvTranspose2d(96, 48, 4, 2, 1),
@@ -79,19 +45,8 @@ class final_head(nn.Module):
             nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
         )
 
-        # self.head = nn.Sequential(
-        #     nn.Conv2d(96, num_classes, 1, padding=0),
-        #     nn.Upsample(scale_factor=4.0)
-        # )
-
     def forward(self, x):
-        # out = self.final_conv1(x)
-        # out = self.final_relu1(out)
-        # out = self.final_conv2(out)
-        # out = self.final_relu2(out)
-        # out = self.final_conv3(out)
 
-        # out = self.final_upsample(out)
         out = self.head(x)
 
         return out
@@ -166,84 +121,6 @@ class HybridAttention(nn.Module):
         
         return x
 
-class ChannelPool(nn.Module):
-    def forward(self, x):
-        return torch.cat((torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
-
-class SpatialGate(nn.Module):
-    def __init__(self):
-        super(SpatialGate, self).__init__()
-        kernel_size = 7
-        self.compress = ChannelPool()
-        self.spatial = nn.Conv2d(2, 1, kernel_size, stride=1, padding=(kernel_size-1) // 2)
-    def forward(self, x):
-        x_compress = self.compress(x)
-        x_out = self.spatial(x_compress)
-        scale = F.sigmoid(x_out)
-        return scale
-
-class MetaFormer(nn.Module):
-    def __init__(self, ):
-        super().__init__()
-
-        embd_dim = 96
-        fuse_dim = embd_dim * 3
-
-        self.fuse_conv0 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
-        self.fuse_conv1 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
-        self.fuse_conv2 = ConvBatchNorm(in_channels=fuse_dim, out_channels=embd_dim, activation='ReLU', kernel_size=1, padding=0)
-
-        self.se0 = Linear_Eca_block()
-        self.se1 = Linear_Eca_block()
-        self.se2 = Linear_Eca_block()
-
-        self.down_sample0 = nn.AvgPool2d(4)
-        self.down_sample1 = nn.AvgPool2d(2)
-
-        self.up_sample0 = nn.Upsample(scale_factor=4)
-        self.up_sample1 = nn.Upsample(scale_factor=2)
-
-        self.sa0 = SpatialGate()
-        self.sa1 = SpatialGate()
-        self.sa2 = SpatialGate()
-
-    def forward(self, x0, x1, x2):
-        """
-        x: B, H*W, C
-        """
-        org0 = x0
-        org1 = x1
-        org2 = x2
-
-        x0_d = self.down_sample0(x0)
-        x1_d = self.down_sample1(x1)
-
-        features = [x0_d, x1_d, x2]
-
-        # --------------------Concat sum------------------------------
-        fuse = torch.cat(features, dim=1)
-
-        x0 = self.fuse_conv0(fuse)
-        x1 = self.fuse_conv1(fuse)
-        x2 = self.fuse_conv2(fuse)
-
-        x0_up = self.up_sample0(x0)
-        x1_up = self.up_sample1(x1)
-
-        # cd0 = self.se0(x0_up)
-        # cd1 = self.se1(x1_up)
-        # cd2 = self.se2(x2)
-
-        # tmp0 = cd0 * org0
-        # tmp1 = cd1 * org1
-        # tmp2 = cd2 * org2
-
-        x0 = org0 + (org0 * self.sa0(x0_up))
-        x1 = org1 + (org1 * self.sa1(x1_up))
-        x2 = org2 + (org2 * self.sa2(x2))
-
-        return x0, x1, x2
-
 class MVIT(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(MVIT, self).__init__()
@@ -257,9 +134,7 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = hybrid_decoder()
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[24, 48, 96])
-
-        self.MetaFormer = MetaFormer()
+        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -271,17 +146,9 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
-
-        x0, x1, x2 = self.MetaFormer(x0, x1, x2)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
-
-        # out_transformer = self.trans_decoder(x0, x1, x2)
-
-        # out = self.final_head(out_convolution + out_transformer)
-
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         if self.training:
             return out, out_trans, out_cnext

@@ -307,7 +307,7 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, vis, img_size, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[24, 48, 96]):
+    def __init__(self, config, vis, img_size, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]

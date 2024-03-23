@@ -226,7 +226,10 @@ def main(args):
         )
     logger.info(model_table)
 
+    ########################
     optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
+    ########################
 
     # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
 
@@ -322,19 +325,26 @@ def main(args):
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
-                                # generator=g
                                 )
         valid_loader = DataLoader(valid_dataset,
                                 batch_size=BATCH_SIZE,
-                                shuffle=True,
+                                shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
-                                drop_last=True,
-                                # generator=g
+                                drop_last=False,
                                 )
 
-        data_loader={'train':train_loader,'valid':valid_loader}
+        test_loader  = DataLoader(valid_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=False,
+                                )
+
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='ACDC':
         # index = np.load(file='index.npy')

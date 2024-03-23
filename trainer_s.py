@@ -182,6 +182,7 @@ class CriterionPixelWise(nn.Module):
         return loss
 
 from torchmetrics.classification import BinaryConfusionMatrix
+
 class Evaluator(object):
     ''' For using this evaluator target and prediction
         dims should be [B,H,W] '''
