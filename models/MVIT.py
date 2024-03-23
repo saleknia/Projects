@@ -134,7 +134,7 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = hybrid_decoder(num_classes=n_classes)
 
-        self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -149,7 +149,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 

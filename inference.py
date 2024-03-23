@@ -216,3 +216,13 @@ if __name__ == "__main__":
     print(f'Loaded Model Accuracy: {acc:.2f} , Epoch: {epoch}')    
 
     inference(args, net)
+
+
+
+
+
+
+
+
+
+
