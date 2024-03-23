@@ -132,12 +132,15 @@ class MVIT(nn.Module):
         self.HA_1 = HybridAttention(channels=96)
         self.HA_0 = HybridAttention(channels=96)
 
-        self.hybrid_decoder = hybrid_decoder()
+        self.hybrid_decoder = hybrid_decoder(num_classes=n_classes)
 
         self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
 
     def forward(self, x):
         b, c, h, w = x.shape
+
+        if c==1:
+            x = torch.cat([x, x, x], dim=1)
 
         t0, t1, t2, out_trans = self.transformer(x)
         c0, c1, c2, out_cnext = self.convnext(x)

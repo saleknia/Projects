@@ -47,6 +47,7 @@ from models.DABNet_loss import DABNet_loss
 from models.ENet_loss import ENet_loss
 from models.UCTransNet_GT import UCTransNet_GT
 from models.GT_CTrans import GT_CTrans
+from models.MVIT import MVIT
 # from models.original_UNet import original_UNet
 import utils
 from utils import color
@@ -159,8 +160,11 @@ def main(args):
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME=='SEUNet':
+    elif MODEL_NAME =='SEUNet':
         model = SEUNet(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME =='MVIT':
+        model = MVIT(n_classes=NUM_CLASS).to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
