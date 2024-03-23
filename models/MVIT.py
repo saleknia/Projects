@@ -125,8 +125,8 @@ class MVIT(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(MVIT, self).__init__()
 
-        self.transformer = trans()
-        self.convnext    = convnext()
+        self.transformer = trans(num_classes=n_classes)
+        self.convnext    = convnext(num_classes=n_classes)
 
         self.HA_2 = HybridAttention(channels=96)
         self.HA_1 = HybridAttention(channels=96)
@@ -205,7 +205,7 @@ class SegFormerHead(nn.Module):
         return c
 
 class trans(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
+    def __init__(self, n_channels=3, num_classes=1):
         super(trans, self).__init__()
 
         self.trans = CrossFormer(img_size=224,
@@ -234,7 +234,7 @@ class trans(nn.Module):
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
         
-        self.final_head = final_head()
+        self.final_head = final_head(num_classes=num_classes)
 
         self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
@@ -261,7 +261,7 @@ class trans(nn.Module):
         return t0, t1, t2, out
 
 class convnext(nn.Module):
-    def __init__(self, n_channels=3, n_classes=1):
+    def __init__(self, n_channels=3, num_classes=1):
         super(convnext, self).__init__()
 
         self.convnext = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
@@ -274,7 +274,7 @@ class convnext(nn.Module):
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        self.final_head = final_head()
+        self.final_head = final_head(num_classes=num_classes)
 
         self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
