@@ -129,7 +129,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
                 outputs_t, up1_t, up2_t, up3_t, up4_t, x1_t, x2_t, x3_t, x4_t, x5_t = teacher_model(inputs,multiple=True)
 
         if type(outputs)==tuple:
-            loss_ce   = ce_loss(outputs[0], targets.unsqueeze(dim=1)) + ce_loss(outputs[1], targets.unsqueeze(dim=1)) + ce_loss(outputs[2], targets.unsqueeze(dim=1)) 
+            loss_ce   = ce_loss(outputs[0], targets[:].long()) + ce_loss(outputs[1], targets[:].long()) + ce_loss(outputs[2], targets[:].long()) 
             loss_dice = dice_loss(inputs=outputs[0], target=targets, softmax=True) + dice_loss(inputs=outputs[1], target=targets, softmax=True) + dice_loss(inputs=outputs[2], target=targets, softmax=True)
             loss_att  = 0.0
             loss = loss_ce + loss_dice + loss_att
