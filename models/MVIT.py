@@ -139,9 +139,6 @@ class MVIT(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        if c==1:
-            x = torch.cat([x, x, x], dim=1)
-
         t0, t1, t2, out_trans = self.transformer(x)
         c0, c1, c2, out_cnext = self.convnext(x)
 
@@ -157,52 +154,6 @@ class MVIT(nn.Module):
             return out, out_trans, out_cnext
         else:
             return out
-
-
-class SegFormerHead(nn.Module):
-    """
-    SegFormer: Simple and Efficient Design for Semantic Segmentation with Transformers
-    """
-    def __init__(self):
-        super(SegFormerHead, self).__init__()
-
-        embedding_dim = 96
-
-        self.linear_fuse = BasicConv2d(embedding_dim*3, embedding_dim, 1)
-
-        self.pooling = nn.AdaptiveAvgPool2d(1)
-
-        self.fc1 = nn.Linear(96, 48)
-        self.fc2 = nn.Linear(48, 3)
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
-
-        self.up_2 = nn.Upsample(scale_factor=2.0)
-        self.up_3 = nn.Upsample(scale_factor=4.0)
-
-    def forward(self, c1, c2, c3):
-
-        ############## MLP decoder on C1-C3 ###########
-        n, _, h, w = c1.shape
-
-        c3 = self.up_3(c3)
-        c2 = self.up_2(c2)
-
-        y3 = self.pooling(c3)
-        y2 = self.pooling(c2)
-        y1 = self.pooling(c1)
-
-        y = y1 + y2 + y3
-
-        coeff = self.sigmoid(self.fc2(self.relu(self.fc1(y.reshape(n, -1)))))
-
-        c1 = c1 * coeff[:,0].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c1)
-        c2 = c2 * coeff[:,1].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c2)
-        c3 = c3 * coeff[:,2].unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(c3)
-
-        c = self.linear_fuse(torch.cat([c3, c2, c1], dim=1))
-
-        return c
 
 class trans(nn.Module):
     def __init__(self, n_channels=3, num_classes=1):
