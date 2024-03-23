@@ -176,7 +176,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ###############################################
         targets = targets.long()
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
+        if type(outputs)==tuple:
+            predictions = torch.argmax(input=outputs[0],dim=1).long()
+        else:
+            predictions = torch.argmax(input=outputs,dim=1).long()
+
         Eval.add_batch(gt_image=targets,pre_image=predictions)
 
         accuracy.update(Eval.Pixel_Accuracy())
