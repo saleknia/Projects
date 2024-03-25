@@ -85,7 +85,7 @@ class BasicConv2d(nn.Module):
 
 class SEAttention(nn.Module):
 
-    def __init__(self, gd_channel=288, out_channel=96, reduction=8):
+    def __init__(self, gd_channel=96, out_channel=96, reduction=8):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -110,16 +110,9 @@ class SEAttention(nn.Module):
                     nn.init.constant_(m.bias, 0)
 
     def forward(self, x, gd):
-        b, c, _, _ = gd[0].size()
-
-        gd0 = self.avg_pool(gd[0]).view(b, c)
-        gd1 = self.avg_pool(gd[1]).view(b, c)
-        gd2 = self.avg_pool(gd[2]).view(b, c)
-
-        gd  = torch.cat([gd0, gd1, gd2], dim=1)
-
-        gd  = self.fc(gd).view(b, c, 1, 1)
-
+        b, c, _, _ = gd.size()
+        gd = self.avg_pool(gd).view(b, c)       
+        gd = self.fc(gd).view(b, c, 1, 1)
         return x + (x * gd.expand_as(x))
 
 
@@ -179,7 +172,11 @@ class MVIT(nn.Module):
         self.GSEA_0 = SEAttention()
         self.GSEA_1 = SEAttention()
         self.GSEA_2 = SEAttention()
-       
+
+        self.conv_gd = _make_nConv(in_channels=288, out_channels=96, nb_Conv=2, activation='ReLU')
+        self.up_2    = nn.Upsample(scale_factor=2)
+        self.up_4    = nn.Upsample(scale_factor=4)
+
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -191,9 +188,9 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
-        
-        gd = [x0, x1, x2]
-        
+
+        gd = self.conv_gd(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
+                
         x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
