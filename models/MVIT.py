@@ -85,7 +85,7 @@ class BasicConv2d(nn.Module):
 
 class SEAttention(nn.Module):
 
-    def __init__(self, gd_channel=96, out_channel=96, reduction=8):
+    def __init__(self, gd_channel=288, out_channel=96, reduction=8):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
@@ -173,7 +173,7 @@ class MVIT(nn.Module):
         self.GSEA_1 = SEAttention()
         self.GSEA_2 = SEAttention()
 
-        self.conv_gd = _make_nConv(in_channels=288, out_channels=96, nb_Conv=2, activation='ReLU')
+        self.conv_gd = _make_nConv(in_channels=288, out_channels=288, nb_Conv=2, activation='ReLU')
         self.up_2    = nn.Upsample(scale_factor=2)
         self.up_4    = nn.Upsample(scale_factor=4)
 
