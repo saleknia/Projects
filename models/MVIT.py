@@ -75,20 +75,60 @@ class BasicConv2d(nn.Module):
         self.conv = nn.Conv2d(in_planes, out_planes,
                               kernel_size=kernel_size, stride=stride,
                               padding=padding, dilation=dilation, bias=False)
-        self.bn = nn.BatchNorm2d(out_planes)
+        self.bn   = nn.BatchNorm2d(out_planes)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         x = self.conv(x)
         x = self.bn(x)
         return x
-        
+
+class SEAttention(nn.Module):
+
+    def __init__(self, gd_channel=288, out_channel=96, reduction=16):
+        super().__init__()
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(gd_channel // reduction, out_channel, bias=False),
+            nn.Sigmoid()
+        )
+
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+
+    def forward(self, x, gd):
+        b, c, _, _ = gd.size()
+
+        gd0 = self.avg_pool(gd[0]).view(b, c)
+        gd1 = self.avg_pool(gd[1]).view(b, c)
+        gd2 = self.avg_pool(gd[2]).view(b, c)
+
+        gd  = torch.cat([gd0, gd1, gd2], dim=1)
+
+        gd  = self.fc(gd).view(b, c, 1, 1)
+
+        return x + (x * gd.expand_as(x))
+
+
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
     def __init__(self):
         super(Linear_Eca_block, self).__init__()
         self.avgpool = nn.AdaptiveAvgPool2d(1)
-        self.conv1d = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.conv1d  = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x, gamma=2, b=1):
@@ -112,8 +152,8 @@ class HybridAttention(nn.Module):
 
     def forward(self, x_t, x_c):
 
-        sa = self.sigmoid(self.down_c(x_c))
-        gc = self.eca(x_t)
+        sa  = self.sigmoid(self.down_c(x_c))
+        gc  = self.eca(x_t)
         x_c = self.conv(x_c)
         x_c = x_c * gc
         x_t = x_t * sa
@@ -135,7 +175,11 @@ class MVIT(nn.Module):
         self.hybrid_decoder = cnn_decoder(num_classes=n_classes)
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
-
+        
+        self.GSEA_0 = SEAttention()
+        self.GSEA_1 = SEAttention()
+        self.GSEA_2 = SEAttention()
+       
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -147,6 +191,10 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         # x0, x1, x2 = self.mtc(x0, x1, x2)
+        
+        gd = [x0, x1, x2]
+        
+        x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
