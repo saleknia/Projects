@@ -118,7 +118,7 @@ class SEAttention(nn.Module):
 
         gd  = torch.cat([gd0, gd1, gd2], dim=1)
 
-        gd  = self.fc(gd).view(b, c*3, 1, 1)
+        gd  = self.fc(gd).view(b, c, 1, 1)
 
         return x + (x * gd.expand_as(x))
 
