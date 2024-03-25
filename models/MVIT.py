@@ -85,7 +85,7 @@ class BasicConv2d(nn.Module):
 
 class SEAttention(nn.Module):
 
-    def __init__(self, gd_channel=288, out_channel=96, reduction=16):
+    def __init__(self, gd_channel=288, out_channel=96, reduction=8):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
