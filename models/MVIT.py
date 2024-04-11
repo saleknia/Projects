@@ -158,9 +158,9 @@ class ms_Eca_block(nn.Module):
         y1 = self.sigmoid(y1).expand_as(x1)
         y2 = self.sigmoid(y2).expand_as(x2)
 
-        x0 = x0 + (x0 * y0)
-        x1 = x1 + (x1 * y1)
-        x2 = x2 + (x2 * y2)
+        x0 = (x0 * y0)
+        x1 = (x1 * y1)
+        x2 = (x2 * y2)
 
         return x0, x1, x2
 
