@@ -132,6 +132,38 @@ class Linear_Eca_block(nn.Module):
         y = self.sigmoid(y)
         return y.expand_as(x)
 
+class ms_Eca_block(nn.Module):
+    """docstring for Eca_block"""
+    def __init__(self):
+        super(ms_Eca_block, self).__init__()
+        self.avgpool  = nn.AdaptiveAvgPool2d(1)
+        self.conv1d_0 = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.conv1d_1 = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.conv1d_2 = nn.Conv1d(1, 1, kernel_size=5, padding=int(5/2), bias=False)
+        self.sigmoid  = nn.Sigmoid()
+
+    def forward(self, x0, x1, x2, gamma=2, b=1):
+        #N, C, H, W = x.size()
+        y = self.avgpool(x0) + self.avgpool(x1) + self.avgpool(x2) 
+
+        y0 = self.conv1d_0(y.squeeze(-1).transpose(-1, -2))
+        y1 = self.conv1d_1(y.squeeze(-1).transpose(-1, -2))
+        y2 = self.conv1d_2(y.squeeze(-1).transpose(-1, -2))
+
+        y0 = y0.transpose(-1, -2).unsqueeze(-1)
+        y1 = y1.transpose(-1, -2).unsqueeze(-1)
+        y2 = y2.transpose(-1, -2).unsqueeze(-1)
+
+        y0 = self.sigmoid(y0).expand_as(x0)
+        y1 = self.sigmoid(y1).expand_as(x1)
+        y2 = self.sigmoid(y2).expand_as(x2)
+
+        x0 = x0 + (x0 * y0)
+        x1 = x1 + (x1 * y1)
+        x2 = x2 + (x2 * y2)
+
+        return x0, x1, x2
+
 
 class HybridAttention(nn.Module):
     def __init__(self, channels):
@@ -169,13 +201,15 @@ class MVIT(nn.Module):
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
         
-        self.GSEA_0 = SEAttention()
-        self.GSEA_1 = SEAttention()
-        self.GSEA_2 = SEAttention()
+        # self.GSEA_0 = SEAttention()
+        # self.GSEA_1 = SEAttention()
+        # self.GSEA_2 = SEAttention()
 
-        self.conv_gd = _make_nConv(in_channels=288, out_channels=288, nb_Conv=2, activation='ReLU')
-        self.up_2    = nn.Upsample(scale_factor=2)
-        self.up_4    = nn.Upsample(scale_factor=4)
+        # self.conv_gd = _make_nConv(in_channels=288, out_channels=288, nb_Conv=2, activation='ReLU')
+        # self.up_2    = nn.Upsample(scale_factor=2)
+        # self.up_4    = nn.Upsample(scale_factor=4)
+
+        self.mtc = ms_Eca_block()
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -187,11 +221,11 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        # x0, x1, x2 = self.mtc(x0, x1, x2)
+        x0, x1, x2 = self.mtc(x0, x1, x2)
 
-        gd = self.conv_gd(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
+        # gd = self.conv_gd(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
                 
-        x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
+        # x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
