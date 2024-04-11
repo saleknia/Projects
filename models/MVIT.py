@@ -85,10 +85,24 @@ class BasicConv2d(nn.Module):
 
 class SEAttention(nn.Module):
 
-    def __init__(self, gd_channel=288, out_channel=96, reduction=8):
+    def __init__(self, gd_channel=96, out_channel=96, reduction=8):
         super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
+        self.fc_0 = nn.Sequential(
+            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(gd_channel // reduction, out_channel, bias=False),
+            nn.Sigmoid()
+        )
+
+        self.fc_1 = nn.Sequential(
+            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(gd_channel // reduction, out_channel, bias=False),
+            nn.Sigmoid()
+        )
+
+        self.fc_2 = nn.Sequential(
             nn.Linear(gd_channel, gd_channel // reduction, bias=False),
             nn.ReLU(inplace=True),
             nn.Linear(gd_channel // reduction, out_channel, bias=False),
@@ -109,11 +123,20 @@ class SEAttention(nn.Module):
                 if m.bias is not None:
                     nn.init.constant_(m.bias, 0)
 
-    def forward(self, x, gd):
-        b, c, _, _ = gd.size()
-        gd = self.avg_pool(gd).view(b, c)       
-        gd = self.fc(gd).view(b, c, 1, 1)
-        return x + (x * gd.expand_as(x))
+    def forward(self, x0, x1, x2):
+        b, c, _, _ = x0.size()
+        
+        gd = (self.avg_pool(x0) + self.avg_pool(x1) + self.avg_pool(x2)).view(b, c)       
+        
+        y0 = self.fc_0(gd).view(b, c, 1, 1)
+        y1 = self.fc_1(gd).view(b, c, 1, 1)        
+        y2 = self.fc_2(gd).view(b, c, 1, 1)
+
+        x0 = x0 + (x0 * y0.expand_as(x0))
+        x1 = x1 + (x1 * y1.expand_as(x1))
+        x2 = x2 + (x2 * y2.expand_as(x2))
+
+        return x0, x1, x2 
 
 
 class Linear_Eca_block(nn.Module):
@@ -168,13 +191,7 @@ class MVIT(nn.Module):
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
         
-        self.GSEA_0 = SEAttention()
-        self.GSEA_1 = SEAttention()
-        self.GSEA_2 = SEAttention()
-
-        self.conv_gd = _make_nConv(in_channels=288, out_channels=288, nb_Conv=2, activation='ReLU')
-        self.up_2    = nn.Upsample(scale_factor=2)
-        self.up_4    = nn.Upsample(scale_factor=4)
+        self.GSEA = SEAttention()
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -186,8 +203,7 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        gd         = self.conv_gd(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
-        x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
+        x0, x1, x2 = self.GSEA(x0, x1, x2)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
