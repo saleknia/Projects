@@ -332,10 +332,10 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.model(x)
-        
+
         x_cpu = x.cpu().cpu().detach().numpy()
         x_cpu = self.GAF.fit_transform(x_cpu)
-        x = torch.from_numpy(x_cpu).cuda()
+        x = torch.from_numpy(x_cpu).float().cuda()
         x = torch.unsqueeze(x, 1)
         x = torch.cat([x, x, x], dim=1)
 
@@ -461,7 +461,7 @@ class B5(nn.Module):
         return x # torch.softmax(x, dim=1)
 
 class B0(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(B0, self).__init__()
 
         model = efficientnet_b0(weights=EfficientNet_B0_Weights)
