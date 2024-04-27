@@ -23,6 +23,8 @@ import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
+from pyts.image import GramianAngularField as GAF
+
 from mit_semseg.models import ModelBuilder
 
 class Mobile_netV2(nn.Module):
@@ -256,8 +258,10 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         self.model.head  = nn.Identity()
-        
+
         self.classifier = B0()
+
+        self.GAF = GAF(image_size=224, sample_range=(0, 1))
 
         #################################################################################
         #################################################################################
@@ -328,6 +332,14 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.model(x)
+        
+        x_cpu = x.cpu().cpu().detach().numpy()
+        x_cpu = self.GAF.fit_transform(x_cpu)
+        x = torch.from_numpy(x_cpu).cuda()
+        x = torch.unsqueeze(x, 1)
+        x = torch.cat([x, x, x], dim=1)
+
+        x = self.classifier(x)
 
         return x
 
@@ -459,7 +471,7 @@ class B0(nn.Module):
         self.features = model.features
         self.avgpool  = model.avgpool
 
-        for param in self.features[0:5].parameters():
+        for param in self.features[0:6].parameters():
             param.requires_grad = False
 
         self.classifier = nn.Sequential(
