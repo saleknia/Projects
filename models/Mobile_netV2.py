@@ -24,6 +24,7 @@ from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
 from pyts.image import GramianAngularField as GAF
+from pyts.preprocessing import MinMaxScaler as scaler
 
 from mit_semseg.models import ModelBuilder
 
@@ -262,6 +263,7 @@ class Mobile_netV2(nn.Module):
         self.classifier = B0()
 
         self.GAF = GAF(image_size=224, sample_range=(0, 1))
+        self.scaler = scaler(sample_range=(0, 1))
 
         #################################################################################
         #################################################################################
@@ -334,6 +336,7 @@ class Mobile_netV2(nn.Module):
         x = self.model(x)
 
         x_cpu = x.cpu().cpu().detach().numpy()
+        x_cpu = self.scaler.transform(x_cpu)
         x_cpu = self.GAF.fit_transform(x_cpu)
         x = torch.from_numpy(x_cpu).float().cuda()
         x = torch.unsqueeze(x, 1)
