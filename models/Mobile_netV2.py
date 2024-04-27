@@ -241,19 +241,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        # self.model.head  = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head  = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         # self.teacher = mvit_small()
 
@@ -283,30 +283,17 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnextv2_tiny', pretrained=True, features_only=True)
+        # model = timm.create_model('convnextv2_tiny', pretrained=True, features_only=True)
 
-        self.model = model 
+        # self.model = model 
 
         # self.model.head.fc = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
         # )
 
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        filters = [96, 192, 384, 768]
-
-        self.decoder4 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder3 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder2 = DecoderBottleneckLayer(filters[1], filters[0])
-        self.decoder1 = DecoderBottleneckLayer(filters[0], filters[0])
-
-        self.final_conv1 = nn.ConvTranspose2d(filters[0], 32, 4, 2, 1)
-        self.final_relu1 = nn.ReLU(inplace=True)
-        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
-        self.final_relu2 = nn.ReLU(inplace=True)
-        self.final_conv3 = nn.Conv2d(32, 3, 3, padding=1)
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.stages[3].blocks[-1].parameters():
         #     param.requires_grad = True
@@ -317,10 +304,9 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
+        # classifier = timm.create_classifier('tf_efficientnet_b0', pretrained=True)
 
-        classifier = timm.create_classifier('tf_efficientnet_b0', pretrained=True)
-
-        self.classifier = classifier 
+        # self.classifier = classifier 
 
         # for param in self.classifier.blocks[0:5].parameters():
         #     param.requires_grad = False
@@ -328,10 +314,10 @@ class Mobile_netV2(nn.Module):
         # for param in self.classifier.conv_stem.parameters():
         #     param.requires_grad = False
 
-        self.classifier.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
-        )
+        # self.classifier.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        # )
 
         # for param in self.model.blocks[5][10:15].parameters():
         #     param.requires_grad = True
@@ -342,96 +328,14 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x.shape
 
-        x0, x1, x2, x3 = self.model(x)
+        x = self.model(x)
 
-        x2 = self.decoder4(x3) + x2
-        x1 = self.decoder3(x2) + x1
-        x0 = self.decoder2(x1) + x0
-
-        x0 = self.final_conv1(x0)
-        x0 = self.final_relu1(x0)
-        x0 = self.final_conv2(x0)
-        x0 = self.final_relu2(x0)
-        x0 = self.final_conv3(x0)
-
-        x0 = self.classifier(x0)
-
-
-        return x0
+        return x
 
         # if self.training:
         #     return x, x_t
         # else:
         #     return x
-
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
-
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
-
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
-
-class SEAttention(nn.Module):
-
-    def __init__(self, in_channel, out_channel, reduction=8):
-        super().__init__()
-        # self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(in_channel, in_channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_channel // reduction, out_channel, bias=False),
-            nn.Sigmoid()
-        )
-
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                init.constant_(m.weight, 1)
-                init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    init.constant_(m.bias, 0)
-
-    def forward(self, obj, scene):
-        scene = self.fc(scene)
-        return obj * scene
 
 
 class s(nn.Module):
