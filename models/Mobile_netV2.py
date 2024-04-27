@@ -251,14 +251,13 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        self.model.head  = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head  = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.teacher = mvit_small()
-
-        # self.model   = B2()
-        # self.teacher = B5()
+        self.model.head  = nn.Identity()
+        
+        self.classifier = B0()
 
         #################################################################################
         #################################################################################
@@ -449,13 +448,13 @@ class B5(nn.Module):
         x = self.classifier(x)
         return x # torch.softmax(x, dim=1)
 
-class B2(nn.Module):
+class B0(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(B2, self).__init__()
+        super(B0, self).__init__()
 
-        model = efficientnet_b2(weights=EfficientNet_B2_Weights)
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
-        model.features[0][0].stride = (1, 1)
+        # model.features[0][0].stride = (1, 1)
 
         self.features = model.features
         self.avgpool  = model.avgpool
@@ -465,7 +464,7 @@ class B2(nn.Module):
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1408, out_features=67, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/cnn.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
