@@ -262,7 +262,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = B0()
 
-        self.GAF = GAF(image_size=224, sample_range=(0, 1))
+        self.GAF = GAF(image_size=112, sample_range=(0, 1))
         self.scaler = scaler(sample_range=(0, 1))
 
         #################################################################################
@@ -474,8 +474,8 @@ class B0(nn.Module):
         self.features = model.features
         self.avgpool  = model.avgpool
 
-        for param in self.features[0:6].parameters():
-            param.requires_grad = False
+        # for param in self.features[0:6].parameters():
+        #     param.requires_grad = False
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
