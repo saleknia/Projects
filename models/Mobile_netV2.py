@@ -25,7 +25,7 @@ from .wideresnet import recursion_change_bn
 
 from pyts.image import GramianAngularField as GAF
 from pyts.preprocessing import MinMaxScaler as scaler
-
+from pyts.image import MarkovTransitionField as MTF
 from mit_semseg.models import ModelBuilder
 
 class Mobile_netV2(nn.Module):
@@ -262,7 +262,9 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = B0()
 
-        self.GAF = GAF(image_size=112, sample_range=(0, 1))
+        # self.GAF = GAF(image_size=224, sample_range=(0, 1))
+        # self.MTF = MTF(image_size=224, n_bins=8)
+
         self.scaler = scaler(sample_range=(0, 1))
 
         #################################################################################
