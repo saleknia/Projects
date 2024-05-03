@@ -266,7 +266,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = B0()
 
-        self.GAF = GAF(image_size=224, sample_range=(0, 1))
+        self.GAF = GAF(image_size=256, sample_range=(0, 1))
 
         # self.MTF = MTF(image_size=224, n_bins=8)
 
