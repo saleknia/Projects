@@ -258,11 +258,16 @@ class Mobile_netV2(nn.Module):
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.model.head  = nn.Identity()
+        self.model.head  = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=256, bias=True))
+
+        # self.model.head  = nn.Identity()
 
         self.classifier = B0()
 
-        # self.GAF = GAF(image_size=224, sample_range=(0, 1))
+        self.GAF = GAF(image_size=224, sample_range=(0, 1))
+
         # self.MTF = MTF(image_size=224, n_bins=8)
 
         self.scaler = scaler(sample_range=(0, 1))
@@ -343,7 +348,6 @@ class Mobile_netV2(nn.Module):
         x = torch.from_numpy(x_cpu).float().cuda()
         x = torch.unsqueeze(x, 1)
         x = torch.cat([x, x, x], dim=1)
-
         x = self.classifier(x)
 
         return x
