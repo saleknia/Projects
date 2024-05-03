@@ -27,6 +27,7 @@ from pyts.image import GramianAngularField as GAF
 from pyts.preprocessing import MinMaxScaler as scaler
 from pyts.image import MarkovTransitionField as MTF
 from mit_semseg.models import ModelBuilder
+from pyts.image import RecurrencePlot
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -244,33 +245,21 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=False)
 
         self.model = model
 
+        # self.model.head  = nn.Identity()
+
         for param in self.model.parameters():
-            param.requires_grad = False
+            param.requires_grad = True
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
 
-        # self.model.head  = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
         self.model.head  = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=256, bias=True))
-
-        # self.model.head  = nn.Identity()
-
-        self.classifier = B0()
-
-        self.GAF = GAF(image_size=256, sample_range=(0, 1))
-
-        # self.MTF = MTF(image_size=224, n_bins=8)
-
-        self.scaler = scaler(sample_range=(0, 1))
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -341,14 +330,6 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x.shape
 
         x = self.model(x)
-
-        x_cpu = x.cpu().cpu().detach().numpy()
-        x_cpu = self.scaler.transform(x_cpu)
-        x_cpu = self.GAF.fit_transform(x_cpu)
-        x = torch.from_numpy(x_cpu).float().cuda()
-        x = torch.unsqueeze(x, 1)
-        x = torch.cat([x, x, x], dim=1)
-        x = self.classifier(x)
 
         return x
 
