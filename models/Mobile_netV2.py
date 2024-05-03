@@ -245,14 +245,14 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=False)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
         self.model = model
 
         # self.model.head  = nn.Identity()
 
         for param in self.model.parameters():
-            param.requires_grad = True
+            param.requires_grad = False
 
         # for param in self.model.stages[3].parameters():
         #     param.requires_grad = True
