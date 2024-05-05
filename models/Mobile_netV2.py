@@ -45,24 +45,27 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        # scene = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # scene.load_state_dict(state_dict)
+        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # for param in scene.parameters():
-        #     param.requires_grad = False
+        scene.load_state_dict(state_dict)
 
-        # scene.fc =  nn.Sequential(nn.Linear(in_features=2048, out_features=224, bias=True))
+        for param in scene.parameters():
+            param.requires_grad = False
+
+        scene.classifier =  nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=768, bias=True))
 
         # print(scene)
 
         # scene.classifier =  nn.Identity()
 
-        # self.scene = scene
+        self.scene = scene
 
         # obj = timm.create_model('mvitv2_tiny', pretrained=True)
         # for param in obj.parameters():
@@ -304,21 +307,6 @@ class Mobile_netV2(nn.Module):
         for param in self.head.parameters():
             param.requires_grad = True
 
-        self.Avg = nn.AvgPool2d(2, stride=2)
-        self.gelu = nn.GELU()
-
-        self.Updim_0 = Conv(96, 192, 1, bn=True, relu=True)
-        self.norm_0  = LayerNorm(192, eps=1e-6, data_format="channels_first")
-        self.W_0      = Conv(192, 192, 1, bn=True, relu=False)
-
-        self.Updim_1 = Conv(192, 384, 1, bn=True, relu=True)
-        self.norm_1  = LayerNorm(384, eps=1e-6, data_format="channels_first")
-        self.W_1     = Conv(384, 384, 1, bn=True, relu=False)
-
-        self.Updim_2 = Conv(384, 768, 1, bn=True, relu=True)
-        self.norm_2  = LayerNorm(768, eps=1e-6, data_format="channels_first")
-        self.W_2     = Conv(768, 768, 1, bn=True, relu=False)
-
         #################################################################################
         #################################################################################
 
@@ -350,30 +338,9 @@ class Mobile_netV2(nn.Module):
 
         ###############################################
         x0, x1, x2, x3 = self.model(x)
-
-        x0 = self.Updim_0(x0)
-        x0 = self.Avg(x0)
-        x1 = x0 + x1
-        x1 = self.norm_0(x1)
-        x1 = self.W_0(x1)
-        x1 = self.gelu(x1)
-
-        x1 = self.Updim_1(x1)
-        x1 = self.Avg(x1)
-        x2 = x1 + x2
-        x2 = self.norm_1(x2)
-        x2 = self.W_1(x2)
-        x2 = self.gelu(x2)
-
-        x2 = self.Updim_2(x2)
-        x2 = self.Avg(x2)
-        x3 = x2 + x3
-        x3 = self.norm_2(x3)
-        x3 = self.W_2(x3)
-        x3 = self.gelu(x3)
-
+        scene = self.scene(x)
         x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1) + scene
         x = self.head(x)
         ###############################################
 
