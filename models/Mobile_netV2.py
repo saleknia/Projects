@@ -57,15 +57,15 @@ class Mobile_netV2(nn.Module):
         for param in scene.parameters():
             param.requires_grad = False
 
-        scene.classifier =  nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=768, bias=True))
-
         # print(scene)
 
         # scene.classifier =  nn.Identity()
 
         self.scene = scene
+
+        self.scene.classifier =  nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=768, bias=True))
 
         # obj = timm.create_model('mvitv2_tiny', pretrained=True)
         # for param in obj.parameters():
