@@ -304,6 +304,21 @@ class Mobile_netV2(nn.Module):
         for param in self.head.parameters():
             param.requires_grad = True
 
+        self.Avg = nn.AvgPool2d(2, stride=2)
+        self.gelu = nn.GELU()
+
+        self.Updim_0 = Conv(96, 192, 1, bn=True, relu=True)
+        self.norm_0  = LayerNorm(192, eps=1e-6, data_format="channels_first")
+        self.W_0      = Conv(192, 192, 1, bn=True, relu=False)
+
+        self.Updim_1 = Conv(192, 384, 1, bn=True, relu=True)
+        self.norm_1  = LayerNorm(384, eps=1e-6, data_format="channels_first")
+        self.W_1     = Conv(384, 384, 1, bn=True, relu=False)
+
+        self.Updim_2 = Conv(384, 768, 1, bn=True, relu=True)
+        self.norm_2  = LayerNorm(768, eps=1e-6, data_format="channels_first")
+        self.W_2     = Conv(768, 768, 1, bn=True, relu=False)
+
         #################################################################################
         #################################################################################
 
@@ -335,6 +350,28 @@ class Mobile_netV2(nn.Module):
 
         ###############################################
         x0, x1, x2, x3 = self.model(x)
+
+        x0 = self.Updim_0(x0)
+        x0 = self.Avg(x0)
+        x1 = x0 + x1
+        x1 = self.norm_0(x1)
+        x1 = self.W_0(x1)
+        x1 = self.gelu(x1)
+
+        x1 = self.Updim_1(x1)
+        x1 = self.Avg(x1)
+        x2 = x1 + x2
+        x2 = self.norm_1(x2)
+        x2 = self.W_1(x2)
+        x2 = self.gelu(x2)
+
+        x2 = self.Updim_2(x2)
+        x2 = self.Avg(x2)
+        x3 = x2 + x3
+        x3 = self.norm_2(x3)
+        x3 = self.W_2(x3)
+        x3 = self.gelu(x3)
+
         x = self.avgpool(x3)
         x = x.view(x.size(0), -1)
         x = self.head(x)
@@ -347,6 +384,55 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
+
+class Conv(nn.Module):
+    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True, group=1):
+        super(Conv, self).__init__()
+        self.inp_dim = inp_dim
+        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
+        self.relu = None
+        self.bn = None
+        if relu:
+            self.relu = nn.ReLU(inplace=True)
+        if bn:
+            self.bn = nn.BatchNorm2d(out_dim)
+
+    def forward(self, x):
+        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
+        x = self.conv(x)
+        if self.bn is not None:
+            x = self.bn(x)
+        if self.relu is not None:
+            x = self.relu(x)
+        return x
+
+class LayerNorm(nn.Module):
+    r""" LayerNorm that supports two data formats: channels_last (default) or channels_first.
+    The ordering of the dimensions in the inputs. channels_last corresponds to inputs with
+    shape (batch_size, height, width, channels) while channels_first corresponds to inputs
+    with shape (batch_size, channels, height, width).
+    """
+
+    def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):
+        super().__init__()
+        self.weight = nn.Parameter(torch.ones(normalized_shape), requires_grad=True)
+        self.bias = nn.Parameter(torch.zeros(normalized_shape), requires_grad=True)
+        self.eps = eps
+        self.data_format = data_format
+        if self.data_format not in ["channels_last", "channels_first"]:
+            raise ValueError(f"not support data format '{self.data_format}'")
+        self.normalized_shape = (normalized_shape,)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.data_format == "channels_last":
+            return F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+        elif self.data_format == "channels_first":
+            # [batch_size, channels, height, width]
+            mean = x.mean(1, keepdim=True)
+            var = (x - mean).pow(2).mean(1, keepdim=True)
+            x = (x - mean) / torch.sqrt(var + self.eps)
+            x = self.weight[:, None, None] * x + self.bias[:, None, None]
+            return x
 
 class s(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
