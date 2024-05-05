@@ -63,7 +63,7 @@ class Mobile_netV2(nn.Module):
 
         self.scene = scene
 
-        self.scene.classifier =  nn.Sequential(
+        self.fc.classifier =  nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=768, bias=True))
 
