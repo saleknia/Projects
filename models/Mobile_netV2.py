@@ -63,9 +63,11 @@ class Mobile_netV2(nn.Module):
 
         self.scene = scene
 
-        self.scene.fc =  nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=768, bias=True))
+        # self.scene.fc =  nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=768, bias=True))
+
+        self.scene.fc =  torch.nn.AdaptiveAvgPool1d(768)
 
         # obj = timm.create_model('mvitv2_tiny', pretrained=True)
         # for param in obj.parameters():
