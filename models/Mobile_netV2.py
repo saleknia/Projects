@@ -289,7 +289,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnextv2_tiny', pretrained=True, features_only=True)
+        model = timm.create_model('convnextv2_tiny.fcmae_ft_in22k_in1k', pretrained=True, features_only=True)
 
         self.model = model 
 
@@ -340,9 +340,9 @@ class Mobile_netV2(nn.Module):
 
         ###############################################
         x0, x1, x2, x3 = self.model(x)
-        scene = self.scene(x)
+        # scene = self.scene(x)
         x = self.avgpool(x3)
-        x = x.view(x.size(0), -1) + scene
+        x = x.view(x.size(0), -1)
         x = self.head(x)
         ###############################################
 
