@@ -45,29 +45,29 @@ class Mobile_netV2(nn.Module):
         # for param in self.teacher.parameters():
         #     param.requires_grad = False
 
-        scene = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # scene = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
         # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
         # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        scene.load_state_dict(state_dict)
+        # scene.load_state_dict(state_dict)
 
-        for param in scene.parameters():
-            param.requires_grad = False
+        # for param in scene.parameters():
+        #     param.requires_grad = False
 
         # print(scene)
 
         # scene.classifier =  nn.Identity()
 
-        self.scene = scene
+        # self.scene = scene
 
         # self.scene.fc =  nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=2048, out_features=768, bias=True))
 
-        self.scene.fc =  torch.nn.AdaptiveAvgPool1d(768)
+        # self.scene.fc =  torch.nn.AdaptiveAvgPool1d(768)
 
         # obj = timm.create_model('mvitv2_tiny', pretrained=True)
         # for param in obj.parameters():
@@ -289,25 +289,25 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnextv2_tiny.fcmae_ft_in22k_in1k', pretrained=True, features_only=True)
+        # model = timm.create_model('convnextv2_tiny.fcmae_ft_in22k_in1k', pretrained=True, features_only=True)
 
-        self.model = model 
+        # self.model = model 
 
-        self.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
+        # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.stages[3].blocks[-1].parameters():
         #     param.requires_grad = True
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -332,18 +332,20 @@ class Mobile_netV2(nn.Module):
 
         # self.avgpool = torch.nn.AvgPool2d(kernel_size=4, stride=4, padding=0)
 
+        self.model = B0()
+
     def forward(self, x):
 
         b, c, w, h = x.shape
 
-        # x = self.model(x)
+        x = self.model(x)
 
         ###############################################
-        x0, x1, x2, x3 = self.model(x)
-        # scene = self.scene(x)
-        x = self.avgpool(x3)
-        x = x.view(x.size(0), -1)
-        x = self.head(x)
+        # x0, x1, x2, x3 = self.model(x)
+        # # scene = self.scene(x)
+        # x = self.avgpool(x3)
+        # x = x.view(x.size(0), -1)
+        # x = self.head(x)
         ###############################################
 
         return x
@@ -525,8 +527,8 @@ class B0(nn.Module):
         self.features = model.features
         self.avgpool  = model.avgpool
 
-        # for param in self.features[0:6].parameters():
-        #     param.requires_grad = False
+        for param in self.features[0:6].parameters():
+            param.requires_grad = False
 
         self.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
