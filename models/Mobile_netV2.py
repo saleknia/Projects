@@ -308,10 +308,10 @@ class Mobile_netV2(nn.Module):
 
         # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
-        for param in self.model.stages[-1].parameters():
+        for param in self.model.stages[-1].blocks[-1].parameters():
             param.requires_grad = True
 
-        for param in self.head.parameters():
+        for param in self.model.head.parameters():
             param.requires_grad = True
 
         #################################################################################
@@ -339,7 +339,7 @@ class Mobile_netV2(nn.Module):
 
         # self.model = B0()
 
-        # self.transform = transforms.Compose([transforms.Resize((384, 384))])
+        self.transform = transforms.Compose([transforms.Resize((448, 448))])
 
         # self.count = 0.0
         # self.batch = 0.0
@@ -347,6 +347,8 @@ class Mobile_netV2(nn.Module):
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
+
+        # x_in = self.transform(x_in)
 
         x = self.model(x_in)
 
