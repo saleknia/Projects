@@ -29,6 +29,11 @@ from pyts.image import MarkovTransitionField as MTF
 from mit_semseg.models import ModelBuilder
 from pyts.image import RecurrencePlot
 
+from torchvision import transforms
+transform_test = transforms.Compose([
+    transforms.Resize((384, 384)),
+])
+
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
@@ -289,22 +294,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnextv2_tiny.fcmae_ft_in22k_in1k', pretrained=True, features_only=True)
+        model = timm.create_model('convnextv2_tiny.fcmae_ft_in1k', pretrained=True, features_only=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # self.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
         # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.stages[3].blocks[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
         # for param in self.head.parameters():
         #     param.requires_grad = True
@@ -332,13 +337,28 @@ class Mobile_netV2(nn.Module):
 
         # self.avgpool = torch.nn.AvgPool2d(kernel_size=4, stride=4, padding=0)
 
-        self.model = B0()
+        # self.model = B0()
 
-    def forward(self, x):
+        # self.transform = transforms.Compose([transforms.Resize((384, 384))])
 
-        b, c, w, h = x.shape
+        # self.count = 0.0
+        # self.batch = 0.0
 
-        x = self.model(x)
+    def forward(self, x_in):
+
+        b, c, w, h = x_in.shape
+
+        x = self.model(x_in)
+
+        # self.batch = self.batch + 1.0
+        # if self.batch == 5530:
+        #     print(self.count)
+
+        # if (not self.training) and (x.max() <= 0.95):
+        #     x_in = self.transform(x_in)
+        #     x    = self.model(x_in)
+        #     self.count = self.count + 1.0
+
 
         ###############################################
         # x0, x1, x2, x3 = self.model(x)
@@ -549,7 +569,9 @@ class B0(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
-        return x # torch.softmax(x, dim=1)
+        if not self.training:
+            x = torch.softmax(x, dim=1)
+        return x
 
 class mvit_base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -843,10 +865,7 @@ class convnextv2_tiny(nn.Module):
         # x = self.classifier(x)
         return x
 
-# from torchvision import transforms
-# transform_test = transforms.Compose([
-#     transforms.Resize((384, 384)),
-# ])
+
 
 # class efficientnet_teacher(nn.Module):
 #     def __init__(self, num_classes=67, pretrained=True):
