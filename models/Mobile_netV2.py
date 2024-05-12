@@ -339,7 +339,7 @@ class Mobile_netV2(nn.Module):
 
         # self.model = B0()
 
-        self.transform = transforms.Compose([transforms.Resize((448, 448))])
+        # self.transform = transforms.Compose([transforms.Resize((448, 448))])
 
         # self.count = 0.0
         # self.batch = 0.0
