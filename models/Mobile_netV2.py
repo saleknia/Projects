@@ -275,20 +275,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b2.in1k', pretrained=True)
 
         self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=1280, out_features=num_classes, bias=True))
-        self.model.head.drop.p = 0.5
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
+        for param in self.model.blocks[-1].parameters():
             param.requires_grad = True
 
-        for param in self.model.head.parameters():
+        for param in self.model.classifier.parameters():
             param.requires_grad = True
 
         #################################################################################
@@ -339,10 +338,10 @@ class Mobile_netV2(nn.Module):
 
         # self.model = B0()
 
-        # self.transform = transforms.Compose([transforms.Resize((448, 448))])
+        self.transform = transforms.Compose([transforms.Resize((384, 384))])
 
-        # self.count = 0.0
-        # self.batch = 0.0
+        self.count = 0.0
+        self.batch = 0.0
 
     def forward(self, x_in):
 
@@ -352,13 +351,18 @@ class Mobile_netV2(nn.Module):
 
         x = self.model(x_in)
 
+        # if (not self.training):
+        #     x = torch.softmax(x, dim=1)
+
         # self.batch = self.batch + 1.0
+
         # if self.batch == 5530:
         #     print(self.count)
 
-        # if (not self.training) and (x.max() <= 0.95):
+        # if (not self.training) and (x.max() <= 0.9):
         #     x_in = self.transform(x_in)
         #     x    = self.model(x_in)
+        #     x    = torch.softmax(x, dim=1)
         #     self.count = self.count + 1.0
 
 
