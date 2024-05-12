@@ -275,44 +275,44 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        # model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
-
-        # self.model = model 
-
-        # self.model.head.fc     = nn.Sequential(nn.Linear(in_features=1280, out_features=num_classes, bias=True))
-        # self.model.head.drop.p = 0.5
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        #################################################################################
-        #################################################################################
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_s', pretrained=True)
 
         self.model = model 
+
+        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.model.head.drop.p = 0.5
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
-
-        for param in self.model.stages[-1].parameters():
+        for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
         for param in self.model.head.parameters():
             param.requires_grad = True
+
+        #################################################################################
+        #################################################################################
+
+        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+
+        # self.model = model 
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
+
+        # # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
+
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
+
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         #################################################################################
         #################################################################################
