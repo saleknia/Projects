@@ -182,14 +182,14 @@ class MVIT(nn.Module):
         self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
         self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
 
-        self.ms_sa_2 = SpatialAttention()
-        self.ms_sa_1 = SpatialAttention()
-        self.ms_sa_0 = SpatialAttention()
+        # self.ms_sa_2 = SpatialAttention()
+        # self.ms_sa_1 = SpatialAttention()
+        # self.ms_sa_0 = SpatialAttention()
 
         self.up_4 = nn.Upsample(scale_factor=4.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
 
-        self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        # self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -203,11 +203,11 @@ class MVIT(nn.Module):
 
         gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
-        gd_s = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
+        # gd_s = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
 
-        x0 = x0 + self.ms_ca_0(x=x0, gd=gd_c) + self.ms_sa_0(x=x0, gd=gd_s, down_sample=1)
-        x1 = x1 + self.ms_ca_1(x=x1, gd=gd_c) + self.ms_sa_1(x=x1, gd=gd_s, down_sample=2)
-        x2 = x2 + self.ms_ca_2(x=x2, gd=gd_c) + self.ms_sa_2(x=x2, gd=gd_s, down_sample=4)
+        x0 = x0 + self.ms_ca_0(x=x0, gd=gd_c) #+ self.ms_sa_0(x=x0, gd=gd_s, down_sample=1)
+        x1 = x1 + self.ms_ca_1(x=x1, gd=gd_c) #+ self.ms_sa_1(x=x1, gd=gd_s, down_sample=2)
+        x2 = x2 + self.ms_ca_2(x=x2, gd=gd_c) #+ self.ms_sa_2(x=x2, gd=gd_s, down_sample=4)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
