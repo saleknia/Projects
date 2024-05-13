@@ -164,8 +164,8 @@ class MVIT(nn.Module):
         self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
         self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
 
-        self.up_4 = nn.Upsample(scale_factor=4.0, align_corners=True)
-        self.up_2 = nn.Upsample(scale_factor=2.0, align_corners=True)
+        self.up_4 = nn.Upsample(scale_factor=4.0)
+        self.up_2 = nn.Upsample(scale_factor=2.0)
 
     def forward(self, x):
         b, c, h, w = x.shape
