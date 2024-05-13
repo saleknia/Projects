@@ -108,6 +108,23 @@ class ChannelAttention(nn.Module):
         output=self.sigmoid(max_out+avg_out)
         return x * output
 
+class SpatialAttention(nn.Module):
+    def __init__(self,kernel_size=7):
+        super().__init__()
+        self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
+        self.sigmoid=nn.Sigmoid()
+    
+    def forward(self, x, gd, down_sample):
+
+        gd=torch.nn.functional.avg_pool2d(x, kernel_size=down_sample)
+
+        max_result,_=torch.max(gd,dim=1,keepdim=True)
+        avg_result=torch.mean(gd,dim=1,keepdim=True)
+        result=torch.cat([max_result,avg_result],1)
+        output=self.conv(result)
+        output=self.sigmoid(output)
+        return x * output
+
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
     def __init__(self):
@@ -164,6 +181,10 @@ class MVIT(nn.Module):
         self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
         self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
 
+        self.ms_sa_2 = SpatialAttention()
+        self.ms_sa_1 = SpatialAttention()
+        self.ms_sa_0 = SpatialAttention()
+
         self.up_4 = nn.Upsample(scale_factor=4.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
 
@@ -179,9 +200,9 @@ class MVIT(nn.Module):
 
         gd = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
 
-        x0 = self.ms_ca_0(x=x0, gd=gd)
-        x1 = self.ms_ca_1(x=x1, gd=gd)
-        x2 = self.ms_ca_2(x=x2, gd=gd)
+        x0 = self.ms_ca_0(x=x0, gd=gd) + self.ms_sa_0(x=x0, gd=gd, down_sample=1.0)
+        x1 = self.ms_ca_1(x=x1, gd=gd) + self.ms_sa_1(x=x0, gd=gd, down_sample=2.0)
+        x2 = self.ms_ca_2(x=x2, gd=gd) + self.ms_sa_2(x=x0, gd=gd, down_sample=4.0)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
