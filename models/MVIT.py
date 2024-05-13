@@ -200,9 +200,9 @@ class MVIT(nn.Module):
 
         gd = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
 
-        x0 = self.ms_ca_0(x=x0, gd=gd) + self.ms_sa_0(x=x0, gd=gd, down_sample=1.0)
-        x1 = self.ms_ca_1(x=x1, gd=gd) + self.ms_sa_1(x=x0, gd=gd, down_sample=2.0)
-        x2 = self.ms_ca_2(x=x2, gd=gd) + self.ms_sa_2(x=x0, gd=gd, down_sample=4.0)
+        x0 = self.ms_ca_0(x=x0, gd=gd) + self.ms_sa_0(x=x0, gd=gd, down_sample=1)
+        x1 = self.ms_ca_1(x=x1, gd=gd) + self.ms_sa_1(x=x0, gd=gd, down_sample=2)
+        x2 = self.ms_ca_2(x=x2, gd=gd) + self.ms_sa_2(x=x0, gd=gd, down_sample=4)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
