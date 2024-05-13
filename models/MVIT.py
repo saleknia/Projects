@@ -167,7 +167,6 @@ class MVIT(nn.Module):
         self.up_4 = nn.Upsample(scale_factor=4.0, align_corners=True)
         self.up_2 = nn.Upsample(scale_factor=2.0, align_corners=True)
 
-
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -178,7 +177,11 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.GSEA(x0, x1, x2)
+        gd = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
+
+        x0 = self.ms_ca_0(x=x0, gd=gd)
+        x1 = self.ms_ca_1(x=x1, gd=gd)
+        x2 = self.ms_ca_2(x=x2, gd=gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
