@@ -83,61 +83,30 @@ class BasicConv2d(nn.Module):
         x = self.bn(x)
         return x
 
-class SEAttention(nn.Module):
+import numpy as np
+import torch
+from torch import nn
+from torch.nn import init
 
-    def __init__(self, gd_channel=96, out_channel=96, reduction=8):
+class ChannelAttention(nn.Module):
+    def __init__(self,in_channels, out_channels,reduction=8):
         super().__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc_0 = nn.Sequential(
-            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(gd_channel // reduction, out_channel, bias=False),
-            nn.Sigmoid()
+        self.maxpool=nn.AdaptiveMaxPool2d(1)
+        self.avgpool=nn.AdaptiveAvgPool2d(1)
+        self.se=nn.Sequential(
+            nn.Conv2d(in_channels,in_channels//reduction,1,bias=False),
+            nn.ReLU(),
+            nn.Conv2d(in_channels//reduction,out_channels,1,bias=False)
         )
-
-        self.fc_1 = nn.Sequential(
-            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(gd_channel // reduction, out_channel, bias=False),
-            nn.Sigmoid()
-        )
-
-        self.fc_2 = nn.Sequential(
-            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(gd_channel // reduction, out_channel, bias=False),
-            nn.Sigmoid()
-        )
-
-    def init_weights(self):
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, mode='fan_out')
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-            elif isinstance(m, nn.Linear):
-                nn.init.normal_(m.weight, std=0.001)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
-
-    def forward(self, x0, x1, x2):
-        b, c, _, _ = x0.size()
-        
-        gd = (self.avg_pool(x0) + self.avg_pool(x1) + self.avg_pool(x2)).view(b, c)       
-        
-        y0 = self.fc_0(gd).view(b, c, 1, 1)
-        y1 = self.fc_1(gd).view(b, c, 1, 1)        
-        y2 = self.fc_2(gd).view(b, c, 1, 1)
-
-        x0 = x0 + (x0 * y0.expand_as(x0))
-        x1 = x1 + (x1 * y1.expand_as(x1))
-        x2 = x2 + (x2 * y2.expand_as(x2))
-
-        return x0, x1, x2 
-
+        self.sigmoid=nn.Sigmoid()
+    
+    def forward(self, x, gd) :
+        max_result=self.maxpool(gd)
+        avg_result=self.avgpool(gd)
+        max_out=self.se(max_result)
+        avg_out=self.se(avg_result)
+        output=self.sigmoid(max_out+avg_out)
+        return x * output
 
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
@@ -190,8 +159,14 @@ class MVIT(nn.Module):
         self.hybrid_decoder = cnn_decoder(num_classes=n_classes)
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
-        
-        self.GSEA = SEAttention()
+
+        self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
+        self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
+        self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
+
+        self.up_4 = nn.Upsample(scale_factor=4.0, align_corners=True)
+        self.up_2 = nn.Upsample(scale_factor=2.0, align_corners=True)
+
 
     def forward(self, x):
         b, c, h, w = x.shape
