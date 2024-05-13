@@ -124,9 +124,6 @@ class SpatialAttention(nn.Module):
         output=self.conv(result)
         output=self.sigmoid(output)
 
-        print(x.shape)
-        print(output.shape)
-
         return x * output
 
 class Linear_Eca_block(nn.Module):
