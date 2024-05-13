@@ -189,6 +189,8 @@ class MVIT(nn.Module):
         self.up_4 = nn.Upsample(scale_factor=4.0)
         self.up_2 = nn.Upsample(scale_factor=2.0)
 
+        self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -200,7 +202,8 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
-        gd_s = x0 + self.up_2(x1) + self.up_4(x2)
+        # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
+        gd_s = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
 
         x0 = x0 + self.ms_ca_0(x=x0, gd=gd_c) + self.ms_sa_0(x=x0, gd=gd_s, down_sample=1)
         x1 = x1 + self.ms_ca_1(x=x1, gd=gd_c) + self.ms_sa_1(x=x1, gd=gd_s, down_sample=2)
