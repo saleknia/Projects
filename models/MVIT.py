@@ -116,13 +116,17 @@ class SpatialAttention(nn.Module):
     
     def forward(self, x, gd, down_sample):
 
-        gd=torch.nn.functional.avg_pool2d(x, kernel_size=down_sample)
+        gd=torch.nn.functional.avg_pool2d(gd, kernel_size=down_sample)
 
         max_result,_=torch.max(gd,dim=1,keepdim=True)
         avg_result=torch.mean(gd,dim=1,keepdim=True)
         result=torch.cat([max_result,avg_result],1)
         output=self.conv(result)
         output=self.sigmoid(output)
+
+        print(x.shape)
+        print(output.shape)
+
         return x * output
 
 class Linear_Eca_block(nn.Module):
