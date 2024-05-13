@@ -111,12 +111,15 @@ class ChannelAttention(nn.Module):
 class SpatialAttention(nn.Module):
     def __init__(self,kernel_size=7):
         super().__init__()
+
         self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
         self.sigmoid=nn.Sigmoid()
+        self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
     
     def forward(self, x, gd, down_sample):
 
-        gd=torch.nn.functional.avg_pool2d(gd, kernel_size=down_sample)
+        gd = torch.nn.functional.avg_pool2d(gd, kernel_size=down_sample)
+        gd = self.fusion(gd)
 
         max_result,_=torch.max(gd,dim=1,keepdim=True)
         avg_result=torch.mean(gd,dim=1,keepdim=True)
@@ -178,16 +181,16 @@ class MVIT(nn.Module):
 
         # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
 
-        self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
-        self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
-        self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
+        # self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
+        # self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
+        # self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
 
-        # self.ms_sa_2 = SpatialAttention()
-        # self.ms_sa_1 = SpatialAttention()
-        # self.ms_sa_0 = SpatialAttention()
+        self.ms_sa_2 = SpatialAttention()
+        self.ms_sa_1 = SpatialAttention()
+        self.ms_sa_0 = SpatialAttention()
 
-        self.up_4 = nn.Upsample(scale_factor=4.0)
-        self.up_2 = nn.Upsample(scale_factor=2.0)
+        self.up_4 = nn.Upsample(scale_factor=4)
+        self.up_2 = nn.Upsample(scale_factor=2)
 
         # self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
@@ -201,13 +204,13 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
+        # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
-        # gd_s = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
+        gd = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
 
-        x0 = x0 + self.ms_ca_0(x=x0, gd=gd_c) #+ self.ms_sa_0(x=x0, gd=gd_s, down_sample=1)
-        x1 = x1 + self.ms_ca_1(x=x1, gd=gd_c) #+ self.ms_sa_1(x=x1, gd=gd_s, down_sample=2)
-        x2 = x2 + self.ms_ca_2(x=x2, gd=gd_c) #+ self.ms_sa_2(x=x2, gd=gd_s, down_sample=4)
+        x0 = x0 + self.ms_sa_0(x=x0, gd=gd, down_sample=1)
+        x1 = x1 + self.ms_sa_1(x=x1, gd=gd, down_sample=2)
+        x2 = x2 + self.ms_sa_2(x=x2, gd=gd, down_sample=4)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
