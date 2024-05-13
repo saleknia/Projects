@@ -206,7 +206,7 @@ class MVIT(nn.Module):
 
         # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
-        gd = self.fusion(torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
+        gd = (torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
 
         x0 = x0 + self.ms_sa_0(x=x0, gd=gd, down_sample=1)
         x1 = x1 + self.ms_sa_1(x=x1, gd=gd, down_sample=2)
