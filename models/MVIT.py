@@ -130,7 +130,7 @@ class SpatialAttention(nn.Module):
 
         output = torch.nn.functional.upsample(output, size=(h, w))
 
-        return x + (x * output)
+        return (x * output)
 
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
