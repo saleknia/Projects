@@ -121,13 +121,14 @@ class SpatialAttention(nn.Module):
         b, c, h, w = x.shape
         
         gd = self.fusion(gd)
-        gd = torch.nn.functional.upsample(gd, size=(h, w))
 
         max_result,_=torch.max(gd,dim=1,keepdim=True)
         avg_result=torch.mean(gd,dim=1,keepdim=True)
         result=torch.cat([max_result,avg_result],1)
         output=self.conv(result)
         output=self.sigmoid(output)
+
+        output = torch.nn.functional.upsample(output, size=(h, w))
 
         return x + (x * output)
 
