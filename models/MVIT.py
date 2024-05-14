@@ -112,14 +112,16 @@ class SpatialAttention(nn.Module):
     def __init__(self,kernel_size=7):
         super().__init__()
 
-        self.conv=nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
-        self.sigmoid=nn.Sigmoid()
-        self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.conv    = nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
+        self.sigmoid = nn.Sigmoid()
+        self.fusion  = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
     
-    def forward(self, x, gd, down_sample):
+    def forward(self, x, gd):
 
-        gd = torch.nn.functional.avg_pool2d(gd, kernel_size=down_sample)
+        b, c, h, w = x.shape
+        
         gd = self.fusion(gd)
+        gd = torch.nn.functional.upsample(gd, size=(h, w))
 
         max_result,_=torch.max(gd,dim=1,keepdim=True)
         avg_result=torch.mean(gd,dim=1,keepdim=True)
@@ -127,7 +129,7 @@ class SpatialAttention(nn.Module):
         output=self.conv(result)
         output=self.sigmoid(output)
 
-        return x * output
+        return x + (x * output)
 
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
@@ -189,8 +191,8 @@ class MVIT(nn.Module):
         self.ms_sa_1 = SpatialAttention()
         self.ms_sa_0 = SpatialAttention()
 
-        self.up_4 = nn.Upsample(scale_factor=4)
-        self.up_2 = nn.Upsample(scale_factor=2)
+        # self.up_4 = nn.Upsample(scale_factor=4)
+        # self.up_2 = nn.Upsample(scale_factor=2)
 
         # self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
@@ -206,11 +208,12 @@ class MVIT(nn.Module):
 
         # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
-        gd = (torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1))
 
-        x0 = x0 + self.ms_sa_0(x=x0, gd=gd, down_sample=1)
-        x1 = x1 + self.ms_sa_1(x=x1, gd=gd, down_sample=2)
-        x2 = x2 + self.ms_sa_2(x=x2, gd=gd, down_sample=4)
+        gd = (torch.cat([torch.nn.functional.avg_pool2d(x0, kernel_size=4), torch.nn.functional.avg_pool2d(x1, kernel_size=2), x2], dim=1))
+
+        x0 = self.ms_sa_0(x=x0, gd=gd)
+        x1 = self.ms_sa_1(x=x1, gd=gd)
+        x2 = self.ms_sa_2(x=x2, gd=gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
