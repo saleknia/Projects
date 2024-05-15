@@ -79,7 +79,7 @@ class Attention(nn.Module):
         ch_similarity_matrix = self.attn_dropout(ch_similarity_matrix)
         context_layer = torch.matmul(ch_similarity_matrix, V_C.transpose(-1, -2))
         T_hat = (context_layer.transpose(-1, -2))
-        KV_S = torch.split(T_hat, self.KV_size_C//4, 2)
+        KV_S = torch.split(T_hat, self.KV_size_C//3, 2)
         KV_S = torch.cat(KV_S,dim=1)
 
         #===============================================================================
@@ -186,7 +186,7 @@ class Block_ViT(nn.Module):
                 embcat.append(tmp_var)
 
         emb_C = torch.cat(embcat,dim=2)
-        
+
         cx1 = self.attn_norm1(emb1)
         cx2 = self.attn_norm2(emb2)
         cx3 = self.attn_norm3(emb3)
