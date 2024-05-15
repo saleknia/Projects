@@ -183,7 +183,7 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = cnn_decoder(num_classes=n_classes)
 
-        self.mtc = DAT(get_CTranS_config(), img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
+        self.mtc = DAT(get_model_config(), img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
         # self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
         # self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
@@ -209,7 +209,7 @@ class MVIT(nn.Module):
         x2 = self.HA_2(t2, c2)
 
         x0, x1, x2 = self.mtc(x0, x1, x2)
-        
+
         # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
 
