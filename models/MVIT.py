@@ -14,23 +14,24 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
-from .CTrans import ChannelTransformer
-# from .UCTransNet_M import ChannelTransformer
+from .CTrans import DAT
 
-def get_CTranS_config():
+import ml_collections
+
+def get_model_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
-    config.KV_size = 288  
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
-    config.expand_ratio           = 4  # MLP channel dimension expand ratio
-    config.transformer.embeddings_dropout_rate = 0.0
-    config.transformer.attention_dropout_rate  = 0.0
-    config.transformer.dropout_rate = 0.0
-    config.patch_sizes = [4, 2, 1]
-    config.embed_dims  = [96, 96, 96]
-    config.base_channel = 96 # base channel of U-Net
-    config.n_classes = 1
+    config.expand_ratio           = 2
+    config.transformer.embedding_channels = 96
+    config.KV_size = config.transformer.embedding_channels * 3
+    config.KV_size_S = config.transformer.embedding_channels
+    config.transformer.attention_dropout_rate = 0.1
+    config.transformer.dropout_rate = 0.1
+    config.patch_sizes=[4,2,1]
+    config.base_channel = 96
+    config.decoder_channels = [96,96,96]
     return config
 
 class final_head(nn.Module):
@@ -182,15 +183,15 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = cnn_decoder(num_classes=n_classes)
 
-        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
+        self.mtc = DAT(get_CTranS_config(), img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
 
         # self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
         # self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
         # self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
 
-        self.ms_sa_2 = SpatialAttention()
-        self.ms_sa_1 = SpatialAttention()
-        self.ms_sa_0 = SpatialAttention()
+        # self.ms_sa_2 = SpatialAttention()
+        # self.ms_sa_1 = SpatialAttention()
+        # self.ms_sa_0 = SpatialAttention()
 
         # self.up_4 = nn.Upsample(scale_factor=4)
         # self.up_2 = nn.Upsample(scale_factor=2)
@@ -207,14 +208,16 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
+        x0, x1, x2 = self.mtc(x0, x1, x2)
+        
         # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
 
-        gd = (torch.cat([torch.nn.functional.avg_pool2d(x0, kernel_size=4), torch.nn.functional.avg_pool2d(x1, kernel_size=2), x2], dim=1))
+        # gd = (torch.cat([torch.nn.functional.avg_pool2d(x0, kernel_size=4), torch.nn.functional.avg_pool2d(x1, kernel_size=2), x2], dim=1))
 
-        x0 = self.ms_sa_0(x=x0, gd=gd)
-        x1 = self.ms_sa_1(x=x1, gd=gd)
-        x2 = self.ms_sa_2(x=x2, gd=gd)
+        # x0 = self.ms_sa_0(x=x0, gd=gd)
+        # x1 = self.ms_sa_1(x=x1, gd=gd)
+        # x2 = self.ms_sa_2(x=x2, gd=gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
