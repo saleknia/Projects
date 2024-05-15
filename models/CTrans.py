@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.nn import Dropout, Softmax, Conv2d, LayerNorm
 from torch.nn.modules.utils import _pair
+import numpy as np
 
 class Spatial_Embeddings(nn.Module):
     """
@@ -30,6 +31,33 @@ class Spatial_Embeddings(nn.Module):
         x = x.transpose(-1, -2)  # (B, n_patches, hidden)
         embeddings = x + self.position_embeddings
         return embeddings
+
+class Reconstruct(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, scale_factor):
+        super(Reconstruct, self).__init__()
+        if kernel_size == 3:
+            padding = 1
+        else:
+            padding = 0
+        self.conv = nn.Conv2d(in_channels, out_channels,kernel_size=kernel_size, padding=padding)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = nn.ReLU(inplace=True)
+        self.scale_factor = scale_factor
+
+    def forward(self, x):
+        if x is None:
+            return None
+
+        B, n_patch, hidden = x.size()  # reshape from (B, n_patch, hidden) to (B, h, w, hidden)
+        h, w = int(np.sqrt(n_patch)), int(np.sqrt(n_patch))
+        x = x.permute(0, 2, 1)
+        x = x.contiguous().view(B, hidden, h, w)
+        x = nn.Upsample(scale_factor=self.scale_factor)(x)
+
+        out = self.conv(x)
+        out = self.norm(out)
+        out = self.activation(out)
+        return out
 
 class Attention(nn.Module):
     def __init__(self, config,channel_num):
@@ -254,6 +282,11 @@ class DAT(nn.Module):
         self.embeddings_3 = Spatial_Embeddings(config,self.patchSize_3, img_size=img_size//16, in_channels=channel_num[2])
 
         self.encoder = Encoder(config, channel_num)
+
+        self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
+        self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
+        self.reconstruct_3 = Reconstruct(channel_num[2], channel_num[2], kernel_size=1,scale_factor=(self.patchSize_3,self.patchSize_3))
+
         self.apply(self._init_weights)
 
     def _init_weights(self, m):
@@ -263,9 +296,23 @@ class DAT(nn.Module):
                 nn.init.normal_(m.bias, std=1e-6)
 
     def forward(self,en1,en2,en3):
+
         emb1 = self.embeddings_1(en1)
         emb2 = self.embeddings_2(en2)
         emb3 = self.embeddings_3(en3)
-        o1, o2, o3 = self.encoder(emb1,emb2,emb3)
-        return o1, o2, o3
+
+        x1, x2, x3 = self.encoder(emb1,emb2,emb3)
+
+        x1 = self.reconstruct_1(x1)
+        x2 = self.reconstruct_2(x2)
+        x3 = self.reconstruct_3(x3) 
+
+        x1 = x1 + en1  
+        x2 = x2 + en2  
+        x3 = x3 + en3 
+
+        return x1, x2, x3
+
+
+
 

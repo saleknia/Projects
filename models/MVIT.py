@@ -210,6 +210,8 @@ class MVIT(nn.Module):
 
         x0, x1, x2 = self.mtc(x0, x1, x2)
 
+        print(x0.shape)
+
         # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
         # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
 
