@@ -6,7 +6,7 @@ from torch.nn import init
 from collections import OrderedDict
 import ml_collections
 from torchvision import models as resnet_model
-from .CTrans import ChannelTransformer
+# from .CTrans import ChannelTransformer
 import torch
 import torchvision.ops
 from torch import nn
