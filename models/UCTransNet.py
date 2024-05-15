@@ -3,7 +3,7 @@ import torch
 import timm
 import torchvision
 import torch.nn.functional as F
-from .CTrans import ChannelTransformer
+# from .CTrans import ChannelTransformer
 from torchvision import models as resnet_model
 import numpy as np
 from torch.nn import init

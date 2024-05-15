@@ -1,7 +1,7 @@
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
-from .CTrans import ChannelTransformer
+# from .CTrans import ChannelTransformer
 from .GT_UNet import *
 from .GT_UNet import _make_bot_layer 
 from torch.nn import Softmax
