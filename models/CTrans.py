@@ -307,10 +307,6 @@ class DAT(nn.Module):
         x2 = self.reconstruct_2(x2)
         x3 = self.reconstruct_3(x3) 
 
-        x1 = x1 + en1  
-        x2 = x2 + en2  
-        x3 = x3 + en3 
-
         return x1, x2, x3
 
 
