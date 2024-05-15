@@ -2063,7 +2063,7 @@ import torch.nn.functional as F
 import einops
 import timm
 from torchvision import models as resnet_model
-from .CTrans import ChannelTransformer
+# from .CTrans import ChannelTransformer
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
