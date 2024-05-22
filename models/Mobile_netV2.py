@@ -255,21 +255,46 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        self.model = model
+        scene.load_state_dict(state_dict)
 
-        self.model.head  = nn.Identity()
+        self.scene    = scene
+        self.scene.fc = nn.Identitiy()
 
-        for param in self.model.parameters():
+        for param in self.scene.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
+        for param in self.scene.layer4[-1].parameters():
             param.requires_grad = True
 
-        self.head = nn.Sequential(
+        self.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+            nn.Linear(in_features=2048, out_features=67, bias=True),
+        )
+
+        #################################################################################
+        #################################################################################
+
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+
+        # self.model = model
+
+        # self.model.head  = nn.Identity()
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
+
+        # self.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        # self.mvit = mvit_tiny()
 
         #################################################################################
         #################################################################################
@@ -343,13 +368,17 @@ class Mobile_netV2(nn.Module):
         # self.count = 0.0
         # self.batch = 0.0
 
+        self.cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
+
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
         # x_in = self.transform(x_in)
 
-        x = self.head(self.model(x_in))
+        # x = self.head(self.model(x_in))
+
+        x = self.fc(self.scene(x_in))
 
         # if (not self.training):
         #     x = torch.softmax(x, dim=1)
@@ -374,62 +403,18 @@ class Mobile_netV2(nn.Module):
         # x = self.head(x)
         ###############################################
 
+        # y_h    = self.model(x_in)
+        # x, x_h = self.mvit(x_in)
+
+        # print(self.cosine(y_h, x_h))
+
+
         return x
 
         # if self.training:
         #     return x, x_t
         # else:
         #     return x
-
-
-class Conv(nn.Module):
-    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True, group=1):
-        super(Conv, self).__init__()
-        self.inp_dim = inp_dim
-        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
-        self.relu = None
-        self.bn = None
-        if relu:
-            self.relu = nn.ReLU(inplace=True)
-        if bn:
-            self.bn = nn.BatchNorm2d(out_dim)
-
-    def forward(self, x):
-        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
-
-class LayerNorm(nn.Module):
-    r""" LayerNorm that supports two data formats: channels_last (default) or channels_first.
-    The ordering of the dimensions in the inputs. channels_last corresponds to inputs with
-    shape (batch_size, height, width, channels) while channels_first corresponds to inputs
-    with shape (batch_size, channels, height, width).
-    """
-
-    def __init__(self, normalized_shape, eps=1e-6, data_format="channels_last"):
-        super().__init__()
-        self.weight = nn.Parameter(torch.ones(normalized_shape), requires_grad=True)
-        self.bias = nn.Parameter(torch.zeros(normalized_shape), requires_grad=True)
-        self.eps = eps
-        self.data_format = data_format
-        if self.data_format not in ["channels_last", "channels_first"]:
-            raise ValueError(f"not support data format '{self.data_format}'")
-        self.normalized_shape = (normalized_shape,)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        if self.data_format == "channels_last":
-            return F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
-        elif self.data_format == "channels_first":
-            # [batch_size, channels, height, width]
-            mean = x.mean(1, keepdim=True)
-            var = (x - mean).pow(2).mean(1, keepdim=True)
-            x = (x - mean) / torch.sqrt(var + self.eps)
-            x = self.weight[:, None, None] * x + self.bias[:, None, None]
-            return x
 
 class s(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -663,9 +648,9 @@ class mvit_tiny(nn.Module):
 
         self.model = model 
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Identity()
+
+        self.head = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -676,21 +661,22 @@ class mvit_tiny(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint_tiny/MVITV2_tiny.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
+        pretrained_teacher = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
 
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.model(x0)
+        x_h = self.model(x0)
+        x   = self.head(x_h)
 
-        return torch.softmax(x, dim=1)
+        return x, x_h # torch.softmax(x, dim=1)
 
 class mvit_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
