@@ -262,7 +262,7 @@ class Mobile_netV2(nn.Module):
         scene.load_state_dict(state_dict)
 
         self.scene    = scene
-        self.scene.fc = nn.Identitiy()
+        self.scene.fc = nn.Identity()
 
         for param in self.scene.parameters():
             param.requires_grad = False
