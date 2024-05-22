@@ -1270,18 +1270,26 @@ class hybrid_decoder(nn.Module):
 
     def forward(self, x0, x1, x2):
 
-        x_c = self.up_1(x2, x1)
-        x_t = self.hs_1(x2) * x1
+        # x_c = self.up_1(x2, x1)
+        # x_t = self.hs_1(x2) * x1
 
-        x1  = self.ha_1(x_t, x_c)
+        # x1  = self.ha_1(x_t, x_c)
 
-        x_c = self.up_0(x1, x0)
-        x_t = self.hs_0(x1) * x0
+        # x_c = self.up_0(x1, x0)
+        # x_t = self.hs_0(x1) * x0
 
-        x0  = self.ha_0(x_t, x_c)
+        # x0  = self.ha_0(x_t, x_c)
+
+        x = self.hs_1(x2)
+        x = x * x1
+
+        x = self.hs_0(x)
+        x = x * x0
 
         x0  = self.final_head(x0)
 
         return x0
+
+
 
 
