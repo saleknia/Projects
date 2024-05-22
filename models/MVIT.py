@@ -14,24 +14,23 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
-from .CTrans import DAT
+# from .CTrans import ChannelTransformer
+# from .UCTransNet_M import ChannelTransformer
 
-import ml_collections
-
-def get_model_config():
+def get_CTranS_config():
     config = ml_collections.ConfigDict()
     config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 288  
     config.transformer.num_heads  = 4
     config.transformer.num_layers = 4
-    config.expand_ratio           = 2
-    config.transformer.embedding_channels = 96
-    config.KV_size = config.transformer.embedding_channels * 3
-    config.KV_size_S = config.transformer.embedding_channels
-    config.transformer.attention_dropout_rate = 0.1
-    config.transformer.dropout_rate = 0.1
-    config.patch_sizes=[4,2,1]
-    config.base_channel = 96
-    config.decoder_channels = [96,96,96]
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.0
+    config.transformer.attention_dropout_rate  = 0.0
+    config.transformer.dropout_rate = 0.0
+    config.patch_sizes = [4, 2, 1]
+    config.embed_dims  = [96, 96, 96]
+    config.base_channel = 96 # base channel of U-Net
+    config.n_classes = 1
     return config
 
 class final_head(nn.Module):
@@ -84,54 +83,45 @@ class BasicConv2d(nn.Module):
         x = self.bn(x)
         return x
 
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
+class SEAttention(nn.Module):
 
-class ChannelAttention(nn.Module):
-    def __init__(self,in_channels, out_channels,reduction=8):
+    def __init__(self, gd_channel=288, out_channel=96, reduction=8):
         super().__init__()
-        self.maxpool=nn.AdaptiveMaxPool2d(1)
-        self.avgpool=nn.AdaptiveAvgPool2d(1)
-        self.se=nn.Sequential(
-            nn.Conv2d(in_channels,in_channels//reduction,1,bias=False),
-            nn.ReLU(),
-            nn.Conv2d(in_channels//reduction,out_channels,1,bias=False)
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(gd_channel, gd_channel // reduction, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(gd_channel // reduction, out_channel, bias=False),
+            nn.Sigmoid()
         )
-        self.sigmoid=nn.Sigmoid()
-    
-    def forward(self, x, gd) :
-        max_result=self.maxpool(gd)
-        avg_result=self.avgpool(gd)
-        max_out=self.se(max_result)
-        avg_out=self.se(avg_result)
-        output=self.sigmoid(max_out+avg_out)
-        return x * output
 
-class SpatialAttention(nn.Module):
-    def __init__(self,kernel_size=7):
-        super().__init__()
+    def init_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out')
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+            elif isinstance(m, nn.Linear):
+                nn.init.normal_(m.weight, std=0.001)
+                if m.bias is not None:
+                    nn.init.constant_(m.bias, 0)
 
-        self.conv    = nn.Conv2d(2,1,kernel_size=kernel_size,padding=kernel_size//2)
-        self.sigmoid = nn.Sigmoid()
-        self.fusion  = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-    
     def forward(self, x, gd):
+        b, c, _, _ = gd[0].size()
 
-        b, c, h, w = x.shape
-        
-        gd = self.fusion(gd)
+        gd0 = self.avg_pool(gd[0]).view(b, c)
+        gd1 = self.avg_pool(gd[1]).view(b, c)
+        gd2 = self.avg_pool(gd[2]).view(b, c)
 
-        max_result,_=torch.max(gd,dim=1,keepdim=True)
-        avg_result=torch.mean(gd,dim=1,keepdim=True)
-        result=torch.cat([max_result,avg_result],1)
-        output=self.conv(result)
-        output=self.sigmoid(output)
+        gd  = torch.cat([gd0, gd1, gd2], dim=1)
 
-        output = torch.nn.functional.upsample(output, size=(h, w))
+        gd  = self.fc(gd).view(b, c, 1, 1)
 
-        return (x * output)
+        return x + (x * gd.expand_as(x))
+
 
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
@@ -148,6 +138,7 @@ class Linear_Eca_block(nn.Module):
         y = y.transpose(-1, -2).unsqueeze(-1)
         y = self.sigmoid(y)
         return y.expand_as(x)
+
 
 class HybridAttention(nn.Module):
     def __init__(self, channels):
@@ -183,21 +174,12 @@ class MVIT(nn.Module):
 
         self.hybrid_decoder = cnn_decoder(num_classes=n_classes)
 
-        self.mtc = DAT(get_model_config(), img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1])
-
-        # self.ms_ca_2 = ChannelAttention(in_channels=288, out_channels=96)
-        # self.ms_ca_1 = ChannelAttention(in_channels=288, out_channels=96)
-        # self.ms_ca_0 = ChannelAttention(in_channels=288, out_channels=96)
-
-        # self.ms_sa_2 = SpatialAttention()
-        # self.ms_sa_1 = SpatialAttention()
-        # self.ms_sa_0 = SpatialAttention()
-
-        # self.up_4 = nn.Upsample(scale_factor=4)
-        # self.up_2 = nn.Upsample(scale_factor=2)
-
-        # self.fusion = ConvBatchNorm(in_channels=288 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-
+        # self.mtc = ChannelTransformer(get_CTranS_config(), vis=False, img_size=224, channel_num=[96, 96, 96], patchSize=[4, 2, 1], embed_dims=[96, 96, 96])
+        
+        self.GSEA_0 = SEAttention()
+        self.GSEA_1 = SEAttention()
+        self.GSEA_2 = SEAttention()
+       
     def forward(self, x):
         b, c, h, w = x.shape
 
@@ -208,16 +190,11 @@ class MVIT(nn.Module):
         x1 = self.HA_1(t1, c1)        
         x2 = self.HA_2(t2, c2)
 
-        x0, x1, x2 = self.mtc(x0, x1, x2)
-
-        # gd_c = torch.cat([x0, self.up_2(x1), self.up_4(x2)], dim=1)
-        # gd_s = x0 + self.up_2(x1) + self.up_4(x2)
-
-        # gd = (torch.cat([torch.nn.functional.avg_pool2d(x0, kernel_size=4), torch.nn.functional.avg_pool2d(x1, kernel_size=2), x2], dim=1))
-
-        # x0 = self.ms_sa_0(x=x0, gd=gd)
-        # x1 = self.ms_sa_1(x=x1, gd=gd)
-        # x2 = self.ms_sa_2(x=x2, gd=gd)
+        # x0, x1, x2 = self.mtc(x0, x1, x2)
+        
+        gd = [x0, x1, x2]
+        
+        x0, x1, x2 = self.GSEA_0(x0, gd), self.GSEA_1(x1, gd), self.GSEA_2(x2, gd)
 
         out = self.hybrid_decoder(x0, x1, x2)
 
@@ -1306,6 +1283,5 @@ class hybrid_decoder(nn.Module):
         x0  = self.final_head(x0)
 
         return x0
-
 
 
