@@ -255,67 +255,67 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        scene = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # scene = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        scene.load_state_dict(state_dict)
+        # scene.load_state_dict(state_dict)
 
-        self.scene    = scene
-        self.scene.fc = nn.Identity()
+        # self.scene    = scene
+        # self.scene.fc = nn.Identity()
 
-        for param in self.scene.parameters():
-            param.requires_grad = False
+        # for param in self.scene.parameters():
+        #     param.requires_grad = False
 
-        for param in self.scene.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.scene.layer4[-1].parameters():
+        #     param.requires_grad = True
 
-        self.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True),
-        )
+        # self.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True),
+        # )
 
-        self.s = s()
+        # self.s = s()
 
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model
+        # self.model = model
 
-        self.model.head  = nn.Identity()
+        # self.model.head  = nn.Identity()
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.mvit = mvit_tiny()
+        # self.mvit = mvit_tiny()
 
         #################################################################################
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        # model = timm.create_model('tf_efficientnetv2_b2.in1k', pretrained=True)
+        model = timm.create_model('tf_efficientnetv2_b0.in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.blocks[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.blocks[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.classifier.parameters():
-        #     param.requires_grad = True
+        for param in self.model.classifier.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -365,65 +365,34 @@ class Mobile_netV2(nn.Module):
 
         # self.model = B0()
 
-        self.transform_0 = transforms.Compose([transforms.Resize((224, 224))])
-        self.transform_1 = transforms.Compose([transforms.Resize((384, 384))])
+        # self.transform_0 = transforms.Compose([transforms.Resize((224, 224))])
+        # self.transform_1 = transforms.Compose([transforms.Resize((384, 384))])
 
-        self.count = 0.0
-        self.batch = 0.0
+        # self.count = 0.0
+        # self.batch = 0.0
 
-        self.cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
+        # self.cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
-        # x_in = self.transform(x_in)
+        x = self.model(x_in)
 
-        # x = self.head(self.model(x_in))
-
-        # x = self.fc(self.scene(x_in))
-
-        # x_obj, x_h_obj = self.mvit(x_in)
-        x_sce, x_h_sce = self.s(self.transform_0(x_in))
-
-        # y_h_sce = self.scene(x_in)
-        # y_h_obj = self.model(x_in)
-
-        # alpha = 1.0 - self.cosine(y_h_obj, x_h_obj)
-        # beta  = self.cosine(y_h_sce, x_h_sce)
-
-        # x = torch.softmax(x_obj + x_sce, dim=1)
-
-        # alpha = x_obj.max()
-
-        beta  = x_sce.max()
-
-        self.batch = self.batch + 1.0
-
-        if self.batch == 1330:
-            print(self.count)
-
-        if beta <= 1.0:
-            # x_in = self.transform(x_in)
-            x    = self.s(self.transform_1(x_in))[0]
-            self.count = self.count + 1.0
-        else:
-            x = x_sce
-
-        # if (not self.training):
-        #     x = torch.softmax(x, dim=1)
+        if (not self.training):
+            x = torch.softmax(x, dim=1)
 
         # self.batch = self.batch + 1.0
 
-        # if self.batch == 5530:
+        # if self.batch == 1330:
         #     print(self.count)
 
         # if (not self.training) and (x.max() <= 0.9):
-        #     x_in = self.transform(x_in)
-        #     x    = self.model(x_in)
-        #     x    = torch.softmax(x, dim=1)
+        #     self.model.conv_stem.stride = (1, 1)
+        #     x = self.model(x_in)
+        #     x = torch.softmax(x, dim=1)
+        #     self.model.conv_stem.stride = (2, 2)
         #     self.count = self.count + 1.0
-
 
         ###############################################
         # x0, x1, x2, x3 = self.model(x)
@@ -432,12 +401,6 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.head(x)
         ###############################################
-
-        # y_h    = self.model(x_in)
-        # x, x_h = self.mvit(x_in)
-
-        # print(self.cosine(y_h, x_h))
-
 
         return x
 
