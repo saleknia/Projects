@@ -302,7 +302,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        model = timm.create_model('tf_efficientnetv2_b0.in1k', pretrained=True)
+        model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
 
         self.model = model 
 
@@ -366,16 +366,39 @@ class Mobile_netV2(nn.Module):
         # self.model = B0()
 
         # self.transform_0 = transforms.Compose([transforms.Resize((224, 224))])
-        # self.transform_1 = transforms.Compose([transforms.Resize((384, 384))])
 
-        # self.count = 0.0
-        # self.batch = 0.0
+        # self.transform = transforms.Compose([
+        #     transforms.Resize((384, 384)),
+        # ])
+
+        self.count = 0.0
+        self.batch = 0.0
 
         # self.cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
+
+        self.transform_train = transforms.Compose([
+            transforms.RandomResizedCrop(224),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
+
+        self.transform_test = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
+
+        # x_in = self.transform(x_in)
+
+        if self.training:
+            x_in = self.transform_train(x_in)
+        else:
+            x_in = self.transform_test(x_in)
 
         x = self.model(x_in)
 
@@ -387,11 +410,9 @@ class Mobile_netV2(nn.Module):
         # if self.batch == 1330:
         #     print(self.count)
 
-        # if (not self.training) and (x.max() <= 0.9):
-        #     self.model.conv_stem.stride = (1, 1)
-        #     x = self.model(x_in)
+        # if (not self.training): #and (x.max() <= 0.9):
+        #     x = self.model(self.transform(x_in))
         #     x = torch.softmax(x, dim=1)
-        #     self.model.conv_stem.stride = (2, 2)
         #     self.count = self.count + 1.0
 
         ###############################################
