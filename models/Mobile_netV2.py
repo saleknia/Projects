@@ -374,31 +374,11 @@ class Mobile_netV2(nn.Module):
         self.count = 0.0
         self.batch = 0.0
 
-        # self.cosine = torch.nn.CosineSimilarity(dim=1, eps=1e-08)
-
-        self.transform_train = transforms.Compose([
-            transforms.RandomResizedCrop(224),
-            transforms.RandomHorizontalFlip(),
-            transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
-            transforms.RandomGrayscale(p=0.2),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ])
-
-        self.transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ])
-
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
         # x_in = self.transform(x_in)
-
-        if self.training:
-            x_in = self.transform_train(x_in)
-        else:
-            x_in = self.transform_test(x_in)
 
         x = self.model(x_in)
 
