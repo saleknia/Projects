@@ -311,7 +311,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.blocks[3:].parameters():
+        for param in self.model.blocks[4:].parameters():
             param.requires_grad = True
 
         for param in self.model.classifier.parameters():
@@ -376,24 +376,20 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        b, c, w, h = x_in.shape
-
-        # x_in = self.transform(x_in)
-
-        x = self.model(x_in)
-
         if (not self.training):
+            self.batch = self.batch + 1.0
+            x0, x1 = x_in[0], x_in[1]
+            x = self.model(x0)
             x = torch.softmax(x, dim=1)
+            if (x.max() <= 0.9):
+                x = self.model(x1)
+                x = torch.softmax(x, dim=1)
+                self.count = self.count + 1.0
+        
+        else:
+            b, c, w, h = x_in.shape
+            x = self.model(x_in)
 
-        # self.batch = self.batch + 1.0
-
-        # if self.batch == 1330:
-        #     print(self.count)
-
-        # if (not self.training): #and (x.max() <= 0.9):
-        #     x = self.model(self.transform(x_in))
-        #     x = torch.softmax(x, dim=1)
-        #     self.count = self.count + 1.0
 
         ###############################################
         # x0, x1, x2, x3 = self.model(x)
