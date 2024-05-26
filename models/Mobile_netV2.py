@@ -378,10 +378,12 @@ class Mobile_netV2(nn.Module):
 
         if (not self.training):
             self.batch = self.batch + 1.0
+            if self.batch == 1335:
+                print(self.count)
             x0, x1 = x_in[0], x_in[1]
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
-            if (x.max() <= 0.0):
+            if (x.max() <= 1.0):
                 x = self.model(x1)
                 x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
