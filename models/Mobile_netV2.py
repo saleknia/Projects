@@ -302,7 +302,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
+        model = timm.create_model('tf_efficientnet_b4.in1k', pretrained=True)
 
         self.model = model 
 
@@ -383,7 +383,7 @@ class Mobile_netV2(nn.Module):
             x0, x1 = x_in[0], x_in[1]
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
-            if (x.max() <= 1.0):
+            if (x.max() <= 0.0):
                 x = self.model(x1)
                 x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
