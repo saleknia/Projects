@@ -285,8 +285,6 @@ class Mobile_netV2(nn.Module):
 
         self.model = model
 
-        # self.model.head  = nn.Identity()
-
         for param in self.model.parameters():
             param.requires_grad = False
 
@@ -297,17 +295,16 @@ class Mobile_netV2(nn.Module):
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.mvit = mvit_tiny()
 
         #################################################################################
         #################################################################################
 
         # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-        # model = timm.create_model('tf_efficientnet_b3.in1k', pretrained=True)
+        # model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
 
         # self.model = model 
 
-        # self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1536, out_features=num_classes, bias=True))
+        # self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
@@ -386,16 +383,16 @@ class Mobile_netV2(nn.Module):
                 print(self.count)
 
             x0, x1 = x_in[0], x_in[1]
-            
+
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() <= 0.0):
+            if (x.max() <= 0.9):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
-                result = self.model(y.view(-1, c, h, w))
-                result = torch.softmax(result.view(bs, ncrops, -1), dim=1).mean(1)
+                x = self.model(y.view(-1, c, h, w))
+                x = torch.softmax(x, dim=1).mean(0, keepdim=True)
                 # x = self.model(x1)
                 # x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
