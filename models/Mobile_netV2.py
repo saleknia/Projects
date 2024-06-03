@@ -267,8 +267,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
         self.model.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -383,7 +383,7 @@ class Mobile_netV2(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() <= 0.0):
+            if (x.max() <= 1.0):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
