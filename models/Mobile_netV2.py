@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
@@ -323,7 +323,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+            nn.Linear(in_features=384, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
@@ -373,6 +373,9 @@ class Mobile_netV2(nn.Module):
 
             self.batch = self.batch + 1.0
 
+            if self.batch == 1335:
+                print(self.count)
+
             x0, x1 = x_in[0], x_in[1]
 
             x = self.model(x0)
@@ -388,8 +391,6 @@ class Mobile_netV2(nn.Module):
                 # x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
             
-                if self.batch == 1335:
-                    print(self.count)
         else:
             b, c, w, h = x_in.shape
             x = self.model(x_in)
