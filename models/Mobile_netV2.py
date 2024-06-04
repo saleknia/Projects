@@ -335,7 +335,7 @@ class Mobile_netV2(nn.Module):
         # #################################################################################
         # #################################################################################
 
-        model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True)
+        model = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True)
 
         self.model = model 
 
