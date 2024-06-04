@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
@@ -323,7 +323,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+            nn.Linear(in_features=384, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
@@ -388,6 +388,16 @@ class Mobile_netV2(nn.Module):
         self.batch = 0.0
         self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/tiny_next.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
+
+        self.inspector = None
+
     def forward(self, x_in):
 
         if (not self.training):
@@ -399,18 +409,25 @@ class Mobile_netV2(nn.Module):
 
             x0, x1 = x_in[0], x_in[1]
 
-            x = self.model(x0)
-            x = torch.softmax(x, dim=1)
+            if self.inspector is not None:
+                xi = self.inspector(x0)
+                xi = torch.softmax(xi, dim=1)
+            else:
+                xi = self.model(x0)
+                xi = torch.softmax(xi, dim=1)
 
-            if (x.max() <= 0.0):
-
+            if (xi.max() <= 0.0):
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
                 x = self.model(y.view(-1, c, h, w))
                 x = torch.softmax(x, dim=1).mean(0, keepdim=True)
-                # x = self.model(x1)
-                # x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
+            else:
+                if self.inspector is not None:
+                    x = self.model(x0)
+                    x = torch.softmax(x, dim=1)  
+                else:
+                    x = xi
             
         else:
             b, c, w, h = x_in.shape
