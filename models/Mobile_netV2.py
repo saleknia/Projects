@@ -453,7 +453,7 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x, x_t
+            return x, t
         else:
             return x
 
