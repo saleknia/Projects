@@ -314,37 +314,16 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
-
-        self.model = model 
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        # #################################################################################
-        # #################################################################################
-
-        # model = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
         # self.model = model 
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # self.model.head.classifier[4] = nn.Sequential(
+        # self.model.head.fc = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=2560, out_features=num_classes, bias=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
         # )
 
         # for param in self.model.stages[-1].parameters():
@@ -352,6 +331,27 @@ class Mobile_netV2(nn.Module):
 
         # for param in self.model.head.parameters():
         #     param.requires_grad = True
+
+        # #################################################################################
+        # #################################################################################
+
+        model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
+
+        self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.head.classifier[4] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1600, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -403,7 +403,7 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.teacher = tiny()
+        # self.teacher = tiny()
 
     def forward(self, x_in):
 
@@ -439,7 +439,7 @@ class Mobile_netV2(nn.Module):
         else:
             b, c, w, h = x_in.shape
             x = self.model(x_in)
-            t = self.teacher(x_in)
+            # t = self.teacher(x_in)
 
 
         ###############################################
@@ -450,12 +450,12 @@ class Mobile_netV2(nn.Module):
         # x = self.head(x)
         ###############################################
 
-        # return x
+        return x
 
-        if self.training:
-            return x, t
-        else:
-            return x
+        # if self.training:
+        #     return x, t
+        # else:
+        #     return x
 
 class femto(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -473,7 +473,7 @@ class femto(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/femto_d.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/femto.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
