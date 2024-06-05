@@ -396,7 +396,14 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
+        #################################
+        #################################
         self.inspector = None
+        # self.inspector = femto()
+        #################################
+        #################################
+
+        self.teacher = tiny()
 
     def forward(self, x_in):
 
@@ -432,6 +439,7 @@ class Mobile_netV2(nn.Module):
         else:
             b, c, w, h = x_in.shape
             x = self.model(x_in)
+            t = self.teacher(x_in)
 
 
         ###############################################
@@ -442,12 +450,75 @@ class Mobile_netV2(nn.Module):
         # x = self.head(x)
         ###############################################
 
+        # return x
+
+        if self.training:
+            return x, x_t
+        else:
+            return x
+
+class femto(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(femto, self).__init__()
+
+        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=384, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/femto.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
         return x
 
-        # if self.training:
-        #     return x, x_t
-        # else:
-        #     return x
+class tiny(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(tiny, self).__init__()
+
+        model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=384, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/tiny.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
+
 
 class s(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
