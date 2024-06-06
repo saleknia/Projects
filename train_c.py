@@ -390,32 +390,32 @@ def main(args):
     elif TASK_NAME=='MIT-67':
 
         transform_train = transforms.Compose([
-            # transforms.Resize((224, 224)),
-            transforms.RandomResizedCrop(224),
+            transforms.Resize((224, 224)),
+            # transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
-            # transforms.RandomErasing(p=1.0, scale=(0.02, 0.8)),
+            transforms.RandomErasing(p=1.0, scale=(0.1, 0.6)),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
-        class transform_test(object):
-            def __init__(self):
-                self.transform_0 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
-                self.transform_1 = transforms.Compose([transforms.Resize((384, 384)), transforms.ToTensor(), transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
-            def __call__(self, sample):
+        # class transform_test(object):
+        #     def __init__(self):
+        #         self.transform_0 = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+        #         self.transform_1 = transforms.Compose([transforms.Resize((384, 384)), transforms.ToTensor(), transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
+        #     def __call__(self, sample):
                 
-                image_0 = self.transform_0(sample)
-                image_1 = self.transform_1(sample)
+        #         image_0 = self.transform_0(sample)
+        #         image_1 = self.transform_1(sample)
 
-                return (image_0, image_1)
+        #         return (image_0, image_1)
 
-        # transform_test = transforms.Compose([
-        #     transforms.Resize((224, 224)),
-        #     transforms.ToTensor(),
-        #     transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        # ])
+        transform_test = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
 
         # trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/train/', transform=transform_train)
         # train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
