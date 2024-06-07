@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_nano.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
@@ -323,7 +323,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1024, out_features=num_classes, bias=True),
+            nn.Linear(in_features=640, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
@@ -403,7 +403,8 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        # self.teacher = tiny()
+        self.tiny = tiny()
+        self.base = base()
 
     def forward(self, x_in):
 
@@ -411,8 +412,10 @@ class Mobile_netV2(nn.Module):
 
         if (not self.training):
             x = torch.softmax(self.model(x_in), dim=1)  
+            # x = (self.base(x_in) + self.tiny(x_in)) / 2.0
         else:
             x = self.model(x_in)
+
 
         return x
 
@@ -421,23 +424,23 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-class femto(nn.Module):
+class base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(femto, self).__init__()
+        super(base, self).__init__()
 
-        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=num_classes, bias=True),
+            nn.Linear(in_features=1024, out_features=num_classes, bias=True),
         )
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/femto.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/base.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -450,7 +453,7 @@ class femto(nn.Module):
 
         x = self.model(x0)
 
-        return x
+        return torch.softmax(x, dim=1)
 
 class tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
