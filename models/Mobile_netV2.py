@@ -403,8 +403,8 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.tiny = tiny()
-        self.base = base()
+        # self.tiny = tiny()
+        # self.base = base()
 
     def forward(self, x_in):
 
