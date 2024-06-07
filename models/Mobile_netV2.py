@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_pico.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_nano.fcmae_ft_in22k_in1k', pretrained=True)
 
         self.model = model 
 
@@ -323,7 +323,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+            nn.Linear(in_features=640, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
@@ -386,6 +386,7 @@ class Mobile_netV2(nn.Module):
 
         # self.count = 0.0
         # self.batch = 0.0
+
         # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/tiny.pth', map_location='cpu')
@@ -411,8 +412,19 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x_in.shape
 
         if (not self.training):
-            x = torch.softmax(self.model(x_in), dim=1)  
-            # x = (self.nano(x_in) + self.tiny(x_in)) / 2.0
+            x = torch.softmax(self.model(x_in), dim=1) 
+            # self.batch = self.batch + 1.0
+            # if self.batch == 1335:
+            #     print(self.count)
+            # xn = self.nano(x_in) 
+            # x  = xn
+            # if xn.max() <= 0.8: 
+            #     xt = self.tiny(x_in)
+            #     x  = (xn + xt) / 2.0
+            #     self.count = self.count + 1.0
+            #     if x.max() <= 0.8:
+            #         xb = self.base(x_in)
+            #         x  = (xn + xt + xb) / 3.0
         else:
             x = self.model(x_in)
 
