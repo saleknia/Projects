@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_nano.fcmae_ft_in22k_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_nano.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
