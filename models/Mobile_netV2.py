@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
 
         self.model = model 
 
@@ -403,9 +403,9 @@ class Mobile_netV2(nn.Module):
         # self.inspector = femto()
         #################################
         #################################
-        # self.nano = nano()
-        # self.tiny = tiny()
-        # self.base = base()
+        # self.small = small()
+        # self.tiny  = tiny()
+        # self.base  = base()
 
     def forward(self, x_in):
 
@@ -416,15 +416,16 @@ class Mobile_netV2(nn.Module):
             # self.batch = self.batch + 1.0
             # if self.batch == 1335:
             #     print(self.count)
-            # xn = self.nano(x_in) 
-            # x  = xn
-            # if xn.max() <= 0.8: 
-            #     xt = self.tiny(x_in)
-            #     x  = (xn + xt) / 2.0
-            #     self.count = self.count + 1.0
-            #     if x.max() <= 0.8:
+            # xt = self.tiny(x_in) 
+            # x  = xt
+            # if x.max() <= 1.0: 
+            #     # self.count = self.count + 1.0
+            #     xs = self.small(x_in)
+            #     x  = (xt + xs) / 2.0
+            #     if x.max() <= 1.0:
+            #         self.count = self.count + 1.0
             #         xb = self.base(x_in)
-            #         x  = (xn + xt + xb) / 3.0
+            #         x  = (xt + xs + xb) / 3.0
         else:
             x = self.model(x_in)
 
@@ -440,7 +441,7 @@ class base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(base, self).__init__()
 
-        model = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_base.fb_in1k', pretrained=True)
 
         self.model = model 
 
@@ -467,11 +468,45 @@ class base(nn.Module):
 
         return torch.softmax(x, dim=1)
 
+
+class small(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(small, self).__init__()
+
+        model = timm.create_model('timm/convnext_small.fb_in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
+
+
+
 class tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(tiny, self).__init__()
 
-        model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
