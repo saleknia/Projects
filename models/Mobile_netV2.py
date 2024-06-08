@@ -314,7 +314,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_small.fb_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
