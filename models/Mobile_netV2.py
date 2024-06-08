@@ -384,8 +384,8 @@ class Mobile_netV2(nn.Module):
         #     transforms.Resize((384, 384)),
         # ])
 
-        # self.count = 0.0
-        # self.batch = 0.0
+        self.count = 0.0
+        self.batch = 0.0
 
         # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
@@ -403,29 +403,29 @@ class Mobile_netV2(nn.Module):
         # self.inspector = femto()
         #################################
         #################################
-        # self.small = small()
-        # self.tiny  = tiny()
-        # self.base  = base()
+        self.tiny  = pico()
+        self.small = nano()
+        self.base  = tiny()
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
         if (not self.training):
-            x = torch.softmax(self.model(x_in), dim=1) 
-            # self.batch = self.batch + 1.0
-            # if self.batch == 1335:
-            #     print(self.count)
-            # xt = self.tiny(x_in) 
-            # x  = xt
-            # if x.max() <= 1.0: 
-            #     # self.count = self.count + 1.0
-            #     xs = self.small(x_in)
-            #     x  = (xt + xs) / 2.0
-            #     if x.max() <= 1.0:
-            #         self.count = self.count + 1.0
-            #         xb = self.base(x_in)
-            #         x  = (xt + xs + xb) / 3.0
+            # x = torch.softmax(self.model(x_in), dim=1) 
+            self.batch = self.batch + 1.0
+            if self.batch == 1335:
+                print(self.count)
+            xt = self.tiny(x_in) 
+            x  = xt
+            if x.max() <= 1.0: 
+                self.count = self.count + 1.0
+                xs = self.small(x_in)
+                x  = (xt + xs) / 2.0
+                if x.max() <= 1.0:
+                    # self.count = self.count + 1.0
+                    xb = self.base(x_in)
+                    x  = (xs + xb) / 2.0
         else:
             x = self.model(x_in)
 
@@ -506,7 +506,7 @@ class tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(tiny, self).__init__()
 
-        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
         self.model = model 
 
@@ -563,6 +563,39 @@ class nano(nn.Module):
         x = self.model(x0)
 
         return torch.softmax(x, dim=1)
+
+
+class pico(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(pico, self).__init__()
+
+        model = timm.create_model('timm/convnextv2_pico.fcmae_ft_in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/pico.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
+
 
 class s(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
