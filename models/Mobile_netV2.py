@@ -418,14 +418,14 @@ class Mobile_netV2(nn.Module):
                 print(self.count)
             xt = self.tiny(x_in) 
             x  = xt
-            if x.max() <= 1.0: 
+            if x.max() <= 0.7: 
                 self.count = self.count + 1.0
                 xs = self.small(x_in)
                 x  = (xt + xs) / 2.0
-                if x.max() <= 1.0:
+                if x.max() <= 0.7:
                     # self.count = self.count + 1.0
                     xb = self.base(x_in)
-                    x  = (xs + xb) / 2.0
+                    x  = (xt + xs + xb) / 3.0
         else:
             x = self.model(x_in)
 
