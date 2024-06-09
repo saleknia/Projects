@@ -278,7 +278,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_small', pretrained=True)
 
         self.model = model
 
@@ -413,7 +413,7 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x_in.shape
 
         if (not self.training):
-            x = torch.softmax(self.base(x_in), dim=1) 
+            x = torch.softmax(self.model(x_in), dim=1) 
             # self.batch = self.batch + 1.0
             # if self.batch == 1335:
             #     print(self.count)
@@ -845,7 +845,7 @@ class mvit_tiny(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
