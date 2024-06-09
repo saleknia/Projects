@@ -278,19 +278,19 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -314,23 +314,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnextv2_femto.fcmae_ft_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=384, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1024, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # #################################################################################
         # #################################################################################
@@ -403,26 +403,27 @@ class Mobile_netV2(nn.Module):
         # self.inspector = femto()
         #################################
         #################################
-        # self.tiny  = pico()
-        # self.small = nano()
-        # self.base  = tiny()
+        # self.tiny  = mvit_tiny()
+        # self.small = mvit_small()
+        # self.base  = mvit_base()
+
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
         if (not self.training):
-            x = torch.softmax(self.model(x_in), dim=1) 
+            x = torch.softmax(self.base(x_in), dim=1) 
             # self.batch = self.batch + 1.0
             # if self.batch == 1335:
             #     print(self.count)
             # xt = self.tiny(x_in) 
             # x  = xt
-            # if x.max() <= 1.0: 
+            # if x.max() <= 0.8: 
             #     self.count = self.count + 1.0
             #     xs = self.small(x_in)
             #     x  = (xt + xs) / 2.0
-            #     if x.max() <= 1.0:
+            #     if x.max() <= 0.8:
             #         # self.count = self.count + 1.0
             #         xb = self.base(x_in)
             #         x  = (xt + xs + xb) / 3.0
@@ -770,7 +771,7 @@ class mvit_base(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint/base_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_base.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_base.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -783,10 +784,10 @@ class mvit_base(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return x #torch.softmax(x, dim=1)
+        return torch.softmax(x, dim=1)
 
 class mvit_small(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=67, pretrained=True):
         super(mvit_small, self).__init__()
 
         model = timm.create_model('mvitv2_small', pretrained=True)
@@ -806,7 +807,7 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_small.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
@@ -822,6 +823,7 @@ class mvit_small(nn.Module):
         # x = self.classifier(x)
         return torch.softmax(x, dim=1)
 
+
 class mvit_tiny(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(mvit_tiny, self).__init__()
@@ -830,35 +832,35 @@ class mvit_tiny(nn.Module):
 
         self.model = model 
 
-        self.model.head = nn.Identity()
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        self.head = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
+
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_tiny/MVITV2_tiny.pth', map_location='cpu')['net']
-        # self.load_state_dict(state_dict)
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_tiny.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
+
         for key in a.keys():
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_h = self.model(x0)
-        x   = self.head(x_h)
+        x = self.model(x0)
+        # x = self.classifier(x)
+        return torch.softmax(x, dim=1)
 
-        return torch.softmax(x, dim=1), x_h # torch.softmax(x, dim=1)
 
 class mvit_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
