@@ -226,12 +226,12 @@ def main(args):
 
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
 
-    optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
+    # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
 
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
     # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9, weight_decay=0.0001)
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
 
     # optimizer = None
 
@@ -489,7 +489,7 @@ def main(args):
         testset = torchvision.datasets.ImageFolder(root='/content/StanfordActionDataset/test/',
                                         transform=transform_test)
         test_loader = torch.utils.data.DataLoader(
-            testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
+            testset, batch_size = 1          , shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
