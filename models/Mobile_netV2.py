@@ -384,8 +384,8 @@ class Mobile_netV2(nn.Module):
         #     transforms.Resize((384, 384)),
         # ])
 
-        # self.count = 0.0
-        # self.batch = 0.0
+        self.count = 0.0
+        self.batch = 0.0
 
         # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
@@ -403,9 +403,9 @@ class Mobile_netV2(nn.Module):
         # self.inspector = femto()
         #################################
         #################################
-        # self.tiny  = mvit_tiny()
-        # self.small = mvit_small()
-        # self.base  = mvit_base()
+        self.tiny  = mvit_tiny()
+        self.small = mvit_small()
+        self.base  = mvit_base()
 
 
     def forward(self, x_in):
@@ -413,20 +413,28 @@ class Mobile_netV2(nn.Module):
         b, c, w, h = x_in.shape
 
         if (not self.training):
-            x = torch.softmax(self.model(x_in), dim=1) 
+            # x = torch.softmax(self.model(x_in), dim=1) 
+
+            x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
+
             # self.batch = self.batch + 1.0
+
             # if self.batch == 1335:
             #     print(self.count)
+
             # xt = self.tiny(x_in) 
             # x  = xt
 
-            # if (0.5 < x.max()) and (x.max() < 0.8): 
+            # if x.max() <= 0.8:
+            #     self.count = self.count + 1.0
+
+            # if (0.5 < x.max()) and (x.max() <= 0.8): 
             #     # self.count = self.count + 1.0
             #     xs = self.small(x_in)
             #     x  = (xt + xs) / 2.0
 
             # if x.max() <= 0.5: 
-            #     self.count = self.count + 1.0
+            #     # self.count = self.count + 1.0
             #     xs = self.small(x_in)
             #     xb = self.base(x_in)
             #     x  = (xt + xs + xb) / 3.0
@@ -752,7 +760,7 @@ class B0(nn.Module):
         return x
 
 class mvit_base(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(mvit_base, self).__init__()
 
         model = timm.create_model('mvitv2_base', pretrained=True)
@@ -775,7 +783,7 @@ class mvit_base(nn.Module):
         # state_dict = torch.load('/content/drive/MyDrive/checkpoint/base_best.pth', map_location='cpu')['net']
         # self.load_state_dict(state_dict)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_base.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/base.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -791,7 +799,7 @@ class mvit_base(nn.Module):
         return torch.softmax(x, dim=1)
 
 class mvit_small(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(mvit_small, self).__init__()
 
         model = timm.create_model('mvitv2_small', pretrained=True)
@@ -811,7 +819,7 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_x/mvit_small.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
@@ -829,7 +837,7 @@ class mvit_small(nn.Module):
 
 
 class mvit_tiny(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(mvit_tiny, self).__init__()
 
         model = timm.create_model('mvitv2_tiny', pretrained=True)
@@ -849,7 +857,7 @@ class mvit_tiny(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/tiny.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
