@@ -305,7 +305,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.backbone.stages[-1].parameters():
+        for param in self.model.backbone.stages[-1].op_list[-1].parameters():
             param.requires_grad = True
 
         self.down1 = DownBlock(96 ,  192, nb_Conv=2)
