@@ -297,7 +297,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
+        model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt")
         model.head.output_ops[0].op_list[0] = torch.nn.Identity()
 
         self.model = model
@@ -308,16 +308,20 @@ class Mobile_netV2(nn.Module):
         for param in self.model.backbone.stages[-1].op_list[-1].parameters():
             param.requires_grad = True
 
-        self.down1 = DownBlock(96 ,  192, nb_Conv=2)
-        self.down2 = DownBlock(192,  384, nb_Conv=2)
-        self.down3 = DownBlock(384,  768, nb_Conv=2)
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        base_channels = 64
+        self.down1 = DownBlock(base_channels*1, base_channels*2, nb_Conv=2)
+        self.down2 = DownBlock(base_channels*2, base_channels*4, nb_Conv=2)
+        self.down3 = DownBlock(base_channels*4, base_channels*8, nb_Conv=2)
         # self.down4 = DownBlock(512, 1024, nb_Conv=2)
 
         # self.up = nn.Upsample(scale_factor=4)
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(8, stride=1)
-        self.fc_SEM  = nn.Linear(768, 67)
+        self.fc_SEM  = nn.Linear(base_channels*8, 67)
 
         # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
