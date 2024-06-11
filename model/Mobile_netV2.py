@@ -308,16 +308,16 @@ class Mobile_netV2(nn.Module):
         for param in self.model.backbone.stages[-1].parameters():
             param.requires_grad = True
 
-        self.down1 = DownBlock(64 ,  128, nb_Conv=2)
-        self.down2 = DownBlock(128,  256, nb_Conv=2)
-        self.down3 = DownBlock(256,  512, nb_Conv=2)
+        self.down1 = DownBlock(96 ,  192, nb_Conv=2)
+        self.down2 = DownBlock(192,  384, nb_Conv=2)
+        self.down3 = DownBlock(384,  768, nb_Conv=2)
         # self.down4 = DownBlock(512, 1024, nb_Conv=2)
 
         # self.up = nn.Upsample(scale_factor=4)
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(8, stride=1)
-        self.fc_SEM  = nn.Linear(512, 67)
+        self.fc_SEM  = nn.Linear(768, 67)
 
         # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
