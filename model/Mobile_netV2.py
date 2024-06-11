@@ -297,7 +297,10 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
+
         # model.head.output_ops[0].op_list[0] = torch.nn.Identity()
 
         self.model = model
@@ -323,8 +326,8 @@ class Mobile_netV2(nn.Module):
         # self.up = nn.Upsample(scale_factor=4)
 
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(16, stride=1)
-        self.fc_SEM  = nn.Linear(256, 67)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(384, 40)
 
         # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
