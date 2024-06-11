@@ -297,7 +297,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
+        model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt")
 
         self.model = model
 
@@ -310,7 +310,7 @@ class Mobile_netV2(nn.Module):
 
         self.classifier = classifier 
 
-        for param in self.classifier.blocks[0:6].parameters():
+        for param in self.classifier.blocks[0:5].parameters():
             param.requires_grad = False
 
         for param in self.classifier.conv_stem.parameters():
