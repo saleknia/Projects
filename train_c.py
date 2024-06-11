@@ -20,41 +20,42 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
-from models.SEUNet import SEUNet
-from models.UNet import UNet
-from models.UNet_loss import UNet_loss
-from models.UNet_plus import NestedUNet
-from models.UNet_plus_loss import NestedUNet_loss
-from models.att_unet import AttentionUNet
-from models.att_unet_loss import AttentionUNet_loss
-from models.multi_res_unet import MultiResUnet
-from models.ERFNet import ERFNet
-from models.ERFNet_loss import ERFNet_loss
-from models.U import U
-from models.U_loss import U_loss
-from models.multi_res_unet_loss import MultiResUnet_loss
-from models.UCTransNet import UCTransNet
-from models.GT_UNet import GT_U_Net
-from models.ENet import ENet
-from models.DABNet import DABNet
-from models.DABNet_loss import DABNet_loss
-from models.Mobile_netV2 import Mobile_netV2
-from models.Mobile_netV2_loss import Mobile_netV2_loss
-from models.ESPNet import ESPNet
-from models.ESPNet_loss import ESPNet_loss
-from models.ENet_loss import ENet_loss
-from models.UCTransNet_GT import UCTransNet_GT
-from models.GT_CTrans import GT_CTrans
-from models.Fast_SCNN import Fast_SCNN
-from models.Fast_SCNN_loss import Fast_SCNN_loss
-from models.TransFuse import TransFuse_S
-from models.DATUNet import DATUNet
-from models.Cross_unet import Cross_unet
-from models.Cross import Cross
-from models.knitt_net import knitt_net
+import utils
+from model.SEUNet import SEUNet
+from model.UNet import UNet
+from model.UNet_loss import UNet_loss
+from model.UNet_plus import NestedUNet
+from model.UNet_plus_loss import NestedUNet_loss
+from model.att_unet import AttentionUNet
+from model.att_unet_loss import AttentionUNet_loss
+from model.multi_res_unet import MultiResUnet
+from model.ERFNet import ERFNet
+from model.ERFNet_loss import ERFNet_loss
+from model.U import U
+from model.U_loss import U_loss
+from model.multi_res_unet_loss import MultiResUnet_loss
+from model.UCTransNet import UCTransNet
+from model.GT_UNet import GT_U_Net
+from model.ENet import ENet
+from model.DABNet import DABNet
+from model.DABNet_loss import DABNet_loss
+from model.Mobile_netV2 import Mobile_netV2
+from model.Mobile_netV2_loss import Mobile_netV2_loss
+from model.ESPNet import ESPNet
+from model.ESPNet_loss import ESPNet_loss
+from model.ENet_loss import ENet_loss
+from model.UCTransNet_GT import UCTransNet_GT
+from model.GT_CTrans import GT_CTrans
+from model.Fast_SCNN import Fast_SCNN
+from model.Fast_SCNN_loss import Fast_SCNN_loss
+from model.TransFuse import TransFuse_S
+from model.DATUNet import DATUNet
+from model.Cross_unet import Cross_unet
+from model.Cross import Cross
+from model.knitt_net import knitt_net
 
 # from models.original_UNet import original_UNet
-import utils
+
 from utils import color
 from utils import Save_Checkpoint
 from trainer_s import trainer_s
@@ -394,7 +395,7 @@ def main(args):
 
         transform_train = transforms.Compose([
             # transforms.Resize((224, 224)),
-            transforms.RandomResizedCrop(224),
+            transforms.RandomResizedCrop(512),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
@@ -415,7 +416,7 @@ def main(args):
         #         return (image_0, image_1)
 
         transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((512, 512)),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
