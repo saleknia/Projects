@@ -34,6 +34,8 @@ transform_test = transforms.Compose([
     transforms.Resize((384, 384)),
 ])
 from torchvision.transforms import FiveCrop, Lambda
+from efficientvit.seg_model_zoo import create_seg_model
+
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -275,22 +277,50 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=2048, out_features=67, bias=True),
         # )
 
+        # #################################################################################
+        # #################################################################################
+
+        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+
+        # self.model = model
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
+
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        self.up = nn.Upsample(scale=8)
 
-        self.model.head = nn.Sequential(
+        classifier = timm.create_classifier('tf_efficientnet_b0', pretrained=True)
+
+        self.classifier = classifier 
+
+        for param in self.classifier.blocks[0:5].parameters():
+            param.requires_grad = False
+
+        for param in self.classifier.conv_stem.parameters():
+            param.requires_grad = False
+
+        self.classifier.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        )
+
 
         #################################################################################
         #################################################################################
@@ -384,8 +414,8 @@ class Mobile_netV2(nn.Module):
         #     transforms.Resize((384, 384)),
         # ])
 
-        self.count = 0.0
-        self.batch = 0.0
+        # self.count = 0.0
+        # self.batch = 0.0
 
         # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
@@ -403,19 +433,28 @@ class Mobile_netV2(nn.Module):
         # self.inspector = femto()
         #################################
         #################################
-        self.tiny  = mvit_tiny()
-        self.small = mvit_small()
-        self.base  = mvit_base()
+ 
+        # self.tiny  = mvit_tiny()
+        # self.small = mvit_small()
+        # self.base  = mvit_base()
 
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
-        if (not self.training):
+        # if (not self.training):
+
+        y = self.model(x_in)
+        y = self.up(y)
+        y = (y.softmax(dim=1).argmax(dim=1) / 150.0).unsqueeze(dim=1)
+        y = torch.cat([y, y, y], dim=1)
+
+        x = self.classifier(y)
+
             # x = torch.softmax(self.model(x_in), dim=1) 
 
-            x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
+            # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
 
             # self.batch = self.batch + 1.0
 
@@ -439,8 +478,8 @@ class Mobile_netV2(nn.Module):
             #     xb = self.base(x_in)
             #     x  = (xt + xs + xb) / 3.0
 
-        else:
-            x = self.model(x_in)
+        # else:
+        #     x = self.model(x_in)
 
 
         return x
