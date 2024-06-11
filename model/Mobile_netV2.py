@@ -465,7 +465,7 @@ class Mobile_netV2(nn.Module):
         x = self.down3(x)
         # x = self.down4(x)
 
-        print(x.shape)
+        # print(x.shape)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
