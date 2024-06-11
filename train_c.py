@@ -395,7 +395,7 @@ def main(args):
 
         transform_train = transforms.Compose([
             # transforms.Resize((224, 224)),
-            transforms.RandomResizedCrop(512),
+            transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
@@ -416,7 +416,7 @@ def main(args):
         #         return (image_0, image_1)
 
         transform_test = transforms.Compose([
-            transforms.Resize((512, 512)),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
