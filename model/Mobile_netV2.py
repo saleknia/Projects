@@ -298,28 +298,35 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt")
+        model.head.output_ops[0].op_list[0] = torch.nn.Identity()
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.up = nn.Upsample(scale_factor=4)
+        self.down1 = DownBlock(64 , 128, nb_Conv=2)
+        self.down2 = DownBlock(128, 256, nb_Conv=2)
+        self.down3 = DownBlock(256, 512, nb_Conv=2)
 
-        classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(8, stride=1)
+        self.fc_SEM  = nn.Linear(512, 67)
 
-        self.classifier = classifier 
+        # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
-        for param in self.classifier.blocks[0:5].parameters():
-            param.requires_grad = False
+        # self.classifier = classifier 
 
-        for param in self.classifier.conv_stem.parameters():
-            param.requires_grad = False
+        # for param in self.classifier.blocks[0:5].parameters():
+        #     param.requires_grad = False
 
-        self.classifier.classifier = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
-        )
+        # for param in self.classifier.conv_stem.parameters():
+        #     param.requires_grad = False
+
+        # self.classifier.classifier = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        # )
 
 
         #################################################################################
@@ -445,14 +452,15 @@ class Mobile_netV2(nn.Module):
 
         # if (not self.training):
 
-        y = self.model(x_in)
-        y = self.up(y)
-        y = (y.softmax(dim=1).argmax(dim=1) / 150.0).unsqueeze(dim=1)
-        y = torch.cat([y, y, y], dim=1)
+        x = self.model(x_in)
+        x = self.down1(x)
+        x = self.down2(x)
+        x = self.down3(x)
 
-        # print(y.shape)
-
-        x = self.classifier(y)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
             # x = torch.softmax(self.model(x_in), dim=1) 
 
@@ -490,6 +498,51 @@ class Mobile_netV2(nn.Module):
         #     return x, t
         # else:
         #     return x
+
+import torch.nn as nn
+import torch
+
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
+    else:
+        return nn.ReLU()
+
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+
+    for _ in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+    return nn.Sequential(*layers)
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU'):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels,
+                              kernel_size=3, padding=1)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
+
+class DownBlock(nn.Module):
+    """Downscaling with maxpool convolution"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(DownBlock, self).__init__()
+        self.maxpool = nn.MaxPool2d(2)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+    def forward(self, x):
+        out = self.maxpool(x)
+        return self.nConvs(out)
 
 class base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
