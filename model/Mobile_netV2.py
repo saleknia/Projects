@@ -297,14 +297,14 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt")
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.up = nn.Upsample(scale_factor=8)
+        self.up = nn.Upsample(scale_factor=4)
 
         classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
@@ -449,6 +449,8 @@ class Mobile_netV2(nn.Module):
         y = self.up(y)
         y = (y.softmax(dim=1).argmax(dim=1) / 150.0).unsqueeze(dim=1)
         y = torch.cat([y, y, y], dim=1)
+
+        # print(y.shape)
 
         x = self.classifier(y)
 
