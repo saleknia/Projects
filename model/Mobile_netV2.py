@@ -297,16 +297,16 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
+        model = create_seg_model(name="b1", dataset="ade20k", weight_url="/content/drive/MyDrive/b1.pt")
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.up = nn.Upsample(scale=8)
+        self.up = nn.Upsample(scale_factor=8)
 
-        classifier = timm.create_classifier('tf_efficientnet_b0', pretrained=True)
+        classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
 
         self.classifier = classifier 
 
