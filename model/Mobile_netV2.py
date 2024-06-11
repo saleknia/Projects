@@ -326,7 +326,7 @@ class Mobile_netV2(nn.Module):
         # self.up = nn.Upsample(scale_factor=4)
 
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.avgpool = nn.AvgPool2d(16, stride=1)
         self.fc_SEM  = nn.Linear(384, 67)
 
         # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
