@@ -382,12 +382,11 @@ class Mobile_netV2(nn.Module):
  
         self.tiny  = b3()
         self.small = mvit_small()
-
-        # self.base  = s()
+        self.base  = s()
 
         self.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
         )
 
     def forward(self, x_in):
@@ -396,14 +395,14 @@ class Mobile_netV2(nn.Module):
 
         # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
 
-        # x = self.base(x_in)
+        x = self.base(x_in)
         y = self.tiny(x_in)
         z = self.small(x_in)
 
         # print(y.shape)
         # print(z.shape)
 
-        x = torch.cat([y, z], dim=1)
+        x = torch.cat([x, y, z], dim=1)
 
         x = self.fc(x)
 
@@ -463,7 +462,7 @@ class b3(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(b3, self).__init__()
 
-        model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
@@ -473,25 +472,25 @@ class b3(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[8:10].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].op_list[8:10].parameters():
+        #     param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(512, 67)
+        self.fc_SEM  = nn.Linear(512, 256)
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b3.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b3.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
-        self.fc_SEM = nn.Identity()
+        # self.fc_SEM = nn.Identity()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -548,21 +547,21 @@ class small(nn.Module):
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+            nn.Linear(in_features=768, out_features=256, bias=True),
         )
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
-        self.model.head.fc = nn.Identity()
+        # self.model.head.fc = nn.Identity()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -682,20 +681,20 @@ class s(nn.Module):
 
         self.scene.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True),
+            nn.Linear(in_features=2048, out_features=256, bias=True),
         )
 
-        for param in self.scene.parameters():
-            param.requires_grad = False
+        # for param in self.scene.parameters():
+        #     param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # pretrained_teacher = {str.replace(k,'model.',''): v for k,v in pretrained_teacher.items()}
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
         # self.scene.fc = self.scene.fc[1]
 
@@ -704,7 +703,7 @@ class s(nn.Module):
 
         x = self.scene(x0)
 
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 class efficientnet_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -864,26 +863,26 @@ class mvit_small(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
         self.model.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+            nn.Linear(in_features=768, out_features=256, bias=True))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/small.pth', map_location='cpu')
+        # pretrained_teacher = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
 
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
-        self.model.head = nn.Identity()
+        # self.model.head = nn.Identity()
 
     def forward(self, x0):
         b, c, w, h = x0.shape
