@@ -241,7 +241,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[3].blocks[-1].parameters():
+        for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
         self.model.head = nn.Sequential(
@@ -267,7 +267,6 @@ class Mobile_netV2(nn.Module):
         # self.dropout = nn.Dropout(0.5)
         # self.avgpool = nn.AvgPool2d(14, stride=1)
         # self.fc_SEM  = nn.Linear(384, 67)
-
 
         #################################################################################
         #################################################################################
@@ -381,14 +380,20 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
  
-        # self.tiny  = mvit_tiny()
+        # self.tiny  = b3()
         # self.small = mvit_small()
-        # self.base  = mvit_base()
+        # self.base  = s()
 
 
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
+
+        # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
+
+        # x = self.base(x_in)
+        # y = self.tiny(x_in)
+        # z = self.small(x_in)
 
         # if (not self.training):
 
@@ -398,7 +403,9 @@ class Mobile_netV2(nn.Module):
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
+
         x = self.model(x_in)
+
             # x = torch.softmax(self.model(x_in), dim=1) 
 
             # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
@@ -436,50 +443,50 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-import torch.nn as nn
-import torch
+class b3(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(b3, self).__init__()
 
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
-    else:
-        return nn.ReLU()
+        model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
-    return nn.Sequential(*layers)
+        self.model = model
 
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
+        for param in self.model.stages[-1].op_list[8:10].parameters():
+            param.requires_grad = True
 
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(512, 67)
 
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b3.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
-    def forward(self, x):
-        out = self.maxpool(x)
-        return self.nConvs(out)
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
+
+        return torch.softmax(x, dim=1)
+
 
 class base(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -651,16 +658,15 @@ class s(nn.Module):
 
         scene.load_state_dict(state_dict)
 
-        self.scene    = scene
-        self.scene.fc = nn.Identity()
+        self.scene = scene
 
-        for param in self.scene.parameters():
-            param.requires_grad = False
-
-        self.fc = nn.Sequential(
+        self.scene.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=67, bias=True),
         )
+
+        for param in self.scene.parameters():
+            param.requires_grad = False
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
@@ -676,11 +682,9 @@ class s(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x_h = self.scene(x0)
-        x   = self.fc(x_h)
-        # x = self.scene(x0)
+        x = self.scene(x0)
 
-        return torch.softmax(x, dim=1), x_h
+        return torch.softmax(x, dim=1)
 
 class efficientnet_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -830,7 +834,7 @@ class mvit_base(nn.Module):
         return torch.softmax(x, dim=1)
 
 class mvit_small(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
+    def __init__(self, num_classes=67, pretrained=True):
         super(mvit_small, self).__init__()
 
         model = timm.create_model('mvitv2_small', pretrained=True)
