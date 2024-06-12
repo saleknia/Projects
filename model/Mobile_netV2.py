@@ -261,7 +261,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[6:10].parameters():
+        for param in self.model.stages[-1].op_list[4:10].parameters():
             param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
