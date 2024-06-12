@@ -405,6 +405,8 @@ class Mobile_netV2(nn.Module):
 
         x = torch.cat([y, z], dim=1)
 
+        x = self.fc(x)
+
         # print(x.shape)
 
         # if x.max() < 0.8:
