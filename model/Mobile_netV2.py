@@ -234,39 +234,39 @@ class Mobile_netV2(nn.Module):
         # #################################################################################
         # #################################################################################
 
-        # model = timm.create_model('mvitv2_small', pretrained=True)
-
-        # self.model = model
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        #################################################################################
-        #################################################################################
-
-        model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
-
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
+        model = timm.create_model('mvitv2_small', pretrained=True)
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[4:10].parameters():
+        for param in self.model.stages[3].parameters():
             param.requires_grad = True
 
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(512, 67)
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        #################################################################################
+        #################################################################################
+
+        # model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
+
+        # model.input_stem.op_list[0].conv.stride  = (1, 1)
+        # model.input_stem.op_list[0].conv.padding = (0, 0)
+
+        # self.model = model
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.model.stages[-1].op_list[4:10].parameters():
+        #     param.requires_grad = True
+
+        # self.dropout = nn.Dropout(0.5)
+        # self.avgpool = nn.AvgPool2d(14, stride=1)
+        # self.fc_SEM  = nn.Linear(512, 67)
 
         #################################################################################
         #################################################################################
@@ -397,14 +397,14 @@ class Mobile_netV2(nn.Module):
 
         # if (not self.training):
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
-
         # x = self.model(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
+
+        x = self.model(x_in)
 
             # x = torch.softmax(self.model(x_in), dim=1) 
 
