@@ -477,7 +477,7 @@ class b3(nn.Module):
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(512, 256)
+        self.fc_SEM  = nn.Linear(384, 256)
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
@@ -679,13 +679,15 @@ class s(nn.Module):
 
         self.scene = scene
 
+        for param in self.scene.parameters():
+            param.requires_grad = False
+
         self.scene.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=256, bias=True),
         )
 
-        # for param in self.scene.parameters():
-        #     param.requires_grad = False
+
 
         # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
         # pretrained_teacher = loaded_data_teacher['net']
