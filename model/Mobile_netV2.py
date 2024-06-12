@@ -234,19 +234,19 @@ class Mobile_netV2(nn.Module):
         # #################################################################################
         # #################################################################################
 
-        model = timm.create_model('mvitv2_small', pretrained=True)
+        # model = timm.create_model('mvitv2_small', pretrained=True)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        # self.model.head = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -261,7 +261,7 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.stages[-1].op_list[4:10].parameters():
+        # for param in self.model.stages[-1].op_list[6:10].parameters():
         #     param.requires_grad = True
 
         # self.dropout = nn.Dropout(0.5)
@@ -380,10 +380,15 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
  
-        # self.tiny  = b3()
-        # self.small = mvit_small()
+        self.tiny  = b3()
+        self.small = mvit_small()
+
         # self.base  = s()
 
+        self.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1280, out_features=num_classes, bias=True),
+        )
 
     def forward(self, x_in):
 
@@ -392,10 +397,19 @@ class Mobile_netV2(nn.Module):
         # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
 
         # x = self.base(x_in)
-        # y = self.tiny(x_in)
-        # z = self.small(x_in)
+        y = self.tiny(x_in)
+        z = self.small(x_in)
 
-        # if (not self.training):
+        # print(y.shape)
+        # print(z.shape)
+
+        x = torch.cat([y, z], dim=1)
+
+        # print(x.shape)
+
+        # if x.max() < 0.8:
+        #     self.count = self.count + 1.0
+        # x = (x + y + z) / 3.0
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -404,16 +418,16 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
+        # x = self.model(x_in)
 
             # x = torch.softmax(self.model(x_in), dim=1) 
 
             # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
 
-            # self.batch = self.batch + 1.0
+        # self.batch = self.batch + 1.0
 
-            # if self.batch == 1335:
-            #     print(self.count)
+        # if self.batch == 1335:
+        #     print(self.count)
 
             # xt = self.tiny(x_in) 
             # x  = xt
@@ -475,6 +489,8 @@ class b3(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
+        self.fc_SEM = nn.Identity()
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
@@ -485,7 +501,7 @@ class b3(nn.Module):
         x = self.dropout(x)
         x = self.fc_SEM(x)
 
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 class base(nn.Module):
@@ -544,12 +560,14 @@ class small(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
+        self.model.head.fc = nn.Identity()
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         x = self.model(x0)
 
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 
@@ -863,12 +881,14 @@ class mvit_small(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
+        self.model.head = nn.Identity()
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 class mvit_tiny(nn.Module):
