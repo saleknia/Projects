@@ -41,72 +41,26 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        # self.teacher = Mobile_netV2_teacher(num_classes=num_classes)
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint_base_next_89_38/Mobile_NetV2_MIT-67_best.pth', map_location='cuda')
-        # pretrained_teacher = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.teacher.load_state_dict(pretrained_teacher)
 
-        # for param in self.teacher.parameters():
-        #     param.requires_grad = False
+        scene = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
 
-        # scene = models.__dict__['resnet50'](num_classes=365)
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
-        # scene.load_state_dict(state_dict)
+        scene.load_state_dict(state_dict)
 
-        # for param in scene.parameters():
-        #     param.requires_grad = False
+        self.scene = scene
 
-        # print(scene)
+        for param in self.scene.parameters():
+            param.requires_grad = False
 
-        # scene.classifier =  nn.Identity()
+        for param in self.scene.layer4[-1].parameters():
+            param.requires_grad = True
 
-        # self.scene = scene
-
-        # self.scene.fc =  nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=2048, out_features=768, bias=True))
-
-        # self.scene.fc =  torch.nn.AdaptiveAvgPool1d(768)
-
-        # obj = timm.create_model('mvitv2_tiny', pretrained=True)
-        # for param in obj.parameters():
-        #     param.requires_grad = False
-        # self.obj = obj 
-        # self.obj.head = nn.Sequential(nn.Linear(in_features=768, out_features=224, bias=True))
-
-        # for i, module in enumerate(self.model.features.denseblock4):
-        #     if 20 <= i: 
-        #         for param in self.model.features.denseblock4[module].parameters():
-        #             param.requires_grad = True
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # self.scene = scene
-
-        # for param in self.scene.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.scene.layer4[-1].parameters():
-        #     param.requires_grad = True
-
-        # self.scene.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=768, bias=True))
-
-        # self.scene.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=2048, out_features=768, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768 , out_features=67 , bias=True),
-        # )
+        self.scene.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2048, out_features=num_classes, bias=True))
 
         ############################################################
         ############################################################
@@ -297,52 +251,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
+        # model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
 
-        # model.head.output_ops[0].op_list[0] = torch.nn.Identity()
+        # model.input_stem.op_list[0].conv.stride  = (1, 1)
+        # model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[-1].op_list[5:].parameters():
-            param.requires_grad = True
-
-        # for param in self.model.backbone.stages[-1].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        # base_channels = 96
-        # self.down1 = DownBlock(base_channels*1, base_channels*2, nb_Conv=2)
-        # self.down2 = DownBlock(base_channels*2, base_channels*4, nb_Conv=2)
-        # self.down3 = DownBlock(base_channels*4, base_channels*8, nb_Conv=2)
-        # self.down4 = DownBlock(512, 1024, nb_Conv=2)
-
-        # self.up = nn.Upsample(scale_factor=4)
-
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(384, 67)
-
-        # classifier = timm.create_model('tf_efficientnet_b0', pretrained=True)
-
-        # self.classifier = classifier 
-
-        # for param in self.classifier.blocks[0:5].parameters():
+        # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.classifier.conv_stem.parameters():
-        #     param.requires_grad = False
+        # for param in self.model.stages[-1].op_list[8:10].parameters():
+        #     param.requires_grad = True
 
-        # self.classifier.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True),
-        # )
+        # self.dropout = nn.Dropout(0.5)
+        # self.avgpool = nn.AvgPool2d(14, stride=1)
+        # self.fc_SEM  = nn.Linear(384, 67)
 
 
         #################################################################################
@@ -468,20 +392,13 @@ class Mobile_netV2(nn.Module):
 
         # if (not self.training):
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        # x = self.down1(x)
-        # x = self.down2(x)
-        # x = self.down3(x)
-        # x = self.down4(x)
-
-        # print(x.shape)
-
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
-
+        # x = self.model(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
+        x = self.scene(x_in)
             # x = torch.softmax(self.model(x_in), dim=1) 
 
             # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
