@@ -136,7 +136,7 @@ class Mobile_netV2(nn.Module):
         for param in self.obj.parameters():
             param.requires_grad = False
 
-        for param in self.obj.stages[-1].parameters():
+        for param in self.obj.stages[-1].blocks[-1].parameters():
             param.requires_grad = True
 
         self.obj.head.fc = nn.Sequential(
