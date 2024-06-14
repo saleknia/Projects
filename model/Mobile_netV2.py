@@ -1,4 +1,4 @@
-from re import S
+from re import S, X
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -121,12 +121,9 @@ class Mobile_netV2(nn.Module):
         for param in self.scene.parameters():
             param.requires_grad = False
 
-        for param in self.scene.layer4[-1].parameters():
-            param.requires_grad = True
-
         self.scene.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=96, bias=True),
+            nn.Linear(in_features=2048, out_features=256, bias=True),
         )
 
         obj = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
@@ -136,12 +133,9 @@ class Mobile_netV2(nn.Module):
         for param in self.obj.parameters():
             param.requires_grad = False
 
-        for param in self.obj.stages[-1].blocks[-1].parameters():
-            param.requires_grad = True
-
         self.obj.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=96, bias=True),
+            nn.Linear(in_features=768, out_features=256, bias=True),
         )
 
         seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
@@ -156,19 +150,18 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
-        for param in self.seg.head.parameters():
-            param.requires_grad = True
-
-        for param in self.seg.backbone.stages[-1].op_list[-2:].parameters():
-            param.requires_grad = True
-
         self.down1 = DownBlock(96 , 192, nb_Conv=2)
         self.down2 = DownBlock(192, 384, nb_Conv=2)
         self.down3 = DownBlock(384, 768, nb_Conv=2)
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc_SEM  = nn.Linear(768, 67)
+        self.fc_SEM  = nn.Linear(768, 256)
+
+        self.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
         #################################################################################
         #################################################################################
@@ -349,20 +342,23 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x_in.shape
 
-        seg   = self.seg(x_in).softmax(dim=1)
-        obj   = self.obj(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
-        scene = self.scene(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
+        seg = self.seg(x_in)
+        seg = self.down1(seg)
+        seg = self.down2(seg)
+        seg = self.down3(seg)
+        seg = self.avgpool(seg)
+        seg = seg.view(seg.size(0), -1)
+        seg = self.dropout(seg)
+        seg = self.fc_SEM(seg).softmax(dim=1)
 
-        x = seg + obj + scene
+        obj   = self.obj(x_in).softmax(dim=1)
+        scene = self.scene(x_in).softmax(dim=1)
 
-        x = self.down1(x)
-        x = self.down2(x)
-        x = self.down3(x)
+        x = torch.cat([seg, obj, scene], dim=1)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        x = self.fc(x)
+
+
 
         # x = self.model(x_in)
         # x = x['stage_final']
