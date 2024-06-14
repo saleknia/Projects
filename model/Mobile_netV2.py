@@ -159,7 +159,7 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.head.parameters():
             param.requires_grad = True
 
-        for param in self.model.stages[-1].op_list[-2:].parameters():
+        for param in self.seg.backbone.stages[-1].op_list[-2:].parameters():
             param.requires_grad = True
 
         self.down1 = DownBlock(96 , 192, nb_Conv=2)
@@ -353,7 +353,7 @@ class Mobile_netV2(nn.Module):
         obj   = self.obj(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
         scene = self.scene(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
 
-        x = torch.cat([seg, obj, scene], dim=1)
+        x = seg + obj + scene
 
         x = self.down1(x)
         x = self.down2(x)
