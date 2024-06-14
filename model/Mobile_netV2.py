@@ -110,104 +110,41 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        # self.features[0][0].stride = (1, 1)
+        scene      = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        # model = resnet18(num_classes=365)
+        scene.load_state_dict(state_dict)
 
-        # model = models.__dict__['resnet50'](num_classes=365)
+        self.scene = scene
 
-        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model.load_state_dict(state_dict)
-        # self.teacher = model 
+        for param in self.scene.parameters():
+            param.requires_grad = False
 
-        # model = models.__dict__['densenet161'](num_classes=365)
+        self.scene.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=96, bias=True),
+        )
 
-        # checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
-        # state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
-        # model.load_state_dict(state_dict)
-        
-        # self.model_sce = model
-        # self.model_seg = ModelBuilder.build_encoder(arch='resnet50', fc_dim=2048, weights='/content/encoder_epoch_30.pth')
-        # self.model_obj = torchvision.models.resnet50(weights='DEFAULT')
+        obj = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
+        self.obj = obj 
 
-        # for param in self.model_sce.parameters():
-        #     param.requires_grad = False
+        for param in self.obj.parameters():
+            param.requires_grad = False
 
-        # for param in self.model_seg.parameters():
-        #     param.requires_grad = False
+        self.obj.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=96, bias=True),
+        )
 
-        # for param in self.model_obj.parameters():
-        #     param.requires_grad = False
+        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        # for param in self.model_sce.layer4[-1].parameters():
-        #     param.requires_grad = True
+        seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        seg.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # model = resnet18(num_classes=365)
+        self.seg = seg
 
-        # checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
-        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-        # model.load_state_dict(state_dict)
-
-        # hacky way to deal with the upgraded batchnorm2D and avgpool layers...
-
-        # for i, (name, module) in enumerate(model._modules.items()):
-        #     module = recursion_change_bn(model)
-
-        # model.avgpool = torch.nn.AvgPool2d(kernel_size=14, stride=1, padding=0)
-
-        # print(model_seg)
-        # print(model_place)
-
-        # self.model   = model
-        # self.model.conv1.stride = (1, 1)
-        # self.avgpool = torch.nn.AvgPool2d(kernel_size=28, stride=1, padding=0)
-
-        # self.model_place = model_place
-        # self.model_seg   = model_seg
-        # self.model_cls   = model_cls
-
-        # print(model)
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.features.denseblock4.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model_cls.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.layer4.parameters():
-        #     param.requires_grad = True
-
-        # self.model.classifier[5] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=512, out_features=num_classes, bias=True))
-
-        # self.avgpool = model.avgpool
-
-        # # self.avgpool = nn.AdaptiveAvgPool2d(output_size=(1, 1)) 
-
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=num_classes, bias=True))
-
-        # self.classifier = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1280, out_features=512, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=512, out_features=256, bias=True),
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=256, out_features=num_classes, bias=True),
-        # )
-
-        # state_dict = torch.load('/content/drive/MyDrive/checkpoint_1/Mobile_NetV2_MIT-67_best.pth', map_location='cpu')['net']
-        # self.load_state_dict(state_dict)
 
         #################################################################################
         #################################################################################
@@ -380,9 +317,9 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
  
-        self.tiny  = b3()
-        self.small = mvit_small()
-        self.base  = s()
+        # self.tiny  = b3()
+        # self.small = mvit_small()
+        # self.base  = s()
 
         self.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
