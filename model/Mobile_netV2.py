@@ -121,6 +121,9 @@ class Mobile_netV2(nn.Module):
         for param in self.scene.parameters():
             param.requires_grad = False
 
+        for param in self.scene.layer4[-1].parameters():
+            param.requires_grad = True
+
         self.scene.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2048, out_features=96, bias=True),
@@ -132,6 +135,9 @@ class Mobile_netV2(nn.Module):
 
         for param in self.obj.parameters():
             param.requires_grad = False
+
+        for param in self.obj.stages[-1].parameters():
+            param.requires_grad = True
 
         self.obj.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -150,11 +156,15 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
+        for param in self.seg.head.parameters():
+            param.requires_grad = True
+
+        for param in self.model.stages[-1].op_list[-2:].parameters():
+            param.requires_grad = True
+
         self.down1 = DownBlock(96 , 192, nb_Conv=2)
         self.down2 = DownBlock(192, 384, nb_Conv=2)
         self.down3 = DownBlock(384, 768, nb_Conv=2)
-
-        self.fuse = ConvBatchNorm(in_channels=96*3, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(7, stride=1)
@@ -343,7 +353,7 @@ class Mobile_netV2(nn.Module):
         obj   = self.obj(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
         scene = self.scene(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
 
-        x = self.fuse(torch.cat([seg, obj, scene], dim=1))
+        x = torch.cat([seg, obj, scene], dim=1)
 
         x = self.down1(x)
         x = self.down2(x)
