@@ -138,13 +138,25 @@ class Mobile_netV2(nn.Module):
             nn.Linear(in_features=768, out_features=96, bias=True),
         )
 
-        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
-        seg.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.input_stem.op_list[0].conv.padding = (0, 0)
+        seg.backbone.input_stem.op_list[0].conv.stride  = (1, 1)
+        seg.backbone.input_stem.op_list[0].conv.padding = (0, 0)
+
+        seg.head.output_ops[0].op_list[0] = nn.Identity()
 
         self.seg = seg
 
+        for param in self.seg.parameters():
+            param.requires_grad = False
+
+        self.down1 = DownBlock(96 , 192, nb_Conv=2)
+        self.down2 = DownBlock(192, 384, nb_Conv=2)
+        self.down3 = DownBlock(384, 768, nb_Conv=2)
+
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(7, stride=1)
+        self.fc_SEM  = nn.Linear(768, 67)
 
         #################################################################################
         #################################################################################
@@ -321,33 +333,24 @@ class Mobile_netV2(nn.Module):
         # self.small = mvit_small()
         # self.base  = s()
 
-        self.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
 
-        # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
+        seg   = self.seg(x_in).softmax(dim=1)
+        obj   = self.obj(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
+        scene = self.scene(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
 
-        x = self.base(x_in)
-        y = self.tiny(x_in)
-        z = self.small(x_in)
+        x = seg + obj + scene
 
-        # print(y.shape)
-        # print(z.shape)
+        x = self.down1(x)
+        x = self.down2(x)
+        x = self.down3(x)
 
-        x = torch.cat([x, y, z], dim=1)
-
-        x = self.fc(x)
-
-        # print(x.shape)
-
-        # if x.max() < 0.8:
-        #     self.count = self.count + 1.0
-        # x = (x + y + z) / 3.0
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -394,6 +397,48 @@ class Mobile_netV2(nn.Module):
         #     return x, t
         # else:
         #     return x
+
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
+    else:
+        return nn.ReLU()
+
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+
+    for _ in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+    return nn.Sequential(*layers)
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU'):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels,
+                              kernel_size=3, padding=1)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
+
+class DownBlock(nn.Module):
+    """Downscaling with maxpool convolution"""
+
+    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
+        super(DownBlock, self).__init__()
+        self.maxpool = nn.MaxPool2d(2)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+
+    def forward(self, x):
+        out = self.maxpool(x)
+        return self.nConvs(out)
 
 class b3(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
