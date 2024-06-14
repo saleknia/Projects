@@ -110,33 +110,33 @@ class Mobile_netV2(nn.Module):
         ############################################################
         ############################################################
 
-        scene      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # scene      = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        scene.load_state_dict(state_dict)
+        # scene.load_state_dict(state_dict)
 
-        self.scene = scene
+        # self.scene = scene
 
-        for param in self.scene.parameters():
-            param.requires_grad = False
+        # for param in self.scene.parameters():
+        #     param.requires_grad = False
 
-        self.scene.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=256, bias=True),
-        )
+        # self.scene.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=256, bias=True),
+        # )
 
-        obj = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        # obj = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
-        self.obj = obj 
+        # self.obj = obj 
 
-        for param in self.obj.parameters():
-            param.requires_grad = False
+        # for param in self.obj.parameters():
+        #     param.requires_grad = False
 
-        self.obj.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=256, bias=True),
-        )
+        # self.obj.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=256, bias=True),
+        # )
 
         seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
@@ -150,18 +150,9 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
-        self.down1 = DownBlock(96 , 192, nb_Conv=2)
-        self.down2 = DownBlock(192, 384, nb_Conv=2)
-        self.down3 = DownBlock(384, 768, nb_Conv=2)
-
+        self.avgpool = nn.AvgPool2d(14, stride=14)
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(7, stride=1)
-        self.fc_SEM  = nn.Linear(768, 256)
-
-        self.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        self.fc_SEM  = nn.Linear(1536, num_classes)
 
         #################################################################################
         #################################################################################
@@ -342,23 +333,11 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x_in.shape
 
-        seg = self.seg(x_in)
-        seg = self.down1(seg)
-        seg = self.down2(seg)
-        seg = self.down3(seg)
-        seg = self.avgpool(seg)
-        seg = seg.view(seg.size(0), -1)
-        seg = self.dropout(seg)
-        seg = self.fc_SEM(seg).softmax(dim=1)
-
-        obj   = self.obj(x_in).softmax(dim=1)
-        scene = self.scene(x_in).softmax(dim=1)
-
-        x = torch.cat([seg, obj, scene], dim=1)
-
-        x = self.fc(x)
-
-
+        x = self.seg(x_in)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model(x_in)
         # x = x['stage_final']
