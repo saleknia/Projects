@@ -154,6 +154,8 @@ class Mobile_netV2(nn.Module):
         self.down2 = DownBlock(192, 384, nb_Conv=2)
         self.down3 = DownBlock(384, 768, nb_Conv=2)
 
+        self.fuse = ConvBatchNorm(in_channels=96*3, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(7, stride=1)
         self.fc_SEM  = nn.Linear(768, 67)
@@ -341,7 +343,7 @@ class Mobile_netV2(nn.Module):
         obj   = self.obj(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
         scene = self.scene(x_in).softmax(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(seg)
 
-        x = seg + obj + scene
+        x = self.fuse(torch.cat([seg, obj, scene], dim=1))
 
         x = self.down1(x)
         x = self.down2(x)
@@ -416,10 +418,9 @@ def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU'):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=3, padding=1)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
