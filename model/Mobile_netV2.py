@@ -154,12 +154,12 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.head.parameters():
             param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-1].op_list[-4:].parameters():
+        for param in self.seg.backbone.stages[-1].op_list[:].parameters():
             param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(8, stride=8)
+        self.avgpool = nn.AvgPool2d(14, stride=14)
         self.dropout = nn.Dropout(0.5)
-        self.fc_SEM  = nn.Linear(4704, num_classes)
+        self.fc_SEM  = nn.Linear(1536, num_classes)
 
         #################################################################################
         #################################################################################
