@@ -154,7 +154,7 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.head.parameters():
             param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-1].op_list[-4:].parameters():
+        for param in self.seg.backbone.stages[-1].op_list[:].parameters():
             param.requires_grad = True
 
         self.avgpool = nn.AvgPool2d(7, stride=7)
