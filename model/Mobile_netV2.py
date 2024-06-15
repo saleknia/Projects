@@ -143,8 +143,8 @@ class Mobile_netV2(nn.Module):
         seg.backbone.input_stem.op_list[0].conv.stride  = (1, 1)
         seg.backbone.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # seg.head.output_ops[0].op_list[0] = nn.Identity()
-        seg.head.output_ops[0].op_list[0] = nn.Conv2d(96, 32, kernel_size=(1, 1), stride=(1, 1))
+        seg.head.output_ops[0].op_list[0] = nn.Identity()
+        # seg.head.output_ops[0].op_list[0] = nn.Conv2d(96, 32, kernel_size=(1, 1), stride=(1, 1))
 
         self.seg = seg
 
@@ -154,12 +154,12 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.head.parameters():
             param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-1].op_list[:].parameters():
+        for param in self.seg.backbone.stages[-1].op_list[-4:].parameters():
             param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(7, stride=7)
+        self.avgpool = nn.AvgPool2d(8, stride=8)
         self.dropout = nn.Dropout(0.5)
-        self.fc_SEM  = nn.Linear(2048, num_classes)
+        self.fc_SEM  = nn.Linear(4704, num_classes)
 
         #################################################################################
         #################################################################################
