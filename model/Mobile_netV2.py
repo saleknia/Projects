@@ -140,8 +140,8 @@ class Mobile_netV2(nn.Module):
 
         seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        seg.backbone.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.backbone.input_stem.op_list[0].conv.padding = (0, 0)
+        seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        seg.input_stem.op_list[0].conv.padding = (0, 0)
 
         # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
@@ -341,18 +341,18 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x_in.shape
 
-        x = self.seg(x_in)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
-
-        # x = self.model(x_in)
-        # x = x['stage_final']
+        # x = self.seg(x_in)
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
+
+        x = self.seg(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model(x_in)
 
