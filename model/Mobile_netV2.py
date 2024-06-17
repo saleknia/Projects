@@ -140,8 +140,8 @@ class Mobile_netV2(nn.Module):
 
         seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
-        seg.backbone.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.backbone.input_stem.op_list[0].conv.padding = (0, 0)
+        # seg.backbone.input_stem.op_list[0].conv.stride  = (1, 1)
+        # seg.backbone.input_stem.op_list[0].conv.padding = (0, 0)
 
         # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
@@ -158,7 +158,7 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.backbone.stages[-1].op_list[-4:].parameters():
             param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(14, stride=14)
+        self.avgpool = nn.AvgPool2d(16, stride=16)
         self.dropout = nn.Dropout(0.5)
         self.fc_SEM  = nn.Linear(2400, num_classes)
 
