@@ -155,10 +155,10 @@ class Mobile_netV2(nn.Module):
         # for param in self.seg.head.parameters():
         #     param.requires_grad = True
 
-        for param in self.seg.stages[-1].op_list[-3:].parameters():
+        for param in self.seg.stages[-1].op_list[-4:].parameters():
             param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(7, stride=7)
+        self.avgpool = nn.AvgPool2d(14, stride=14)
         self.dropout = nn.Dropout(0.5)
         self.fc_SEM  = nn.Linear(384, num_classes)
 

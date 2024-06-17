@@ -100,9 +100,10 @@ task_table = tabulate(
                     )
 
 print(task_table)
-task_id = input('Enter Task ID:  ')
-assert (task_id in task_ids),'ID is Incorrect.'
-task_id = int(task_id)
+# task_id = input('Enter Task ID:  ')
+# assert (task_id in task_ids),'ID is Incorrect.'
+# task_id = int(task_id)
+task_id = 15
 
 if task_id==1:
     NUM_CLASS = 3
@@ -218,9 +219,10 @@ model_table = tabulate(
                     )
 
 print(model_table)
-model_id = input('Enter Model ID:  ')
-assert (model_id in model_ids),'ID is Incorrect.'
-model_id = int(model_id)
+# model_id = input('Enter Model ID:  ')
+# assert (model_id in model_ids),'ID is Incorrect.'
+# model_id = int(model_id)
+model_id = 19
 
 
 if model_id==1:
