@@ -36,22 +36,7 @@ transform_test = transforms.Compose([
 from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
-class teacher(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(teacher, self).__init__()
 
-        self.b0 = maxvit()
-        self.b1 = mvit_tiny()
-        self.b2 = convnext_tiny()
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-
-        x = (self.b0(x0) + self.b1(x0) + self.b2(x0)) / 3.0
-
-        return x
-
-teacher = teacher()
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -392,7 +377,7 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model(x_in)
-        t = self.teacher(x_in)
+        t = teacher(x_in)
 
         # x = self.b0(x_in) + self.b1(x_in) + self.b2(x_in)
  
@@ -1429,7 +1414,22 @@ class Mobile_netV2_teacher(nn.Module):
 
 
 
+class teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(teacher, self).__init__()
 
+        self.b0 = maxvit()
+        self.b1 = mvit_tiny()
+        self.b2 = convnext_tiny()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = (self.b0(x0) + self.b1(x0) + self.b2(x0)) / 3.0
+
+        return x
+
+teacher = teacher().cuda()
 
 
 
