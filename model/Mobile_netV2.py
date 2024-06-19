@@ -36,6 +36,22 @@ transform_test = transforms.Compose([
 from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
+class teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(teacher, self).__init__()
+
+        self.b0 = maxvit()
+        self.b1 = mvit_tiny()
+        self.b2 = convnext_tiny()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = (self.b0(x0) + self.b1(x0) + self.b2(x0)) / 3.0
+
+        return x
+
+teacher = teacher()
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -354,9 +370,9 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
  
-        # self.tiny  = b3()
-        # self.small = mvit_small()
-        # self.base  = s()
+        # self.b0 = maxvit()
+        # self.b1 = mvit_tiny()
+        # self.b2 = convnext_tiny()
 
     def forward(self, x_in):
 
@@ -376,7 +392,10 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model(x_in)
+        t = self.teacher(x_in)
 
+        # x = self.b0(x_in) + self.b1(x_in) + self.b2(x_in)
+ 
             # x = torch.softmax(self.model(x_in), dim=1) 
 
             # x = (self.tiny(x_in) + self.small(x_in) + self.base(x_in)) / 3.0
@@ -407,53 +426,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, t
-        # else:
-        #     return x
-
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
-    else:
-        return nn.ReLU()
-
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
-
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
-    return nn.Sequential(*layers)
-
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
-
-class DownBlock(nn.Module):
-    """Downscaling with maxpool convolution"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv, activation='ReLU'):
-        super(DownBlock, self).__init__()
-        self.maxpool = nn.MaxPool2d(2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-
-    def forward(self, x):
-        out = self.maxpool(x)
-        return self.nConvs(out)
+        if self.training:
+            return x, t
+        else:
+            return x
 
 class b3(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -502,23 +480,32 @@ class b3(nn.Module):
         return x # torch.softmax(x, dim=1)
 
 
-class base(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(base, self).__init__()
-
-        model = timm.create_model('timm/convnext_base.fb_in1k', pretrained=True)
+class maxvit(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(maxvit, self).__init__()
+  
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
         self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1024, out_features=num_classes, bias=True),
-        )
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/base.pth', map_location='cpu')
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/maxvit.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -897,7 +884,7 @@ class mvit_tiny(nn.Module):
 
         model = timm.create_model('mvitv2_tiny', pretrained=True)
 
-        self.model = model 
+        self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -912,7 +899,7 @@ class mvit_tiny(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
@@ -1012,16 +999,17 @@ class convnext_small(nn.Module):
         return x # torch.softmax(x, dim=1)
 
 class convnext_tiny(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=40, pretrained=True):
         super(convnext_tiny, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
-        self.model.head.fc     = nn.Sequential(nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        self.model.head.drop.p = 0.0
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -1036,7 +1024,7 @@ class convnext_tiny(nn.Module):
             param.requires_grad = False
 
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next_tiny.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
