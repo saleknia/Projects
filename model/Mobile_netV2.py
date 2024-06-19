@@ -138,29 +138,29 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        seg.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.input_stem.op_list[0].conv.padding = (0, 0)
+        # seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        # seg.input_stem.op_list[0].conv.padding = (0, 0)
 
         # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
         # self.fusion = nn.Conv2d(150, , kernel_size=(1, 1), stride=(1, 1))
 
-        self.seg = seg
+        # self.seg = seg
 
-        for param in self.seg.parameters():
-            param.requires_grad = False
+        # for param in self.seg.parameters():
+        #     param.requires_grad = False
 
         # for param in self.seg.head.parameters():
         #     param.requires_grad = True
 
-        for param in self.seg.stages[-1].op_list[-2:].parameters():
-            param.requires_grad = True
+        # for param in self.seg.stages[-1].op_list[-2:].parameters():
+        #     param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(14, stride=14)
-        self.dropout = nn.Dropout(0.5)
-        self.fc_SEM  = nn.Linear(384, num_classes)
+        # self.avgpool = nn.AvgPool2d(14, stride=14)
+        # self.dropout = nn.Dropout(0.5)
+        # self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -347,14 +347,14 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.seg(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        # x = self.seg(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
 
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
             # x = torch.softmax(self.model(x_in), dim=1) 
 
