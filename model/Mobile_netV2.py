@@ -272,7 +272,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = False
 
         self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
+            nn.Dropout(p=0.5, inplace=False),
             nn.Linear(in_features=512, out_features=num_classes, bias=True),
         )
 
