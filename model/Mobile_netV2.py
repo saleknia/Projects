@@ -388,7 +388,9 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model(x_in)
-        t = self.teacher(x_in)
+
+        if self.training:
+            t = self.teacher(x_in)
 
         # x = self.b0(x_in) + self.b1(x_in) + self.b2(x_in)
  
