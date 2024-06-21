@@ -537,7 +537,7 @@ class maxvit_model(nn.Module):
 
         x = self.model(x0)
 
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 class small(nn.Module):
@@ -932,7 +932,7 @@ class mvit_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 class mvit_teacher(nn.Module):
@@ -1056,7 +1056,7 @@ class convnext_tiny(nn.Module):
 
         x = self.model(x0)
         # x = self.classifier(x)
-        return torch.softmax(x, dim=1)
+        return x # torch.softmax(x, dim=1)
 
 
 
