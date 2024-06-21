@@ -359,6 +359,17 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/maxvit.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
+
+        self.teacher = teacher_ensemble()
+
+
     def forward(self, x_in):
 
         b, c, w, h = x_in.shape
@@ -377,7 +388,7 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model(x_in)
-        t = teacher(x_in)
+        t = self.teacher(x_in)
 
         # x = self.b0(x_in) + self.b1(x_in) + self.b2(x_in)
  
@@ -417,6 +428,27 @@ class Mobile_netV2(nn.Module):
             return x, t
         else:
             return x
+
+
+class teacher_ensemble(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(teacher_ensemble, self).__init__()
+
+        self.b0 = maxvit_model()
+        self.b1 = mvit_tiny()
+        self.b2 = convnext_tiny()
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        a = self.b0(x0)
+        b = self.b1(x0)
+        c = self.b2(x0) 
+
+        x = (a + b + c) / 3.0
+
+        return x
+
 
 class b3(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -465,9 +497,9 @@ class b3(nn.Module):
         return x # torch.softmax(x, dim=1)
 
 
-class maxvit(nn.Module):
+class maxvit_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
-        super(maxvit, self).__init__()
+        super(maxvit_model, self).__init__()
   
         model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
@@ -1414,22 +1446,6 @@ class Mobile_netV2_teacher(nn.Module):
 
 
 
-class teacher(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(teacher, self).__init__()
-
-        self.b0 = maxvit()
-        self.b1 = mvit_tiny()
-        self.b2 = convnext_tiny()
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-
-        x = (self.b0(x0) + self.b1(x0) + self.b2(x0)) / 3.0
-
-        return x
-
-teacher = teacher().cuda()
 
 
 
