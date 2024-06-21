@@ -244,28 +244,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        # self.model = model 
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
-
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
-        #################################################################################
-        #################################################################################
-
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
@@ -273,8 +252,8 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = False
 
         self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
@@ -282,6 +261,27 @@ class Mobile_netV2(nn.Module):
 
         for param in self.model.head.parameters():
             param.requires_grad = True
+
+        #################################################################################
+        #################################################################################
+
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+
+        # self.model = model 
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # )
+
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
+
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # #################################################################################
         # #################################################################################
