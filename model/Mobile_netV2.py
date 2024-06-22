@@ -450,11 +450,24 @@ class teacher_ensemble(nn.Module):
         self.b1 = mvit_tiny()
         self.b2 = convnext_tiny()
 
-        self.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=768, out_features=40, bias=True),
-        )
+        model = efficientnet_b0(weights=EfficientNet_B0_Weights)
 
+        # model.features[0][0].stride = (1, 1)
+
+        self.model = model
+        # self.avgpool = model.avgpool
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.features[5:].parameters():
+            param.requires_grad = True
+
+        self.model.classifier = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=1280, out_features=3, bias=True),
+            nn.Sigmoid()
+        )
     def forward(self, x0):
         b, c, w, h = x0.shape
 
@@ -462,13 +475,15 @@ class teacher_ensemble(nn.Module):
         b = self.b1(x0)
         c = self.b2(x0) 
 
-        # a = torch.softmax(a, dim=1)
-        # b = torch.softmax(b, dim=1)
-        # c = torch.softmax(c, dim=1)
+        a = torch.softmax(a, dim=1)
+        b = torch.softmax(b, dim=1)
+        c = torch.softmax(c, dim=1)
 
-        x = torch.cat([a, b, c], dim=1)
+        w = self.model(x0)
 
-        x = self.fc(x)
+        a = a * w[:,0]
+        b = b * w[:,0]
+        c = c * w[:,0]
 
         return x
 
@@ -552,11 +567,6 @@ class maxvit_model(nn.Module):
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=256, bias=True),
-        )
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -953,10 +963,6 @@ class mvit_tiny(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-        self.model.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=256, bias=True))
-
     def forward(self, x0):
         b, c, w, h = x0.shape
 
@@ -1080,11 +1086,6 @@ class convnext_tiny(nn.Module):
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=256, bias=True),
-        )
 
     def forward(self, x0):
         b, c, w, h = x0.shape
