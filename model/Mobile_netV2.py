@@ -475,9 +475,9 @@ class teacher_ensemble(nn.Module):
         b = self.b1(x0)
         c = self.b2(x0) 
 
-        a = torch.softmax(a, dim=1)
-        b = torch.softmax(b, dim=1)
-        c = torch.softmax(c, dim=1)
+        # a = torch.softmax(a, dim=1)
+        # b = torch.softmax(b, dim=1)
+        # c = torch.softmax(c, dim=1)
 
         w = self.model(x0)
 
