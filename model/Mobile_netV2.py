@@ -144,25 +144,27 @@ class Mobile_netV2(nn.Module):
         # seg.input_stem.op_list[0].conv.stride  = (1, 1)
         # seg.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # seg.head.output_ops[0].op_list[0] = nn.Identity()
+        # # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
-        # self.fusion = nn.Conv2d(150, , kernel_size=(1, 1), stride=(1, 1))
+        # # self.fusion = nn.Conv2d(150, , kernel_size=(1, 1), stride=(1, 1))
 
         # self.seg = seg
 
         # for param in self.seg.parameters():
         #     param.requires_grad = False
 
-        # for param in self.seg.head.parameters():
-        #     param.requires_grad = True
+        # # for param in self.seg.head.parameters():
+        # #     param.requires_grad = True
 
-        # for param in self.seg.stages[-1].op_list[-2:].parameters():
-        #     param.requires_grad = True
+        # # for param in self.seg.stages[-1].op_list[-2:].parameters():
+        # #     param.requires_grad = True
 
         # self.avgpool = nn.AvgPool2d(14, stride=14)
-        # self.dropout = nn.Dropout(0.5)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
-
+        # # self.dropout = nn.Dropout(0.5)
+        # self.fc_SEM  = nn.Sequential(
+        #     nn.Linear(in_features=384, out_features=256, bias=True),
+        #     nn.Sigmoid()
+        # )
         #################################################################################
         #################################################################################
 
@@ -265,23 +267,28 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     # nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=256, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
+
+        # self.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=256, out_features=num_classes, bias=True),
+        # )
 
         # #################################################################################
         # #################################################################################
@@ -367,7 +374,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        # self.teacher = teacher_ensemble()
+        self.teacher = teacher_ensemble()
 
 
     def forward(self, x_in):
@@ -387,7 +394,10 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
+        x = self.teacher(x_in)
+
+        # x = x * y
+        # x = self.fc(x)
 
         # if self.training:
         # t = self.teacher(x_in)
@@ -440,6 +450,11 @@ class teacher_ensemble(nn.Module):
         self.b1 = mvit_tiny()
         self.b2 = convnext_tiny()
 
+        self.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=768, out_features=40, bias=True),
+        )
+
     def forward(self, x0):
         b, c, w, h = x0.shape
 
@@ -447,11 +462,13 @@ class teacher_ensemble(nn.Module):
         b = self.b1(x0)
         c = self.b2(x0) 
 
-        a = torch.softmax(a, dim=1)
-        b = torch.softmax(b, dim=1)
-        c = torch.softmax(c, dim=1)
+        # a = torch.softmax(a, dim=1)
+        # b = torch.softmax(b, dim=1)
+        # c = torch.softmax(c, dim=1)
 
-        x = (a + b + c) / 3.0
+        x = torch.cat([a, b, c], dim=1)
+
+        x = self.fc(x)
 
         return x
 
@@ -528,13 +545,18 @@ class maxvit_model(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/maxvit_d.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/maxvit.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=512, out_features=256, bias=True),
+        )
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -922,7 +944,7 @@ class mvit_tiny(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit_d.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
 
@@ -930,6 +952,10 @@ class mvit_tiny(nn.Module):
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
+
+        self.model.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=256, bias=True))
 
     def forward(self, x0):
         b, c, w, h = x0.shape
@@ -1054,6 +1080,11 @@ class convnext_tiny(nn.Module):
             if 'teacher' in key:
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=256, bias=True),
+        )
 
     def forward(self, x0):
         b, c, w, h = x0.shape
