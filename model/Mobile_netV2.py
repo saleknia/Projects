@@ -394,10 +394,10 @@ class Mobile_netV2(nn.Module):
 
         x = self.model(x_in)
 
-        alpha = torch.randint(high=7, size=(1,1))[0][0]
-        beta  = torch.randint(high=7, size=(1,1))[0][0]
-
-        x = x[:, :, alpha:alpha+1, beta:beta+1]
+        if self.training:
+            alpha = torch.randint(high=7, size=(1,1))[0][0]
+            beta  = torch.randint(high=7, size=(1,1))[0][0]
+            x = x[:, :, alpha:alpha+1, beta:beta+1]
 
         x = self.head(x)
 
