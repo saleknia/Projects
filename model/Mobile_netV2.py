@@ -141,17 +141,20 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        self.model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True, features_only=True, out_indices=[2])
-        self.head  = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True).head
-        self.head.norm = LayerNorm2d(num_channels=384)
+        self.model = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.head  = timm.create_model('timm/convnextv2_base.fcmae_ft_in1k', pretrained=True).head
+        self.head.norm = LayerNorm2d(num_channels=512)
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=512, out_features=num_classes, bias=True),
                 )
 
         for param in self.model.parameters():
             param.requires_grad = False
+
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
