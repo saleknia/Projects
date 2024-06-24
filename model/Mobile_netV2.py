@@ -12,6 +12,8 @@ from torchvision.models import resnet50, efficientnet_b4, EfficientNet_B4_Weight
 from torch.nn import init
 from .Mobile_netV2_loss import Mobile_netV2_loss
 
+from timm.layers import LayerNorm2d
+
 import torch
 from torch.autograd import Variable as V
 import torchvision.models as models
@@ -127,17 +129,29 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=2048, out_features=256, bias=True),
         # )
 
-        # obj = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True)
 
-        # self.obj = obj 
+        # self.model = model 
 
-        # for param in self.obj.parameters():
+        # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # self.obj.head.fc = nn.Sequential(
+        # self.model.head.fc = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
+
+        self.model = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.head  = timm.create_model('timm/convnextv2_tiny.fcmae_ft_in1k', pretrained=True).head
+        self.head.norm = LayerNorm2d(num_channels=384)
+        
+        self.head.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
+                )
+
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -267,26 +281,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        self.model = model 
-        self.head  = model.head
+        # self.model = model 
+        # self.head  = model.head
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head = nn.Identity()
+        # self.model.head = nn.Identity()
 
-        self.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
+        # self.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         # #################################################################################
         # #################################################################################
@@ -392,13 +406,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
-
-        if self.training:
-            alpha = torch.randint(high=7, size=(1,1))[0][0]
-            beta  = torch.randint(high=7, size=(1,1))[0][0]
-            x = x[:, :, alpha:alpha+1, beta:beta+1]
-
+        x = self.model(x_in)[0]
         x = self.head(x)
 
         # x = x * y
