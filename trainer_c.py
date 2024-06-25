@@ -245,8 +245,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         if KD:
             # loss_ce = ce_loss(outputs, outputs_t)
-            T = 1.0
-            loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
+            # T = 1.0
+            # loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
+            loss_ce = ce_loss(outputs, targets.long()) + ce_loss(outputs_t, targets.long())
         else:
             loss_ce = ce_loss(outputs, targets.long()) # loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
 
@@ -262,7 +263,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # metric.update(predictions, targets.long())
 
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+        if KD:
+            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+        else:
+            temp = 0.5 * (torch.softmax(outputs.clone().detach(), dim=1) + torch.softmax(outputs_t.clone().detach(), dim=1))
+            accuracy.add(temp, torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
 
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 

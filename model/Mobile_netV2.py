@@ -161,11 +161,11 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -392,13 +392,13 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/maxvit.pth', map_location='cpu')
-        # pretrained_teacher  = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
         # self.teacher = maxvit_model()
 
@@ -422,8 +422,9 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x = self.head_1(x3)
-        
+        x1 = self.head_1(x3)
+        x0 = self.head_0(x2)
+
         # x = self.head_1(x3)
 
         # x = x * y
@@ -464,12 +465,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, t
-        # else:
-        #     return t
+        if self.training:
+            return x0, x1
+        else:
+            return 0.5 * (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1))
 
 
 class teacher_ensemble(nn.Module):
