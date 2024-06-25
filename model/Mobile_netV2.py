@@ -141,10 +141,10 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        self.model   = timm.create_model('convnext_small.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
+        self.model   = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
         
-        self.head_0  = timm.create_model('convnext_small.fb_in1k', pretrained=True).head
-        self.head_1  = timm.create_model('convnext_small.fb_in1k', pretrained=True).head
+        self.head_0  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head_1  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
 
         self.head_0.norm = LayerNorm2d(num_channels=384)
         
