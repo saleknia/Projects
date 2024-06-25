@@ -422,7 +422,7 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x0 = self.head_1(x3)
+        x = self.head_1(x3)
         # x = self.head_0(x2)
 
         # x = self.head_1(x3)
