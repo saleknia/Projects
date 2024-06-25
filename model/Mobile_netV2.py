@@ -141,20 +141,21 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
-        # self.head_1  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
-
-        # self.head_0.norm = LayerNorm2d(num_channels=384)
+        self.model   = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
         
-        # self.head_0.fc = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=384, out_features=num_classes, bias=True),
-        #         )
+        self.head_0  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head_1  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
 
-        self.head.fc = nn.Sequential(
+        self.head_0.norm = LayerNorm2d(num_channels=384)
+        
+        self.head_0.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=1152, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
+                )
+
+        self.head_1.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
 
         for param in self.model.parameters():
@@ -163,10 +164,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages_2.parameters():
             param.requires_grad = True
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
-
-        self.up = nn.Upsample(scale_factor=2)
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -424,8 +423,7 @@ class Mobile_netV2(nn.Module):
         x0, x1, x2, x3 = self.model(x_in)
         
         # x1 = self.head_1(x3)
-        x = torch.cat([x2, self.up(x3)], dim=1)
-        x = self.head(x)
+        x = self.head_0(x2)
 
         # x = self.head_1(x3)
 
