@@ -264,10 +264,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # metric.update(predictions, targets.long())
 
         if KD:
-            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
-        else:
             temp = 0.5 * (torch.softmax(outputs.clone().detach(), dim=1) + torch.softmax(outputs_t.clone().detach(), dim=1))
             accuracy.add(temp, torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+        else:
+            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+
 
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
