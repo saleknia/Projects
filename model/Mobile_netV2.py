@@ -161,11 +161,11 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # for param in self.model.stages_2.parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages_2.parameters():
+            param.requires_grad = True
 
-        # for param in self.model.stages_3.parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages_3.parameters():
+            param.requires_grad = True
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -422,8 +422,8 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        # x1 = self.head_1(x3)
-        x = self.head_0(x2)
+        x0 = self.head_1(x3)
+        # x = self.head_0(x2)
 
         # x = self.head_1(x3)
 
