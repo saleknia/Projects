@@ -164,8 +164,8 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages_2.parameters():
             param.requires_grad = True
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -422,8 +422,8 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x1 = self.head_1(x3)
-        x0 = self.head_0(x2)
+        # x1 = self.head_1(x3)
+        x = self.head_0(x2)
 
         # x = self.head_1(x3)
 
@@ -465,12 +465,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        # return x
+        return x
 
-        if self.training:
-            return x0, x1
-        else:
-            return x1 # 0.5 * (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1))
+        # if self.training:
+        #     return x0, x1
+        # else:
+        #     return x1 # 0.5 * (torch.softmax(x0, dim=1) + torch.softmax(x1, dim=1))
 
 
 class teacher_ensemble(nn.Module):
