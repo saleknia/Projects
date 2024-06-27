@@ -1137,7 +1137,7 @@ class convnext_tiny(nn.Module):
 
         return x # torch.softmax(x, dim=1)
 
-teacher = convnext_tiny()
+teacher = convnext_tiny().cuda()
 
 class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
