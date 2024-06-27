@@ -143,7 +143,7 @@ class Mobile_netV2(nn.Module):
 
         self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
 
-        self.model.stem_0.stride = (2, 2)
+        # self.model.stem_0.stride = (2, 2)
         
         self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         
@@ -416,7 +416,8 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x = self.head(x3)
+        x   = self.head(x3)
+        x_t = teacher(x_in)
 
         # x = self.head_1(x3)
 
@@ -458,12 +459,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return y0, y1
-        # else:
-        #     return 0.5 * (torch.softmax(y0, dim=1) + torch.softmax(y1, dim=1))
+        if self.training:
+            return x, x_t
+        else:
+            return x
 
 
 class teacher_ensemble(nn.Module):
@@ -1099,27 +1100,25 @@ class convnext_tiny(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
         super(convnext_tiny, self).__init__()
 
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
 
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[3].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        self.model.stem_0.stride = (2, 2)
+        
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        
+        self.head.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                )
 
         for param in self.model.parameters():
             param.requires_grad = False
 
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
+
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next.pth', map_location='cpu')
         pretrained_teacher = loaded_data_teacher['net']
@@ -1129,19 +1128,16 @@ class convnext_tiny(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=256, bias=True),
-        )
-
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.model(x0)
-        # x = self.classifier(x)
+        x0, x1, x2, x3 = self.model(x0)
+
+        x = self.head(x3)
+
         return x # torch.softmax(x, dim=1)
 
-
+teacher = convnext_tiny()
 
 class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
