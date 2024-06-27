@@ -142,6 +142,8 @@ class Mobile_netV2(nn.Module):
         # )
 
         self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
+
+        self.model.stem_0.stride = (2, 2)
         
         self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         
