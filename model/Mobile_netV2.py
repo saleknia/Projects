@@ -141,19 +141,11 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        self.model   = timm.create_model('convnext_small.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
+        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
         
-        self.head_0  = timm.create_model('convnext_small.fb_in1k', pretrained=True).head
-        self.head_1  = timm.create_model('convnext_small.fb_in1k', pretrained=True).head
-
-        self.head_0.norm = LayerNorm2d(num_channels=384)
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         
-        self.head_0.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
-                )
-
-        self.head_1.fc = nn.Sequential(
+        self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
                     nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
@@ -422,8 +414,7 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        y1 = self.head_1(x3)
-        y0 = self.head_0(x2)
+        x = self.head(x3)
 
         # x = self.head_1(x3)
 
@@ -465,12 +456,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        # return x
+        return x
 
-        if self.training:
-            return y0, y1
-        else:
-            return 0.5 * (torch.softmax(y0, dim=1) + torch.softmax(y1, dim=1))
+        # if self.training:
+        #     return y0, y1
+        # else:
+        #     return 0.5 * (torch.softmax(y0, dim=1) + torch.softmax(y1, dim=1))
 
 
 class teacher_ensemble(nn.Module):
