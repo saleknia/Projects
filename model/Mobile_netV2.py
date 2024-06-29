@@ -416,8 +416,8 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x   = self.head(x3)
-        x_t = teacher(x_in)
+        x      = self.head(x3)
+        t2, t3 = teacher(x_in)
 
         # x = self.head_1(x3)
 
@@ -462,7 +462,7 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x, x_t
+            return x, x2, x3, t2, t3
         else:
             return x
 
@@ -1133,9 +1133,9 @@ class convnext_tiny(nn.Module):
 
         x0, x1, x2, x3 = self.model(x0)
 
-        x = self.head(x3)
+        # x = self.head(x3)
 
-        return x # torch.softmax(x, dim=1)
+        return x2, x3 # torch.softmax(x, dim=1)
 
 teacher = convnext_tiny().cuda()
 

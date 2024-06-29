@@ -226,7 +226,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         KD = (type(outputs) == tuple)
 
         if KD:
-            outputs, outputs_t = outputs[0], outputs[1]
+            # outputs, outputs_t = outputs[0], outputs[1]
+            outputs, x2, x3, t2, t3 = outputs[0], outputs[1], outputs[2], outputs[3], outputs[4]
 
         ################################################################
         ################################################################
@@ -245,9 +246,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         if KD:
             # loss_ce = ce_loss(outputs, outputs_t)
-            T = 1.0
-            loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
-            # loss_ce = ce_loss(outputs, targets.long()) + ce_loss(outputs_t, targets.long())
+            # T = 1.0
+            # loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
+            loss_ce = ce_loss(outputs, targets.long()) # + ce_loss(outputs_t, targets.long())
         else:
             loss_ce = ce_loss(outputs, targets.long()) # loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
 
@@ -312,7 +313,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = rkd(x_s, x_t)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
-        # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
+        loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=t2) + importance_maps_distillation(s=x3, t=t3)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
