@@ -126,7 +126,7 @@ def at(x, exp):
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
 
-def importance_maps_distillation(s, t, exp=4):
+def importance_maps_distillation(s, t, exp=2):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -139,42 +139,7 @@ def importance_maps_distillation(s, t, exp=4):
     if s.shape[2] != t.shape[2]:
         s = F.interpolate(s, t.size()[-2:], mode='bilinear')
     return torch.sum((at(s, exp) - at(t, exp)).pow(2), dim=1).mean()
-
-# def distillation(outputs, labels):
-#     unique = torch.unique(labels)
-#     temp   = torch.zeros((len(unique),1280), device='cuda')
-#     for i, v in enumerate(unique):
-#         temp[i] = torch.mean(outputs[labels==v], dim=0)
-#     distances = torch.cdist(temp, temp, p=2.0)
-#     loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
-#     loss = torch.mean(loss)
-#     return loss * 0.01
-
-# def distillation(outputs, labels):
-#     unique = torch.unique(labels)
-#     temp   = torch.zeros((len(unique),40), device='cuda')
-#     for i, v in enumerate(unique):
-#         temp[i] = torch.mean(outputs[labels==v], dim=0)
-#     distances = torch.cdist(temp, temp, p=2.0)
-#     loss = (distances-(torch.sum(distances)/(distances.shape[0]**2-distances.shape[0])))**2
-#     loss = torch.mean(loss)
-#     return loss
- 
-def distillation(outputs_s, outputs_t):
-
-    distances_s = torch.cdist(outputs_s, outputs_s, p=2.0)
-    distances_t = torch.cdist(outputs_t, outputs_t, p=2.0)
-
-    distances_s = (distances_s - distances_s.min()) 
-    distances_t = (distances_t - distances_t.min())
-
-    distances_s = distances_s / (distances_s.max())
-    distances_t = distances_t / (distances_t.max())
-
-    loss = torch.norm(distances_t - distances_s) * 0.1
-    # loss = torch.nn.functional.mse_loss(input=distances_s, target=distances_t) 
-
-    return loss
+    
 
 def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,ckpt,num_class,lr_scheduler,writer,logger,loss_function):
     torch.autograd.set_detect_anomaly(True)
