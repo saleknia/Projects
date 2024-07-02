@@ -72,6 +72,14 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.relu3(x)
         return x
 
+class View(nn.Module):
+    def __init__(self, shape):
+		super(View, self).__init__()
+        self.shape = shape
+
+    def forward(self, x):
+        return x.view(*self.shape)
+
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
@@ -197,7 +205,7 @@ class Mobile_netV2(nn.Module):
         self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
 
         self.head.global_pool.pool.output_size = 4
-        self.head.global_pool.flatten          = nn.Flatten()
+        self.head.global_pool.flatten          = View(shape=(40, 1, 1, 768))
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
