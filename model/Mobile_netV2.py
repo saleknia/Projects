@@ -43,18 +43,9 @@ class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
         super(DecoderBottleneckLayer, self).__init__()
 
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
 
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
+        self.up = nn.ConvTranspose2d(768, 384, 3, stride=2, padding=1, output_padding=1)
+            
         else:
             self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
 
@@ -177,11 +168,11 @@ class Mobile_netV2(nn.Module):
 
         # self.model.stem_0.stride = (2, 2)
         
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
 
         for param in self.model.parameters():
@@ -193,7 +184,11 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages_3.parameters():
             param.requires_grad = True
 
-        self.decode = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
+        # self.decode = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
+
+        self.up = nn.ConvTranspose2d(768, 384, 3, stride=2, padding=1, output_padding=1)
+
+        # self.head.norm = LayerNorm2d(384) 
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -450,7 +445,9 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
 
-        x = self.decode(x3) + x2
+        x3 = self.up(x3)
+
+        x  = torch.cat([x2, x3], dim=1)
         
         x = self.head(x)
 
