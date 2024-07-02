@@ -39,6 +39,38 @@ from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
 
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -160,6 +192,11 @@ class Mobile_netV2(nn.Module):
 
         for param in self.model.stages_3.parameters():
             param.requires_grad = True
+
+        self.decode_1 = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
+        self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
+
+        self.head.global_pool.pool.output_size = 4
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -415,8 +452,11 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x0, x1, x2, x3 = self.model(x_in)
+
+        d3 = self.decode_1(x3) + x2
+        d2 = self.decode_2(d3) + x1
         
-        x = self.head(x3)
+        x = self.head(d2)
 
         # x = self.head_1(x3)
 
