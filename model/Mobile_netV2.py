@@ -44,7 +44,7 @@ class View(nn.Module):
         self.shape = shape,  # extra comma
 
     def forward(self, x):
-        return x.view(*self.shape)
+        return x.reshape(*self.shape)
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -186,9 +186,9 @@ class Mobile_netV2(nn.Module):
 
         # self.model.stem_0.stride = (2, 2)
         
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         
-        self.head.fc = nn.Sequential(
+        self.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
                     nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
@@ -205,8 +205,7 @@ class Mobile_netV2(nn.Module):
         self.decode_1 = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
         self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
 
-        self.head.global_pool.pool.output_size = 2
-        self.head.global_pool.flatten          = View(shape=(40, 1, 1, 768))
+        self.avgpool = nn.AvgPool2d(7, stride=7)
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -465,8 +464,10 @@ class Mobile_netV2(nn.Module):
 
         d3 = self.decode_1(x3) + x2
         d2 = self.decode_2(d3) + x1
-        
-        x = self.head(d2)
+
+        x = self.avgpool(d2)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
 
         # x = self.head_1(x3)
 
