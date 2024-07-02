@@ -197,6 +197,7 @@ class Mobile_netV2(nn.Module):
         self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
 
         self.head.global_pool.pool.output_size = 4
+        self.head.global_pool.flatten          = nn.Flatten()
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
