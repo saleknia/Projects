@@ -39,29 +39,7 @@ from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
 
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
 
-
-        self.up = nn.ConvTranspose2d(768, 384, 3, stride=2, padding=1, output_padding=1)
-            
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
-
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -186,7 +164,8 @@ class Mobile_netV2(nn.Module):
 
         # self.decode = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
 
-        self.up = nn.ConvTranspose2d(768, 384, 3, stride=2, padding=1, output_padding=1)
+        self.up   = nn.Upsample(scale_factor=2)
+        self.fuse = nn.Conv2d(768, 384, kernel_size=(1, 1), stride=(1, 1)) 
 
         # self.head.norm = LayerNorm2d(384) 
 
@@ -445,7 +424,7 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
 
-        x3 = self.up(x3)
+        x3 = self.fuse(self.up(x3))
 
         x  = torch.cat([x2, x3], dim=1)
         
