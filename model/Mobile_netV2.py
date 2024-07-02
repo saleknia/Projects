@@ -416,8 +416,7 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
         
-        x      = self.head(x3)
-        t2, t3 = teacher(x_in)
+        x = self.head(x3)
 
         # x = self.head_1(x3)
 
@@ -459,12 +458,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        # return x
+        return x
 
-        if self.training:
-            return x, x2, x3, t2, t3
-        else:
-            return x
+        # if self.training:
+        #     return x, x2, x3, t2, t3
+        # else:
+        #     return x
 
 
 class teacher_ensemble(nn.Module):

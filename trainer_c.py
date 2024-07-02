@@ -278,7 +278,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = rkd(x_s, x_t)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
-        loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=t2) + importance_maps_distillation(s=x3, t=t3)) 
+        # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=t2) + importance_maps_distillation(s=x3, t=t3)) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
