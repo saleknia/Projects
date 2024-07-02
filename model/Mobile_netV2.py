@@ -38,13 +38,6 @@ transform_test = transforms.Compose([
 from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
-class View(nn.Module):
-    def __init__(self, shape):
-        super().__init__()
-        self.shape = shape,  # extra comma
-
-    def forward(self, x):
-        return x.reshape(*self.shape)
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -78,8 +71,6 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.norm3(x)
         x = self.relu3(x)
         return x
-
-
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -186,11 +177,11 @@ class Mobile_netV2(nn.Module):
 
         # self.model.stem_0.stride = (2, 2)
         
-        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         
-        self.fc = nn.Sequential(
+        self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=384, out_features=num_classes, bias=True),
                 )
 
         for param in self.model.parameters():
@@ -202,10 +193,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages_3.parameters():
             param.requires_grad = True
 
-        self.decode_1 = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
-        self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
-
-        self.avgpool = nn.AvgPool2d(7, stride=7)
+        self.decode = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -462,12 +450,9 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.model(x_in)
 
-        d3 = self.decode_1(x3) + x2
-        d2 = self.decode_2(d3) + x1
-
-        x = self.avgpool(d2)
-        x = x.view(x.size(0), -1)
-        x = self.fc(x)
+        x = self.decode(x3) + x2
+        
+        x = self.head(x)
 
         # x = self.head_1(x3)
 
@@ -1187,7 +1172,7 @@ class convnext_tiny(nn.Module):
 
         return x2, x3 # torch.softmax(x, dim=1)
 
-# teacher = convnext_tiny().cuda()
+teacher = convnext_tiny().cuda()
 
 class convnext_teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
