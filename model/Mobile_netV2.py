@@ -38,6 +38,13 @@ transform_test = transforms.Compose([
 from torchvision.transforms import FiveCrop, Lambda
 from efficientvit.seg_model_zoo import create_seg_model
 
+class View(nn.Module):
+    def __init__(self, shape):
+        super().__init__()
+        self.shape = shape,  # extra comma
+
+    def forward(self, x):
+        return x.view(*self.shape)
 
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
@@ -72,13 +79,7 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.relu3(x)
         return x
 
-class View(nn.Module):
-    def __init__(self, shape):
-		super(View, self).__init__()
-        self.shape = shape
 
-    def forward(self, x):
-        return x.view(*self.shape)
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -204,7 +205,7 @@ class Mobile_netV2(nn.Module):
         self.decode_1 = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
         self.decode_2 = DecoderBottleneckLayer(in_channels=384, n_filters=192, use_transpose=True)
 
-        self.head.global_pool.pool.output_size = 4
+        self.head.global_pool.pool.output_size = 2
         self.head.global_pool.flatten          = View(shape=(40, 1, 1, 768))
 
         # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
