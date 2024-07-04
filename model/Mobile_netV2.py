@@ -176,6 +176,14 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
+        self.up = torch.nn.Upsample(scale_factor=4)
+
+        model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
+
+        self.model = model 
+
+        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
+
         # # for param in self.seg.head.parameters():
         # #     param.requires_grad = True
 
@@ -415,13 +423,20 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x0, x1, x2, x3 = self.model(x_in)
+        # x0, x1, x2, x3 = self.model(x_in)
 
-        x3 = self.fuse(self.up(x3))
+        # x3 = self.fuse(self.up(x3))
 
-        x  = torch.cat([x2, x3], dim=1)
+        # x  = torch.cat([x2, x3], dim=1)
         
-        x = self.head(x)
+        # x = self.head(x)
+
+        x = self.seg(x_in)
+        x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
+        x = torch.cat([x, x, x], dim=1)
+        x = self.up(x)
+
+        x = self.model(x)
 
         # x = self.head_1(x3)
 
