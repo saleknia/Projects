@@ -142,46 +142,39 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
+        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
 
-        # self.model.stem_0.stride = (2, 2)
+        # # self.model.stem_0.stride = (2, 2)
         
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
         
-        self.head.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
-                )
+        # self.head.fc = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        #         )
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
-        # self.decode = DecoderBottleneckLayer(in_channels=768, n_filters=384, use_transpose=True)
 
-        self.up   = nn.Upsample(scale_factor=2)
-        self.fuse = nn.Conv2d(768, 384, kernel_size=(1, 1), stride=(1, 1)) 
 
-        # self.head.norm = LayerNorm2d(384) 
-
-        # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
         # seg.input_stem.op_list[0].conv.stride  = (1, 1)
         # seg.input_stem.op_list[0].conv.padding = (0, 0)
 
         # # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
-        # # self.fusion = nn.Conv2d(150, , kernel_size=(1, 1), stride=(1, 1))
+        self.seg = seg
 
-        # self.seg = seg
-
-        # for param in self.seg.parameters():
-        #     param.requires_grad = False
+        for param in self.seg.parameters():
+            param.requires_grad = False
 
         # # for param in self.seg.head.parameters():
         # #     param.requires_grad = True
