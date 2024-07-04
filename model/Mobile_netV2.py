@@ -176,9 +176,11 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
-        # self.up = torch.nn.Upsample(scale_factor=4)
+        self.up = torch.nn.Upsample(scale_factor=8)
 
         model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
+
+        model.conv_stem.in_channels = 4
 
         self.model = model 
 
@@ -433,8 +435,9 @@ class Mobile_netV2(nn.Module):
 
         x = self.seg(x_in)
         x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
-        x = torch.cat([x, x, x], dim=1)
-        # x = self.up(x)
+        x = self.up(x)
+
+        x = torch.cat([x, x_in], dim=1)
 
         x = self.model(x)
 
