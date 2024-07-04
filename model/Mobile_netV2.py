@@ -180,6 +180,8 @@ class Mobile_netV2(nn.Module):
 
         model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
 
+        model.conv_stem.in_channels = 4
+
         self.model = model 
 
         self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
@@ -433,8 +435,9 @@ class Mobile_netV2(nn.Module):
 
         x = self.seg(x_in)
         x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
-        x = torch.cat([x, x, x], dim=1)
         x = self.up(x)
+
+        x = torch.cat([x, x_in], dim=1)
 
         x = self.model(x)
 
