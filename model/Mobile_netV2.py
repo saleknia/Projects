@@ -176,28 +176,16 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
-        self.up = torch.nn.Upsample(scale_factor=8)
-
-        model = timm.create_model('tf_efficientnet_b0.in1k', pretrained=True)
-
-        model.conv_stem.in_channels = 4
-
-        self.model = model 
-
-        self.model.classifier = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=1280, out_features=num_classes, bias=True))
-
         # # for param in self.seg.head.parameters():
         # #     param.requires_grad = True
 
         # # for param in self.seg.stages[-1].op_list[-2:].parameters():
         # #     param.requires_grad = True
 
-        # self.avgpool = nn.AvgPool2d(14, stride=14)
-        # # self.dropout = nn.Dropout(0.5)
-        # self.fc_SEM  = nn.Sequential(
-        #     nn.Linear(in_features=384, out_features=256, bias=True),
-        #     nn.Sigmoid()
-        # )
+        self.avgpool = nn.AvgPool2d(16, stride=16)
+        self.dropout = nn.Dropout(0.5)
+        self.fc_SEM  = nn.Sequential(nn.Linear(in_features=2400, out_features=num_classes, bias=True))
+
         #################################################################################
         #################################################################################
 
@@ -412,11 +400,11 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x_in.shape
 
-        # x = self.seg(x_in)
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.seg(x_in)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.seg(x_in)
         # x = x['stage_final']
@@ -433,13 +421,13 @@ class Mobile_netV2(nn.Module):
         
         # x = self.head(x)
 
-        x = self.seg(x_in)
-        x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
-        x = self.up(x)
+        # x = self.seg(x_in)
+        # x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
+        # x = self.up(x)
 
-        x = torch.cat([x, x_in], dim=1)
+        # x = torch.cat([x, x_in], dim=1)
 
-        x = self.model(x)
+        # x = self.model(x)
 
         # x = self.head_1(x3)
 
