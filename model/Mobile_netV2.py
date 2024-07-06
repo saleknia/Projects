@@ -248,7 +248,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r224.pt")
+        model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r224.pt").backbone
 
         self.model = model
 
@@ -258,10 +258,12 @@ class Mobile_netV2(nn.Module):
         for param in self.model.backbone.stages[-1].parameters():
             param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        self.model.head.op_list[3] = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=2560, out_features=num_classes, bias=True))
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
+      
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(16, stride=1)
+        self.fc_SEM  = nn.Linear(384, 67)
 
         #################################################################################
         #################################################################################
@@ -431,13 +433,20 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
+        x = self.model(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
+        
         # x0, x1, x2, x3 = self.model(x_in)
 
         # x3 = self.fuse(self.up(x3))
 
         # x  = torch.cat([x2, x3], dim=1)
         
-        x = self.model(x_in)
+        # x = self.model(x_in)
 
         # x = self.seg(x_in)
         # x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
