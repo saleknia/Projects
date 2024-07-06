@@ -182,9 +182,6 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.backbone.stages[-1].parameters():
             param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-2].parameters():
-            param.requires_grad = True
-
         self.avgpool = nn.AvgPool2d(16, stride=16)
         self.dropout = nn.Dropout(0.5)
         self.fc_SEM  = nn.Sequential(nn.Linear(in_features=2400, out_features=num_classes, bias=True))
