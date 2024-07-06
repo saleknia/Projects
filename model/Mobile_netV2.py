@@ -406,7 +406,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.seg(x_in)
+        x = self.model(x_in)
         x = x['stage_final']
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
