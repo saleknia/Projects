@@ -164,27 +164,27 @@ class Mobile_netV2(nn.Module):
 
 
 
-        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
+        # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
         # seg.input_stem.op_list[0].conv.stride  = (1, 1)
         # seg.input_stem.op_list[0].conv.padding = (0, 0)
 
         # # seg.head.output_ops[0].op_list[0] = nn.Identity()
 
-        self.seg = seg
+        # self.seg = seg
 
-        for param in self.seg.parameters():
-            param.requires_grad = False
+        # for param in self.seg.parameters():
+        #     param.requires_grad = False
 
-        for param in self.seg.head.parameters():
-            param.requires_grad = True
+        # for param in self.seg.head.parameters():
+        #     param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.seg.backbone.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        self.avgpool = nn.AvgPool2d(16, stride=16)
-        self.dropout = nn.Dropout(0.5)
-        self.fc_SEM  = nn.Sequential(nn.Linear(in_features=2400, out_features=num_classes, bias=True))
+        # self.avgpool = nn.AvgPool2d()
+        # self.dropout = nn.Dropout(0.5)
+        # self.fc_SEM  = nn.Sequential(nn.Linear(in_features=2400, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -228,22 +228,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
         # model.input_stem.op_list[0].conv.stride  = (1, 1)
         # model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[-1].op_list[6:10].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(14, stride=1)
-        # self.fc_SEM  = nn.Linear(512, 67)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(16, stride=1)
+        self.fc_SEM  = nn.Linear(384, 67)
 
         #################################################################################
         #################################################################################
@@ -400,18 +400,18 @@ class Mobile_netV2(nn.Module):
 
         b, c, w, h = x_in.shape
 
-        x = self.seg(x_in)
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
-
         # x = self.seg(x_in)
-        # x = x['stage_final']
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
+
+        x = self.seg(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x0, x1, x2, x3 = self.model(x_in)
 
