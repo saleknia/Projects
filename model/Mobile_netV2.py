@@ -176,11 +176,11 @@ class Mobile_netV2(nn.Module):
         for param in self.seg.parameters():
             param.requires_grad = False
 
-        # # for param in self.seg.head.parameters():
-        # #     param.requires_grad = True
+        for param in self.seg.head.parameters():
+            param.requires_grad = True
 
-        # # for param in self.seg.stages[-1].op_list[-2:].parameters():
-        # #     param.requires_grad = True
+        for param in self.seg.stages[-1].op_list[-4:].parameters():
+            param.requires_grad = True
 
         self.avgpool = nn.AvgPool2d(16, stride=16)
         self.dropout = nn.Dropout(0.5)
