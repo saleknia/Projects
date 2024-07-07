@@ -235,11 +235,11 @@ class Mobile_netV2(nn.Module):
 
         self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[2:3].parameters():
+        #     param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(16, stride=1)
