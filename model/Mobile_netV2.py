@@ -228,22 +228,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        # model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
+        # model.input_stem.op_list[0].conv.stride  = (1, 1)
+        # model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[2:3].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[3].parameters():
+        #     param.requires_grad = True
 
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(16, stride=1)
-        self.fc_SEM  = nn.Linear(384, num_classes)
+        # self.dropout = nn.Dropout(0.5)
+        # self.avgpool = nn.AvgPool2d(14, stride=1)
+        # self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -308,26 +308,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        # self.model = model 
-        # self.head  = model.head
+        self.model = model 
+        self.head  = model.head
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head = nn.Identity()
+        self.model.head = nn.Identity()
 
-        # self.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=False),
-        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        # )
+        self.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[3].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         # #################################################################################
         # #################################################################################
@@ -426,12 +426,12 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        # x = self.model(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -446,7 +446,7 @@ class Mobile_netV2(nn.Module):
 
         # x  = torch.cat([x2, x3], dim=1)
         
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
         # x = self.seg(x_in)
         # x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
