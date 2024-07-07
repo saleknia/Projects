@@ -426,12 +426,12 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x = self.model(x_in)
-        # x = x['stage_final']
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.model(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -446,7 +446,7 @@ class Mobile_netV2(nn.Module):
 
         # x  = torch.cat([x2, x3], dim=1)
         
-        x = self.model(x_in)
+        # x = self.model(x_in)
 
         # x = self.seg(x_in)
         # x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
