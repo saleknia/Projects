@@ -311,14 +311,11 @@ class Mobile_netV2(nn.Module):
         model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
         self.model = model 
-        self.head  = model.head
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.model.head = nn.Identity()
-
-        self.head.fc = nn.Sequential(
+        self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=False),
             nn.Linear(in_features=512, out_features=num_classes, bias=True),
         )
