@@ -248,7 +248,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r224.pt").backbone
+        model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r256.pt").backbone
 
         self.model = model
 
@@ -262,8 +262,8 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = True
       
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(16, stride=1)
-        self.fc_SEM  = nn.Linear(384, 67)
+        self.avgpool = nn.AvgPool2d(8, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
