@@ -386,7 +386,7 @@ class Mobile_netV2(nn.Module):
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(384, num_classes)
+        self.fc_SEM  = nn.Linear(512, num_classes)
 
         #################################################################################
         #################################################################################
