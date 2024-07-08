@@ -95,7 +95,7 @@ class Residual(nn.Module):
         return out 
 
 class BiFusion_block(nn.Module):
-    def __init__(self, ch_1=384, ch_2=512, r_2, ch_int=384, ch_out=384, drop_rate=0.):
+    def __init__(self, ch_1=384, ch_2=512, r_2=4, ch_int=384, ch_out=384, drop_rate=0.):
         super(BiFusion_block, self).__init__()
 
         # channel attention for F_g, use SE Block
@@ -180,7 +180,7 @@ class Residual(nn.Module):
         out += residual
         return out 
 
-        
+
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
