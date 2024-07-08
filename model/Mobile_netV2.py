@@ -504,7 +504,7 @@ class Mobile_netV2(nn.Module):
         
         seg = self.seg(x_in)
         seg = seg['stage_final']
-        obj = self.model(x_in)
+        obj = self.up(self.model(x_in))
 
         x = self.BiFusion(obj, seg)
 
