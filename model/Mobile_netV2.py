@@ -40,6 +40,44 @@ from efficientvit.seg_model_zoo import create_seg_model
 
 from efficientvit.cls_model_zoo import create_cls_model
 
+class Conv(nn.Module):
+    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
+        super(Conv, self).__init__()
+        self.inp_dim = inp_dim
+        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
+        self.relu = None
+        self.bn = None
+        if relu:
+            self.relu = nn.ReLU(inplace=True)
+        if bn:
+            self.bn = nn.BatchNorm2d(out_dim)
+
+    def forward(self, x):
+        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
+        x = self.conv(x)
+        if self.bn is not None:
+            x = self.bn(x)
+        if self.relu is not None:
+            x = self.relu(x)
+        return x
+
+class BiFusion_block(nn.Module):
+    def __init__(self, ch_1, ch_2, ch_int):
+        super(BiFusion_block, self).__init__()
+
+        # bi-linear modelling for both
+        self.W_g = Conv(ch_1  , ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2  , ch_int, 1, bn=True, relu=False)
+        self.W   = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+
+    def forward(self, g, x):
+
+        # bilinear pooling
+        W_g  = self.W_g(g)
+        W_x  = self.W_x(x)
+        fuse = self.W(W_g*W_x)
+
+        return fuse
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -228,22 +266,38 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
+        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        # model.input_stem.op_list[0].conv.stride  = (1, 1)
-        # model.input_stem.op_list[0].conv.padding = (0, 0)
+        seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        seg.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.seg = seg
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.seg.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[2:].parameters():
-        #     param.requires_grad = True
+        for param in self.seg.stages[2:].parameters():
+            param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(14, stride=1)
-        # self.fc_SEM  = nn.Linear(512, num_classes)
+
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+
+        self.model = model 
+        self.model.head = nn.Identity()
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.stages[2:].parameters():
+            param.requires_grad = True
+
+        self.BiFusion = BiFusion_block(ch_1=512, ch_2=384, ch_int=256)
+        
+        self.up = nn.Upsample(scale_factor=2)
+
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(256, num_classes)
 
         #################################################################################
         #################################################################################
@@ -308,23 +362,28 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
+        # self.model.head = nn.Identity()
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
+        # # self.model.head.fc = nn.Sequential(
+        # #     nn.Dropout(p=0.5, inplace=False),
+        # #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # # )
 
-        for param in self.model.stages[2:].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[2:].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # # for param in self.model.head.parameters():
+        # #     param.requires_grad = True
+
+        # self.dropout = nn.Dropout(0.5)
+        # self.avgpool = nn.AvgPool2d(7, stride=1)
+        # self.fc_SEM  = nn.Linear(512, num_classes)
 
         # #################################################################################
         # #################################################################################
@@ -443,11 +502,16 @@ class Mobile_netV2(nn.Module):
 
         # x  = torch.cat([x2, x3], dim=1)
         
-        x = self.model(x_in)
+        seg = self.seg(x_in)
+        seg = seg['stage_final']
+        obj = self.model(x_in)
 
-        # x = self.seg(x_in)
-        # x = (x.softmax(dim=1).argmax(dim=1, keepdim=True) / 150.0)
-        # x = self.up(x)
+        x = self.BiFusion(obj, seg)
+
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = torch.cat([x, x_in], dim=1)
 
