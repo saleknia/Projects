@@ -99,7 +99,7 @@ class Residual(nn.Module):
         return out 
 
 class BiFusion_block(nn.Module):
-    def __init__(self, ch_1=384, ch_2=512, r_2=4, ch_int=384, ch_out=384, drop_rate=0.):
+    def __init__(self, ch_1=384, ch_2=512, r_2=4, ch_out=512, drop_rate=0.):
         super(BiFusion_block, self).__init__()
 
         # channel attention for F_g, use SE Block
@@ -112,24 +112,9 @@ class BiFusion_block(nn.Module):
         self.compress = ChannelPool()
         self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
 
-        # bi-linear modelling for both
-        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
-        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
-        self.W   = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+        self.residual = Residual(ch_1+ch_2, ch_out)
 
-        self.relu = nn.ReLU(inplace=True)
-
-        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
-
-        self.dropout = nn.Dropout2d(drop_rate)
-        self.drop_rate = drop_rate
-
-        
     def forward(self, g, x):
-        # bilinear pooling
-        W_g = self.W_g(g)
-        W_x = self.W_x(x)
-        bp = self.W(W_g*W_x)
 
         # spatial attention for cnn branch
         g_in = g
@@ -144,12 +129,10 @@ class BiFusion_block(nn.Module):
         x = self.relu(x)
         x = self.fc2(x)
         x = self.sigmoid(x) * x_in
-        fuse = self.residual(torch.cat([g, x, bp], 1))
 
-        if self.drop_rate > 0:
-            return self.dropout(fuse)
-        else:
-            return fuse
+        fuse = self.residual(torch.cat([g, x], 1))
+        
+        return fuse
 
 class Residual(nn.Module):
     def __init__(self, inp_dim, out_dim):
