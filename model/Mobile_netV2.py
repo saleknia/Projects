@@ -40,6 +40,10 @@ from efficientvit.seg_model_zoo import create_seg_model
 
 from efficientvit.cls_model_zoo import create_cls_model
 
+class ChannelPool(nn.Module):
+    def forward(self, x):
+        return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
+        
 class Conv(nn.Module):
     def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
         super(Conv, self).__init__()
