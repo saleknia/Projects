@@ -61,24 +61,126 @@ class Conv(nn.Module):
             x = self.relu(x)
         return x
 
+class Residual(nn.Module):
+    def __init__(self, inp_dim, out_dim):
+        super(Residual, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(inp_dim)
+        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
+        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
+        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
+        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
+        if inp_dim == out_dim:
+            self.need_skip = False
+        else:
+            self.need_skip = True
+        
+    def forward(self, x):
+        if self.need_skip:
+            residual = self.skip_layer(x)
+        else:
+            residual = x
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out += residual
+        return out 
+
 class BiFusion_block(nn.Module):
-    def __init__(self, ch_1, ch_2, ch_int):
+    def __init__(self, ch_1=384, ch_2=512, r_2, ch_int=384, ch_out=384, drop_rate=0.):
         super(BiFusion_block, self).__init__()
 
+        # channel attention for F_g, use SE Block
+        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
+        self.relu = nn.ReLU(inplace=True)
+        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
+        self.sigmoid = nn.Sigmoid()
+
+        # spatial attention for F_l
+        self.compress = ChannelPool()
+        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
+
         # bi-linear modelling for both
-        self.W_g = Conv(ch_1  , ch_int, 1, bn=True, relu=False)
-        self.W_x = Conv(ch_2  , ch_int, 1, bn=True, relu=False)
-        self.W   = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+        self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
+        self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
+        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
 
+        self.relu = nn.ReLU(inplace=True)
+
+        self.residual = Residual(ch_1+ch_2+ch_int, ch_out)
+
+        self.dropout = nn.Dropout2d(drop_rate)
+        self.drop_rate = drop_rate
+
+        
     def forward(self, g, x):
-
         # bilinear pooling
-        W_g  = self.W_g(g)
-        W_x  = self.W_x(x)
-        fuse = self.W(W_g*W_x)
+        W_g = self.W_g(g)
+        W_x = self.W_x(x)
+        bp = self.W(W_g*W_x)
 
-        return fuse
+        # spatial attention for cnn branch
+        g_in = g
+        g = self.compress(g)
+        g = self.spatial(g)
+        g = self.sigmoid(g) * g_in
 
+        # channel attetion for transformer branch
+        x_in = x
+        x = x.mean((2, 3), keepdim=True)
+        x = self.fc1(x)
+        x = self.relu(x)
+        x = self.fc2(x)
+        x = self.sigmoid(x) * x_in
+        fuse = self.residual(torch.cat([g, x, bp], 1))
+
+        if self.drop_rate > 0:
+            return self.dropout(fuse)
+        else:
+            return fuse
+
+class Residual(nn.Module):
+    def __init__(self, inp_dim, out_dim):
+        super(Residual, self).__init__()
+        self.relu = nn.ReLU(inplace=True)
+        self.bn1 = nn.BatchNorm2d(inp_dim)
+        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
+        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
+        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
+        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
+        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
+        if inp_dim == out_dim:
+            self.need_skip = False
+        else:
+            self.need_skip = True
+        
+    def forward(self, x):
+        if self.need_skip:
+            residual = self.skip_layer(x)
+        else:
+            residual = x
+        out = self.bn1(x)
+        out = self.relu(out)
+        out = self.conv1(out)
+        out = self.bn2(out)
+        out = self.relu(out)
+        out = self.conv2(out)
+        out = self.bn3(out)
+        out = self.relu(out)
+        out = self.conv3(out)
+        out += residual
+        return out 
+
+        
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
@@ -291,13 +393,13 @@ class Mobile_netV2(nn.Module):
         for param in self.model.stages[2:].parameters():
             param.requires_grad = True
 
-        self.BiFusion = BiFusion_block(ch_1=512, ch_2=384, ch_int=256)
+        self.BiFusion = BiFusion_block()
         
         self.up = nn.Upsample(scale_factor=2)
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(256, num_classes)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -506,7 +608,7 @@ class Mobile_netV2(nn.Module):
         seg = seg['stage_final']
         obj = self.up(self.model(x_in))
 
-        x = self.BiFusion(obj, seg)
+        x = self.BiFusion(seg, obj)
 
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
