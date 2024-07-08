@@ -115,7 +115,7 @@ class BiFusion_block(nn.Module):
         # bi-linear modelling for both
         self.W_g = Conv(ch_1, ch_int, 1, bn=True, relu=False)
         self.W_x = Conv(ch_2, ch_int, 1, bn=True, relu=False)
-        self.W = Conv(ch_int, ch_int, 3, bn=True, relu=True)
+        self.W   = Conv(ch_int, ch_int, 3, bn=True, relu=True)
 
         self.relu = nn.ReLU(inplace=True)
 
