@@ -590,8 +590,8 @@ class Mobile_netV2(nn.Module):
         
         x0, x1, x2, x3,x4 = self.model(x_in)
 
-        x4 = self.avgpool(x4)
-        x4 = x4.view(x4.size(0), -1)
+        # x4 = self.avgpool(x4)
+        # x4 = x4.view(x4.size(0), -1)
 
         x = self.head(x4)
 
