@@ -598,7 +598,7 @@ class Mobile_netV2(nn.Module):
         # x4 = self.avgpool(x4)
         # x4 = x4.view(x4.size(0), -1)
 
-        x = self.head(x4)
+        x = self.head(x3)
 
         # x3 = self.fuse(self.up(x3))
 
