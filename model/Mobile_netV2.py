@@ -342,7 +342,6 @@ class Mobile_netV2(nn.Module):
         head  = timm.create_model('mvitv2_tiny', pretrained=True).head
 
         self.model = model
-        self.head  = head
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -350,8 +349,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.model.stages[2:].parameters():
             param.requires_grad = True
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        self.avgpool = nn.AvgPool2d(7, stride=1)
 
         self.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -591,6 +589,9 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
         
         x0, x1, x2, x3 = self.model(x_in)
+
+        x3 = self.avgpool(x3)
+        x3 = x3.view(x3.size(0), -1)
 
         x = self.head(x3)
 
