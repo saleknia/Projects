@@ -338,8 +338,8 @@ class Mobile_netV2(nn.Module):
         # #################################################################################
         # #################################################################################
 
-        model = timm.create_model('mvitv2_small', pretrained=True, features_only=True)
-        head  = timm.create_model('mvitv2_small', pretrained=True).head
+        model = timm.create_model('mvitv2_tiny', pretrained=True, features_only=True)
+        head  = timm.create_model('mvitv2_tiny', pretrained=True).head
 
         self.model = model
 
