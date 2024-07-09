@@ -269,25 +269,6 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[0, 1, 2, 3])
-
-        # # self.model.stem_0.stride = (2, 2)
-        
-        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
-        
-        # self.head.fc = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        #         )
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.stages_2.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages_3.parameters():
-        #     param.requires_grad = True
 
 
 
@@ -454,24 +435,48 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
-        head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
+        # head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
 
-        self.model = model 
-        self.head  = head
+        # self.model = model 
+        # self.head  = head
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # self.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # )
+
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
+
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
+
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
+
+        ##################################################################################
+        ##################################################################################
+
+        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        
+        self.head.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                )
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.stages_3.parameters():
+        for param in self.model.stages_2.parameters():
             param.requires_grad = True
 
-        for param in self.model.stages_2.parameters():
+        for param in self.model.stages_3.parameters():
             param.requires_grad = True
 
         for param in self.head.parameters():
@@ -588,7 +593,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
         
-        x0, x1, x2, x3,x4 = self.model(x_in)
+        x0, x1, x2, x3 = self.model(x_in)
 
         # x4 = self.avgpool(x4)
         # x4 = x4.view(x4.size(0), -1)
