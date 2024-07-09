@@ -338,19 +338,21 @@ class Mobile_netV2(nn.Module):
         # #################################################################################
         # #################################################################################
 
-        # model = timm.create_model('mvitv2_tiny', pretrained=True)
+        model = timm.create_model('mvitv2_tiny', pretrained=True, features_only=True)
+        head  = timm.create_model('mvitv2_tiny', pretrained=True).head
 
-        # self.model = model
+        self.model = model
+        self.head  = head
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[3].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[2:].parameters():
+            param.requires_grad = True
 
-        # self.model.head = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.head = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -451,31 +453,31 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
-        head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
+        # head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
 
-        self.model = model 
-        self.head  = head
+        # self.model = model 
+        # self.head  = head
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
+        # self.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
-        # #################################################################################
-        # #################################################################################
+        ##################################################################################
+        ##################################################################################
 
         # model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
 
@@ -550,7 +552,7 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next.pth', map_location='cpu')
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/max.pth', map_location='cpu')
         # pretrained_teacher  = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
         # for key in a.keys():
@@ -585,9 +587,9 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
         
-        x0, x1, x2, x3, x4 = self.model(x_in)
+        x0, x1, x2, x3 = self.model(x_in)
 
-        x = self.head(x4)
+        x = self.head(x3)
 
         # x3 = self.fuse(self.up(x3))
 
