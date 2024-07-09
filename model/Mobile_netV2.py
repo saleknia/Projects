@@ -355,38 +355,38 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        seg.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.input_stem.op_list[0].conv.padding = (0, 0)
+        # seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        # seg.input_stem.op_list[0].conv.padding = (0, 0)
 
-        self.seg = seg
+        # self.seg = seg
 
-        for param in self.seg.parameters():
-            param.requires_grad = False
+        # for param in self.seg.parameters():
+        #     param.requires_grad = False
 
-        for param in self.seg.stages[2:].parameters():
-            param.requires_grad = True
+        # for param in self.seg.stages[2:].parameters():
+        #     param.requires_grad = True
 
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        self.model = model 
-        self.model.head = nn.Identity()
+        # self.model = model 
+        # self.model.head = nn.Identity()
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.stages[2:].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[2:].parameters():
+        #     param.requires_grad = True
 
-        self.BiFusion = BiFusion_block()
+        # self.BiFusion = BiFusion_block()
         
-        self.up = nn.Upsample(scale_factor=2)
+        # self.up = nn.Upsample(scale_factor=2)
 
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(512, num_classes)
+        # self.dropout = nn.Dropout(0.5)
+        # self.avgpool = nn.AvgPool2d(14, stride=1)
+        # self.fc_SEM  = nn.Linear(512, num_classes)
 
         #################################################################################
         #################################################################################
@@ -451,28 +451,25 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
+        head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
 
-        # self.model = model 
-        # self.model.head = nn.Identity()
+        self.model = model 
+        self.head  = head
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # # self.model.head.fc = nn.Sequential(
-        # #     nn.Dropout(p=0.5, inplace=False),
-        # #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        # # )
+        self.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[2:].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[2:].parameters():
+            param.requires_grad = True
 
-        # # for param in self.model.head.parameters():
-        # #     param.requires_grad = True
-
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(7, stride=1)
-        # self.fc_SEM  = nn.Linear(512, num_classes)
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         # #################################################################################
         # #################################################################################
@@ -585,22 +582,24 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
         
-        # x0, x1, x2, x3 = self.model(x_in)
+        x0, x1, x2, x3 = self.model(x_in)
+
+        x = self.head(x3)
 
         # x3 = self.fuse(self.up(x3))
 
         # x  = torch.cat([x2, x3], dim=1)
         
-        seg = self.seg(x_in)
-        seg = seg['stage_final']
-        obj = self.up(self.model(x_in))
+        # seg = self.seg(x_in)
+        # seg = seg['stage_final']
+        # obj = self.up(self.model(x_in))
 
-        x = self.BiFusion(seg, obj)
+        # x = self.BiFusion(seg, obj)
 
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
 
         # x = torch.cat([x, x_in], dim=1)
 
