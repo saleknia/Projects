@@ -585,9 +585,9 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
         
-        x0, x1, x2, x3 = self.model(x_in)
+        x0, x1, x2, x3, x4 = self.model(x_in)
 
-        x = self.head(x3)
+        x = self.head(x4)
 
         # x3 = self.fuse(self.up(x3))
 
