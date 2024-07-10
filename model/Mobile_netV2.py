@@ -435,28 +435,28 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
-        head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
+        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
+        # head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
 
-        self.model = model 
-        self.head  = head
+        # self.model = model 
+        # self.head  = head
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
+        # self.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=False),
+        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_3.parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
+        # for param in self.model.stages_2.parameters():
+        #     param.requires_grad = True
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -485,23 +485,26 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        # model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
+        model = timm.create_model('timm/efficientvit_b0.r224_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.classifier[4] = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=1600, out_features=num_classes, bias=True),
-        # )
+        self.model.head.classifier[4] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1600, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-2].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -558,19 +561,19 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/max.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/max.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
         # self.teacher = teacher_ensemble()
 
-        self.count = 0.0
-        self.batch = 0.0
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
+        # self.count = 0.0
+        # self.batch = 0.0
+        # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x_in):
 
@@ -595,38 +598,41 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        if (not self.training):
+        x = self.model(x_in)
 
-            self.batch = self.batch + 1.0
 
-            if self.batch == 5530:
-                print(self.batch)
+        # if (not self.training):
 
-            x0, x1 = x_in[0], x_in[1]
+        #     self.batch = self.batch + 1.0
+
+        #     if self.batch == 5530:
+        #         print(self.count)
+
+        #     x0, x1 = x_in[0], x_in[1]
             
-            x = self.model(x0)
-            x = self.head(x[4])
-            x = torch.softmax(x, dim=1)
+        #     x = self.model(x0)
+        #     x = self.head(x[4])
+        #     x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.9):
+        #     if (x.max() < 1.0):
 
-                y = self.transform(x1)
-                ncrops, bs, c, h, w = y.size()
-                x = self.model(y.view(-1, c, h, w))
-                x = self.head(x[4])
-                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+        #         y = self.transform(x1)
+        #         ncrops, bs, c, h, w = y.size()
+        #         x = self.model(y.view(-1, c, h, w))
+        #         x = self.head(x[4])
+        #         # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
-                x = torch.softmax(x, dim=1)
-                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        #         x = torch.softmax(x, dim=1)
+        #         a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+        #         x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
 
-                # x = self.model(x1)
-                # x = torch.softmax(x, dim=1)
-                self.count = self.count + 1.0
+        #         # x = self.model(x1)
+        #         # x = torch.softmax(x, dim=1)
+        #         self.count = self.count + 1.0
         
-        else:
-            b, c, w, h = x_in.shape
-            x = self.model(x_in)
+        # else:
+        #     b, c, w, h = x_in.shape
+        #     x = self.model(x_in)
 
 
         return x
