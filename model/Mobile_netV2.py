@@ -484,7 +484,7 @@ class Mobile_netV2(nn.Module):
             # x = self.head(x[4])
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.9):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
