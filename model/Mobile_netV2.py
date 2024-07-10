@@ -571,9 +571,9 @@ class Mobile_netV2(nn.Module):
 
         self.model = teacher_ensemble()
 
-        self.count = 0.0
-        self.batch = 0.0
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
+        # self.count = 0.0
+        # self.batch = 0.0
+        # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x_in):
 
@@ -598,40 +598,40 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x = self.model(x_in[0])
+        x = self.model(x_in)
 
-        if (not self.training):
+        # if (not self.training):
 
-            self.batch = self.batch + 1.0
+        #     self.batch = self.batch + 1.0
 
-            if self.batch == 5530:
-                print(self.count)
+        #     if self.batch == 5530:
+        #         print(self.count)
 
-            x0, x1 = x_in[0], x_in[1]
+        #     x0, x1 = x_in[0], x_in[1]
             
-            x = self.model(x0)
-            # x = self.head(x[4])
-            # x = torch.softmax(x, dim=1)
+        #     x = self.model(x0)
+        #     # x = self.head(x[4])
+        #     # x = torch.softmax(x, dim=1)
 
-            if (x.max() < 1.0):
+        #     if (x.max() < 1.0):
 
-                y = self.transform(x1)
-                ncrops, bs, c, h, w = y.size()
-                x = self.model(y.view(-1, c, h, w))
-                # x = self.head(x[4])
-                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+        #         y = self.transform(x1)
+        #         ncrops, bs, c, h, w = y.size()
+        #         x = self.model(y.view(-1, c, h, w))
+        #         # x = self.head(x[4])
+        #         # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
-                # x = torch.softmax(x, dim=1)
-                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        #         # x = torch.softmax(x, dim=1)
+        #         a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+        #         x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
 
-                # x = self.model(x1)
-                # x = torch.softmax(x, dim=1)
-                self.count = self.count + 1.0
+        #         # x = self.model(x1)
+        #         # x = torch.softmax(x, dim=1)
+        #         self.count = self.count + 1.0
         
-        else:
-            b, c, w, h = x_in.shape
-            x = self.model(x_in)
+        # else:
+        #     b, c, w, h = x_in.shape
+        #     x = self.model(x_in)
 
 
         return x
@@ -646,22 +646,78 @@ class teacher_ensemble(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(teacher_ensemble, self).__init__()
 
-        self.b0 = maxvit_model()
-        self.b1 = mvit_tiny()
-        self.b2 = convnext_tiny()
+        self.maxvit = maxvit_model()
+        # self.b1 = mvit_tiny()
+        # self.b2 = convnext_tiny()
+
+        self.inspector = b1()
+
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x0):
+        
+        x0 = x0[1]
+
         b, c, w, h = x0.shape
 
-        a = self.b0(x0)
-        b = self.b1(x0)
-        c = self.b2(x0) 
+        y = self.transform(x0)
+        ncrops, bs, c, h, w = y.size()
+        x = self.inspector(y.view(-1, c, h, w))
+        a, b, c = torch.topk(x.max(dim=1).values, 3).indices
 
+        a = y[a]
+        b = y[b]        
+        c = y[c]
+
+        a = self.maxvit(a)
+        b = self.maxvit(b)
+        c = self.maxvit(c) 
 
         x = (a + b + c) / 3.0
 
         return x
 
+
+class b1(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(b1, self).__init__()
+  
+        model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
+
+        self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.head.classifier[4] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=1600, out_features=num_classes, bias=True),
+        )
+
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
+
+        for param in self.model.stages[-2].parameters():
+            param.requires_grad = True
+
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b1.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x0)
+
+        return torch.softmax(x, dim=1)
 
 class maxvit_model(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):
