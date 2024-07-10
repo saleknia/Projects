@@ -568,6 +568,9 @@ class Mobile_netV2(nn.Module):
 
         # self.teacher = teacher_ensemble()
 
+        self.count = 0.0
+        self.batch = 0.0
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x_in):
 
@@ -592,16 +595,12 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        self.count = 0.0
-        self.batch = 0.0
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
-
         if (not self.training):
 
             self.batch = self.batch + 1.0
 
             if self.batch == 5530:
-                print(self.count)
+                print(self.batch)
 
             x0, x1 = x_in[0], x_in[1]
             
@@ -616,9 +615,10 @@ class Mobile_netV2(nn.Module):
                 x = self.model(y.view(-1, c, h, w))
                 x = self.head(x[4])
                 # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
                 x = torch.softmax(x, dim=1)
                 a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                x = (x[a] + x[b] + x[c]) / 3.0
+                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
 
                 # x = self.model(x1)
                 # x = torch.softmax(x, dim=1)
