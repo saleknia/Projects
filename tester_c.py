@@ -53,10 +53,10 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             res = 0.0
 
-            # if 1 < len(inputs): 
-            #     inputs, targets = (inputs[0].to(device), inputs[1].to(device)), targets.to(device)
-            # else:
-            inputs, targets = inputs.to(device), targets.to(device)
+            if 1 < len(inputs): 
+                inputs, targets = (inputs[0].to(device), inputs[1].to(device)), targets.to(device)
+            else:
+                inputs, targets = inputs.to(device), targets.to(device)
 
             targets = targets.float()
 

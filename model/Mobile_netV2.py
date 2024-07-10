@@ -571,7 +571,7 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        b, c, w, h = x_in.shape
+        # b, c, w, h = x_in.shape
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -595,25 +595,27 @@ class Mobile_netV2(nn.Module):
         self.count = 0.0
         self.batch = 0.0
         self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
-        
+
         if (not self.training):
 
             self.batch = self.batch + 1.0
 
-            if self.batch == 1335:
-                print(self.count)
+            # if self.batch == 1335:
+            #     print(self.count)
 
             x0, x1 = x_in[0], x_in[1]
             
             x = self.model(x0)
+            x = self.head(x[4])
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.9):
+            if (x.max() < 0.5):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
-                result = self.model(y.view(-1, c, h, w))
-                result = torch.softmax(result.view(bs, ncrops, -1), dim=1).mean(1)
+                x = self.model(y.view(-1, c, h, w))
+                x = self.head(x[4])
+                x = torch.softmax(x.view(bs, ncrops, -1), dim=1).mean(1)
                 # x = self.model(x1)
                 # x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
