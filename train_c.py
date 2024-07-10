@@ -21,7 +21,6 @@ from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
 import utils
-from model.SEUNet import SEUNet
 from model.UNet import UNet
 from model.UNet_loss import UNet_loss
 from model.UNet_plus import NestedUNet
