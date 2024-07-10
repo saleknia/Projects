@@ -494,7 +494,7 @@ class Mobile_netV2(nn.Module):
 
         self.model.head.classifier[4] = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1600, out_features=num_classes, bias=True),
+            nn.Linear(in_features=3200, out_features=num_classes, bias=True),
         )
 
         for param in self.model.stages[-1].parameters():
