@@ -485,7 +485,7 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
+        model = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True)
 
         self.model = model 
 
@@ -569,7 +569,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        self.model = teacher_ensemble()
+        # self.model = teacher_ensemble()
 
         # self.count = 0.0
         # self.batch = 0.0
