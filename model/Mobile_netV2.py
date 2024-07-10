@@ -609,13 +609,13 @@ class Mobile_netV2(nn.Module):
             x = self.head(x[4])
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.5):
+            if (x.max() < 0.8):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
                 x = self.model(y.view(-1, c, h, w))
                 x = self.head(x[4])
-                x = torch.softmax(x.view(bs, ncrops, -1), dim=1).mean(1)
+                x = torch.softmax(x, dim=1).mean(0, keepdim=True)
                 # x = self.model(x1)
                 # x = torch.softmax(x, dim=1)
                 self.count = self.count + 1.0
