@@ -358,7 +358,7 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        model = timm.create_model('timm/efficientvit_l2.r224_in1k', pretrained=True)
+        model = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True)
 
         self.model = model 
 
@@ -475,7 +475,7 @@ class Mobile_netV2(nn.Module):
 
             self.batch = self.batch + 1.0
 
-            if self.batch == 5530:
+            if self.batch == 1335:
                 print(self.count)
 
             x0, x1 = x_in[0], x_in[1]
