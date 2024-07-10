@@ -40,8 +40,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     loss_total = utils.AverageMeter()
 
     # accuracy   = utils.AverageMeter()
-    # metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
-    accuracy = mAPMeter()
+    metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
+    # accuracy = mAPMeter()
 
     ce_loss = CrossEntropyLoss()
     total_batchs = len(dataloader)
@@ -74,9 +74,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             predictions = torch.argmax(input=outputs,dim=1).long()
 
-            # metric.update(predictions, targets.long())
+            metric.update(predictions, targets.long())
             
-            accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+            # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
 
             # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
             
@@ -91,15 +91,15 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 iteration=batch_idx+1,
                 total=total_batchs,
                 prefix=f'Test {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {metric.compute()*100:.2f} ',
-                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
+                suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {metric.compute()*100:.2f} ',
+                # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.value().item()*100:.2f} ',
                 # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
                 bar_length=45
             )  
 
-        # acc = 100 * metric.compute()
+        acc = 100 * metric.compute()
 
-        acc = 100 * accuracy.value().item()
+        # acc = 100 * accuracy.value().item()
 
         # acc = 100 * accuracy.avg
 

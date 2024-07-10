@@ -40,133 +40,6 @@ from efficientvit.seg_model_zoo import create_seg_model
 
 from efficientvit.cls_model_zoo import create_cls_model
 
-class ChannelPool(nn.Module):
-    def forward(self, x):
-        return torch.cat( (torch.max(x,1)[0].unsqueeze(1), torch.mean(x,1).unsqueeze(1)), dim=1)
-        
-class Conv(nn.Module):
-    def __init__(self, inp_dim, out_dim, kernel_size=3, stride=1, bn=False, relu=True, bias=True):
-        super(Conv, self).__init__()
-        self.inp_dim = inp_dim
-        self.conv = nn.Conv2d(inp_dim, out_dim, kernel_size, stride, padding=(kernel_size-1)//2, bias=bias)
-        self.relu = None
-        self.bn = None
-        if relu:
-            self.relu = nn.ReLU(inplace=True)
-        if bn:
-            self.bn = nn.BatchNorm2d(out_dim)
-
-    def forward(self, x):
-        assert x.size()[1] == self.inp_dim, "{} {}".format(x.size()[1], self.inp_dim)
-        x = self.conv(x)
-        if self.bn is not None:
-            x = self.bn(x)
-        if self.relu is not None:
-            x = self.relu(x)
-        return x
-
-class Residual(nn.Module):
-    def __init__(self, inp_dim, out_dim):
-        super(Residual, self).__init__()
-        self.relu = nn.ReLU(inplace=True)
-        self.bn1 = nn.BatchNorm2d(inp_dim)
-        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
-        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
-        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
-        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
-        if inp_dim == out_dim:
-            self.need_skip = False
-        else:
-            self.need_skip = True
-        
-    def forward(self, x):
-        if self.need_skip:
-            residual = self.skip_layer(x)
-        else:
-            residual = x
-        out = self.bn1(x)
-        out = self.relu(out)
-        out = self.conv1(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn3(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out += residual
-        return out 
-
-class BiFusion_block(nn.Module):
-    def __init__(self, ch_1=384, ch_2=512, r_2=4, ch_out=512, drop_rate=0.):
-        super(BiFusion_block, self).__init__()
-
-        # channel attention for F_g, use SE Block
-        self.fc1 = nn.Conv2d(ch_2, ch_2 // r_2, kernel_size=1)
-        self.relu = nn.ReLU(inplace=True)
-        self.fc2 = nn.Conv2d(ch_2 // r_2, ch_2, kernel_size=1)
-        self.sigmoid = nn.Sigmoid()
-
-        # spatial attention for F_l
-        self.compress = ChannelPool()
-        self.spatial = Conv(2, 1, 7, bn=True, relu=False, bias=False)
-
-        self.residual = Residual(ch_1+ch_2, ch_out)
-
-    def forward(self, g, x):
-
-        # spatial attention for cnn branch
-        g_in = g
-        g = self.compress(g)
-        g = self.spatial(g)
-        g = self.sigmoid(g) * g_in
-
-        # channel attetion for transformer branch
-        x_in = x
-        x = x.mean((2, 3), keepdim=True)
-        x = self.fc1(x)
-        x = self.relu(x)
-        x = self.fc2(x)
-        x = self.sigmoid(x) * x_in
-
-        fuse = self.residual(torch.cat([g, x], 1))
-        
-        return fuse
-
-class Residual(nn.Module):
-    def __init__(self, inp_dim, out_dim):
-        super(Residual, self).__init__()
-        self.relu = nn.ReLU(inplace=True)
-        self.bn1 = nn.BatchNorm2d(inp_dim)
-        self.conv1 = Conv(inp_dim, int(out_dim/2), 1, relu=False)
-        self.bn2 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv2 = Conv(int(out_dim/2), int(out_dim/2), 3, relu=False)
-        self.bn3 = nn.BatchNorm2d(int(out_dim/2))
-        self.conv3 = Conv(int(out_dim/2), out_dim, 1, relu=False)
-        self.skip_layer = Conv(inp_dim, out_dim, 1, relu=False)
-        if inp_dim == out_dim:
-            self.need_skip = False
-        else:
-            self.need_skip = True
-        
-    def forward(self, x):
-        if self.need_skip:
-            residual = self.skip_layer(x)
-        else:
-            residual = x
-        out = self.bn1(x)
-        out = self.relu(out)
-        out = self.conv1(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-        out = self.conv2(out)
-        out = self.bn3(out)
-        out = self.relu(out)
-        out = self.conv3(out)
-        out += residual
-        return out 
-
 
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -561,19 +434,19 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b1.pth', map_location='cpu')
-        # pretrained_teacher  = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/L1.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
         # self.model = teacher_ensemble()
 
-        # self.count = 0.0
-        # self.batch = 0.0
-        # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
+        self.count = 0.0
+        self.batch = 0.0
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x_in):
 
@@ -598,40 +471,36 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
+        if (not self.training):
 
-        # if (not self.training):
+            self.batch = self.batch + 1.0
 
-        #     self.batch = self.batch + 1.0
+            if self.batch == 5530:
+                print(self.count)
 
-        #     if self.batch == 5530:
-        #         print(self.count)
-
-        #     x0, x1 = x_in[0], x_in[1]
+            x0, x1 = x_in[0], x_in[1]
             
-        #     x = self.model(x0)
-        #     # x = self.head(x[4])
-        #     # x = torch.softmax(x, dim=1)
+            x = self.model(x0)
+            # x = self.head(x[4])
+            x = torch.softmax(x, dim=1)
 
-        #     if (x.max() < 1.0):
+            if (x.max() < 0.0):
 
-        #         y = self.transform(x1)
-        #         ncrops, bs, c, h, w = y.size()
-        #         x = self.model(y.view(-1, c, h, w))
-        #         # x = self.head(x[4])
-        #         # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+                y = self.transform(x1)
+                ncrops, bs, c, h, w = y.size()
+                x = self.model(y.view(-1, c, h, w))
+                # x = self.head(x[4])
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
-        #         # x = torch.softmax(x, dim=1)
-        #         a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-        #         x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+                x = torch.softmax(x, dim=1)
+                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
 
-        #         # x = self.model(x1)
-        #         # x = torch.softmax(x, dim=1)
-        #         self.count = self.count + 1.0
+                self.count = self.count + 1.0
         
-        # else:
-        #     b, c, w, h = x_in.shape
-        #     x = self.model(x_in)
+        else:
+            b, c, w, h = x_in.shape
+            x = self.model(x_in)
 
 
         return x
