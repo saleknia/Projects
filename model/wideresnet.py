@@ -146,6 +146,18 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer3.parameters():
+            param.requires_grad = True
+
+        for param in self.model.layer4.parameters():
+            param.requires_grad = True
+
+        for param in self.model.fc.parameters():
+            param.requires_grad = True
+
     def forward(self, x):
         x = self.conv1(x)
         x = self.bn1(x)
