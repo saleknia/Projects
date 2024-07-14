@@ -156,24 +156,24 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model      = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        model.load_state_dict(state_dict)
+        # model.load_state_dict(state_dict)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
-        self.model.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True),
-        )
+        # self.model.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True),
+        # )
 
         # #################################################################################
         # #################################################################################
@@ -407,7 +407,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        # self.model = teacher_ensemble()
+        self.model = teacher_ensemble()
 
         # self.count = 0.0
         # self.batch = 0.0
@@ -436,7 +436,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)
+        x = self.model(x_in[0])
 
         # if (not self.training):
 
@@ -483,64 +483,46 @@ class teacher_ensemble(nn.Module):
         super(teacher_ensemble, self).__init__()
 
         self.maxvit = maxvit_model()
-        # self.b1 = mvit_tiny()
-        # self.b2 = convnext_tiny()
+        self.scene  = scene()
+        self.seg    = seg()
 
-        self.inspector = b1()
 
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
     def forward(self, x0):
-        
-        x0 = x0[1]
 
-        b, c, w, h = x0.shape
+        # b, c, w, h = x0.shape
 
-        y = self.transform(x0)
-        ncrops, bs, c, h, w = y.size()
-        x = self.inspector(y.view(-1, c, h, w))
-        a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-
-        a = y[a]
-        b = y[b]        
-        c = y[c]
-
-        a = self.maxvit(a)
-        b = self.maxvit(b)
-        c = self.maxvit(c) 
+        a = self.maxvit(x0)
+        b = self.scene(x0)
+        c = self.seg(x0) 
 
         x = (a + b + c) / 3.0
 
         return x
 
+class scene(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(scene, self).__init__()
+       
+        model      = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-class b1(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(b1, self).__init__()
-  
-        model = timm.create_model('timm/efficientvit_b1.r224_in1k', pretrained=True)
+        model.load_state_dict(state_dict)
 
-        self.model = model 
+        self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.model.head.classifier[4] = nn.Sequential(
+        for param in self.model.layer4[-1].parameters():
+            param.requires_grad = True
+
+        self.model.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=1600, out_features=num_classes, bias=True),
+            nn.Linear(in_features=2048, out_features=67, bias=True),
         )
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.stages[-2].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/b1.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -551,35 +533,72 @@ class b1(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x = self.model(x0)
+        x = self.model(x_in)
 
         return torch.softmax(x, dim=1)
 
-class maxvit_model(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(maxvit_model, self).__init__()
 
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
-        head  = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True).head
+class seg(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(seg, self).__init__()
+       
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        self.model = model 
-        self.head  = head
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
+
+        self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.head.fc = nn.Sequential(
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
+
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/seg.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x0):
+        b, c, w, h = x0.shape
+
+        x = self.model(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
+
+        return torch.softmax(x, dim=1)
+
+class maxvit_model(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(maxvit_model, self).__init__()
+
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+
+        self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=False),
             nn.Linear(in_features=512, out_features=num_classes, bias=True),
         )
 
-        for param in self.model.stages_3.parameters():
+        for param in self.model.stages[-1].parameters():
             param.requires_grad = True
 
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
-
-        for param in self.head.parameters():
+        for param in self.model.head.parameters():
             param.requires_grad = True
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/max.pth', map_location='cpu')
@@ -593,9 +612,7 @@ class maxvit_model(nn.Module):
     def forward(self, x0):
         b, c, w, h = x0.shape
 
-        x0, x1, x2, x3, x4 = self.model(x0)
-
-        x = self.head(x4)
+        x = self.model(x0)
 
         return torch.softmax(x, dim=1)
 
