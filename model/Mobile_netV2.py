@@ -208,7 +208,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[-4:].parameters():
+        for param in self.model.stages[-1].parameters():
             param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
@@ -218,9 +218,11 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r256.pt").backbone
+        # model = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r256.pt")
 
         # self.model = model
+
+        # print(model)
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
