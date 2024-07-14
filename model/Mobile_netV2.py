@@ -45,7 +45,7 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = wideresnet.resnet18(num_classes=num_classes)
+        model = resnet18(num_classes=num_classes)
         checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model.load_state_dict(state_dict)
