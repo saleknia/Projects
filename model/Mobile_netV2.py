@@ -212,7 +212,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.avgpool = nn.AvgPool2d(16, stride=1)
         self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
