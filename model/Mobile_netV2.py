@@ -198,22 +198,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        # model.input_stem.op_list[0].conv.stride  = (1, 1)
-        # model.input_stem.op_list[0].conv.padding = (0, 0)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].blocks[-4:].parameters():
+            param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(14, stride=1)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -407,7 +407,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        self.model = teacher_ensemble()
+        # self.model = teacher_ensemble()
 
         # self.count = 0.0
         # self.batch = 0.0
@@ -436,7 +436,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in[0])
+        x = self.model(x_in)
 
         # if (not self.training):
 
@@ -449,15 +449,16 @@ class Mobile_netV2(nn.Module):
             
         #     x = self.model(x0)
         #     # x = self.head(x[4])
-        #     x = torch.softmax(x, dim=1)
+        #     # x = torch.softmax(x, dim=1)
 
-        #     if (x.max() < 0.9):
+        #     if (x.max() < 0.8):
 
         #         y = self.transform(x1)
         #         ncrops, bs, c, h, w = y.size()
         #         x = self.model(y.view(-1, c, h, w))
         #         # x = self.head(x[4])
-        #         x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+        #         # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+        #         x = x.mean(0, keepdim=True)
 
         #         # x = torch.softmax(x, dim=1)
         #         # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
@@ -530,12 +531,36 @@ class scene(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
-        x = self.model(x_in)
+    def forward(self, x_in):
+        # b, c, w, h = x0.shape
 
-        return torch.softmax(x, dim=1)
+        # x = self.model(x0)
+
+        if (not self.training):
+
+            x0, x1 = x_in[0], x_in[1]
+            
+            x = self.model(x0)
+            x = torch.softmax(x, dim=1)
+
+            if (x.max() < 0.8):
+
+                y = self.transform(x1)
+                ncrops, bs, c, h, w = y.size()
+                x = self.model(y.view(-1, c, h, w))
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
+                x = torch.softmax(x, dim=1)
+                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        
+        else:
+            b, c, w, h = x_in.shape
+            x = self.model(x_in)
+
+        return x # torch.softmax(x, dim=1)
 
 
 class seg(nn.Module):
@@ -567,17 +592,54 @@ class seg(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+    def forward(self, x_in):
+        # b, c, w, h = x0.shape
 
-        return torch.softmax(x, dim=1)
+        # x = self.model(x0)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
+
+        if (not self.training):
+
+            x0, x1 = x_in[0], x_in[1]
+                
+            x = self.model(x0)
+            x = x['stage_final']
+            x = self.avgpool(x)
+            x = x.view(x.size(0), -1)
+            x = self.dropout(x)
+            x = self.fc_SEM(x)
+            x = torch.softmax(x, dim=1)
+
+            if (x.max() < 0.8):
+
+                y = self.transform(x1)
+                ncrops, bs, c, h, w = y.size()
+                # x = self.model(y.view(-1, c, h, w))
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
+                x = self.model(y.view(-1, c, h, w))
+                x = x['stage_final']
+                x = self.avgpool(x)
+                x = x.view(x.size(0), -1)
+                x = self.dropout(x)
+                x = self.fc_SEM(x)
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
+                x = torch.softmax(x, dim=1)
+                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        
+        else:
+            b, c, w, h = x_in.shape
+            x = self.model(x_in)
+
+        return x # torch.softmax(x, dim=1)
 
 class maxvit_model(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -609,12 +671,34 @@ class maxvit_model(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
-    def forward(self, x0):
-        b, c, w, h = x0.shape
+        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
+        
+    def forward(self, x_in):
+        # b, c, w, h = x0.shape
 
-        x = self.model(x0)
+        if (not self.training):
 
-        return torch.softmax(x, dim=1)
+            x0, x1 = x_in[0], x_in[1]
+            
+            x = self.model(x0)
+            x = torch.softmax(x, dim=1)
+
+            if (x.max() < 0.8):
+
+                y = self.transform(x1)
+                ncrops, bs, c, h, w = y.size()
+                x = self.model(y.view(-1, c, h, w))
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
+                x = torch.softmax(x, dim=1)
+                a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+                x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        
+        else:
+            b, c, w, h = x_in.shape
+            x = self.model(x_in)
+
+        return x # torch.softmax(x, dim=1)
 
 
 class mvit_tiny(nn.Module):
