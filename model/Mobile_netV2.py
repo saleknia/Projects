@@ -198,17 +198,17 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        seg.input_stem.op_list[0].conv.stride  = (1, 1)
-        seg.input_stem.op_list[0].conv.padding = (0, 0)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        self.seg = seg
+        self.model = model
 
-        for param in self.seg.parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.seg.stages[-1].parameters():
+        for param in self.model.stages[-1].parameters():
             param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
