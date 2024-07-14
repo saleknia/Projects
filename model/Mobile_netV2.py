@@ -45,13 +45,17 @@ class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
-        model = resnet18(num_classes=num_classes)
+        model = resnet18(num_classes=365)
         checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
         model.load_state_dict(state_dict)
 
         self.model = model
-
+        self.model.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
+        
         ############################################################
         ############################################################
 
