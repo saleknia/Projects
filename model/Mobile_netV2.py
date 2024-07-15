@@ -338,26 +338,26 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        # model = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True)
+        model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.classifier[4] = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=3200, out_features=num_classes, bias=True),
-        # )
+        self.model.head.classifier[4] = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2560, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.stages[-2].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-2].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -432,12 +432,12 @@ class Mobile_netV2(nn.Module):
 
         # b, c, w, h = x_in.shape
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        # x = self.model(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
 
         # x0, x1, x2, x3, x4 = self.model(x_in)
 
@@ -451,7 +451,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
         # if (not self.training):
 
