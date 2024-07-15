@@ -167,7 +167,10 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
+        for param in self.model.layer4.parameters():
+            param.requires_grad = True
+
+        for param in self.model.layer3.parameters():
             param.requires_grad = True
 
         self.model.fc = nn.Sequential(
@@ -414,7 +417,7 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/seg.pth', map_location='cpu')
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best.pth', map_location='cpu')
         # pretrained_teacher  = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
         # for key in a.keys():
