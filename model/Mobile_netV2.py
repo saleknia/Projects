@@ -199,31 +199,34 @@ class Mobile_netV2(nn.Module):
         #################################################################################
 
         model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
-        head  = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r224.pt").head
+        # head  = create_cls_model(name="b2", weight_url="/content/drive/MyDrive/b2-r224.pt").head
 
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
 
         self.model = model
-        self.head  = head
+        # self.head  = head
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.head.op_list[3] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2560, out_features=num_classes, bias=True),
-        )
+        # self.head.op_list[3] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2560, out_features=num_classes, bias=True),
+        # )
 
         for param in self.model.stages[-1].parameters():
             param.requires_grad = True
 
-        for param in self.head.parameters():
+        for param in self.model.stages[-2].parameters():
             param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(16, stride=1)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
+
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -431,12 +434,10 @@ class Mobile_netV2(nn.Module):
 
         x = self.model(x_in)
         x = x['stage_final']
-        x = self.head(x)
-
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x0, x1, x2, x3, x4 = self.model(x_in)
 
