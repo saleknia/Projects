@@ -167,10 +167,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4.parameters():
-            param.requires_grad = True
-
-        for param in self.model.layer3.parameters():
+        for param in self.model.layer4[-1].parameters():
             param.requires_grad = True
 
         self.model.fc = nn.Sequential(
@@ -467,20 +464,20 @@ class Mobile_netV2(nn.Module):
             
         #     x = self.model(x0)
         #     # x = self.head(x[4])
-        #     # x = torch.softmax(x, dim=1)
+        #     x = torch.softmax(x, dim=1)
 
-        #     if (x.max() < 0.8):
+        #     if (x.max() < 0.9):
 
         #         y = self.transform(x1)
         #         ncrops, bs, c, h, w = y.size()
         #         x = self.model(y.view(-1, c, h, w))
         #         # x = self.head(x[4])
         #         # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
-        #         x = x.mean(0, keepdim=True)
+        #         # x = x.mean(0, keepdim=True)
 
-        #         # x = torch.softmax(x, dim=1)
-        #         # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-        #         # x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
+        #         x = torch.softmax(x, dim=1)
+        #         a, b, c = torch.topk(x.max(dim=1).values, 3).indices
+        #         x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
 
         #         self.count = self.count + 1.0
         
