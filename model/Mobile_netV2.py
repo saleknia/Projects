@@ -200,6 +200,12 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.features.denseblock4.parameters():
         #     param.requires_grad = True
 
+        for i, module in enumerate(model.features.denseblock4):
+            if 15 < i:
+                for param in model.features.denseblock4[module].parameters():
+                    param.requires_grad = True
+
+
         self.model.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=2208, out_features=67, bias=True),
