@@ -156,9 +156,39 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # # model      = models.__dict__['resnet50'](num_classes=365)
+        # # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+
+        # model      = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+
+        # model.load_state_dict(state_dict)
+
+        # self.model = model
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
+
+        # self.model.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=67, bias=True),
+        # )
+
+        
+        # #################################################################################
+        # #################################################################################
+
+
+        model      = models.__dict__['densenet161'](num_classes=365)
+        checkpoint = torch.load('/content/densenet161_places365.pth.tar', map_location='cpu')
         state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        state_dict = {str.replace(k,'.1','1'): v for k,v in state_dict.items()}
+        state_dict = {str.replace(k,'.2','2'): v for k,v in state_dict.items()}
 
         model.load_state_dict(state_dict)
 
@@ -167,12 +197,12 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
+        for param in self.model.features.denseblock4.parameters():
             param.requires_grad = True
 
-        self.model.fc = nn.Sequential(
+        self.model.classifier = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True),
+            nn.Linear(in_features=2208, out_features=67, bias=True),
         )
 
         # #################################################################################
