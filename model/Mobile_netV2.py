@@ -386,7 +386,7 @@ class Mobile_netV2(nn.Module):
             nn.Linear(in_features=2560, out_features=num_classes, bias=True),
         )
 
-        for param in self.model.stages[-1].op_list[-4].parameters():
+        for param in self.model.stages[-1].blocks[-4:].parameters():
             param.requires_grad = True
 
         # for param in self.model.stages[-2].parameters():
