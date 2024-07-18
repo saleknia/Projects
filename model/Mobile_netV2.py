@@ -586,13 +586,14 @@ class scene(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.8):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
                 x = self.model(y.view(-1, c, h, w))
-                
-                x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+
+                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
                 # x = torch.softmax(x, dim=1)
                 # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
@@ -658,7 +659,7 @@ class seg(nn.Module):
             x = self.fc_SEM(x)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.8):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -670,7 +671,8 @@ class seg(nn.Module):
                 x = self.dropout(x)
                 x = self.fc_SEM(x)
 
-                x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
                 # x = torch.softmax(x, dim=1)
                 # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
@@ -724,13 +726,14 @@ class maxvit_model(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.8):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
                 x = self.model(y.view(-1, c, h, w))
                 
-                x = torch.softmax(x, dim=1).mean(0, keepdim=True)
+                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
+                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
 
                 # x = torch.softmax(x, dim=1)
                 # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
