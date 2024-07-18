@@ -318,26 +318,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
+        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=False),
-        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=False),
+            nn.Linear(in_features=512, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].blocks[-1].parameters():
+            param.requires_grad = True
 
         # for param in self.model.stages[-2].parameters():
         #     param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -450,7 +450,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        self.model = teacher_ensemble()
+        # self.model = teacher_ensemble()
 
         # self.count = 0.0
         # self.batch = 0.0
@@ -588,7 +588,7 @@ class scene(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.5):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -659,7 +659,7 @@ class seg(nn.Module):
             x = self.fc_SEM(x)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.5):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -726,7 +726,7 @@ class maxvit_model(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.0):
+            if (x.max() < 0.5):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
