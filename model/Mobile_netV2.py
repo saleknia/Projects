@@ -450,7 +450,7 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        # self.model = teacher_ensemble()
+        self.model = teacher_ensemble()
 
         # self.count = 0.0
         # self.batch = 0.0
@@ -460,12 +460,12 @@ class Mobile_netV2(nn.Module):
 
         # b, c, w, h = x_in.shape
 
-        x = self.model(x_in)
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        x = self.dropout(x)
-        x = self.fc_SEM(x)
+        # x = self.model(x_in)
+        # x = x['stage_final']
+        # x = self.avgpool(x)
+        # x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
 
         # x0, x1, x2, x3, x4 = self.model(x_in)
 
@@ -479,7 +479,7 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
         # if (not self.training):
 
@@ -588,7 +588,7 @@ class scene(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < 0.0):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -659,7 +659,7 @@ class seg(nn.Module):
             x = self.fc_SEM(x)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < 0.0):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -726,7 +726,7 @@ class maxvit_model(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < 0.0):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
