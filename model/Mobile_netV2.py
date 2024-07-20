@@ -521,6 +521,7 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
+alpha = 0.0
 
 class teacher_ensemble(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
@@ -586,7 +587,7 @@ class scene(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < alpha):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -659,7 +660,7 @@ class seg(nn.Module):
             x = self.fc_SEM(x)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < alpha):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -726,7 +727,7 @@ class maxvit_model(nn.Module):
             x = self.model(x0)
             x = torch.softmax(x, dim=1)
 
-            if (x.max() < 0.8):
+            if (x.max() < alpha):
 
                 y = self.transform(x1)
                 ncrops, bs, c, h, w = y.size()
@@ -744,89 +745,3 @@ class maxvit_model(nn.Module):
             x = self.model(x_in)
 
         return x # torch.softmax(x, dim=1)
-
-
-class mvit_tiny(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(mvit_tiny, self).__init__()
-
-        model = timm.create_model('mvitv2_tiny', pretrained=True, features_only=True)
-        head  = timm.create_model('mvitv2_tiny', pretrained=True).head
-
-        self.model = model
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.model.stages[2:].parameters():
-            param.requires_grad = True
-
-        self.avgpool = nn.AvgPool2d(7, stride=1)
-
-        self.head = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/mvit.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-
-    def forward(self, x0):
-
-        b, c, w, h = x0.shape
-
-        x0, x1, x2, x3 = self.model(x0)
-
-        x3 = self.avgpool(x3)
-        x3 = x3.view(x3.size(0), -1)
-        x  = self.head(x3)
-
-        return torch.softmax(x, dim=1)
-
-
-class convnext_tiny(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(convnext_tiny, self).__init__()
-
-        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
-        
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
-        
-        self.head.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
-                )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages_2.parameters():
-            param.requires_grad = True
-
-        for param in self.model.stages_3.parameters():
-            param.requires_grad = True
-
-        for param in self.head.parameters():
-            param.requires_grad = True
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/next.pth', map_location='cpu')
-        pretrained_teacher = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x0):
-        b, c, w, h = x0.shape
-
-        x0, x1, x2, x3 = self.model(x0)
-
-        x = self.head(x3)
-
-        return torch.softmax(x, dim=1)
