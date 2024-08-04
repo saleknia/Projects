@@ -45,8 +45,8 @@ class cnn_decoder(nn.Module):
     def forward(self, x0, x1, x2, x3):
 
         x = self.up_2(x3, x2)
-        x = self.up_1(x1, x)
-        x = self.up_0(x0, x)
+        x = self.up_1(x , x1)
+        x = self.up_0(x , x0)
 
         x = self.final_head(x)
 
@@ -173,7 +173,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(out_channels*2, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
         out = self.up(x)
