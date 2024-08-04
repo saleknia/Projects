@@ -109,7 +109,7 @@ class knitt_net(nn.Module):
         super(knitt_net, self).__init__()
 
         # self.cls = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        # self.cnn_decoder = cnn_decoder()
+        self.cnn_decoder = cnn_decoder()
         # self.up    = nn.Upsample(scale_factor=2.0)
         
         model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
