@@ -24,8 +24,6 @@ class final_head(nn.Module):
             nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
             nn.Conv2d(48, 48, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
         )
 
     def forward(self, x):
@@ -112,6 +110,7 @@ class knitt_net(nn.Module):
 
         self.model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
         self.cnn_decoder = cnn_decoder()
+        self.up    = nn.Upsample(scale_factor=2.0)
 
         # self.reduce_0 = ConvBatchNorm(in_channels=48 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
         # self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
@@ -123,10 +122,10 @@ class knitt_net(nn.Module):
 
         t0, t1, t2, t3 = self.model(x)
 
-        # t0 = self.reduce_0(t0)
-        # t1 = self.reduce_1(t1)
-        # t2 = self.reduce_2(t2)
-        # t3 = self.reduce_3(t3)
+        t0 = self.up(t0)
+        t1 = self.up(t1)
+        t2 = self.up(t2)
+        t3 = self.up(t3)
 
         out = self.cnn_decoder(t0, t1, t2, t3)
 
