@@ -23,7 +23,7 @@ class final_head(nn.Module):
         self.head = nn.Sequential(
             nn.ConvTranspose2d(48, 48, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, 48, 3, padding=1),
+            nn.Conv2d(48, num_classes, 3, padding=1),
         )
 
     def forward(self, x):
