@@ -42,7 +42,7 @@ class cnn_decoder(nn.Module):
 
         self.final_head = final_head(num_classes=1, scale_factor=2)
 
-    def forward(self, x1, x2, x3):
+    def forward(self, x0, x1, x2, x3):
         
         x = self.up_2(x3, x2)
         x = self.up_1(x , x1)
