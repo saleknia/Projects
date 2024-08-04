@@ -20,7 +20,6 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
-from models.SEUNet import SEUNet
 from models.SEUNet_lite import SEUNet_lite
 from models.UNet import UNet
 from models.UNet_loss import UNet_loss
@@ -53,6 +52,8 @@ from models.DATUNet import DATUNet
 from models.Cross_unet import Cross_unet
 from models.knitt_net import knitt_net
 from models.MVIT import MVIT
+
+# SEUnet
 
 # from models.original_UNet import original_UNet
 import utils
@@ -197,9 +198,6 @@ def main(args):
 
     elif MODEL_NAME == 'DATUNet':
         model = DATUNet().to(DEVICE)
-
-    elif MODEL_NAME=='SEUNet':
-        model = SEUNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME=='SEUNet_lite':
         model = SEUNet_lite(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
