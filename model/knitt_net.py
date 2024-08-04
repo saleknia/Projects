@@ -173,7 +173,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(out_channels*2, out_channels, nb_Conv, activation)
 
     def forward(self, x, skip_x):
         out = self.up(x)
