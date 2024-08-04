@@ -110,9 +110,9 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        # self.cls = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        self.cls = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
         self.cnn_decoder = cnn_decoder()
-        # self.up    = nn.Upsample(scale_factor=2.0)
+        self.up    = nn.Upsample(scale_factor=2.0)
         
         model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
@@ -126,25 +126,32 @@ class knitt_net(nn.Module):
         # self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
         # self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
 
-        # self.HA_3 = HybridAttention(channels=384)
-        # self.HA_2 = HybridAttention(channels=192)
-        # self.HA_1 = HybridAttention(channels=96)
+        self.HA_3 = HybridAttention(channels=384)
+        self.HA_2 = HybridAttention(channels=192)
+        self.HA_1 = HybridAttention(channels=96)
+        self.HA_0 = HybridAttention(channels=48)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
-        # t = self.cls(x)
+        t0, t1, t2, t3 = self.cls(x)
+
+        t0 = self.up(t0)
+        t1 = self.up(t1)
+        t2 = self.up(t2)
+        t3 = self.up(t3)
 
         y = self.seg(x)
         s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
 
-        # x1 = self.HA_1(t1, s1)        
-        # x2 = self.HA_2(t2, s2)
-        # x3 = self.HA_3(t3, s3)
+        x0 = self.HA_0(t0, s0)        
+        x1 = self.HA_1(t1, s1)        
+        x2 = self.HA_2(t2, s2)
+        x3 = self.HA_3(t3, s3)
 
-        # out = self.cnn_decoder(x0, x1, x2, x3)
+        out = self.cnn_decoder(x0, x1, x2, x3)
 
-        out = self.cnn_decoder(s0, s1, s2, s3)
+        # out = self.cnn_decoder(s0, s1, s2, s3)
 
 
         # t0 = self.up(t0)
