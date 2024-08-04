@@ -20,7 +20,6 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
-from models.SEUNet_lite import SEUNet_lite
 from models.UNet import UNet
 from models.UNet_loss import UNet_loss
 from models.UNet_plus import NestedUNet
