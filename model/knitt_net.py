@@ -36,8 +36,8 @@ class cnn_decoder(nn.Module):
     def __init__(self, num_classes=1.0, scale_factor=2.0):
         super(cnn_decoder, self).__init__()
         
-        self.up_1 = UpBlock(192, 96)
-        self.up_0 = UpBlock(96 , 48)
+        self.up_1 = UpBlock(384, 192)
+        self.up_0 = UpBlock(192, 96)
 
         self.final_head = final_head(num_classes=1, scale_factor=2)
 
