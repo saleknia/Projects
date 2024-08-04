@@ -110,8 +110,8 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-       
+        self.model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        self.cnn_decoder = cnn_decoder()
     def forward(self, x):
         b, c, h, w = x.shape
 
