@@ -22,9 +22,10 @@ class final_head(nn.Module):
         super(final_head, self).__init__()
 
         self.head = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(48, num_classes, 1, padding=0),
+            # nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            # nn.ReLU(inplace=True),
+            nn.Conv2d(96, num_classes, 1, padding=0),
+            nn.Upsample(scale_factor=4)
         )
 
     def forward(self, x):
@@ -35,17 +36,15 @@ class cnn_decoder(nn.Module):
     def __init__(self, num_classes=1.0, scale_factor=2.0):
         super(cnn_decoder, self).__init__()
         
-        self.up_2 = UpBlock(384, 192)
         self.up_1 = UpBlock(192, 96)
         self.up_0 = UpBlock(96 , 48)
 
-        self.final_head = final_head(num_classes=1, scale_factor=2.0)
+        self.final_head = final_head(num_classes=1, scale_factor=2)
 
-    def forward(self, x0, x1, x2, x3):
+    def forward(self, x1, x2, x3):
 
-        x = self.up_2(x3, x2)
-        x = self.up_1(x , x1)
-        x = self.up_0(x , x0)
+        x = self.up_1(x3 , x2)
+        x = self.up_0(x  , x1)
 
         x = self.final_head(x)
 
@@ -109,16 +108,14 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        # self.model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder()
+        # self.cls = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        # self.cnn_decoder = cnn_decoder()
         # self.up    = nn.Upsample(scale_factor=2.0)
         
         model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
-
-        self.align = nn.Upsample(size=112)
 
         self.seg = model
 
@@ -127,22 +124,27 @@ class knitt_net(nn.Module):
         # self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
         # self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
 
+        # self.HA_3 = HybridAttention(channels=384)
+        # self.HA_2 = HybridAttention(channels=192)
+        # self.HA_1 = HybridAttention(channels=96)
+
     def forward(self, x):
         b, c, h, w = x.shape
 
-        # t0, t1, t2, t3 = self.model(x)
+        # t = self.cls(x)
+        # t1, t2, t3 = t[1:3]
 
         y = self.seg(x)
-        s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
+        s1, s2, s3 = y['stage2'], y['stage3'], y['stage4']
 
-        s0 = self.align(s0)
+        # x1 = self.HA_1(t1, s1)        
+        # x2 = self.HA_2(t2, s2)
+        # x3 = self.HA_3(t3, s3)
 
-        # print(s0.shape)
-        # print(s1.shape)
-        # print(s2.shape)
-        # print(s3.shape)
+        # out = self.cnn_decoder(x0, x1, x2, x3)
 
-        out = self.cnn_decoder(s0, s1, s2, s3)
+        out = self.cnn_decoder(s1, s2, s3)
+
 
         # t0 = self.up(t0)
         # t1 = self.up(t1)
