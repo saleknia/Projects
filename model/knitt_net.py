@@ -14,6 +14,7 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
+from efficientvit.seg_model_zoo import create_seg_model
 
 
 class final_head(nn.Module):
@@ -108,9 +109,16 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        # self.model = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
         self.cnn_decoder = cnn_decoder()
-        self.up    = nn.Upsample(scale_factor=2.0)
+        # self.up    = nn.Upsample(scale_factor=2.0)
+        
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
+
+        self.seg = model
 
         # self.reduce_0 = ConvBatchNorm(in_channels=48 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
         # self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
@@ -120,14 +128,18 @@ class knitt_net(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        t0, t1, t2, t3 = self.model(x)
+        # t0, t1, t2, t3 = self.model(x)
 
-        t0 = self.up(t0)
-        t1 = self.up(t1)
-        t2 = self.up(t2)
-        t3 = self.up(t3)
+        y = self.seg(x)
+        s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
+        out = self.cnn_decoder(s0, s1, s2, s3)
 
-        out = self.cnn_decoder(t0, t1, t2, t3)
+        # t0 = self.up(t0)
+        # t1 = self.up(t1)
+        # t2 = self.up(t2)
+        # t3 = self.up(t3)
+
+        # out = self.cnn_decoder(t0, t1, t2, t3)
 
         return out
 
