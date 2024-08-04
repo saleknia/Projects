@@ -118,6 +118,8 @@ class knitt_net(nn.Module):
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
 
+        self.align = nn.Upsample(size=112)
+
         self.seg = model
 
         # self.reduce_0 = ConvBatchNorm(in_channels=48 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
@@ -132,6 +134,14 @@ class knitt_net(nn.Module):
 
         y = self.seg(x)
         s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
+
+        s0 = self.align(s0)
+
+        # print(s0.shape)
+        # print(s1.shape)
+        # print(s2.shape)
+        # print(s3.shape)
+
         out = self.cnn_decoder(s0, s1, s2, s3)
 
         # t0 = self.up(t0)
