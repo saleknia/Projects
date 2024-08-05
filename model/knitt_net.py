@@ -134,24 +134,24 @@ class knitt_net(nn.Module):
     def forward(self, x):
         b, c, h, w = x.shape
 
-        # t0, t1, t2, t3 = self.cls(x)
+        t0, t1, t2, t3 = self.cls(x)
 
-        # t0 = self.up(t0)
-        # t1 = self.up(t1)
-        # t2 = self.up(t2)
-        # t3 = self.up(t3)
+        t0 = self.up(t0)
+        t1 = self.up(t1)
+        t2 = self.up(t2)
+        t3 = self.up(t3)
 
         y = self.seg(x)
         s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
 
-        # x0 = self.HA_0(t0, s0)        
-        # x1 = self.HA_1(t1, s1)        
-        # x2 = self.HA_2(t2, s2)
-        # x3 = self.HA_3(t3, s3)
+        x0 = self.HA_0(t0, s0)        
+        x1 = self.HA_1(t1, s1)        
+        x2 = self.HA_2(t2, s2)
+        x3 = self.HA_3(t3, s3)
 
-        # out = self.cnn_decoder(x0, x1, x2, x3)
+        out = self.cnn_decoder(x0, x1, x2, x3)
 
-        out = self.cnn_decoder(s0, s1, s2, s3)
+        # out = self.cnn_decoder(s0, s1, s2, s3)
 
 
         # t0 = self.up(t0)
