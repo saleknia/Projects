@@ -133,7 +133,9 @@ class knitt_net(nn.Module):
         self.cnn_decoder = cnn_decoder(base_channel=96)
 
         self.enc_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.enc_1.stem_0.stride = (2, 2) 
+        self.enc_1.stem_0.stride  = (2, 2) 
+        self.enc_1.stem_0.padding = (2, 2) 
+
 
         self.avgpool = nn.AvgPool2d(2, stride=2)
 
