@@ -129,9 +129,10 @@ class knitt_net(nn.Module):
         # self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
         # self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
 
-        self.enc_0 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.enc_0       = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.cnn_decoder = cnn_decoder(base_channel=96)
+
         self.enc_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        
         self.enc_1.stem_0.stride = (2, 2) 
 
         self.avgpool = nn.AvgPool2d(2, stride=2)
@@ -140,7 +141,6 @@ class knitt_net(nn.Module):
         self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
         self.fusion_2 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
 
-        self.cnn_decoder = cnn_decoder(base_channel=96)
 
 
     def forward(self, x):
@@ -186,7 +186,7 @@ class knitt_net(nn.Module):
         x2 = self.fusion_2(torch.cat([s2, t2], dim=1))
        
         out = self.cnn_decoder(x0, x1, x2)
-        
+
         return out
 
 import torch.nn as nn
