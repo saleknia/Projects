@@ -17,15 +17,15 @@ import ml_collections
 from efficientvit.seg_model_zoo import create_seg_model
 
 class final_head(nn.Module):
-    def __init__(self, num_classes=1, scale_factor=2.0):
+    def __init__(self, base_channel=96, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
 
         self.head = nn.Sequential(
-            nn.ConvTranspose2d(48, 48, 4, 2, 1),
+            nn.ConvTranspose2d(base_channel, base_channel//2, 4, 2, 1),
             nn.ReLU(inplace=True),
-            nn.Conv2d(48, num_classes, 1, padding=0),
-            # nn.ReLU(inplace=True),
-            # nn.ConvTranspose2d(48, num_classes, 4, 2, 1), 
+            nn.Conv2d(base_channel//2, base_channel//2, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(base_channel//2, num_classes, 4, 2, 1), 
         )
 
     def forward(self, x):
@@ -33,19 +33,17 @@ class final_head(nn.Module):
         return out
 
 class cnn_decoder(nn.Module):
-    def __init__(self, num_classes=1.0, scale_factor=2.0):
+    def __init__(self, base_channel=96, num_classes=1.0, scale_factor=2.0):
         super(cnn_decoder, self).__init__()
 
-        self.up_2 = UpBlock(384, 192)
-        self.up_1 = UpBlock(192, 96)
-        self.up_0 = UpBlock(96 , 48)
+        self.up_1 = UpBlock(base_channel*4, base_channel*2)
+        self.up_0 = UpBlock(base_channel*2, base_channel*1)
 
-        self.final_head = final_head(num_classes=1, scale_factor=2)
+        self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
-    def forward(self, x0, x1, x2, x3):
+    def forward(self, x0, x1, x2):
         
-        x = self.up_2(x3, x2)
-        x = self.up_1(x , x1)
+        x = self.up_1(x2, x1)
         x = self.up_0(x , x0)
 
         x = self.final_head(x)
@@ -110,46 +108,60 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.cls = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder()
-        self.up    = nn.Upsample(scale_factor=2.0)
+        # self.cls = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True, features_only=True)
+        # self.cnn_decoder = cnn_decoder()
+        # self.up  = nn.Upsample(scale_factor=2.0)
         
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        # model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (1, 1)
+        # model.input_stem.op_list[0].conv.stride  = (1, 1)
+        # model.input_stem.op_list[0].conv.padding = (1, 1)
 
-        self.seg = model
+        # self.seg = model
 
-        # self.reduce_0 = ConvBatchNorm(in_channels=48 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_1 = ConvBatchNorm(in_channels=96 , out_channels=48, activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_2 = ConvBatchNorm(in_channels=192, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_3 = ConvBatchNorm(in_channels=384, out_channels=48, activation='ReLU', kernel_size=1, padding=0)
+        # self.HA_3 = HybridAttention(channels=384)
+        # self.HA_2 = HybridAttention(channels=192)
+        # self.HA_1 = HybridAttention(channels=96)
+        # self.HA_0 = HybridAttention(channels=48)
 
-        self.HA_3 = HybridAttention(channels=384)
-        self.HA_2 = HybridAttention(channels=192)
-        self.HA_1 = HybridAttention(channels=96)
-        self.HA_0 = HybridAttention(channels=48)
+        # self.reduce_0 = ConvBatchNorm(in_channels=64 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0)
+        # self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        # self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
+        # self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
+
+        self.enc_0 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.enc_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        
+        self.enc_1.stem_0.stride = (2, 2) 
+
+        self.avgpool = nn.AvgPool2d(2, stride=2)
+
+        self.fusion_0 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
+        self.fusion_2 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
+
+        self.cnn_decoder = cnn_decoder(base_channel=96)
+
 
     def forward(self, x):
         b, c, h, w = x.shape
 
-        t0, t1, t2, t3 = self.cls(x)
+        # stem, t0, t1, t2, t3 = self.cls(x)
 
-        t0 = self.up(t0)
-        t1 = self.up(t1)
-        t2 = self.up(t2)
-        t3 = self.up(t3)
+        # t0 = self.up(self.reduce_0(t0))
+        # t1 = self.up(self.reduce_1(t1))
+        # t2 = self.up(self.reduce_2(t2))
+        # t3 = self.up(self.reduce_3(t3))
 
-        y = self.seg(x)
-        s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
+        # y = self.seg(x)
+        # s0, s1, s2, s3 = y['stage1'], y['stage2'], y['stage3'], y['stage4']
 
-        x0 = self.HA_0(t0, s0)        
-        x1 = self.HA_1(t1, s1)        
-        x2 = self.HA_2(t2, s2)
-        x3 = self.HA_3(t3, s3)
+        # x0 = self.HA_0(t0, s0)        
+        # x1 = self.HA_1(t1, s1)        
+        # x2 = self.HA_2(t2, s2)
+        # x3 = self.HA_3(t3, s3)
 
-        out = self.cnn_decoder(x0, x1, x2, x3)
+        # out = self.cnn_decoder(x0, x1, x2, x3)
 
         # out = self.cnn_decoder(s0, s1, s2, s3)
 
@@ -160,9 +172,22 @@ class knitt_net(nn.Module):
         # t3 = self.up(t3)
 
         # out = self.cnn_decoder(t0, t1, t2, t3)
+        
+        t0, t1, t2 = self.enc_0(x)
 
+        s0, s1, s2 = self.enc_1(x)
+
+        s0 = self.avgpool(s0)
+        s1 = self.avgpool(s1)
+        s2 = self.avgpool(s2)
+        
+        x0 = self.fusion_0(torch.cat([s0, t0], dim=1))
+        x1 = self.fusion_1(torch.cat([s1, t1], dim=1))
+        x2 = self.fusion_2(torch.cat([s2, t2], dim=1))
+       
+        out = self.cnn_decoder(x0, x1, x2)
+        
         return out
-
 
 import torch.nn as nn
 import torch
