@@ -133,17 +133,15 @@ class knitt_net(nn.Module):
         self.cnn_decoder = cnn_decoder(base_channel=96)
 
         self.enc_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.enc_1.stem_0.stride  = (2, 2) 
-        self.enc_1.stem_0.padding = (2, 2) 
-
+        # self.enc_1.stem_0.stride  = (2, 2) 
+        # self.enc_1.stem_0.padding = (0, 0) 
 
         self.avgpool = nn.AvgPool2d(2, stride=2)
+        self.up      = nn.Upsample(scale_factor=2)
 
-        self.fusion_0 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
-        self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
-        self.fusion_2 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
-
-
+        # self.fusion_0 = ConvBatchNorm(in_channels=192, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
+        # self.fusion_1 = ConvBatchNorm(in_channels=384, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
+        # self.fusion_2 = ConvBatchNorm(in_channels=768, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -175,19 +173,23 @@ class knitt_net(nn.Module):
 
         # out = self.cnn_decoder(t0, t1, t2, t3)
         
-        t0, t1, t2 = self.enc_0(x)
+        # t0, t1, t2 = self.enc_0(x)
 
-        s0, s1, s2 = self.enc_1(x)
+        s0, s1, s2 = self.enc_1(self.avgpool(x))
 
-        s0 = self.avgpool(s0)
-        s1 = self.avgpool(s1)
-        s2 = self.avgpool(s2)
+        # print(s0.shape)
+        # print(s1.shape)
+        # print(s2.shape)
+
+        s0 = self.up(s0)
+        s1 = self.up(s1)
+        s2 = self.up(s2)
         
-        x0 = self.fusion_0(torch.cat([s0, t0], dim=1))
-        x1 = self.fusion_1(torch.cat([s1, t1], dim=1))
-        x2 = self.fusion_2(torch.cat([s2, t2], dim=1))
+        # x0 = self.fusion_0(torch.cat([s0, t0], dim=1))
+        # x1 = self.fusion_1(torch.cat([s1, t1], dim=1))
+        # x2 = self.fusion_2(torch.cat([s2, t2], dim=1))
        
-        out = self.cnn_decoder(x0, x1, x2)
+        out = self.cnn_decoder(s0, s1, s2)
 
         return out
 
