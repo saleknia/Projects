@@ -22,7 +22,7 @@ class final_head(nn.Module):
 
         self.head = nn.Sequential(
             nn.Conv2d(base_channel, num_classes, 1, padding=0),
-            nn.Upsample(scale_factor=4.0)
+            nn.Upsample(scale_factor=2)
         )
 
     def forward(self, x):
@@ -64,7 +64,6 @@ class BasicConv2d(nn.Module):
         x = self.bn(x)
         return x
 
-
 class Linear_Eca_block(nn.Module):
     """docstring for Eca_block"""
     def __init__(self):
@@ -81,23 +80,21 @@ class Linear_Eca_block(nn.Module):
         y = self.sigmoid(y)
         return y.expand_as(x)
 
-
 class HybridAttention(nn.Module):
     def __init__(self, channels):
         super(HybridAttention, self).__init__()
-
         self.eca     = Linear_Eca_block()
-        self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
+        self.down_c  = BasicConv2d(channels, channels, 3, 1, padding=1)
+        self.conv    = BasicConv2d(channels, 1, 3, 1, padding=1)
         self.sigmoid = nn.Sigmoid()
-        # self.final_conv = ConvBatchNorm(in_channels=channels*2 , out_channels=channels, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x_t, x_c):
 
         sa  = self.sigmoid(self.down_c(x_c))
         gc  = self.eca(x_t)
+        x_c = self.conv(x_c)
         x_c = x_c * gc
         x_t = x_t * sa
-        # x = self.final_conv(torch.cat((x_t, x_c), 1))
         
         return x_t, x_c
 
@@ -107,6 +104,8 @@ class knitt_net(nn.Module):
 
         self.encoder     = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True, features_only=True)
         self.cnn_decoder = cnn_decoder()
+
+        self.up = nn.Upsample(scale_factor=2)
         
         # self.HA_3 = HybridAttention(channels=384)
         # self.HA_2 = HybridAttention(channels=192)
@@ -122,6 +121,11 @@ class knitt_net(nn.Module):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
+
+        x0 = self.up(x0)
+        x1 = self.up(x1)
+        x2 = self.up(x2)
+        x3 = self.up(x3)
 
         out = self.cnn_decoder(x0, x1, x2, x3)
 
