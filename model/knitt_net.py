@@ -191,10 +191,10 @@ class knitt_net(nn.Module):
 
         self.avg = nn.AvgPool2d(2, stride=2)
 
-        self.up_3 = nn.Upsample(size=56)
-        self.up_2 = nn.Upsample(size=28)
-        self.up_1 = nn.Upsample(size=14)
-        self.up_0 = nn.Upsample(size= 7)
+        self.up_0 = nn.Upsample(size=56)
+        self.up_1 = nn.Upsample(size=28)
+        self.up_2 = nn.Upsample(size=14)
+        self.up_3 = nn.Upsample(size= 7)
 
         self.relu = nn.ReLU(inplace=True)
 
