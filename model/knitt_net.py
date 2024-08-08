@@ -44,15 +44,54 @@ class cnn_decoder(nn.Module):
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
+        self.fusion = SAM(base_channel=base_channel)
+
     def forward(self, x0, x1, x2, x3):
         
-        x = self.up_2(x3, x2)
-        x = self.up_1(x , x1)
-        x = self.up_0(x , x0)
+        d3 = self.up_2(x3, x2)
+        d2 = self.up_1(d2, x1)
+        d1 = self.up_0(d1, x0)
 
-        x = self.final_head(x)
+        d = self.fusion(d1, d2, d3)
+
+        x = self.final_head(d)
 
         return x
+
+class SAM(nn.Module):
+    def __init__(self, base_channel):
+        super(SAM, self).__init__()
+
+        self.conv_3 = BasicConv2d(base_channel*3, base_channel*1, 1, 1, 0)
+        self.conv_2 = BasicConv2d(base_channel*2, base_channel*1, 1, 1, 0)
+        self.conv_1 = BasicConv2d(base_channel*1, base_channel*1, 1, 1, 0)
+
+        self.up_2 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=4)
+
+        self.down   = BasicConv2d(base_channel*3, 3, 3, 1, padding=1)
+
+        self.softmax = nn.softmax(dim=1)
+        self.relu    = nn.ReLU()
+
+    def forward(self, d1, d2, d3):
+        
+        d1 = self.relu(self.conv_1(d1))
+        d2 = self.up_2(self.relu(self.conv_2(d2)))
+        d3 = self.up_4(self.relu(self.conv_3(d3)))
+
+        d = torch.cat([d1, d2, d3], dim=1)
+        att = self.down(d)
+        att = self.softmax(att)
+
+        att1 = att[:,0,:,:].unsqueeze(1)
+        att2 = att[:,1,:,:].unsqueeze(1)
+        att3 = att[:,2,:,:].unsqueeze(1)
+
+        x = (att1 * d1) + (att2 * d2) + (att3 * d3)
+
+        return x
+
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
@@ -114,7 +153,7 @@ class knitt_net(nn.Module):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
-
+        
         out = self.cnn_decoder(x0, x1, x2, x3)
 
         return out
