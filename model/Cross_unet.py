@@ -49,22 +49,21 @@ class SEBlock(nn.Module):
         skip_x = torch.mul(skip_x, y)
         return skip_x
 
-class seed():
-    def __init__(self):
-        super(seed, self).__init__()
+# class seed():
+#     def __init__(self):
+#         super(seed, self).__init__()
 
-        self.torch_manual_seed = torch.get_rng_state()
-        self.cuda_manual_seed  = torch.cuda.get_rng_state()
+#         self.torch_manual_seed = torch.get_rng_state()
+#         self.cuda_manual_seed  = torch.cuda.get_rng_state()
 
-    def define(self):
-        self.torch_manual_seed = torch.get_rng_state()
-        self.cuda_manual_seed  = torch.cuda.get_rng_state()
+#     def define(self):
+#         self.torch_manual_seed = torch.get_rng_state()
+#         self.cuda_manual_seed  = torch.cuda.get_rng_state()
 
-    def find(self):
-        torch.set_rng_state(self.torch_manual_seed)
-        torch.cuda.set_rng_state(self.cuda_manual_seed)     
+#     def find(self):
+#         torch.set_rng_state(self.torch_manual_seed)
+#         torch.cuda.set_rng_state(self.cuda_manual_seed)     
 
-seed_func = seed()
 
 # class UpBlock(nn.Module):
 #     """Upscaling then conv"""
@@ -224,7 +223,7 @@ class Cross_unet(nn.Module):
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 3, 2, 1, 1),
+        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 2, 2, 0),
                                       nn.BatchNorm2d(48),
                                       nn.ReLU(inplace=True),)
         self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
