@@ -21,11 +21,8 @@ class final_head(nn.Module):
         super(final_head, self).__init__()
 
         self.head = nn.Sequential(
-            nn.ConvTranspose2d(base_channel, base_channel//2, 2, 2, 0),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(base_channel//2, base_channel//2, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(base_channel//2, num_classes, 2, 2, 0), 
+            nn.Conv2d(base_channel, num_classes, 1, padding=0),
+            nn.Upsample(scale_factor=4.0)
         )
 
     def forward(self, x):
@@ -89,22 +86,22 @@ class HybridAttention(nn.Module):
     def __init__(self, channels):
         super(HybridAttention, self).__init__()
 
-        # self.eca     = Linear_Eca_block()
-        # self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
-        # self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
-        # self.sigmoid = nn.Sigmoid()
-        self.final_conv = ConvBatchNorm(in_channels=channels*2 , out_channels=channels, activation='ReLU', kernel_size=1, padding=0)
+        self.eca     = Linear_Eca_block()
+        self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
+        self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
+        self.sigmoid = nn.Sigmoid()
+        # self.final_conv = ConvBatchNorm(in_channels=channels*2 , out_channels=channels, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x_t, x_c):
 
-        # sa  = self.sigmoid(self.down_c(x_c))
-        # gc  = self.eca(x_t)
-        # x_c = self.conv(x_c)
-        # x_c = x_c * gc
-        # x_t = x_t * sa
-        x = self.final_conv(torch.cat((x_t, x_c), 1))
+        sa  = self.sigmoid(self.down_c(x_c))
+        gc  = self.eca(x_t)
+        x_c = self.conv(x_c)
+        x_c = x_c * gc
+        x_t = x_t * sa
+        # x = self.final_conv(torch.cat((x_t, x_c), 1))
         
-        return x
+        return x_t, x_c
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -173,9 +170,11 @@ class UpBlock(nn.Module):
 
         self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
         out = self.up(x)
+        out, skip_x = self.fusion(out, skip_x)
         x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
         return (self.nConvs(x))
 
