@@ -49,8 +49,8 @@ class cnn_decoder(nn.Module):
     def forward(self, x0, x1, x2, x3):
         
         d3 = self.up_2(x3, x2)
-        d2 = self.up_1(d2, x1)
-        d1 = self.up_0(d1, x0)
+        d2 = self.up_1(d3, x1)
+        d1 = self.up_0(d2, x0)
 
         d = self.fusion(d1, d2, d3)
 
@@ -71,7 +71,7 @@ class SAM(nn.Module):
 
         self.down   = BasicConv2d(base_channel*3, 3, 3, 1, padding=1)
 
-        self.softmax = nn.softmax(dim=1)
+        self.softmax = nn.Softmax(dim=1)
         self.relu    = nn.ReLU()
 
     def forward(self, d1, d2, d3):
