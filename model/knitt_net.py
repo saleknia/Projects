@@ -22,7 +22,7 @@ class final_head(nn.Module):
 
         self.head = nn.Sequential(
             nn.Conv2d(base_channel, num_classes, 1, padding=0),
-            nn.Upsample(scale_factor=2)
+            nn.Upsample(scale_factor=4)
         )
 
     def forward(self, x):
@@ -33,9 +33,9 @@ class cnn_decoder(nn.Module):
     def __init__(self, base_channel=64, num_classes=1.0, scale_factor=2.0):
         super(cnn_decoder, self).__init__()
         
-        self.up_2 = UpBlock(base_channel*8, base_channel*4)
-        self.up_1 = UpBlock(base_channel*4, base_channel*2)
-        self.up_0 = UpBlock(base_channel*2, base_channel*1)
+        self.up_2 = UpBlock(base_channel, base_channel)
+        self.up_1 = UpBlock(base_channel, base_channel)
+        self.up_0 = UpBlock(base_channel, base_channel)
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
@@ -102,30 +102,23 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder(base_channel=48)
+        self.encoder     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.cnn_decoder = cnn_decoder(base_channel=96)        
 
-        self.up = nn.Upsample(scale_factor=2)
-        
-        # self.HA_3 = HybridAttention(channels=384)
-        # self.HA_2 = HybridAttention(channels=192)
-        # self.HA_1 = HybridAttention(channels=96)
-        # self.HA_0 = HybridAttention(channels=48)
-
-        # self.reduce_0 = ConvBatchNorm(in_channels=64 , out_channels=48 , activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_1 = ConvBatchNorm(in_channels=128, out_channels=96 , activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_2 = ConvBatchNorm(in_channels=256, out_channels=192, activation='ReLU', kernel_size=1, padding=0)
-        # self.reduce_3 = ConvBatchNorm(in_channels=512, out_channels=384, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_3 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
 
-        x0 = self.up(x0)
-        x1 = self.up(x1)
-        x2 = self.up(x2)
-        x3 = self.up(x3)
+        x0 = self.reduce_0(x0)
+        x1 = self.reduce_1(x1)
+        x2 = self.reduce_2(x2)
+        x3 = self.reduce_3(x3)
 
         out = self.cnn_decoder(x0, x1, x2, x3)
 
@@ -170,13 +163,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
 
-        self.up     = nn.ConvTranspose2d(in_channels,in_channels//2,(2,2),2)
+        self.up     = nn.Upsample(scale_factor=2)
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
         self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
         x = self.up(x)
-        x, skip_x = self.fusion(x, skip_x)
+        # x, skip_x = self.fusion(x, skip_x)
         x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         return (self.nConvs(x))
 
