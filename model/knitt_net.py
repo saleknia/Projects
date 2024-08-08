@@ -62,7 +62,7 @@ class SAM(nn.Module):
     def __init__(self, base_channel):
         super(SAM, self).__init__()
 
-        self.conv_3 = BasicConv2d(base_channel*3, base_channel*1, 1, 1, 0)
+        self.conv_3 = BasicConv2d(base_channel*4, base_channel*1, 1, 1, 0)
         self.conv_2 = BasicConv2d(base_channel*2, base_channel*1, 1, 1, 0)
         self.conv_1 = BasicConv2d(base_channel*1, base_channel*1, 1, 1, 0)
 
