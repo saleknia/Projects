@@ -164,7 +164,7 @@ class UpBlock(nn.Module):
         super(UpBlock, self).__init__()
 
         self.up     = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
+        self.nConvs = _make_nConv(in_channels*2, out_channels, nb_Conv, activation)
         self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
