@@ -105,23 +105,13 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.encoder     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder(base_channel=96)        
-
-        self.reduce_0 = ConvBatchNorm(in_channels=96 , out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_1 = ConvBatchNorm(in_channels=192, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_2 = ConvBatchNorm(in_channels=384, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_3 = ConvBatchNorm(in_channels=768, out_channels=96, activation='ReLU', kernel_size=1, padding=0)
+        self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        self.cnn_decoder = cnn_decoder(base_channel=48)        
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
-
-        x0 = self.reduce_0(x0)
-        x1 = self.reduce_1(x1)
-        x2 = self.reduce_2(x2)
-        x3 = self.reduce_3(x3)
 
         out = self.cnn_decoder(x0, x1, x2, x3)
 
@@ -166,8 +156,8 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
 
-        self.up     = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels*2, out_channels, nb_Conv, activation)
+        self.up     = nn.ConvTranspose2d(in_channels, in_channels//2, 4, 2, 1)
+        self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
         self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
