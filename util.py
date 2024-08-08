@@ -166,5 +166,6 @@ def augment(img_list, hflip=True, rot=True):
         return img
 
     return [_augment(img) for img in img_list]
+    # return [data_augment(img) for img in img_list]
 
     

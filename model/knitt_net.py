@@ -69,7 +69,7 @@ class SAM(nn.Module):
         self.up_2 = nn.Upsample(scale_factor=2)
         self.up_4 = nn.Upsample(scale_factor=4)
 
-        self.down   = BasicConv2d(base_channel*3, 3, 3, 1, padding=1)
+        self.down   = BasicConv2d(base_channel*3, 3, 1, 1, padding=0)
 
         self.softmax = nn.Softmax(dim=1)
         self.relu    = nn.ReLU()
