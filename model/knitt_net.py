@@ -44,7 +44,7 @@ class cnn_decoder(nn.Module):
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
-        self.fusion = SAM(base_channel=base_channel)
+        # self.fusion = SAM(base_channel=base_channel)
 
     def forward(self, x0, x1, x2, x3):
         
@@ -52,9 +52,9 @@ class cnn_decoder(nn.Module):
         d2 = self.up_1(d3, x1)
         d1 = self.up_0(d2, x0)
 
-        d = self.fusion(d1, d2, d3)
+        # d = self.fusion(d1, d2, d3)
 
-        x = self.final_head(d)
+        x = self.final_head(d1)
 
         return x
 
@@ -92,6 +92,39 @@ class SAM(nn.Module):
 
         return x
 
+class SAWM(nn.Module):
+    def __init__(self, channels):
+        super(SAWM, self).__init__()
+
+        self.conv_3 = BasicConv2d(base_channel*4, base_channel*1, 1, 1, 0)
+        self.conv_2 = BasicConv2d(base_channel*2, base_channel*1, 1, 1, 0)
+        self.conv_1 = BasicConv2d(base_channel*1, base_channel*1, 1, 1, 0)
+
+        self.up_2 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=4)
+
+        self.down   = BasicConv2d(base_channel*3, 3, 1, 1, padding=0)
+
+        self.softmax = nn.Softmax(dim=1)
+        self.relu    = nn.ReLU()
+
+    def forward(self, d1, d2, d3):
+        
+        d1 = self.relu(self.conv_1(d1))
+        d2 = self.up_2(self.relu(self.conv_2(d2)))
+        d3 = self.up_4(self.relu(self.conv_3(d3)))
+
+        d = torch.cat([d1, d2, d3], dim=1)
+        att = self.down(d)
+        att = self.softmax(att)
+
+        att1 = att[:,0,:,:].unsqueeze(1)
+        att2 = att[:,1,:,:].unsqueeze(1)
+        att3 = att[:,2,:,:].unsqueeze(1)
+
+        x = (att1 * d1) + (att2 * d2) + (att3 * d3)
+
+        return x
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
@@ -147,12 +180,36 @@ class knitt_net(nn.Module):
         super(knitt_net, self).__init__()
 
         self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder(base_channel=48)        
+        self.cnn_decoder = cnn_decoder(base_channel=48)       
+
+        base_channel = 48
+
+        self.conv_3 = BasicConv2d(base_channel*16, base_channel*8, 1, 1, 0)
+        self.conv_2 = BasicConv2d(base_channel*8 , base_channel*4, 1, 1, 0)
+        self.conv_1 = BasicConv2d(base_channel*4 , base_channel*2, 1, 1, 0) 
+        self.conv_0 = BasicConv2d(base_channel*2 , base_channel*1, 1, 1, 0) 
+
+        self.avg = nn.AvgPool2d(2, stride=2)
+
+        self.up = nn.Upsample(scale_factor=2)
+
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
+        t0, t1, t2, t3 = self.encoder(self.avg(x)) 
+
+        t0 = self.up(t0)    
+        t1 = self.up(t1)    
+        t2 = self.up(t2)    
+        t3 = self.up(t3)    
+
+        x0 = self.conv_0(torch.cat([x0, t0], dim=1))
+        x1 = self.conv_1(torch.cat([x1, t1], dim=1))
+        x2 = self.conv_2(torch.cat([x2, t2], dim=1))
+        x3 = self.conv_3(torch.cat([x3, t3], dim=1))
         
         out = self.cnn_decoder(x0, x1, x2, x3)
 
