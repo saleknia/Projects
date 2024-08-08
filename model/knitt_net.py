@@ -181,42 +181,63 @@ class knitt_net(nn.Module):
 
         self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
         self.cnn_decoder = cnn_decoder(base_channel=48)       
-
-        base_channel = 48
-
-        self.conv_3 = BasicConv2d(base_channel*16, base_channel*8, 1, 1, 0)
-        self.conv_2 = BasicConv2d(base_channel*8 , base_channel*4, 1, 1, 0)
-        self.conv_1 = BasicConv2d(base_channel*4 , base_channel*2, 1, 1, 0) 
-        self.conv_0 = BasicConv2d(base_channel*2 , base_channel*1, 1, 1, 0) 
-
-        self.up = nn.Upsample(scale_factor=2)
-
-        self.up_0 = nn.Upsample(size=56)
-        self.up_1 = nn.Upsample(size=28)
-        self.up_2 = nn.Upsample(size=14)
-        self.up_3 = nn.Upsample(size= 7)
-
-        self.relu = nn.ReLU(inplace=True)
+        
+        self.fuse_layers = make_fuse_layers()
+        self.fuse_act = nn.ReLU()
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
-        t0, t1, t2, t3 = self.encoder(self.up(x)) 
-
-        t0 = self.up_0(t0)    
-        t1 = self.up_1(t1)    
-        t2 = self.up_2(t2)    
-        t3 = self.up_3(t3)    
-
-        x0 = self.conv_0(torch.cat([x0, t0], dim=1))
-        x1 = self.conv_1(torch.cat([x1, t1], dim=1))
-        x2 = self.conv_2(torch.cat([x2, t2], dim=1))
-        x3 = self.conv_3(torch.cat([x3, t3], dim=1))
         
+        x = [x0, x1, x2, x3]
+        x_fuse = []
+        num_branches = 4
+        for i, fuse_outer in enumerate(self.fuse_layers):
+            y = x[0] if i == 0 else fuse_outer[0](x[0])
+            for j in range(1, num_branches):
+                if i == j:
+                    y = y + x[j]
+                else:
+                    y = y + fuse_outer[j](x[j])
+            x_fuse.append(self.fuse_act(y))
+
         out = self.cnn_decoder(x0, x1, x2, x3)
 
         return out
+
+def make_fuse_layers():
+    num_branches = 4
+    num_in_chs = [48, 96, 192, 384]
+    fuse_layers = []
+    for i in range(num_branches):
+        fuse_layer = []
+        for j in range(num_branches):
+            if j > i:
+                fuse_layer.append(nn.Sequential(
+                    nn.Conv2d(num_in_chs[j], num_in_chs[i], 1, 1, 0, bias=False),
+                    nn.BatchNorm2d(num_in_chs[i]),
+                    nn.Upsample(scale_factor=2 ** (j - i), mode='nearest')))
+            elif j == i:
+                fuse_layer.append(nn.Identity())
+            else:
+                conv3x3s = []
+                for k in range(i - j):
+                    if k == i - j - 1:
+                        num_outchannels_conv3x3 = num_in_chs[i]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3)))
+                    else:
+                        num_outchannels_conv3x3 = num_in_chs[j]
+                        conv3x3s.append(nn.Sequential(
+                            nn.Conv2d(num_in_chs[j], num_outchannels_conv3x3, 3, 2, 1, bias=False),
+                            nn.BatchNorm2d(num_outchannels_conv3x3),
+                            nn.ReLU(False)))
+                fuse_layer.append(nn.Sequential(*conv3x3s))
+        fuse_layers.append(nn.ModuleList(fuse_layer))
+
+    return nn.ModuleList(fuse_layers)
 
 import torch.nn as nn
 import torch
