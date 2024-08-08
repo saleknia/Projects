@@ -19,10 +19,13 @@ from efficientvit.seg_model_zoo import create_seg_model
 class final_head(nn.Module):
     def __init__(self, base_channel=64, num_classes=1, scale_factor=2.0):
         super(final_head, self).__init__()
-
+        
         self.head = nn.Sequential(
-            nn.Conv2d(base_channel, num_classes, 1, padding=0),
-            nn.Upsample(scale_factor=4)
+            nn.ConvTranspose2d(base_channel, base_channel//2, 4, 2, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(base_channel//2, base_channel//2, 3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.ConvTranspose2d(base_channel//2, num_classes, 4, 2, 1), 
         )
 
     def forward(self, x):
