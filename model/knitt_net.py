@@ -166,7 +166,6 @@ class UpBlock(nn.Module):
         )
 
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
-        self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
         x = self.up(x)
