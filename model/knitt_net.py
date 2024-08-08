@@ -189,7 +189,7 @@ class knitt_net(nn.Module):
         self.conv_1 = BasicConv2d(base_channel*4 , base_channel*2, 1, 1, 0) 
         self.conv_0 = BasicConv2d(base_channel*2 , base_channel*1, 1, 1, 0) 
 
-        self.avg = nn.AvgPool2d(2, stride=2)
+        self.up = nn.Upsample(scale_factor=2)
 
         self.up_0 = nn.Upsample(size=56)
         self.up_1 = nn.Upsample(size=28)
@@ -202,7 +202,7 @@ class knitt_net(nn.Module):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
-        t0, t1, t2, t3 = self.encoder(self.avg(x)) 
+        t0, t1, t2, t3 = self.encoder(self.up(x)) 
 
         t0 = self.up_0(t0)    
         t1 = self.up_1(t1)    
