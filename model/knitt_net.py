@@ -21,12 +21,14 @@ class final_head(nn.Module):
         super(final_head, self).__init__()
         
         self.head = nn.Sequential(
-            nn.ConvTranspose2d(base_channel, base_channel//2, 4, 2, 1),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(base_channel//2),
             nn.ReLU(inplace=True),
-            nn.Conv2d(base_channel//2, base_channel//2, 3, padding=1),
-            nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(base_channel//2, num_classes, 4, 2, 1), 
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(base_channel//2, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
+ 
 
     def forward(self, x):
         out = self.head(x)
@@ -36,9 +38,9 @@ class cnn_decoder(nn.Module):
     def __init__(self, base_channel=64, num_classes=1.0, scale_factor=2.0):
         super(cnn_decoder, self).__init__()
         
-        self.up_2 = UpBlock(base_channel, base_channel)
-        self.up_1 = UpBlock(base_channel, base_channel)
-        self.up_0 = UpBlock(base_channel, base_channel)
+        self.up_2 = UpBlock(base_channel*8, base_channel*4)
+        self.up_1 = UpBlock(base_channel*4, base_channel*2)
+        self.up_0 = UpBlock(base_channel*2, base_channel*1)
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
@@ -156,7 +158,13 @@ class UpBlock(nn.Module):
     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
         super(UpBlock, self).__init__()
 
-        self.up     = nn.ConvTranspose2d(in_channels, in_channels//2, 4, 2, 1)
+        self.up = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(in_channels, in_channels//2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
         self.nConvs = _make_nConv(in_channels, out_channels, nb_Conv, activation)
         self.fusion = HybridAttention(out_channels)
 

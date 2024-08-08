@@ -394,7 +394,7 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
             loss_ce   = ce_loss(outputs, targets.unsqueeze(dim=1)) 
             loss_dice = dice_loss(inputs=outputs, targets=targets)
             loss_att  = 0.0
-            loss = loss_ce + loss_dice + loss_att
+            loss = (loss_ce*0.4) + (loss_dice*0.6) + loss_att
 
         # lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
         # for param_group in optimizer.param_groups:
