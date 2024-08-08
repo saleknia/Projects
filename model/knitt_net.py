@@ -191,7 +191,10 @@ class knitt_net(nn.Module):
 
         self.avg = nn.AvgPool2d(2, stride=2)
 
-        self.up = nn.Upsample(scale_factor=2)
+        self.up_3 = nn.Upsample(size=56)
+        self.up_2 = nn.Upsample(size=28)
+        self.up_1 = nn.Upsample(size=14)
+        self.up_0 = nn.Upsample(size= 7)
 
         self.relu = nn.ReLU(inplace=True)
 
@@ -201,10 +204,10 @@ class knitt_net(nn.Module):
         x0, x1, x2, x3 = self.encoder(x)
         t0, t1, t2, t3 = self.encoder(self.avg(x)) 
 
-        t0 = self.up(t0)    
-        t1 = self.up(t1)    
-        t2 = self.up(t2)    
-        t3 = self.up(t3)    
+        t0 = self.up_0(t0)    
+        t1 = self.up_1(t1)    
+        t2 = self.up_2(t2)    
+        t3 = self.up_3(t3)    
 
         x0 = self.conv_0(torch.cat([x0, t0], dim=1))
         x1 = self.conv_1(torch.cat([x1, t1], dim=1))
