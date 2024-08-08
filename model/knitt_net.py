@@ -83,27 +83,27 @@ class Linear_Eca_block(nn.Module):
 class HybridAttention(nn.Module):
     def __init__(self, channels):
         super(HybridAttention, self).__init__()
+
         self.eca     = Linear_Eca_block()
-        self.down_c  = BasicConv2d(channels, channels, 3, 1, padding=1)
-        self.conv    = BasicConv2d(channels, 1, 3, 1, padding=1)
+        self.conv    = BasicConv2d(channels, channels, 3, 1, 1)
+        self.down_c  = BasicConv2d(channels, 1, 3, 1, padding=1)
         self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x_t, x_c):
+    def forward(self, x, skip_x):
 
-        sa  = self.sigmoid(self.down_c(x_c))
-        gc  = self.eca(x_t)
-        x_c = self.conv(x_c)
-        x_c = x_c * gc
-        x_t = x_t * sa
-        
-        return x_t, x_c
+        sa  = self.sigmoid(self.down_c(skip_x))
+        gc  = self.eca(x)
+        skip_x = self.conv(skip_x)
+        skip_x = skip_x * gc
+        x = x * sa
+        return x, skip_x
 
 class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.encoder     = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True, features_only=True)
-        self.cnn_decoder = cnn_decoder()
+        self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        self.cnn_decoder = cnn_decoder(base_channel=48)
 
         self.up = nn.Upsample(scale_factor=2)
         
@@ -175,9 +175,9 @@ class UpBlock(nn.Module):
         self.fusion = HybridAttention(out_channels)
 
     def forward(self, x, skip_x):
-        out = self.up(x)
-        out, skip_x = self.fusion(out, skip_x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        x = self.up(x)
+        x, skip_x = self.fusion(x, skip_x)
+        x = torch.cat([x, skip_x], dim=1)  # dim 1 is the channel dimension
         return (self.nConvs(x))
 
 class LayerNormProxy(nn.Module):
