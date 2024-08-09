@@ -22,11 +22,11 @@ class final_head(nn.Module):
         
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(base_channel//2),
-            nn.ReLU(inplace=True),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel//2, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(base_channel, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            # nn.BatchNorm2d(base_channel//2),
+            # nn.ReLU(inplace=True),
+            # nn.Upsample(scale_factor=2),
+            # nn.Conv2d(base_channel//2, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
  
 
@@ -179,28 +179,32 @@ class knitt_net(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
         super(knitt_net, self).__init__()
 
-        self.encoder     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+
+        self.encoder.input_stem.op_list[0].conv.stride = (1, 1)
+        self.encoder.input_stem.op_list[0].conv.padding = (1, 1)
+
         self.cnn_decoder = cnn_decoder(base_channel=48)       
         
-        self.fuse_layers = make_fuse_layers()
-        self.fuse_act = nn.ReLU()
+        # self.fuse_layers = make_fuse_layers()
+        # self.fuse_act = nn.ReLU()
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
         
-        x = [x0, x1, x2, x3]
-        x_fuse = []
-        num_branches = 4
-        for i, fuse_outer in enumerate(self.fuse_layers):
-            y = x[0] if i == 0 else fuse_outer[0](x[0])
-            for j in range(1, num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + fuse_outer[j](x[j])
-            x_fuse.append(self.fuse_act(y))
+        # x = [x0, x1, x2, x3]
+        # x_fuse = []
+        # num_branches = 4
+        # for i, fuse_outer in enumerate(self.fuse_layers):
+        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
+        #     for j in range(1, num_branches):
+        #         if i == j:
+        #             y = y + x[j]
+        #         else:
+        #             y = y + fuse_outer[j](x[j])
+        #     x_fuse.append(self.fuse_act(y))
 
         out = self.cnn_decoder(x0, x1, x2, x3)
 
