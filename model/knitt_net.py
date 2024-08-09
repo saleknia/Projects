@@ -181,8 +181,7 @@ class knitt_net(nn.Module):
 
         self.encoder = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
 
-        self.encoder.input_stem.op_list[0].conv.stride = (1, 1)
-        self.encoder.input_stem.op_list[0].conv.padding = (1, 1)
+        self.encoder.stem_in_conv.conv.stride = (1, 1)
 
         self.cnn_decoder = cnn_decoder(base_channel=48)       
         
