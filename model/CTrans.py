@@ -305,7 +305,7 @@ class Encoder(nn.Module):
 
 
 class ChannelTransformer(nn.Module):
-    def __init__(self, config, img_size=224, channel_num=[48, 96, 192], patchSize=[4, 2, 1]):
+    def __init__(self, config, vis=False, img_size=224, channel_num=[48, 96, 192], patchSize=[4, 2, 1]):
         super().__init__()
 
         self.patchSize_1 = patchSize[0]
@@ -316,7 +316,7 @@ class ChannelTransformer(nn.Module):
         self.embeddings_2 = Channel_Embeddings(config,self.patchSize_2, img_size=img_size//4, in_channels=channel_num[1])
         self.embeddings_3 = Channel_Embeddings(config,self.patchSize_3, img_size=img_size//8, in_channels=channel_num[2])
 
-        self.encoder = Encoder(config, vis=False, channel_num)
+        self.encoder = Encoder(config, vis, channel_num)
 
         self.reconstruct_1 = Reconstruct(channel_num[0], channel_num[0], kernel_size=1,scale_factor=(self.patchSize_1,self.patchSize_1))
         self.reconstruct_2 = Reconstruct(channel_num[1], channel_num[1], kernel_size=1,scale_factor=(self.patchSize_2,self.patchSize_2))
