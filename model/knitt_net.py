@@ -15,6 +15,23 @@ from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
 from efficientvit.seg_model_zoo import create_seg_model
+from .CTrans import ChannelTransformer
+
+def get_CTranS_config():
+    config = ml_collections.ConfigDict()
+    config.transformer = ml_collections.ConfigDict()
+    config.KV_size = 336  
+    config.transformer.num_heads  = 4
+    config.transformer.num_layers = 4
+    config.expand_ratio           = 4  # MLP channel dimension expand ratio
+    config.transformer.embeddings_dropout_rate = 0.1
+    config.transformer.attention_dropout_rate  = 0.1
+    config.transformer.dropout_rate = 0.0
+    config.patch_sizes = [4, 2, 1]
+    config.embed_dims  = [48, 96, 192]
+    config.base_channel = 48 # base channel of U-Net
+    config.n_classes = 1
+    return config
 
 class final_head(nn.Module):
     def __init__(self, base_channel=64, num_classes=1, scale_factor=2.0):
@@ -44,7 +61,7 @@ class cnn_decoder(nn.Module):
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
-        self.fusion = SAM(base_channel=base_channel)
+        # self.fusion = SAM(base_channel=base_channel)
 
     def forward(self, x0, x1, x2, x3):
         
@@ -52,9 +69,9 @@ class cnn_decoder(nn.Module):
         d2 = self.up_1(d3, x1)
         d1 = self.up_0(d2, x0)
 
-        d = self.fusion(d1, d2, d3)
+        # d = self.fusion(d1, d2, d3)
 
-        x = self.final_head(d)
+        x = self.final_head(d1)
 
         return x
 
@@ -183,28 +200,18 @@ class knitt_net(nn.Module):
 
         self.encoder.stem_in_conv.conv.stride = (1, 1)
 
-        self.cnn_decoder = cnn_decoder(base_channel=48)       
+        self.cnn_decoder = cnn_decoder(base_channel=48)   
+
+        self.mtc = ChannelTransformer(get_CTranS_config(), img_size=224, channel_num=[48, 96, 192], patchSize=[4, 2, 1])
         
-        # self.fuse_layers = make_fuse_layers()
-        # self.fuse_act = nn.ReLU()
 
     def forward(self, x):
         b, c, h, w = x.shape
 
         x0, x1, x2, x3 = self.encoder(x)
-        
-        # x = [x0, x1, x2, x3]
-        # x_fuse = []
-        # num_branches = 4
-        # for i, fuse_outer in enumerate(self.fuse_layers):
-        #     y = x[0] if i == 0 else fuse_outer[0](x[0])
-        #     for j in range(1, num_branches):
-        #         if i == j:
-        #             y = y + x[j]
-        #         else:
-        #             y = y + fuse_outer[j](x[j])
-        #     x_fuse.append(self.fuse_act(y))
 
+        x0, x1, x2 = self.mtc(x0, x1, x2)
+        
         out = self.cnn_decoder(x0, x1, x2, x3)
 
         return out
