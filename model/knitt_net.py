@@ -44,7 +44,7 @@ class cnn_decoder(nn.Module):
 
         self.final_head = final_head(base_channel=base_channel, num_classes=1, scale_factor=2)
 
-        # self.fusion = SAM(base_channel=base_channel)
+        self.fusion = SAM(base_channel=base_channel)
 
     def forward(self, x0, x1, x2, x3):
         
@@ -52,9 +52,9 @@ class cnn_decoder(nn.Module):
         d2 = self.up_1(d3, x1)
         d1 = self.up_0(d2, x0)
 
-        # d = self.fusion(d1, d2, d3)
+        d = self.fusion(d1, d2, d3)
 
-        x = self.final_head(d1)
+        x = self.final_head(d)
 
         return x
 
