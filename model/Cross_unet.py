@@ -106,7 +106,8 @@ class Cross_unet(nn.Module):
         )
 
         self.encoder_2 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.encoder_2.stem_0.stride = (2, 2)
+        self.encoder_2.stem_0.stride  = (2, 2)
+        self.encoder_2.stem_0.padding = (2, 2)
 
         self.reduce_02 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_12 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
