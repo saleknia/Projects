@@ -87,29 +87,28 @@ class Cross_unet(nn.Module):
         base_channel = 48
 
         # self.encoder_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.encoder_1 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.encoder_1 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2,3])
 
         self.reduce_01 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_11 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_21 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_31 = ConvBatchNorm(in_channels=base_channel*8, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
 
+        self.up_2 = UpBlock(base_channel, base_channel)
         self.up_1 = UpBlock(base_channel, base_channel)
         self.up_0 = UpBlock(base_channel, base_channel)
 
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(base_channel//2),
-            nn.ReLU(inplace=True),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(base_channel, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
-        self.encoder_2 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.encoder_2 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2,3])
 
         self.reduce_02 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_12 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_22 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_32 = ConvBatchNorm(in_channels=base_channel*8, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
 
         self.avg = nn.AvgPool2d(2, stride=2)
         self.up  = nn.Upsample(scale_factor=2)
@@ -123,12 +122,13 @@ class Cross_unet(nn.Module):
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x0, x1, x2 = self.encoder_1(x_input)
+        x0, x1, x2, x3 = self.encoder_1(x_input)
         # t0, t1, t2 = self.encoder_2(self.up(x_input))
 
-        x0 = self.reduce_01(x0)
-        x1 = self.reduce_11(x1)
-        x2 = self.reduce_21(x2)
+        x0 = self.reduce_01(self.up(x0))
+        x1 = self.reduce_11(self.up(x1))
+        x2 = self.reduce_21(self.up(x2))
+        x3 = self.reduce_31(self.up(x3))
 
         # t0 = self.up(self.reduce_02(t0))
         # t1 = self.up(self.reduce_12(t1))
