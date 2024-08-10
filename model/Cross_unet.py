@@ -10,19 +10,35 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
-def get_activation(activation_type):  
-    if activation_type=='Sigmoid':
-        return nn.Sigmoid()
+def get_activation(activation_type):
+    activation_type = activation_type.lower()
+    if hasattr(nn, activation_type):
+        return getattr(nn, activation_type)()
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
     layers = []
-    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
 
-    for i in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    for _ in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
     return nn.Sequential(*layers)
+
+class ConvBatchNorm(nn.Module):
+    """(convolution => [BN] => ReLU)"""
+
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
+        super(ConvBatchNorm, self).__init__()
+        self.conv = nn.Conv2d(in_channels, out_channels,
+                              kernel_size=kernel_size, padding=padding)
+        self.norm = nn.BatchNorm2d(out_channels)
+        self.activation = get_activation(activation)
+
+    def forward(self, x):
+        out = self.conv(x)
+        out = self.norm(out)
+        return self.activation(out)
 
 class Flatten(nn.Module):
     def forward(self, x):
@@ -94,10 +110,10 @@ class Cross_unet(nn.Module):
 
         self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
 
-        self.reduce_0 = BasicConv2d(in_planes=base_channel*1, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.reduce_1 = BasicConv2d(in_planes=base_channel*2, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.reduce_2 = BasicConv2d(in_planes=base_channel*4, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.relu    = nn.ReLU()
+        self.reduce_0 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_1 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
+        self.reduce_2 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
+        self.relu     = nn.ReLU()
 
         self.up_1 = UpBlock(96, 96)
         self.up_0 = UpBlock(96, 96)
