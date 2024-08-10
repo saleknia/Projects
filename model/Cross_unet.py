@@ -145,7 +145,7 @@ class Cross_unet(nn.Module):
             nn.BatchNorm2d(base_channel//2),
             nn.ReLU(inplace=True),
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel//2, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
     def forward(self, x):
