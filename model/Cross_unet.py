@@ -10,28 +10,63 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
-def get_activation(activation_type):
-    activation_type = activation_type.lower()
-    if hasattr(nn, activation_type):
-        return getattr(nn, activation_type)()
+def get_activation(activation_type):  
+    if activation_type=='Sigmoid':
+        return nn.Sigmoid()
     else:
         return nn.ReLU()
 
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU'):
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
     layers = []
-    layers.append(ConvBatchNorm(in_channels, out_channels, activation))
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
-    for _ in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(out_channels, out_channels, activation))
+    for i in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
     return nn.Sequential(*layers)
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.view(x.size(0), -1)
+
+class DecoderBottleneckLayer(nn.Module):
+    def __init__(self, in_channels, n_filters, use_transpose=True):
+        super(DecoderBottleneckLayer, self).__init__()
+
+        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
+        self.norm1 = nn.BatchNorm2d(in_channels // 4)
+        self.relu1 = nn.ReLU(inplace=True)
+
+        if use_transpose:
+            self.up = nn.Sequential(
+                nn.ConvTranspose2d(
+                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
+                ),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            )
+        else:
+            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+
+        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
+        self.norm3 = nn.BatchNorm2d(n_filters)
+        self.relu3 = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.relu1(x)
+        x = self.up(x)
+        x = self.conv3(x)
+        x = self.norm3(x)
+        x = self.relu3(x)
+        return x
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1):
+    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
         super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels,
-                              kernel_size=kernel_size, padding=padding)
+        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
         self.norm = nn.BatchNorm2d(out_channels)
         self.activation = get_activation(activation)
 
@@ -40,23 +75,13 @@ class ConvBatchNorm(nn.Module):
         out = self.norm(out)
         return self.activation(out)
 
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size(0), -1)
+def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
+    layers = []
+    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
 
-class UpBlock(nn.Module):
-    """Upscaling then conv"""
-
-    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
-        super(UpBlock, self).__init__()
-
-        self.up     = nn.Upsample(scale_factor=2)
-        self.nConvs = _make_nConv(in_channels * 2, out_channels, nb_Conv, activation)
-
-    def forward(self, x, skip_x):
-        out = self.up(x)
-        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
-        return (self.nConvs(x))
+    for i in range(nb_Conv - 1):
+        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
+    return nn.Sequential(*layers)
 
 class LayerNormProxy(nn.Module):
     
@@ -84,62 +109,42 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        base_channel = 48
+        base_channel = 96
 
-        # self.encoder_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.encoder_1 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2,3])
+        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2,3])
 
-        self.reduce_01 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_11 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_21 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_31 = ConvBatchNorm(in_channels=base_channel*8, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-
-        self.up_2 = UpBlock(base_channel, base_channel)
-        self.up_1 = UpBlock(base_channel, base_channel)
-        self.up_0 = UpBlock(base_channel, base_channel)
+        filters = [96, 192, 384, 768]
+        self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
+        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
+        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(base_channel//2),
+            nn.ReLU(inplace=True),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
-        self.encoder_2 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2,3])
-
-        self.reduce_02 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_12 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_22 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.reduce_32 = ConvBatchNorm(in_channels=base_channel*8, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-
-        self.avg = nn.AvgPool2d(2, stride=2)
-        self.up  = nn.Upsample(scale_factor=2)
-        
-        # self.sam_3 = SAM(base_channel=384)
-        # self.sam_2 = SAM(base_channel=192)
-        # self.sam_1 = SAM(base_channel=96)
+        self.sam_3 = SAM(base_channel=384)
+        self.sam_2 = SAM(base_channel=192)
+        self.sam_1 = SAM(base_channel=96)
 
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x0, x1, x2, x3 = self.encoder_1(x_input)
-        # t0, t1, t2 = self.encoder_2(self.up(x_input))
+        x1, x2, x3, x4 = self.encoder(x_input)
 
-        x0 = self.reduce_01(self.up(x0))
-        x1 = self.reduce_11(self.up(x1))
-        x2 = self.reduce_21(self.up(x2))
-        x3 = self.reduce_31(self.up(x3))
+        # x1 = self.sam_1(x1)
+        # x2 = self.sam_2(x2)
+        # x3 = self.sam_3(x3)
 
-        # t0 = self.up(self.reduce_02(t0))
-        # t1 = self.up(self.reduce_12(t1))
-        # t2 = self.up(self.reduce_22(t2))
-
-        # x0 = x0 + t0
-        # x1 = x1 + t1
-        # x2 = x2 + t2
-
-        d2 = self.up_1(x2, x1)
-        d1 = self.up_0(d2, x0)
+        d3 = self.decoder3(x4) + x3
+        d2 = self.decoder2(d3) + x2
+        d1 = self.decoder1(d2) + x1
 
         x  = self.head(d1)
 
@@ -164,7 +169,7 @@ class SAM(nn.Module):
         d5 = self.relu(self.conv_5(x))
 
         d = torch.cat([d1, d3, d5], dim=1) 
-        d = self.down(d)
+        d = self.down(d) + x
 
         return d
 
