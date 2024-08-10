@@ -127,7 +127,9 @@ class Cross_unet(nn.Module):
             nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
-        self.sam = SAM(base_channel=base_channel)
+        self.sam_3 = SAM(base_channel=384)
+        self.sam_2 = SAM(base_channel=192)
+        self.sam_1 = SAM(base_channel=96)
 
     def forward(self, x):
         # # Question here
@@ -136,13 +138,15 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3, x4 = self.encoder(x_input)
 
+        x1 = self.sam_1(x1)
+        x2 = self.sam_2(x2)
+        x3 = self.sam_3(x3)
+
         d3 = self.decoder3(x4) + x3
         d2 = self.decoder2(d3) + x2
         d1 = self.decoder1(d2) + x1
 
-        x  = self.sam(d1, d2, d3)
-
-        x  = self.head(x)
+        x  = self.head(d1)
 
         return x
 
@@ -150,35 +154,26 @@ class SAM(nn.Module):
     def __init__(self, base_channel):
         super(SAM, self).__init__()
 
-        self.conv_3 = BasicConv2d(base_channel*4, base_channel*1, 1, 1, 0)
-        self.conv_2 = BasicConv2d(base_channel*2, base_channel*1, 1, 1, 0)
-        self.conv_1 = BasicConv2d(base_channel*1, base_channel*1, 1, 1, 0)
+        self.conv_0 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.conv_1 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=1, dilation=1)
+        self.conv_3 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=3, dilation=3)
+        self.conv_5 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=5, dilation=5)
 
-        self.up_2 = nn.Upsample(scale_factor=2)
-        self.up_4 = nn.Upsample(scale_factor=4)
+        self.down   = BasicConv2d(in_planes=base_channel, out_planes=base_channel, kernel_size=1, stride=1, padding=0, dilation=1)
 
-        self.down   = BasicConv2d(base_channel*3, 3, 3, 1, padding=1)
-
-        self.softmax = nn.Softmax(dim=1)
         self.relu    = nn.ReLU()
 
-    def forward(self, d1, d2, d3):
+    def forward(self, d):
         
-        d1 = self.relu(self.conv_1(d1))
-        d2 = self.up_2(self.relu(self.conv_2(d2)))
-        d3 = self.up_4(self.relu(self.conv_3(d3)))
+        d0 = self.relu(self.conv_0(d))
+        d1 = self.relu(self.conv_1(d))
+        d3 = self.relu(self.conv_3(d))
+        d5 = self.relu(self.conv_5(d))
 
-        d = torch.cat([d1, d2, d3], dim=1)
-        att = self.down(d)
-        att = self.softmax(att)
+        d = torch.cat([d0, d1, d3, d5], dim=1)
+        d = self.down(d)
 
-        att1 = att[:,0,:,:].unsqueeze(1)
-        att2 = att[:,1,:,:].unsqueeze(1)
-        att3 = att[:,2,:,:].unsqueeze(1)
-
-        x = (att1 * d1) + (att2 * d2) + (att3 * d3)
-
-        return x
+        return d
 
 
 class BasicConv2d(nn.Module):
