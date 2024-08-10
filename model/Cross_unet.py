@@ -28,38 +28,19 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-class DecoderBottleneckLayer(nn.Module):
-    def __init__(self, in_channels, n_filters, use_transpose=True):
-        super(DecoderBottleneckLayer, self).__init__()
+class UpBlock(nn.Module):
+    """Upscaling then conv"""
 
-        self.conv1 = nn.Conv2d(in_channels, in_channels // 4, 1)
-        self.norm1 = nn.BatchNorm2d(in_channels // 4)
-        self.relu1 = nn.ReLU(inplace=True)
+    def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
+        super(UpBlock, self).__init__()
 
-        if use_transpose:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(
-                    in_channels // 4, in_channels // 4, 3, stride=2, padding=1, output_padding=1
-                ),
-                nn.BatchNorm2d(in_channels // 4),
-                nn.ReLU(inplace=True)
-            )
-        else:
-            self.up = nn.Upsample(scale_factor=2, align_corners=True, mode="bilinear")
+        self.up     = nn.Upsample(scale_factor=2)
+        self.nConvs = _make_nConv(in_channels * 2, out_channels, nb_Conv, activation)
 
-        self.conv3 = nn.Conv2d(in_channels // 4, n_filters, 1)
-        self.norm3 = nn.BatchNorm2d(n_filters)
-        self.relu3 = nn.ReLU(inplace=True)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.norm1(x)
-        x = self.relu1(x)
-        x = self.up(x)
-        x = self.conv3(x)
-        x = self.norm3(x)
-        x = self.relu3(x)
-        return x
+    def forward(self, x, skip_x):
+        out = self.up(x)
+        x = torch.cat([out, skip_x], dim=1)  # dim 1 is the channel dimension
+        return (self.nConvs(x))
 
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
@@ -111,12 +92,15 @@ class Cross_unet(nn.Module):
 
         base_channel = 96
 
-        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2,3])
+        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
 
-        filters = [96, 192, 384, 768]
-        self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
+        self.reuce_0 = BasicConv2d(in_planes=base_channel*1, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.reuce_1 = BasicConv2d(in_planes=base_channel*2, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.reuce_2 = BasicConv2d(in_planes=base_channel*4, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.relu    = nn.ReLU()
+
+        self.up_1 = UpBlock(96, 96)
+        self.up_0 = UpBlock(96, 96)
 
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
@@ -127,24 +111,23 @@ class Cross_unet(nn.Module):
             nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
-        self.sam_3 = SAM(base_channel=384)
-        self.sam_2 = SAM(base_channel=192)
-        self.sam_1 = SAM(base_channel=96)
+        # self.sam_3 = SAM(base_channel=384)
+        # self.sam_2 = SAM(base_channel=192)
+        # self.sam_1 = SAM(base_channel=96)
 
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x1, x2, x3, x4 = self.encoder(x_input)
+        x0, x1, x2 = self.encoder(x_input)
 
-        x1 = self.sam_1(x1)
-        x2 = self.sam_2(x2)
-        x3 = self.sam_3(x3)
+        x0 = self.relu(self.reduce_0(x0))
+        x1 = self.relu(self.reduce_1(x1))
+        x2 = self.relu(self.reduce_2(x2))
 
-        d3 = self.decoder3(x4) + x3
-        d2 = self.decoder2(d3) + x2
-        d1 = self.decoder1(d2) + x1
+        d2 = self.up_1(x2, x1)
+        d1 = self.up_0(d2, x0)
 
         x  = self.head(d1)
 
