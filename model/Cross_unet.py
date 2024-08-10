@@ -163,15 +163,15 @@ class SAM(nn.Module):
 
         self.relu    = nn.ReLU()
 
-    def forward(self, d):
+    def forward(self, x):
         
-        d0 = self.relu(self.conv_0(d))
-        d1 = self.relu(self.conv_1(d))
-        d3 = self.relu(self.conv_3(d))
-        d5 = self.relu(self.conv_5(d))
+        d0 = self.relu(self.conv_0(x))
+        d1 = self.relu(self.conv_1(x))
+        d3 = self.relu(self.conv_3(x))
+        d5 = self.relu(self.conv_5(x))
 
-        d = torch.cat([d0, d1, d3, d5], dim=1)
-        d = self.down(d)
+        d = torch.cat([d0, d1, d3, d5], dim=1) 
+        d = self.down(d) + x
 
         return d
 
