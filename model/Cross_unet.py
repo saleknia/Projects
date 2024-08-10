@@ -28,58 +28,6 @@ class Flatten(nn.Module):
     def forward(self, x):
         return x.view(x.size(0), -1)
 
-class SEBlock(nn.Module):
-    def __init__(self, channel, r=8):
-        super(SEBlock, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(channel, channel // r, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(channel // r, channel, bias=False),
-            nn.Sigmoid(),
-        )
-
-    def forward(self, x, skip_x):
-        b, c, _, _ = x.size()
-        # Squeeze
-        y = self.avg_pool(x).view(b, c)
-        # Excitation
-        y = self.fc(y).view(b, c, 1, 1)
-        # Fusion
-        skip_x = torch.mul(skip_x, y)
-        return skip_x
-
-# class seed():
-#     def __init__(self):
-#         super(seed, self).__init__()
-
-#         self.torch_manual_seed = torch.get_rng_state()
-#         self.cuda_manual_seed  = torch.cuda.get_rng_state()
-
-#     def define(self):
-#         self.torch_manual_seed = torch.get_rng_state()
-#         self.cuda_manual_seed  = torch.cuda.get_rng_state()
-
-#     def find(self):
-#         torch.set_rng_state(self.torch_manual_seed)
-#         torch.cuda.set_rng_state(self.cuda_manual_seed)     
-
-
-# class UpBlock(nn.Module):
-#     """Upscaling then conv"""
-
-#     def __init__(self, in_channels, out_channels, nb_Conv=2, activation='ReLU'):
-#         super(UpBlock, self).__init__()
-#         self.up   = nn.ConvTranspose2d(in_channels, in_channels//2, kernel_size=2, stride=2)
-#         self.conv = _make_nConv(in_channels=in_channels//2, out_channels=out_channels, nb_Conv=2, activation='ReLU', dilation=1, padding=1)
-#         # self.att  = SEBlock(channel=in_channels//2)
-
-#     def forward(self, x, skip_x):
-#         x = self.up(x) 
-#         # skip_x = self.att(x, skip_x)
-#         x = self.conv(x+skip_x)
-#         return x 
-
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
         super(DecoderBottleneckLayer, self).__init__()
@@ -148,29 +96,6 @@ class LayerNormProxy(nn.Module):
         x = self.norm(x)
         return einops.rearrange(x, 'b h w c -> b c h w')
 
-class knitt(nn.Module):
-
-    def __init__(self, channel):
-        super(knitt, self).__init__()
-
-        self.fusion_x3 = UpBlock(768, 384)
-        self.fusion_x2 = UpBlock(384, 192)
-        self.fusion_x1 = UpBlock(192, 96)
-
-        # seed_func.define()
-        # self.SegFormerHead = SegFormerHead()
-        # seed_func.find()
-
-
-    def forward(self, x1, x2, x3, x4):
-
-        x3 = self.fusion_x3(x4, x3)
-        x2 = self.fusion_x2(x3, x2)
-        x1 = self.fusion_x1(x2, x1)
-
-        # x  = self.SegFormerHead(x1, x2, x3, x4)
-
-        return x1
 
 class Cross_unet(nn.Module):
     def __init__(self, n_channels=3, n_classes=1):
@@ -184,7 +109,7 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        channel = 96
+        base_channel = 96
 
         self.encoder = CrossFormer(img_size=224,
                                     patch_size=[4, 8, 16, 32],
@@ -204,32 +129,24 @@ class Cross_unet(nn.Module):
                                     use_checkpoint=False,
                                     merge_size=[[2, 4], [2,4], [2, 4]])
 
-        # self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-
         self.norm_4 = LayerNormProxy(dim=768)
         self.norm_3 = LayerNormProxy(dim=384)
         self.norm_2 = LayerNormProxy(dim=192)
         self.norm_1 = LayerNormProxy(dim=96)
-
-        # self.norm_4 = nn.Identity()
-        # self.norm_3 = nn.Identity()
-        # self.norm_2 = nn.Identity()
-        # self.norm_1 = nn.Identity()
-
-        # self.knitt = knitt(channel=channel)
 
         filters = [96, 192, 384, 768]
         self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
-        self.tp_conv1 = nn.Sequential(nn.ConvTranspose2d(96, 48, 2, 2, 0),
-                                      nn.BatchNorm2d(48),
-                                      nn.ReLU(inplace=True),)
-        self.conv2 = nn.Sequential(nn.Conv2d(48, 48, 3, 1, 1),
-                                nn.BatchNorm2d(48),
-                                nn.ReLU(inplace=True),)
-        self.tp_conv2 = nn.ConvTranspose2d(48, 1, 2, 2, 0)
+        self.head = nn.Sequential(
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.BatchNorm2d(base_channel//2),
+            nn.ReLU(inplace=True),
+            nn.Upsample(scale_factor=2),
+            nn.Conv2d(base_channel//2, num_classes, kernel_size=3, stride=1, padding=1, bias=True),
+        )
 
     def forward(self, x):
         # # Question here
@@ -243,15 +160,11 @@ class Cross_unet(nn.Module):
         x2 = self.norm_2(outputs[1]) 
         x1 = self.norm_1(outputs[0])
 
-        x = self.decoder3(x4) + x3
-        x = self.decoder2(x)  + x2
-        x = self.decoder1(x)  + x1
+        d3 = self.decoder3(x4) + x3
+        d2 = self.decoder2(d3) + x2
+        d1 = self.decoder1(d2) + x1
 
-        # x = self.knitt(x1, x2, x3, x4)
-
-        x = self.tp_conv1(x)
-        x = self.conv2(x)
-        x = self.tp_conv2(x)
+        x  = self.head(d1)
 
         return x
 
