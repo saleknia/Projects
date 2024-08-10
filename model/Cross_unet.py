@@ -140,9 +140,9 @@ class Cross_unet(nn.Module):
         d2 = self.decoder2(d3) + x2
         d1 = self.decoder1(d2) + x1
 
-        x  = self.sam(d1, d2, d3)
+        # x  = self.sam(d1, d2, d3)
 
-        x  = self.head(x)
+        x  = self.head(d1)
 
         return x
 
