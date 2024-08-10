@@ -84,17 +84,17 @@ class Cross_unet(nn.Module):
         self.n_channels = n_channels
         self.n_classes = n_classes
 
-        base_channel = 96
+        base_channel = 48
 
-        self.encoder_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        # self.encoder_1 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
+        self.encoder_1 = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True, out_indices=[0,1,2])
 
         self.reduce_01 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_11 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_21 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
-        self.relu      = nn.ReLU()
 
-        self.up_1 = UpBlock(96, 96)
-        self.up_0 = UpBlock(96, 96)
+        self.up_1 = UpBlock(base_channel, base_channel)
+        self.up_0 = UpBlock(base_channel, base_channel)
 
         self.head = nn.Sequential(
             nn.Upsample(scale_factor=2),
@@ -124,19 +124,19 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         x0, x1, x2 = self.encoder_1(x_input)
-        t0, t1, t2 = self.encoder_2(self.avg(x_input))
+        # t0, t1, t2 = self.encoder_2(self.up(x_input))
 
-        x0 = self.relu(self.reduce_01(x0))
-        x1 = self.relu(self.reduce_11(x1))
-        x2 = self.relu(self.reduce_21(x2))
+        x0 = self.reduce_01(x0)
+        x1 = self.reduce_11(x1)
+        x2 = self.reduce_21(x2)
 
-        t0 = self.up(self.relu(self.reduce_02(t0)))
-        t1 = self.up(self.relu(self.reduce_12(t1)))
-        t2 = self.up(self.relu(self.reduce_22(t2)))
+        # t0 = self.up(self.reduce_02(t0))
+        # t1 = self.up(self.reduce_12(t1))
+        # t2 = self.up(self.reduce_22(t2))
 
-        x0 = x0 + t0
-        x1 = x1 + t1
-        x2 = x2 + t2
+        # x0 = x0 + t0
+        # x1 = x1 + t1
+        # x2 = x2 + t2
 
         d2 = self.up_1(x2, x1)
         d1 = self.up_0(d2, x0)
