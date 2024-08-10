@@ -94,9 +94,9 @@ class Cross_unet(nn.Module):
 
         self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
 
-        self.reuce_0 = BasicConv2d(in_planes=base_channel*1, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.reuce_1 = BasicConv2d(in_planes=base_channel*2, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.reuce_2 = BasicConv2d(in_planes=base_channel*4, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.reduce_0 = BasicConv2d(in_planes=base_channel*1, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.reduce_1 = BasicConv2d(in_planes=base_channel*2, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
+        self.reduce_2 = BasicConv2d(in_planes=base_channel*4, out_planes=base_channel*1, kernel_size=1, stride=1, padding=0, dilation=1)
         self.relu    = nn.ReLU()
 
         self.up_1 = UpBlock(96, 96)
