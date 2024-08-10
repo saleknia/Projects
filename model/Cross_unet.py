@@ -106,14 +106,13 @@ class Cross_unet(nn.Module):
         )
 
         self.encoder_2 = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2])
-        self.encoder_2.stem_0.stride  = (2, 2)
-        self.encoder_2.stem_0.padding = (2, 2)
 
         self.reduce_02 = ConvBatchNorm(in_channels=base_channel*1, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_12 = ConvBatchNorm(in_channels=base_channel*2, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
         self.reduce_22 = ConvBatchNorm(in_channels=base_channel*4, out_channels=base_channel*1, activation='ReLU', kernel_size=1, padding=0)
 
         self.avg = nn.AvgPool2d(2, stride=2)
+        self.up  = nn.Upsample(scale_factor=2)
         
         # self.sam_3 = SAM(base_channel=384)
         # self.sam_2 = SAM(base_channel=192)
@@ -125,15 +124,15 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         x0, x1, x2 = self.encoder_1(x_input)
-        t0, t1, t2 = self.encoder_2(x_input)
+        t0, t1, t2 = self.encoder_2(self.avg(x_input))
 
         x0 = self.relu(self.reduce_01(x0))
         x1 = self.relu(self.reduce_11(x1))
         x2 = self.relu(self.reduce_21(x2))
 
-        t0 = self.avg(self.relu(self.reduce_02(t0)))
-        t1 = self.avg(self.relu(self.reduce_12(t1)))
-        t2 = self.avg(self.relu(self.reduce_22(t2)))
+        t0 = self.up(self.relu(self.reduce_02(t0)))
+        t1 = self.up(self.relu(self.reduce_12(t1)))
+        t2 = self.up(self.relu(self.reduce_22(t2)))
 
         x0 = x0 + t0
         x1 = x1 + t1
