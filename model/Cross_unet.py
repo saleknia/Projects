@@ -127,6 +127,8 @@ class Cross_unet(nn.Module):
             nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
         )
 
+        self.sam = SAM(base_channel=base_channel)
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
@@ -138,9 +140,46 @@ class Cross_unet(nn.Module):
         d2 = self.decoder2(d3) + x2
         d1 = self.decoder1(d2) + x1
 
-        x  = self.head(d1)
+        x  = self.sam(d1, d2, d3)
+
+        x  = self.head(x)
 
         return x
+
+class SAM(nn.Module):
+    def __init__(self, base_channel):
+        super(SAM, self).__init__()
+
+        self.conv_3 = BasicConv2d(base_channel*4, base_channel*1, 1, 1, 0)
+        self.conv_2 = BasicConv2d(base_channel*2, base_channel*1, 1, 1, 0)
+        self.conv_1 = BasicConv2d(base_channel*1, base_channel*1, 1, 1, 0)
+
+        self.up_2 = nn.Upsample(scale_factor=2)
+        self.up_4 = nn.Upsample(scale_factor=4)
+
+        self.down   = BasicConv2d(base_channel*3, 3, 3, 1, padding=1)
+
+        self.softmax = nn.Softmax(dim=1)
+        self.relu    = nn.ReLU()
+
+    def forward(self, d1, d2, d3):
+        
+        d1 = self.relu(self.conv_1(d1))
+        d2 = self.up_2(self.relu(self.conv_2(d2)))
+        d3 = self.up_4(self.relu(self.conv_3(d3)))
+
+        d = torch.cat([d1, d2, d3], dim=1)
+        att = self.down(d)
+        att = self.softmax(att)
+
+        att1 = att[:,0,:,:].unsqueeze(1)
+        att2 = att[:,1,:,:].unsqueeze(1)
+        att3 = att[:,2,:,:].unsqueeze(1)
+
+        x = (att1 * d1) + (att2 * d2) + (att3 * d3)
+
+        return x
+
 
 class BasicConv2d(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1):
