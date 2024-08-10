@@ -154,10 +154,9 @@ class SAM(nn.Module):
     def __init__(self, base_channel):
         super(SAM, self).__init__()
 
-        self.conv_0 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=1, stride=1, padding=0, dilation=1)
-        self.conv_1 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=1, dilation=1)
-        self.conv_3 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=3, dilation=3)
-        self.conv_5 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//4, kernel_size=3, stride=1, padding=5, dilation=5)
+        self.conv_1 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//3, kernel_size=3, stride=1, padding=1, dilation=1)
+        self.conv_3 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//3, kernel_size=3, stride=1, padding=3, dilation=3)
+        self.conv_5 = BasicConv2d(in_planes=base_channel, out_planes=base_channel//3, kernel_size=3, stride=1, padding=5, dilation=5)
 
         self.down   = BasicConv2d(in_planes=base_channel, out_planes=base_channel, kernel_size=1, stride=1, padding=0, dilation=1)
 
@@ -165,13 +164,12 @@ class SAM(nn.Module):
 
     def forward(self, x):
         
-        d0 = self.relu(self.conv_0(x))
         d1 = self.relu(self.conv_1(x))
         d3 = self.relu(self.conv_3(x))
         d5 = self.relu(self.conv_5(x))
 
-        d = torch.cat([d0, d1, d3, d5], dim=1) 
-        d = self.down(d) + x
+        d = torch.cat([d1, d3, d5], dim=1) 
+        d = self.down(d)
 
         return d
 
