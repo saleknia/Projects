@@ -176,8 +176,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     iter_num = base_iter
     max_iterations = end_epoch * total_batchs
 
-    scaler = torch.cuda.amp.GradScaler()
-
     for batch_idx, (inputs, targets) in enumerate(loader):
 
         inputs, targets = inputs.to(device), targets.to(device)
@@ -187,12 +185,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
         outputs = model(inputs)
-
-        KD = (type(outputs) == tuple)
-
-        if KD:
-            # outputs, outputs_t = outputs[0], outputs[1]
-            outputs, x2, x3, t2, t3 = outputs[0], outputs[1], outputs[2], outputs[3], outputs[4]
 
         ################################################################
         ################################################################
@@ -209,13 +201,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
 
-        if KD:
-            # loss_ce = ce_loss(outputs, outputs_t)
-            # T = 1.0
-            # loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
-            loss_ce = ce_loss(outputs, targets.long()) # + ce_loss(outputs_t, targets.long())
-        else:
-            loss_ce = ce_loss(outputs, targets.long()) # loss_label_smoothing(outputs=outputs, labels=targets.long(), alpha=0.1)
+        loss_ce = ce_loss(outputs, targets.long()) 
 
         ####################################################################################################
         ####################################################################################################
@@ -236,17 +222,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # if 0.0 < torch.sum(targets):
         #     accuracy.update(torch.sum((targets+predictions)==2.0)/torch.sum(targets))
-
-        if teacher_model is not None:
-            with torch.no_grad():
-                outputs_t = teacher_model(inputs)
-                weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0)
-                weights = torch.nn.functional.softmax(weights)
-                weights = weights.detach()
-
-        if teacher_model is not None:
-            loss_ce = ce_loss(outputs, targets.long()) * weights
-            loss_ce = torch.mean(loss_ce)
 
         # loss_ce = ce_loss(outputs, outputs_t)
 
@@ -277,7 +252,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
-        loss = loss_ce + loss_disparity
+        loss = loss_ce 
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
@@ -295,7 +270,6 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         optimizer.zero_grad()
         loss.backward()
-        # torch.nn.utils.clip_grad_norm_(model.parameters(), 2.0)
         optimizer.step()
 
         # optimizer.zero_grad()

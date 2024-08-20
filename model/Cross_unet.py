@@ -83,11 +83,11 @@ class Cross_unet(nn.Module):
             param.requires_grad = True
 
         self.head = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Flatten(),
             nn.Dropout(p=0.5),
             nn.Linear(in_features=768, out_features=67, bias=True)
         )
+
+        self.avgpool = nn.AdaptiveAvgPool2d(1)
 
 
     def forward(self, x):
@@ -96,8 +96,10 @@ class Cross_unet(nn.Module):
         B, C, H, W = x.shape
 
         x0, x1, x2, x3 = self.encoder(x_input)
-
-        x = self.head(x3)
+        
+        x = self.avgpool(x3)
+        x = x.view(x.size(0), -1)
+        x = self.head(x)
 
         return x
 
