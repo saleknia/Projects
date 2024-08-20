@@ -79,7 +79,7 @@ class Cross_unet(nn.Module):
         # for param in self.encoder.stages_2.parameters():
         #     param.requires_grad = True
 
-        for param in self.encoder.stages[-1].parameters():
+        for param in self.encoder.model.stages[-1].parameters():
             param.requires_grad = True
 
         self.head = nn.Sequential(
