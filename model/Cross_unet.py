@@ -71,32 +71,31 @@ class Cross_unet(nn.Module):
 
         base_channel = 96
 
-        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True)
+        self.encoder = timm.create_model('mvitv2_tiny', pretrained=True)
 
         for param in self.encoder.parameters():
             param.requires_grad = False
 
-        for param in self.encoder.stages_2.parameters():
+        # for param in self.encoder.stages_2.parameters():
+        #     param.requires_grad = True
+
+        for param in self.encoder.stages[-1].parameters():
             param.requires_grad = True
 
-        for param in self.encoder.stages_3.parameters():
-            param.requires_grad = True
-
-        self.head = nn.Sequential(
+        self.encoder.head = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
             nn.Dropout(p=0.5),
             nn.Linear(in_features=768, out_features=67, bias=True)
         )
 
+
     def forward(self, x):
         # # Question here
         x_input = x.float()
         B, C, H, W = x.shape
 
-        x1, x2, x3, x4 = self.encoder(x_input)
-
-        x  = self.head(x4)
+        x = self.encoder(x_input)
 
         return x
 
