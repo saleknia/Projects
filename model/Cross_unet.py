@@ -71,23 +71,22 @@ class Cross_unet(nn.Module):
 
         base_channel = 96
 
-        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2,3])
+        self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True)
 
-        self.norm_1 = LayerNormProxy(96)
-        self.norm_2 = LayerNormProxy(192)
-        self.norm_3 = LayerNormProxy(384)
-        self.norm_4 = LayerNormProxy(768)
+        for param in self.encoder.parameters():
+            param.requires_grad = False
 
-        filters = [96, 192, 384, 768]
-        self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
-        self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
-        self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
+        for param in self.encoder.stages_2.parameters():
+            param.requires_grad = True
+
+        for param in self.encoder.stages_3.parameters():
+            param.requires_grad = True
 
         self.head = nn.Sequential(
-            nn.AvgPool2d(14, stride=14),
-            nn.Dropout(p=0.5),
+            nn.AdaptiveAvgPool2d(1),
             nn.Flatten(),
-            nn.Linear(in_features=1536, out_features=67, bias=True)
+            nn.Dropout(p=0.5),
+            nn.Linear(in_features=768, out_features=67, bias=True)
         )
 
     def forward(self, x):
@@ -97,16 +96,7 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3, x4 = self.encoder(x_input)
 
-        x1 = self.norm_1(x1)
-        x2 = self.norm_2(x2)        
-        x3 = self.norm_3(x3)        
-        x4 = self.norm_4(x4)
-
-        d3 = self.decoder3(x4) + x3
-        d2 = self.decoder2(d3) + x2
-        d1 = self.decoder1(d2) + x1
-
-        x  = self.head(d1)
+        x  = self.head(x4)
 
         return x
 
