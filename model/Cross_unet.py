@@ -10,24 +10,6 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 
-def get_activation(activation_type):  
-    if activation_type=='Sigmoid':
-        return nn.Sigmoid()
-    else:
-        return nn.ReLU()
-
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-
-    for i in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-    return nn.Sequential(*layers)
-
-class Flatten(nn.Module):
-    def forward(self, x):
-        return x.view(x.size(0), -1)
-
 class DecoderBottleneckLayer(nn.Module):
     def __init__(self, in_channels, n_filters, use_transpose=True):
         super(DecoderBottleneckLayer, self).__init__()
@@ -61,28 +43,6 @@ class DecoderBottleneckLayer(nn.Module):
         x = self.relu3(x)
         return x
 
-class ConvBatchNorm(nn.Module):
-    """(convolution => [BN] => ReLU)"""
-
-    def __init__(self, in_channels, out_channels, activation='ReLU', kernel_size=3, padding=1, dilation=1):
-        super(ConvBatchNorm, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size=kernel_size, padding=padding, dilation=dilation)
-        self.norm = nn.BatchNorm2d(out_channels)
-        self.activation = get_activation(activation)
-
-    def forward(self, x):
-        out = self.conv(x)
-        out = self.norm(out)
-        return self.activation(out)
-
-def _make_nConv(in_channels, out_channels, nb_Conv, activation='ReLU', dilation=1, padding=0):
-    layers = []
-    layers.append(ConvBatchNorm(in_channels=in_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-
-    for i in range(nb_Conv - 1):
-        layers.append(ConvBatchNorm(in_channels=out_channels, out_channels=out_channels, activation=activation, dilation=dilation, padding=padding))
-    return nn.Sequential(*layers)
-
 class LayerNormProxy(nn.Module):
     
     def __init__(self, dim):
@@ -113,23 +73,22 @@ class Cross_unet(nn.Module):
 
         self.encoder = timm.create_model('convnext_tiny', pretrained=True, features_only=True, out_indices=[0,1,2,3])
 
+        self.norm_1 = LayerNormProxy(96)
+        self.norm_2 = LayerNormProxy(192)
+        self.norm_3 = LayerNormProxy(384)
+        self.norm_4 = LayerNormProxy(768)
+
         filters = [96, 192, 384, 768]
         self.decoder3 = DecoderBottleneckLayer(filters[3], filters[2])
         self.decoder2 = DecoderBottleneckLayer(filters[2], filters[1])
         self.decoder1 = DecoderBottleneckLayer(filters[1], filters[0])
 
         self.head = nn.Sequential(
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel, base_channel//2, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm2d(base_channel//2),
-            nn.ReLU(inplace=True),
-            nn.Upsample(scale_factor=2),
-            nn.Conv2d(base_channel//2, n_classes, kernel_size=3, stride=1, padding=1, bias=True),
+            nn.AvgPool2d(14, stride=14),
+            nn.Dropout(p=0.5),
+            nn.Flatten(),
+            nn.Linear(in_features=1536, out_features=67, bias=True)
         )
-
-        self.sam_3 = SAM(base_channel=384)
-        self.sam_2 = SAM(base_channel=192)
-        self.sam_1 = SAM(base_channel=96)
 
     def forward(self, x):
         # # Question here
@@ -138,9 +97,10 @@ class Cross_unet(nn.Module):
 
         x1, x2, x3, x4 = self.encoder(x_input)
 
-        # x1 = self.sam_1(x1)
-        # x2 = self.sam_2(x2)
-        # x3 = self.sam_3(x3)
+        x1 = self.norm_1(x1)
+        x2 = self.norm_2(x2)        
+        x3 = self.norm_3(x3)        
+        x4 = self.norm_4(x4)
 
         d3 = self.decoder3(x4) + x3
         d2 = self.decoder2(d3) + x2
