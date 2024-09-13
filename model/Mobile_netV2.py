@@ -366,22 +366,22 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        self.features = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
+        # self.features = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True, features_only=True)
+        # self.head     = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
 
-        for param in self.features.parameters():
-            param.requires_grad = False
+        # for param in self.features.parameters():
+        #     param.requires_grad = False
 
-        for param in self.features.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.features.stages_3.parameters():
+        #     param.requires_grad = True
 
-        self.head.classifier[4] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2560, out_features=num_classes, bias=True),
-        )
+        # self.head.classifier[4] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2560, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -454,15 +454,15 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        # self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
-        # self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
-        # self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.features = timm.create_model('timm/convnext_tiny.fb_in22k_ft_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('timm/convnext_tiny.fb_in22k_ft_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # for param in self.features.parameters():
-        #     param.requires_grad = False
+        for param in self.features.parameters():
+            param.requires_grad = False
 
-        # for param in self.features.stages_3.parameters():
-        #     param.requires_grad = True
+        for param in self.features.stages_3.parameters():
+            param.requires_grad = True
        
         # for param in self.features.stages_2.parameters():
         #     param.requires_grad = True
