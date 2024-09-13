@@ -109,185 +109,6 @@ def main(args):
     train_tf = transforms.Compose([RandomGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])])
     val_tf = ValGenerator(output_size=[IMAGE_HEIGHT, IMAGE_WIDTH])
 
-# LOAD_MODEL
-
-    if MODEL_NAME=='UNet':
-        model = UNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
-        # model = original_UNet().to(DEVICE)
-
-    elif MODEL_NAME=='UNet_loss':
-        model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='U':
-        model = U(bilinear=False).to(DEVICE)
-
-    elif MODEL_NAME=='U_loss':
-        model = U_loss(bilinear=False).to(DEVICE)
-
-    elif MODEL_NAME=='UCTransNet':
-        config_vit = get_CTranS_config()
-        model = UCTransNet(config_vit,n_channels=3,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
-
-    elif MODEL_NAME=='UCTransNet_GT':
-        config_vit = get_CTranS_config()
-        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
-
-    elif MODEL_NAME=='GT_UNet':
-        model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='GT_CTrans':
-        config_vit = get_CTranS_config()
-        model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
-
-    elif MODEL_NAME == 'AttUNet':
-        model = AttentionUNet(img_ch=3, output_ch=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'AttUNet_loss':
-        model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
-
-    elif MODEL_NAME == 'MultiResUnet':
-        model = MultiResUnet().to(DEVICE)
-
-    elif MODEL_NAME == 'MultiResUnet_loss':
-        model = MultiResUnet_loss().to(DEVICE)
-
-    elif MODEL_NAME == 'UNet++':
-        model = NestedUNet().to(DEVICE)
-
-    elif MODEL_NAME == 'UNet++_loss':
-        model = NestedUNet_loss().to(DEVICE)
-
-    elif MODEL_NAME == 'ENet':
-        model = ENet(nclass=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ENet_loss':
-        model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ERFNet':
-        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ERFNet_loss':
-        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ESPNet':
-        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'ESPNet_loss':
-        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
-        
-    elif MODEL_NAME == 'DABNet':
-        model = DABNet(classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'DABNet_loss':
-        model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Fast_SCNN':
-        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Fast_SCNN_loss':
-        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Mobile_NetV2':
-        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'Mobile_NetV2_loss':
-        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME == 'TransFuse_S':
-        model = TransFuse_S(pretrained=True).to(DEVICE)
-
-    elif MODEL_NAME == 'DATUNet':
-        model = DATUNet().to(DEVICE)
-
-    elif MODEL_NAME=='SEUNet':
-        model = SEUNet(num_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='Cross_unet':
-        model = Cross_unet(n_classes=NUM_CLASS).to(DEVICE)
-
-    elif MODEL_NAME=='Cross':
-        model = Cross().to(DEVICE)
-                                                                 
-    elif MODEL_NAME=='Knitt_Net':
-        model = knitt_net().to(DEVICE)
-
-
-    else: 
-        raise TypeError('Please enter a valid name for the model type')
-
-
-    num_parameters = utils.count_parameters(model)
-
-    model_table = tabulate(
-        tabular_data=[[MODEL_NAME, f'{num_parameters:.2f} M', DEVICE]],
-        headers=['Builded Model', '#Parameters', 'Device'],
-        tablefmt="fancy_grid"
-        )
-    logger.info(model_table)
-
-    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
-
-    # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
-
-    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
-
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9, weight_decay=0.0001)
-    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
-
-    # optimizer = None
-
-    if COSINE_LR is True:
-        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
-    else:
-        lr_scheduler =  None     
-
-    if TEACHER is True:
-        logger.info('Loading Teacher Checkpoint...')
-        teacher_model = Mobile_netV2_loss().to(DEVICE)
-    else:
-        teacher_model =  None
-
-    # teacher_model =  None     
-
-    initial_best_acc = 0
-    initial_best_epoch = 1
-    current_num_epoch = 0
-    last_num_epoch = 0
-    if LOAD_MODEL:
-        checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
-        logger.info('Loading Checkpoint...')
-        if os.path.isfile(checkpoint_path):
-
-            pretrained_model_path = checkpoint_path
-            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-            pretrained = loaded_data['net']
-            model2_dict = model.state_dict()
-            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-            # logger.info(state_dict.keys())
-            model2_dict.update(state_dict)
-            model.load_state_dict(model2_dict)
-
-            initial_best_acc=loaded_data['best_acc']
-            loaded_acc=loaded_data['acc']
-            initial_best_epoch=loaded_data['best_epoch']
-            last_num_epoch=loaded_data['num_epoch']
-            current_num_epoch=last_num_epoch+current_num_epoch
-
-            optimizer.load_state_dict(loaded_data['optimizer'])
-
-            table = tabulate(
-                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-                            headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
-                            tablefmt="fancy_grid"
-                            )
-            logger.info(table)
-        else:
-            logger.info(f'No Such file : {checkpoint_path}')
-        logger.info('\n')
-
-    start_epoch = last_num_epoch + 1
-    end_epoch =  NUM_EPOCHS
-
     if TASK_NAME=='COVID-19':
 
         train_dataset=COVID_19(split='train', joint_transform=train_tf)
@@ -647,6 +468,185 @@ def main(args):
         test_loader = torch.utils.data.DataLoader(testset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
+        
+# LOAD_MODEL
+
+    if MODEL_NAME=='UNet':
+        model = UNet(n_channels=3, n_classes=NUM_CLASS).to(DEVICE)
+        # model = original_UNet().to(DEVICE)
+
+    elif MODEL_NAME=='UNet_loss':
+        model = UNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='U':
+        model = U(bilinear=False).to(DEVICE)
+
+    elif MODEL_NAME=='U_loss':
+        model = U_loss(bilinear=False).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet':
+        config_vit = get_CTranS_config()
+        model = UCTransNet(config_vit,n_channels=3,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='UCTransNet_GT':
+        config_vit = get_CTranS_config()
+        model = UCTransNet_GT(config_vit,n_channels=n_channels,n_classes=n_labels,img_size=IMAGE_HEIGHT).to(DEVICE)
+
+    elif MODEL_NAME=='GT_UNet':
+        model = GT_U_Net(img_ch=1,output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='GT_CTrans':
+        config_vit = get_CTranS_config()
+        model = GT_CTrans(config_vit,img_ch=1,output_ch=NUM_CLASS,img_size=256).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet':
+        model = AttentionUNet(img_ch=3, output_ch=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'AttUNet_loss':
+        model = AttentionUNet_loss(img_ch=1, output_ch=NUM_CLASS).to(DEVICE) 
+
+    elif MODEL_NAME == 'MultiResUnet':
+        model = MultiResUnet().to(DEVICE)
+
+    elif MODEL_NAME == 'MultiResUnet_loss':
+        model = MultiResUnet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++':
+        model = NestedUNet().to(DEVICE)
+
+    elif MODEL_NAME == 'UNet++_loss':
+        model = NestedUNet_loss().to(DEVICE)
+
+    elif MODEL_NAME == 'ENet':
+        model = ENet(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ENet_loss':
+        model = ENet_loss(nclass=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet':
+        model = ERFNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ERFNet_loss':
+        model = ERFNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet':
+        model = ESPNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'ESPNet_loss':
+        model = ESPNet_loss(num_classes=NUM_CLASS).to(DEVICE)
+        
+    elif MODEL_NAME == 'DABNet':
+        model = DABNet(classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'DABNet_loss':
+        model = DABNet_loss(classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN':
+        model = Fast_SCNN(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Fast_SCNN_loss':
+        model = Fast_SCNN_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2':
+        model = Mobile_netV2(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'Mobile_NetV2_loss':
+        model = Mobile_netV2_loss(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME == 'TransFuse_S':
+        model = TransFuse_S(pretrained=True).to(DEVICE)
+
+    elif MODEL_NAME == 'DATUNet':
+        model = DATUNet().to(DEVICE)
+
+    elif MODEL_NAME=='SEUNet':
+        model = SEUNet(num_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='Cross_unet':
+        model = Cross_unet(n_classes=NUM_CLASS).to(DEVICE)
+
+    elif MODEL_NAME=='Cross':
+        model = Cross().to(DEVICE)
+                                                                 
+    elif MODEL_NAME=='Knitt_Net':
+        model = knitt_net().to(DEVICE)
+
+
+    else: 
+        raise TypeError('Please enter a valid name for the model type')
+
+
+    num_parameters = utils.count_parameters(model)
+
+    model_table = tabulate(
+        tabular_data=[[MODEL_NAME, f'{num_parameters:.2f} M', DEVICE]],
+        headers=['Builded Model', '#Parameters', 'Device'],
+        tablefmt="fancy_grid"
+        )
+    logger.info(model_table)
+
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE)
+
+    # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
+
+    # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
+
+    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=0.01, momentum=0.9, weight_decay=0.0001)
+    optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
+
+    # optimizer = None
+
+    if COSINE_LR is True:
+        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
+    else:
+        lr_scheduler =  None     
+
+    if TEACHER is True:
+        logger.info('Loading Teacher Checkpoint...')
+        teacher_model = Mobile_netV2_loss().to(DEVICE)
+    else:
+        teacher_model =  None
+
+    # teacher_model =  None     
+
+    initial_best_acc = 0
+    initial_best_epoch = 1
+    current_num_epoch = 0
+    last_num_epoch = 0
+    if LOAD_MODEL:
+        checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_last.pth'
+        logger.info('Loading Checkpoint...')
+        if os.path.isfile(checkpoint_path):
+
+            pretrained_model_path = checkpoint_path
+            loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+            pretrained = loaded_data['net']
+            model2_dict = model.state_dict()
+            state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+            # logger.info(state_dict.keys())
+            model2_dict.update(state_dict)
+            model.load_state_dict(model2_dict)
+
+            initial_best_acc=loaded_data['best_acc']
+            loaded_acc=loaded_data['acc']
+            initial_best_epoch=loaded_data['best_epoch']
+            last_num_epoch=loaded_data['num_epoch']
+            current_num_epoch=last_num_epoch+current_num_epoch
+
+            optimizer.load_state_dict(loaded_data['optimizer'])
+
+            table = tabulate(
+                            tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
+                            headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
+                            tablefmt="fancy_grid"
+                            )
+            logger.info(table)
+        else:
+            logger.info(f'No Such file : {checkpoint_path}')
+        logger.info('\n')
+
+    start_epoch = last_num_epoch + 1
+    end_epoch =  NUM_EPOCHS
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)
