@@ -537,9 +537,9 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-class teacher(nn.Module):
+class expert_w(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
-        super(teacher, self).__init__()
+        super(expert_w, self).__init__()
 
         self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
@@ -548,7 +548,7 @@ class teacher(nn.Module):
         for param in self.features.parameters():
             param.requires_grad = False
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/teacher.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_w.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -561,7 +561,34 @@ class teacher(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return [x2, x3]
+        return x
+
+class expert_s(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(expert_s, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.features.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_s.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
+
+        return x
+
 
 alpha = 0.0
 
