@@ -505,6 +505,12 @@ class Mobile_netV2(nn.Module):
         l = self.expert_l(x_in)
         h = self.expert_h(x_in)
 
+        # print(w.shape)
+        # print(s.shape)
+        # print(p.shape)
+        # print(l.shape)
+        # print(h.shape)
+
         x3 = w + s + p + l + h
       
         x              = self.head(x3)
@@ -576,7 +582,7 @@ class expert_w(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x
+        return x3
 
 class expert_s(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -602,7 +608,7 @@ class expert_s(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x
+        return x3
 
 class expert_p(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -628,7 +634,7 @@ class expert_p(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x
+        return x3
 
 class expert_l(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -654,7 +660,7 @@ class expert_l(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x
+        return x3
 
 class expert_h(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -680,7 +686,7 @@ class expert_h(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x
+        return x3
 
 alpha = 0.0
 
