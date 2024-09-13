@@ -468,8 +468,8 @@ class Mobile_netV2(nn.Module):
         for param in self.features.stages_3.parameters():
             param.requires_grad = True
        
-        for param in self.features.stages_2.parameters():
-            param.requires_grad = True
+        # for param in self.features.stages_2.parameters():
+        #     param.requires_grad = True
 
         # self.teacher = teacher()
 
