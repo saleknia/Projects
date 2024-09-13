@@ -471,7 +471,7 @@ class Mobile_netV2(nn.Module):
         for param in self.features.stages_2.parameters():
             param.requires_grad = True
 
-        self.teacher = teacher()
+        # self.teacher = teacher()
 
     def forward(self, x_in):
 
@@ -499,8 +499,8 @@ class Mobile_netV2(nn.Module):
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        features_t = self.teacher(x_in)
-        features_s = [x2, x3]
+        # features_t = self.teacher(x_in)
+        # features_s = [x2, x3]
 
         # if (not self.training):
 
@@ -535,12 +535,12 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        # return x
+        return x
 
-        if self.training:
-            return x, features_s, features_t
-        else:
-            return x
+        # if self.training:
+        #     return x, features_s, features_t
+        # else:
+        #     return x
 
 class teacher(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
