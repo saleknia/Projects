@@ -453,7 +453,7 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        # self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
         self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
@@ -463,8 +463,8 @@ class Mobile_netV2(nn.Module):
         self.expert_l = expert_l()
         self.expert_h = expert_h()
 
-        # for param in self.features.parameters():
-        #     param.requires_grad = False
+        for param in self.features.parameters():
+            param.requires_grad = False
 
         # for param in self.features.stages_3.parameters():
         #     param.requires_grad = True
@@ -499,6 +499,8 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         # x0, x1, x2, x3 = self.features(x_in)
+
+        x_in = self.features(x_in)
         w = self.expert_w(x_in)
         s = self.expert_s(x_in)
         p = self.expert_p(x_in)
@@ -513,7 +515,7 @@ class Mobile_netV2(nn.Module):
 
         x3 = w + s + p + l + h
       
-        x              = self.head(x3)
+        x  = self.head(x3)
 
         # features_t = self.teacher(x_in)
         # features_s = [x2, x3]
@@ -605,7 +607,9 @@ class expert_s(nn.Module):
 
     def forward(self, x_in):
 
-        x0, x1, x2, x3 = self.features(x_in)
+        x3 = self.features.stages_3(x_in)
+
+        # x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
         return x3
@@ -631,7 +635,9 @@ class expert_p(nn.Module):
 
     def forward(self, x_in):
 
-        x0, x1, x2, x3 = self.features(x_in)
+        x3 = self.features.stages_3(x_in)
+
+        # x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
         return x3
@@ -657,8 +663,10 @@ class expert_l(nn.Module):
 
     def forward(self, x_in):
 
-        x0, x1, x2, x3 = self.features(x_in)
-        x              = self.head(x3)
+        x3 = self.features.stages_3(x_in)
+
+        # x0, x1, x2, x3 = self.features(x_in)
+        x = self.head(x3)
 
         return x3
 
@@ -683,8 +691,10 @@ class expert_h(nn.Module):
 
     def forward(self, x_in):
 
-        x0, x1, x2, x3 = self.features(x_in)
-        x              = self.head(x3)
+        x3 = self.features.stages_3(x_in)
+
+        # x0, x1, x2, x3 = self.features(x_in)
+        x = self.head(x3)
 
         return x3
 
