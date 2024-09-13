@@ -458,8 +458,8 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features = timm.create_model('convnext_tiny.fb_in22k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('convnext_tiny.fb_in22k', pretrained=True).head
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.features.parameters():
@@ -470,6 +470,8 @@ class Mobile_netV2(nn.Module):
        
         for param in self.features.stages_2.parameters():
             param.requires_grad = True
+
+        self.teacher = teacher()
 
     def forward(self, x_in):
 
@@ -496,6 +498,9 @@ class Mobile_netV2(nn.Module):
 
         x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
+
+        features_t = self.teacher(x_in)
+        features_s = [x2, x3]
 
         # if (not self.training):
 
@@ -530,12 +535,38 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x, x2, x3, t2, t3
-        # else:
-        #     return x
+        if self.training:
+            return x, features_s, features_t
+        else:
+            return x
+
+class teacher(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(teacher, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in22k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in22k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.features.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/teacher.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
+
+        return [x2, x3]
 
 alpha = 0.0
 

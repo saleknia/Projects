@@ -126,7 +126,7 @@ def at(x, exp):
     return F.normalize(x.pow(exp).mean(1).view(x.size(0), -1))
 
 
-def importance_maps_distillation(s, t, exp=2):
+def importance_maps_distillation(s, t, exp=4):
     """
     importance_maps_distillation KD loss, based on "Paying More Attention to Attention:
     Improving the Performance of Convolutional Neural Networks via Attention Transfer"
@@ -185,6 +185,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
         outputs = model(inputs)
+        KD = (type(outputs)==tuple)
+        if KD:
+            outputs, features_s, features_t = outputs[0], outputs[1], outputs[2]
 
         ################################################################
         ################################################################
@@ -248,11 +251,11 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # loss_disparity = rkd(x_s, x_t)
         # loss_disparity = 1.0 * importance_maps_distillation(s=x_s, t=x_t) 
-        # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=t2) + importance_maps_distillation(s=x3, t=t3)) 
+        loss_disparity = 1.0 * (importance_maps_distillation(s=features_s[0], t=features_t[0]) + importance_maps_distillation(s=features_s[1], t=features_t[1])) 
         # loss_disparity = 5.0 * disparity_loss(fm_s=features_b, fm_t=features_a)
         ###############################################
         # loss = (alpha * loss_ce) + ((1.0 - alpha) * loss_disparity)
-        loss = loss_ce 
+        loss = loss_ce + loss_disparity
         ###############################################
 
         lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
