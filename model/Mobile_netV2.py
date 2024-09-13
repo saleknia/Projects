@@ -455,7 +455,7 @@ class Mobile_netV2(nn.Module):
 
         self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
-        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         for param in self.features.parameters():
             param.requires_grad = False
