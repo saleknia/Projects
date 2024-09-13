@@ -427,11 +427,13 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
+        trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/train/', transform=transform_train)
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        testset = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/'  , transform=transform_test)
+        testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/test/'  , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1      , shuffle=False, num_workers=NUM_WORKERS)
+
+        NUM_CLASS = len(trainset.classes)
 
         data_loader={'train':train_loader,'valid':test_loader}
 
