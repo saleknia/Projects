@@ -500,12 +500,38 @@ class Mobile_netV2(nn.Module):
 
         # x0, x1, x2, x3 = self.features(x_in)
 
-        x_in = self.features(x_in)
-        w = self.expert_w(x_in)
-        s = self.expert_s(x_in)
-        p = self.expert_p(x_in)
-        l = self.expert_l(x_in)
-        h = self.expert_h(x_in)
+        x_in = self.features(x_in)[0]
+        w, wi = self.expert_w(x_in)
+        s, si = self.expert_s(x_in)
+        p, pi = self.expert_p(x_in)
+        l, li = self.expert_l(x_in)
+        h, hi = self.expert_h(x_in)
+
+        index = torch.cat([wi, si, pi, li, hi], dim=1)
+        # index = torch.softmax(index / 0.2, dim=1)
+
+        MH1   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=4)
+        index = index * ((MH-1)*(-1))
+        MH2   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=4)
+        index = MH1 + MH2
+
+        wi = index[:, 0]
+        si = index[:, 1]
+        pi = index[:, 2]
+        li = index[:, 3]
+        hi = index[:, 4]
+
+        wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
+
+        w = w * wi
+        s = s * si
+        p = p * pi
+        l = l * li
+        h = h * hi
 
         # print(w.shape)
         # print(s.shape)
@@ -584,10 +610,13 @@ class expert_w(nn.Module):
         x3 = self.features.stages_3(x_in)
 
         # x0, x1, x2, x3 = self.features(x_in)
-        
+
         x              = self.head(x3)
 
-        return x3
+        x  = x.softmax(dim=1).max(dim=1)[0]
+        x  = x.unsqueeze(dim=1)
+
+        return x3, x
 
 class expert_s(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -615,7 +644,10 @@ class expert_s(nn.Module):
         # x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x3
+        x  = x.softmax(dim=1).max(dim=1)[0]
+        x  = x.unsqueeze(dim=1)
+
+        return x3, x
 
 class expert_p(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -643,7 +675,10 @@ class expert_p(nn.Module):
         # x0, x1, x2, x3 = self.features(x_in)
         x              = self.head(x3)
 
-        return x3
+        x  = x.softmax(dim=1).max(dim=1)[0]
+        x  = x.unsqueeze(dim=1)
+
+        return x3, x
 
 class expert_l(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -671,7 +706,10 @@ class expert_l(nn.Module):
         # x0, x1, x2, x3 = self.features(x_in)
         x = self.head(x3)
 
-        return x3
+        x  = x.softmax(dim=1).max(dim=1)[0]
+        x  = x.unsqueeze(dim=1)
+
+        return x3, x
 
 class expert_h(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -699,7 +737,10 @@ class expert_h(nn.Module):
         # x0, x1, x2, x3 = self.features(x_in)
         x = self.head(x3)
 
-        return x3
+        x  = x.softmax(dim=1).max(dim=1)[0]
+        x  = x.unsqueeze(dim=1)
+
+        return x3, x
 
 alpha = 0.0
 
