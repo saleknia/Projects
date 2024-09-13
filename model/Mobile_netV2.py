@@ -581,7 +581,10 @@ class expert_w(nn.Module):
 
     def forward(self, x_in):
 
-        x0, x1, x2, x3 = self.features(x_in)
+        x3 = self.features.stages_3(x_in)
+
+        # x0, x1, x2, x3 = self.features(x_in)
+        
         x              = self.head(x3)
 
         return x3
