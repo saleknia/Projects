@@ -453,16 +453,23 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        # self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        for param in self.features.parameters():
-            param.requires_grad = False
+        self.expert_w = expert_w()
+        self.expert_s = expert_s()
+        self.expert_p = expert_p()
+        self.expert_l = expert_l()
+        self.expert_h = expert_h()
 
-        for param in self.features.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.features.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.features.stages_3.parameters():
+        #     param.requires_grad = True
        
+
         # for param in self.features.stages_2.parameters():
         #     param.requires_grad = True
 
@@ -491,7 +498,15 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x0, x1, x2, x3 = self.features(x_in)
+        # x0, x1, x2, x3 = self.features(x_in)
+        w = self.expert_w(x_in)
+        s = self.expert_s(x_in)
+        p = self.expert_p(x_in)
+        l = self.expert_l(x_in)
+        h = self.expert_h(x_in)
+
+        x3 = w + s + p + l + h
+      
         x              = self.head(x3)
 
         # features_t = self.teacher(x_in)
@@ -538,14 +553,14 @@ class Mobile_netV2(nn.Module):
         #     return x
 
 class expert_w(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=15, pretrained=True):
         super(expert_w, self).__init__()
 
         self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        for param in self.features.parameters():
+        for param in self.parameters():
             param.requires_grad = False
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_w.pth', map_location='cpu')
@@ -564,14 +579,14 @@ class expert_w(nn.Module):
         return x
 
 class expert_s(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
+    def __init__(self, num_classes=12, pretrained=True):
         super(expert_s, self).__init__()
 
         self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        for param in self.features.parameters():
+        for param in self.parameters():
             param.requires_grad = False
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_s.pth', map_location='cpu')
@@ -589,6 +604,83 @@ class expert_s(nn.Module):
 
         return x
 
+class expert_p(nn.Module):
+    def __init__(self, num_classes=14, pretrained=True):
+        super(expert_p, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_p.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
+
+        return x
+
+class expert_l(nn.Module):
+    def __init__(self, num_classes=12, pretrained=True):
+        super(expert_l, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_l.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
+
+        return x
+
+class expert_h(nn.Module):
+    def __init__(self, num_classes=14, pretrained=True):
+        super(expert_h, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_h.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
+
+        return x
 
 alpha = 0.0
 
