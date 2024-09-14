@@ -453,23 +453,22 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
         self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
-        self.head.norm = LayerNorm2d(3840)
-        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=3840, out_features=num_classes, bias=True))
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        self.expert_g = expert_g()
-        self.expert_w = expert_w()
-        self.expert_s = expert_s()
-        self.expert_p = expert_p()
-        self.expert_l = expert_l()
-        self.expert_h = expert_h()
+        # self.expert_g = expert_g()
+        # self.expert_w = expert_w()
+        # self.expert_s = expert_s()
+        # self.expert_p = expert_p()
+        # self.expert_l = expert_l()
+        # self.expert_h = expert_h()
 
         for param in self.features.parameters():
             param.requires_grad = False
 
-        # for param in self.features.stages_3.parameters():
-        #     param.requires_grad = True
+        for param in self.features.stages_3.parameters():
+            param.requires_grad = True
 
         # for param in self.features.stages_2.parameters():
         #     param.requires_grad = True
@@ -499,16 +498,18 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x0, x1, x2, x3 = self.features(x_in)
-        # x  = self.head(x3)
+        x0, x1, x2, x3 = self.features(x_in)
+        x              = self.head(x3)
 
-        x_in = self.features(x_in)[0]
+        # x_in = self.features(x_in)
+        # x    = self.head(x3)
+
         # g, gi = self.expert_g(x_in)
-        w, wi = self.expert_w(x_in)
-        s, si = self.expert_s(x_in)
-        p, pi = self.expert_p(x_in)
-        l, li = self.expert_l(x_in)
-        h, hi = self.expert_h(x_in)
+        # w, wi = self.expert_w(x_in)
+        # s, si = self.expert_s(x_in)
+        # p, pi = self.expert_p(x_in)
+        # l, li = self.expert_l(x_in)
+        # h, hi = self.expert_h(x_in)
 
         # index = gi
 
@@ -545,8 +546,8 @@ class Mobile_netV2(nn.Module):
         # print(h.shape)
 
         # x3 = w + s + p + l + h
-        x3 = torch.cat([w, s, p, l, h], dim=1)
-        x  = self.head(x3)
+        # x3 = torch.cat([w, s, p, l, h], dim=1)
+        # x  = self.head(x3)
       
 
         # features_t = self.teacher(x_in)
