@@ -502,7 +502,7 @@ class Mobile_netV2(nn.Module):
         # x0, x1, x2, x3 = self.features(x_in)
         # x              = self.head(x3)
 
-        x_in = self.features(x_in)
+        x_in = self.features(x_in)[0]
         g = self.expert_g(x_in)
         a = self.expert_a(x_in)
         x = self.head(g + a)
