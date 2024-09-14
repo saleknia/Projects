@@ -453,12 +453,13 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
         self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
         self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
-        # self.expert_g = expert_g()
-        # self.expert_w = expert_w()
+        self.expert_g = expert_g()
+        self.expert_a = expert_a()
+
         # self.expert_s = expert_s()
         # self.expert_p = expert_p()
         # self.expert_l = expert_l()
@@ -467,8 +468,8 @@ class Mobile_netV2(nn.Module):
         for param in self.features.parameters():
             param.requires_grad = False
 
-        for param in self.features.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.features.stages_3.parameters():
+        #     param.requires_grad = True
 
         # for param in self.features.stages_2.parameters():
         #     param.requires_grad = True
@@ -498,11 +499,13 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x0, x1, x2, x3 = self.features(x_in)
-        x              = self.head(x3)
+        # x0, x1, x2, x3 = self.features(x_in)
+        # x              = self.head(x3)
 
-        # x_in = self.features(x_in)
-        # x    = self.head(x3)
+        x_in = self.features(x_in)
+        g = self.expert_g(x_in)
+        a = self.expert_a(x_in)
+        x = self.head(g + a)
 
         # g, gi = self.expert_g(x_in)
         # w, wi = self.expert_w(x_in)
@@ -593,6 +596,34 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
+class expert_a(nn.Module):
+    def __init__(self, num_classes=67, pretrained=True):
+        super(expert_a, self).__init__()
+
+        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_a.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x3 = self.features.stages_3(x_in)
+        # x  = self.head(x3)
+
+        # x  = x.softmax(dim=1)
+
+        return x3
+
 class expert_g(nn.Module):
     def __init__(self, num_classes=5, pretrained=True):
         super(expert_g, self).__init__()
@@ -615,14 +646,11 @@ class expert_g(nn.Module):
     def forward(self, x_in):
 
         x3 = self.features.stages_3(x_in)
+        # x  = self.head(x3)
 
-        # x0, x1, x2, x3 = self.features(x_in)
+        # x  = x.softmax(dim=1)
 
-        x              = self.head(x3)
-
-        x  = x.softmax(dim=1)
-
-        return x3, x
+        return x3
 
 class expert_w(nn.Module):
     def __init__(self, num_classes=15, pretrained=True):
