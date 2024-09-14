@@ -453,9 +453,10 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
-        self.head     = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
-        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.features  = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.head      = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
+        self.head.norm = LayerNorm2d((1536,))
+        self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         self.expert_g = expert_g()
         self.expert_a = expert_a()
@@ -505,7 +506,7 @@ class Mobile_netV2(nn.Module):
         x_in = self.features(x_in)[0]
         g = self.expert_g(x_in)
         a = self.expert_a(x_in)
-        x = self.head(g + a)
+        x = self.head(torch.cat([g, a], dim=1))
 
         # g, gi = self.expert_g(x_in)
         # w, wi = self.expert_w(x_in)
