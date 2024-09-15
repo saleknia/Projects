@@ -366,8 +366,8 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        self.features = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True).head
+        self.features = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True, features_only=True)
+        self.head     = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True).head
 
         for param in self.features.parameters():
             param.requires_grad = False
@@ -377,7 +377,7 @@ class Mobile_netV2(nn.Module):
 
         self.head.classifier[4] = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=3200, out_features=num_classes, bias=True),
+            nn.Linear(in_features=2560, out_features=num_classes, bias=True),
         )
 
         for param in self.head.parameters():
