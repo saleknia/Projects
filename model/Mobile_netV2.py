@@ -507,7 +507,7 @@ class Mobile_netV2(nn.Module):
 
         x_in = self.features(x_in)[0]
 
-        g = self.expert_g(x_in)
+        # g = self.expert_g(x_in)
 
         w = self.expert_w(x_in)
         s = self.expert_s(x_in)
@@ -515,25 +515,25 @@ class Mobile_netV2(nn.Module):
         l = self.expert_l(x_in)
         h = self.expert_h(x_in)
 
-        index = g
+        # index = g
 
-        hi = index[:, 0]
-        li = index[:, 1]
-        pi = index[:, 2]
-        si = index[:, 3]
-        wi = index[:, 4]
+        # hi = index[:, 0]
+        # li = index[:, 1]
+        # pi = index[:, 2]
+        # si = index[:, 3]
+        # wi = index[:, 4]
 
-        wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
-        si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
+        # wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        # si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        # pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        # li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        # hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
 
-        w = w * wi
-        s = s * si
-        p = p * pi
-        l = l * li
-        h = h * hi
+        # w = w * wi
+        # s = s * si
+        # p = p * pi
+        # l = l * li
+        # h = h * hi
 
         # x3 = torch.cat([w, s, p, l, h], dim=1)
 
