@@ -372,8 +372,8 @@ class Mobile_netV2(nn.Module):
         for param in self.features.parameters():
             param.requires_grad = False
 
-        for param in self.features.stages_3.blocks[-4:].parameters():
-            param.requires_grad = True
+        # for param in self.features.stages_3.blocks[-3:].parameters():
+        #     param.requires_grad = True
 
         self.head.classifier[4] = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
