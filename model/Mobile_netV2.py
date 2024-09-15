@@ -507,7 +507,7 @@ class Mobile_netV2(nn.Module):
 
         x_in = self.features(x_in)[0]
 
-        # g = self.expert_g(x_in)
+        g, index = self.expert_g(x_in)
 
         w = self.expert_w(x_in)
         s = self.expert_s(x_in)
@@ -515,29 +515,27 @@ class Mobile_netV2(nn.Module):
         l = self.expert_l(x_in)
         h = self.expert_h(x_in)
 
-        # index = g
+        hi = index[:, 0]
+        li = index[:, 1]
+        pi = index[:, 2]
+        si = index[:, 3]
+        wi = index[:, 4]
 
-        # hi = index[:, 0]
-        # li = index[:, 1]
-        # pi = index[:, 2]
-        # si = index[:, 3]
-        # wi = index[:, 4]
+        wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
 
-        # wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
-        # si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        # pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        # li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        # hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
-
-        # w = w * wi
-        # s = s * si
-        # p = p * pi
-        # l = l * li
-        # h = h * hi
+        w = w * wi
+        s = s * si
+        p = p * pi
+        l = l * li
+        h = h * hi
 
         # x3 = torch.cat([w, s, p, l, h], dim=1)
 
-        x3 = w + s + p + l + h  
+        x3 = w + s + p + l + h + g
 
         x  = self.head(x3)
 
@@ -618,7 +616,7 @@ class expert_g(nn.Module):
         MH2 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
         x   = x * ((MH2-1.0)*(-1.0)) 
 
-        return MH1 + MH2
+        return x3, MH1 + MH2
 
 class expert_w(nn.Module):
     def __init__(self, num_classes=15, pretrained=True):
