@@ -463,6 +463,7 @@ class Mobile_netV2(nn.Module):
         self.expert_p = expert_p()
         self.expert_l = expert_l()
         self.expert_h = expert_h()
+        self.expert_w = expert_w()
 
         for param in self.features.parameters():
             param.requires_grad = False
