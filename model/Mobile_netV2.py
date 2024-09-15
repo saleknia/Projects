@@ -608,12 +608,12 @@ class expert_g(nn.Module):
         x  = self.head(x3)
         x  = x.softmax(dim=1)
 
-        MH1   = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
-        index = index * ((MH1-1.0)*(-1.0))
-        MH2   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=5)
-        index = MH1 + MH2
+        MH1 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
+        x   = x * ((MH1-1.0)*(-1.0))
+        MH2 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
+        x   = MH1 + MH2
 
-        return index
+        return x
 
 class expert_w(nn.Module):
     def __init__(self, num_classes=15, pretrained=True):
