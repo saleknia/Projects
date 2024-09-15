@@ -453,24 +453,22 @@ class Mobile_netV2(nn.Module):
         #################################
         #################################
 
-        self.features  = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True)
+        self.features  = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
         self.head      = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
-        # self.head.norm = LayerNorm2d((1536,))
-        self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
+        self.head.norm = LayerNorm2d((3840,))
+        self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=3840, out_features=num_classes, bias=True))
 
         self.expert_g = expert_g()
-        # self.expert_a = expert_a()
-
-        # self.expert_s = expert_s()
-        # self.expert_p = expert_p()
-        # self.expert_l = expert_l()
-        # self.expert_h = expert_h()
+        self.expert_s = expert_s()
+        self.expert_p = expert_p()
+        self.expert_l = expert_l()
+        self.expert_h = expert_h()
 
         for param in self.features.parameters():
             param.requires_grad = False
 
-        for param in self.features.stages_3.parameters():
-            param.requires_grad = True
+        # for param in self.features.stages_3.parameters():
+        #     param.requires_grad = True
 
         # for param in self.features.stages_2.parameters():
         #     param.requires_grad = True
@@ -500,62 +498,45 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x0, x1, x2, x3 = self.features(x_in)
+        # x0, x1, x2, x3 = self.features(x_in)
         
+        # g = self.expert_g(x_in)
+
+        # x = self.head(x3+g)
+
+        x_in = self.features(x_in)[0]
+
         g = self.expert_g(x_in)
 
-        x = self.head(x3+g)
+        w = self.expert_w(x_in)
+        s = self.expert_s(x_in)
+        p = self.expert_p(x_in)
+        l = self.expert_l(x_in)
+        h = self.expert_h(x_in)
 
-        # x_in = self.features(x_in)[0]
-        # g = self.expert_g(x_in)
-        # a = self.expert_a(x_in)
-        # x = self.head(torch.cat([g, a], dim=1))
+        index = g
 
-        # g, gi = self.expert_g(x_in)
-        # w, wi = self.expert_w(x_in)
-        # s, si = self.expert_s(x_in)
-        # p, pi = self.expert_p(x_in)
-        # l, li = self.expert_l(x_in)
-        # h, hi = self.expert_h(x_in)
+        hi = index[:, 0]
+        li = index[:, 1]
+        pi = index[:, 2]
+        si = index[:, 3]
+        wi = index[:, 4]
 
-        # index = gi
+        wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
 
-        # index = torch.cat([wi, si, pi, li, hi], dim=1)
-        # # index = torch.softmax(index / 0.2, dim=1)
+        w = w * wi
+        s = s * si
+        p = p * pi
+        l = l * li
+        h = h * hi
 
-        # MH1   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=5)
-        # index = index * ((MH1-1.0)*(-1.0))
-        # MH2   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=5)
-        # index = MH1 + MH2
+        x3 = torch.cat([w, s, p, l, h], dim=1)
 
-        # wi = index[:, 0]
-        # si = index[:, 1]
-        # pi = index[:, 2]
-        # li = index[:, 3]
-        # hi = index[:, 4]
-
-        # wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
-        # si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        # pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        # li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        # hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
-
-        # w = w * wi
-        # s = s * si
-        # p = p * pi
-        # l = l * li
-        # h = h * hi
-
-        # print(w.shape)
-        # print(s.shape)
-        # print(p.shape)
-        # print(l.shape)
-        # print(h.shape)
-
-        # x3 = w + s + p + l + h
-        # x3 = torch.cat([w, s, p, l, h], dim=1)
-        # x  = self.head(x3)
-      
+        x  = self.head(x3)
 
         # features_t = self.teacher(x_in)
         # features_s = [x2, x3]
@@ -600,33 +581,6 @@ class Mobile_netV2(nn.Module):
         # else:
         #     return x
 
-class expert_a(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(expert_a, self).__init__()
-
-        self.features = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head
-        self.head.fc  = nn.Sequential(nn.Dropout(p=0.5, inplace=True), nn.Linear(in_features=768, out_features=num_classes, bias=True))
-
-        for param in self.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/expert_a.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x3 = self.features.stages_3(x_in)
-        # x  = self.head(x3)
-
-        # x  = x.softmax(dim=1)
-
-        return x3
 
 class expert_g(nn.Module):
     def __init__(self, num_classes=5, pretrained=True):
@@ -650,13 +604,16 @@ class expert_g(nn.Module):
     def forward(self, x_in):
 
         x0, x1, x2, x3 = self.features(x_in)
+        x3 = self.features.stages_3(x_in)
+        x  = self.head(x3)
+        x  = x.softmax(dim=1)
 
-        # x3 = self.features.stages_3(x_in)
-        # x  = self.head(x3)
+        MH1   = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
+        index = index * ((MH1-1.0)*(-1.0))
+        MH2   = torch.nn.functional.one_hot(index.max(dim=1)[1], num_classes=5)
+        index = MH1 + MH2
 
-        # x  = x.softmax(dim=1)
-
-        return x3
+        return index
 
 class expert_w(nn.Module):
     def __init__(self, num_classes=15, pretrained=True):
@@ -683,12 +640,9 @@ class expert_w(nn.Module):
 
         # x0, x1, x2, x3 = self.features(x_in)
 
-        x              = self.head(x3)
+        # x  = self.head(x3)
 
-        x  = x.softmax(dim=1).max(dim=1)[0]
-        x  = x.unsqueeze(dim=1)
-
-        return x3, x
+        return x3
 
 class expert_s(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -714,12 +668,12 @@ class expert_s(nn.Module):
         x3 = self.features.stages_3(x_in)
 
         # x0, x1, x2, x3 = self.features(x_in)
-        x              = self.head(x3)
+        # x              = self.head(x3)
 
-        x  = x.softmax(dim=1).max(dim=1)[0]
-        x  = x.unsqueeze(dim=1)
+        # x  = x.softmax(dim=1).max(dim=1)[0]
+        # x  = x.unsqueeze(dim=1)
 
-        return x3, x
+        return x3
 
 class expert_p(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -745,12 +699,12 @@ class expert_p(nn.Module):
         x3 = self.features.stages_3(x_in)
 
         # x0, x1, x2, x3 = self.features(x_in)
-        x              = self.head(x3)
+        # x              = self.head(x3)
 
-        x  = x.softmax(dim=1).max(dim=1)[0]
-        x  = x.unsqueeze(dim=1)
+        # x  = x.softmax(dim=1).max(dim=1)[0]
+        # x  = x.unsqueeze(dim=1)
 
-        return x3, x
+        return x3
 
 class expert_l(nn.Module):
     def __init__(self, num_classes=12, pretrained=True):
@@ -776,12 +730,12 @@ class expert_l(nn.Module):
         x3 = self.features.stages_3(x_in)
 
         # x0, x1, x2, x3 = self.features(x_in)
-        x = self.head(x3)
+        # x = self.head(x3)
 
-        x  = x.softmax(dim=1).max(dim=1)[0]
-        x  = x.unsqueeze(dim=1)
+        # x  = x.softmax(dim=1).max(dim=1)[0]
+        # x  = x.unsqueeze(dim=1)
 
-        return x3, x
+        return x3
 
 class expert_h(nn.Module):
     def __init__(self, num_classes=14, pretrained=True):
@@ -807,12 +761,12 @@ class expert_h(nn.Module):
         x3 = self.features.stages_3(x_in)
 
         # x0, x1, x2, x3 = self.features(x_in)
-        x = self.head(x3)
+        # x = self.head(x3)
 
-        x  = x.softmax(dim=1).max(dim=1)[0]
-        x  = x.unsqueeze(dim=1)
+        # x  = x.softmax(dim=1).max(dim=1)[0]
+        # x  = x.unsqueeze(dim=1)
 
-        return x3, x
+        return x3
 
 alpha = 0.0
 
