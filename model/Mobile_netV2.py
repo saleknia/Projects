@@ -612,7 +612,9 @@ class expert_g(nn.Module):
         MH1 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
         x   = x * ((MH1-1.0)*(-1.0))
         MH2 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
-        x   = MH1 + MH2
+        x   = x * ((MH2-1.0)*(-1.0)) 
+        MH3 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)    
+        x   = MH1 + MH2 + MH3
 
         return x
 
