@@ -455,8 +455,8 @@ class Mobile_netV2(nn.Module):
 
         self.features  = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
         self.head      = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True).head
-        self.head.norm = LayerNorm2d((3840,))
-        self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=3840, out_features=num_classes, bias=True))
+        # self.head.norm = LayerNorm2d((3840,))
+        self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=768, out_features=num_classes, bias=True))
 
         self.expert_g = expert_g()
         self.expert_s = expert_s()
@@ -535,7 +535,9 @@ class Mobile_netV2(nn.Module):
         l = l * li
         h = h * hi
 
-        x3 = torch.cat([w, s, p, l, h], dim=1)
+        # x3 = torch.cat([w, s, p, l, h], dim=1)
+
+        x3 = w + s + p + l + h  
 
         x  = self.head(x3)
 
@@ -609,14 +611,14 @@ class expert_g(nn.Module):
         x  = self.head(x3)
         x  = x.softmax(dim=1)
 
+        # x = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
+
         MH1 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
         x   = x * ((MH1-1.0)*(-1.0))
         MH2 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)
         x   = x * ((MH2-1.0)*(-1.0)) 
-        MH3 = torch.nn.functional.one_hot(x.max(dim=1)[1], num_classes=5)    
-        x   = MH1 + MH2 + MH3
 
-        return x
+        return MH1 + MH2
 
 class expert_w(nn.Module):
     def __init__(self, num_classes=15, pretrained=True):
