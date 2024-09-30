@@ -42,13 +42,13 @@ from efficientvit.cls_model_zoo import create_cls_model
 from timm.layers import LayerNorm2d
 
 from transformers import CLIPProcessor, CLIPModel
-
+from PIL import Image
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
 
         
-        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        self.model     = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
         self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
         self.class_txt = class_txt
 
@@ -485,9 +485,13 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        b, c, w, h = x_in.shape
+        # b, c, w, h = x_in.shape
 
-        inputs  = self.processor(text=self.class_txt, images=x_in, return_tensors="pt", padding=True)
+        # print(x_in.device)
+
+        image   = Image.open(x_in[0])
+        inputs  = self.processor(text=self.class_txt, images=image, return_tensors="pt", padding=True)
+        inputs = inputs.to('cuda')
         outputs = self.model(**inputs)
         logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
         probs = logits_per_image.softmax(dim=1)
