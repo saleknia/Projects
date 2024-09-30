@@ -36,7 +36,6 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     # model = tta.ClassificationTTAWrapper(model, tta.aliases.five_crop_transform(224, 224), merge_mode='mean')
     # model = tta.ClassificationTTAWrapper(model, transforms, merge_mode='mean')
 
-
     loss_total = utils.AverageMeter()
 
     # accuracy   = utils.AverageMeter()

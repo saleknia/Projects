@@ -41,9 +41,16 @@ from efficientvit.seg_model_zoo import create_seg_model
 from efficientvit.cls_model_zoo import create_cls_model
 from timm.layers import LayerNorm2d
 
+from transformers import CLIPProcessor, CLIPModel
+
 class Mobile_netV2(nn.Module):
     def __init__(self, num_classes=67, pretrained=True):
         super(Mobile_netV2, self).__init__()
+
+        
+        self.model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        self.class_txt = class_txt
 
         # model = resnet18(num_classes=365)
         # checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
@@ -366,22 +373,22 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        self.features = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True).head
+        # self.features = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True, features_only=True)
+        # self.head     = timm.create_model('timm/efficientvit_l1.r224_in1k', pretrained=True).head
 
-        for param in self.features.parameters():
-            param.requires_grad = False
+        # for param in self.features.parameters():
+        #     param.requires_grad = False
 
-        # for param in self.features.stages_3.blocks[-3:].parameters():
+        # # for param in self.features.stages_3.blocks[-3:].parameters():
+        # #     param.requires_grad = True
+
+        # self.head.classifier[4] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=3200, out_features=num_classes, bias=True),
+        # )
+
+        # for param in self.head.parameters():
         #     param.requires_grad = True
-
-        self.head.classifier[4] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=3200, out_features=num_classes, bias=True),
-        )
-
-        for param in self.head.parameters():
-            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -478,7 +485,12 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        # b, c, w, h = x_in.shape
+        b, c, w, h = x_in.shape
+
+        inputs  = self.processor(text=self.class_txt, images=x_in, return_tensors="pt", padding=True)
+        outputs = self.model(**inputs)
+        logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
+        probs = logits_per_image.softmax(dim=1)
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -499,8 +511,8 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x0, x1, x2, x3 = self.features(x_in)
-        x = self.head(x3)
+        # x0, x1, x2, x3 = self.features(x_in)
+        # x = self.head(x3)
 
         # x_in = self.features(x_in)[0]
 
@@ -572,13 +584,84 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
+        return probs
 
         # if self.training:
         #     return x, features_s, features_t
         # else:
         #     return x
 
+labels = {
+            'airport inside': 0,
+            'art studio': 1,
+            'auditorium': 2,
+            'bakery': 3,
+            'bar': 4,
+            'bathroom': 5,
+            'bedroom': 6,
+            'bookstore': 7,
+            'bowling': 8,
+            'buffet': 9,
+            'casino': 10,
+            'children room': 11,
+            'church': 12,
+            'classroom': 13,
+            'cloister': 14,
+            'closet': 15,
+            'clothing store': 16,
+            'computer room': 17,
+            'concert hall': 18,
+            'corridor': 19,
+            'deli': 20,
+            'dental office': 21,
+            'dining room': 22,
+            'elevator': 23,
+            'fastfood restaurant': 24,
+            'florist': 25,
+            'game room': 26,
+            'garage': 27,
+            'green house': 28,
+            'grocery store': 29,
+            'gym': 30,
+            'hair salon': 31,
+            'hospital room': 32,
+            'bus inside': 33,
+            'subway inside': 34,
+            'jewellery shop': 35,
+            'kindergarden': 36,
+            'kitchen': 37,
+            'wet lab': 38,
+            'laundromat': 39,
+            'library': 40,
+            'livingroom': 41,
+            'lobby': 42,
+            'locker room': 43,
+            'mall': 44,
+            'meeting room': 45,
+            'movie theater': 46,
+            'museum': 47,
+            'nursery': 48,
+            'office': 49,
+            'operating room': 50,
+            'pantry': 51,
+            'pool inside': 52,
+            'prison cell': 53,
+            'restaurant': 54,
+            'restaurant kitchen': 55,
+            'shoe shop': 56,
+            'staircase': 57,
+            'studio music': 58,
+            'subway': 59,
+            'toy store': 60,
+            'train station': 61,
+            'tv studio': 62,
+            'video store': 63,
+            'waiting room': 64,
+            'warehouse': 65,
+            'wine cellar': 66
+ }
+
+class_txt = [f'a photo of a {x}.' for x in labels]
 
 class expert_g(nn.Module):
     def __init__(self, num_classes=5, pretrained=True):
