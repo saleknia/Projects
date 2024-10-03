@@ -48,9 +48,9 @@ class Mobile_netV2(nn.Module):
         super(Mobile_netV2, self).__init__()
 
         
-        self.model     = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-        self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
-        self.class_txt = class_txt
+        # self.model     = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
+        # self.processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+        # self.class_txt = class_txt
 
         # model = resnet18(num_classes=365)
         # checkpoint = torch.load('/content/wideresnet18_places365.pth.tar', map_location='cpu')
@@ -304,23 +304,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[2:].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -489,12 +489,12 @@ class Mobile_netV2(nn.Module):
 
         # print(x_in.device)
 
-        image   = Image.open(x_in[0])
-        inputs  = self.processor(text=self.class_txt, images=image, return_tensors="pt", padding=True)
-        inputs = inputs.to('cuda')
-        outputs = self.model(**inputs)
-        logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
-        probs = logits_per_image.softmax(dim=1)
+        # image   = Image.open(x_in[0])
+        # inputs  = self.processor(text=self.class_txt, images=image, return_tensors="pt", padding=True)
+        # inputs = inputs.to('cuda')
+        # outputs = self.model(**inputs)
+        # logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
+        # probs = logits_per_image.softmax(dim=1)
 
         # x = self.model(x_in)
         # x = x['stage_final']
@@ -503,7 +503,8 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # x0, x1, x2, x3 = self.model(x_in)
+        x = self.model(x_in)
+        x = torch.softmax(x, dim=1)
 
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
@@ -588,7 +589,7 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return probs
+        return x
 
         # if self.training:
         #     return x, features_s, features_t
