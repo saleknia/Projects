@@ -236,16 +236,16 @@ def main(args):
 
         #         return (image_0, image_1)
 
-        class transform_test(object):
-            def __call__(self, sample):
-                sample = {'image':sample}
-                return sample
+        # class transform_test(object):
+        #     def __call__(self, sample):
+        #         sample = {'image':sample}
+        #         return sample
 
-        # transform_test = transforms.Compose([
-        #     transforms.Resize((224, 224)),
-        #     transforms.ToTensor(),
-        #     # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        # ])
+        transform_test = transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+        ])
 
         # trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/train/', transform=transform_train)
         # train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)

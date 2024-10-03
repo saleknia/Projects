@@ -55,13 +55,13 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             # print(inputs)
             # print(targets)
 
-            # if 1 < len(inputs): 
-            #     inputs, targets = (inputs[0].to(device), inputs[1].to(device)), targets.to(device)
-            # else:
-            #     inputs, targets = inputs.to(device), targets.to(device)
+            if 1 < len(inputs): 
+                inputs, targets = (inputs[0].to(device), inputs[1].to(device)), targets.to(device)
+            else:
+                inputs, targets = inputs.to(device), targets.to(device)
 
             # inputs  = inputs.to('cuda')
-            targets = targets.to(device)
+            # targets = targets.to(device)
 
             # inputs, targets = inputs.to('cuda'), targets.to('cuda')
 
@@ -69,7 +69,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             outputs = model(inputs)
 
-            # prob = torch.softmax(outputs, dim=1)
+            # outputs = torch.softmax(outputs, dim=1)
 
             # model_outputs.append(outputs)
 
