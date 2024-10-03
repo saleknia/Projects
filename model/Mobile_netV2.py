@@ -504,7 +504,6 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model(x_in)
-        x = torch.softmax(x, dim=1)
 
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
@@ -589,12 +588,11 @@ class Mobile_netV2(nn.Module):
         #     x = self.model(x_in)
 
 
-        return x
 
-        # if self.training:
-        #     return x, features_s, features_t
-        # else:
-        #     return x
+        if self.training:
+            return x
+        else:
+            return torch.softmax(x, dim=1)
 
 labels = {
             'airport inside': 0,

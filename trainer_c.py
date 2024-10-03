@@ -214,7 +214,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = torch.nn.functional.cross_entropy(outputs, targets.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
 
-        predictions = torch.argmax(input=outputs,dim=1).long()
+        predictions = torch.argmax(input=torch.softmax(outputs, dim=1),dim=1).long()
 
         metric.update(predictions, targets.long())
 
