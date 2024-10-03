@@ -466,8 +466,8 @@ class Mobile_netV2(nn.Module):
         # self.head.norm = LayerNorm2d((3840,))
         # self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
-        self.super_model  = super_model()
-        self.normal_model = normal_model()
+        # self.super_model  = super_model()
+        # self.normal_model = normal_model()
 
 
         # for param in self.features.parameters():
@@ -501,12 +501,15 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = torch.mul(self.normal_model(x_in), self.super_model(x_in)) 
+        # normal_out = self.normal_model(x_in)
+        # super_out  = self.super_model(x_in)
+
+        # x = torch.mul(normal_out, super_out) + normal_out
 
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
 
-        # x = self.head(x3)
+        x = self.model(x_in)
 
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
