@@ -215,13 +215,13 @@ def main(args):
     elif TASK_NAME=='MIT-67':
 
         transform_train = transforms.Compose([
-            # transforms.Resize((224, 224)),
-            transforms.RandomResizedCrop(224),
+            transforms.Resize((224, 224)),
+            # transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
             transforms.ToTensor(),
-            # transforms.RandomErasing(p=1.0, scale=(0.25, 0.75)),
+            transforms.RandomErasing(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
 
@@ -242,7 +242,7 @@ def main(args):
         #         return sample
 
         transform_test = transforms.Compose([
-            transforms.Resize((224, 224)),
+            transforms.Resize((512, 512)),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])

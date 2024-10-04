@@ -241,15 +241,26 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        self.model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt")
 
         # model.input_stem.op_list[0].conv.stride  = (1, 1)
         # model.input_stem.op_list[0].conv.padding = (0, 0)
 
         # self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.up = nn.Upsample(size=224)
+
+        self.vit = timm.create_model('vit_tiny_patch16_224.augreg_in21k_ft_in1k', pretrained=True)
+
+        self.vit.patch_embed.proj = nn.Conv2d(150, 192, kernel_size=(16, 16), stride=(16, 16))
+
+        self.vit.head = nn.Sequential(
+                                        nn.Dropout(p=0.5),
+                                        nn.Linear(in_features=192, out_features=67, bias=True)
+                                    )
 
         # for param in self.model.stages[-1].parameters():
         #     param.requires_grad = True
@@ -305,23 +316,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -517,7 +528,7 @@ class Mobile_netV2(nn.Module):
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
 
-        x = self.model(x_in)
+        x = self.vit(self.up(self.model(x_in)))
 
         # super_model        = self.super_model(x_in)
         # store_model        = self.store(x_in)
