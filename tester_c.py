@@ -72,8 +72,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
 
             outputs = model(inputs)
 
-            protos[batch_idx] = outputs[0]
-            labels[batch_idx] = targets.long()
+            # protos[batch_idx] = outputs[0]
+            # labels[batch_idx] = targets.long()
 
             # outputs = torch.softmax(outputs, dim=1)
 
@@ -110,7 +110,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 bar_length=45
             )  
         dic = {'protos':protos, 'labels':labels}
-        torch.save(dic, '/content/protos.pt')
+        # torch.save(dic, '/content/protos.pt')
 
         acc = 100 * metric.compute()
 
