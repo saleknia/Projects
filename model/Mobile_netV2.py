@@ -453,6 +453,8 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
+        # self.model.head.fc = nn.Identity()
+
         # self.model = teacher_ensemble()
 
         # self.count = 0.0
@@ -466,12 +468,12 @@ class Mobile_netV2(nn.Module):
         # self.head.norm = LayerNorm2d((3840,))
         # self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
-        self.super_model  = super_model()
-        self.store        = store()
-        self.home         = home()
-        self.leisure      = leisure()
-        self.publicplace  = publicplace()
-        self.workingplace = workingplace()
+        # self.super_model  = super_model()
+        # self.store        = store()
+        # self.home         = home()
+        # self.leisure      = leisure()
+        # self.publicplace  = publicplace()
+        # self.workingplace = workingplace()
 
         # self.normal_model = normal_model()
 
@@ -515,17 +517,17 @@ class Mobile_netV2(nn.Module):
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
 
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
-        super_model        = self.super_model(x_in)
-        store_model        = self.store(x_in)
-        home_model         = self.home(x_in)
-        leisure_model      = self.leisure(x_in)
-        publicplace_model  = self.publicplace(x_in)
-        workingplace_model = self.workingplace(x_in)
+        # super_model        = self.super_model(x_in)
+        # store_model        = self.store(x_in)
+        # home_model         = self.home(x_in)
+        # leisure_model      = self.leisure(x_in)
+        # publicplace_model  = self.publicplace(x_in)
+        # workingplace_model = self.workingplace(x_in)
 
-        global_vec = torch.cat([store_model, home_model, leisure_model, publicplace_model, workingplace_model], dim=0)
-        x          = torch.mul(super_model, global_vec) 
+        # global_vec = torch.cat([store_model, home_model, leisure_model, publicplace_model, workingplace_model], dim=0)
+        # x          = torch.mul(super_model, global_vec) 
 
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
@@ -604,12 +606,12 @@ class Mobile_netV2(nn.Module):
         #     b, c, w, h = x_in.shape
         #     x = self.model(x_in)
 
-        return x
+        # return x
 
-        # if self.training:
-        #     return x
-        # else:
-        #     return torch.softmax(x, dim=1)
+        if self.training:
+            return x
+        else:
+            return torch.softmax(x, dim=1)
 
 labels = {
             'airport inside': 0,

@@ -47,6 +47,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     loader = dataloader
     # model_outputs = []
 
+    protos   = torch.zeros(total_batchs, 67)
+    labels   = torch.zeros(total_batchs)
+
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
 
@@ -68,6 +71,9 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
             targets = targets.float()
 
             outputs = model(inputs)
+
+            protos[batch_idx] = outputs[0]
+            labels[batch_idx] = targets.long()
 
             # outputs = torch.softmax(outputs, dim=1)
 
@@ -103,6 +109,8 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
                 # suffix=f'loss= {loss_total.avg:.4f} , Accuracy= {accuracy.avg*100:.2f} ',
                 bar_length=45
             )  
+        dic = {'protos':protos, 'labels':labels}
+        torch.save(dic, '/content/protos.pt')
 
         acc = 100 * metric.compute()
 
