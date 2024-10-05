@@ -329,7 +329,7 @@ elif model_id==34:
     MODEL_NAME = 'MVIT'
 
 elif model_id==35:
-    MODEL_NAME = 'MVIT'
+    MODEL_NAME = 'SwinUnet'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
