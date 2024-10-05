@@ -54,6 +54,7 @@ from model.Cross_unet import Cross_unet
 from model.knitt_net import knitt_net
 from model.MVIT import MVIT
 from model.SwinUnet import SwinUnet
+from model.CENet import CENet
 # from model.original_UNet import original_UNet
 import utils
 from utils import color
@@ -216,7 +217,10 @@ def main(args):
     elif MODEL_NAME=='SwinUnet':
         model = SwinUnet().to(DEVICE)
         model.load_from(pretrained_path='/content/drive/MyDrive/swin_tiny_patch4_window7_224.pth')
-              
+
+    elif MODEL_NAME=='CENet':
+        model = CENet().to(DEVICE)
+
     else: 
         raise TypeError('Please enter a valid name for the model type')
 

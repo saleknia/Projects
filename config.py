@@ -56,7 +56,7 @@ if log:
 LEARNING_RATE = 1e-4 # 5e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 16
-NUM_EPOCHS = 30
+NUM_EPOCHS = 40
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -177,7 +177,7 @@ elif task_id==17:
     NUM_CLASS = 8
     TASK_NAME = 'ISIC-2019'
 
-model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33', '34', '35']
+model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33', '34', '35', '36']
 model_table = tabulate(
                     tabular_data=[
                         ['UCTransNet', 1],
@@ -214,7 +214,8 @@ model_table = tabulate(
                         ['SEUNet_lite',32],
                         ['Knitt_Net',33],
                         ['MVIT',34],
-                        ['SwinUnet',35]],
+                        ['SwinUnet',35],
+                        ['CENet', 36]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -331,8 +332,10 @@ elif model_id==34:
 elif model_id==35:
     MODEL_NAME = 'SwinUnet'
 
-CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
+elif model_id==36:
+    MODEL_NAME = 'CENet'
 
+CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
 
 table = tabulate(
