@@ -241,36 +241,25 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        self.model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt")
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        # model.input_stem.op_list[0].conv.stride  = (1, 1)
-        # model.input_stem.op_list[0].conv.padding = (0, 0)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        self.up = nn.Upsample(size=224)
-
-        self.vit = timm.create_model('vit_tiny_patch16_224.augreg_in21k_ft_in1k', pretrained=True)
-
-        self.vit.patch_embed.proj = nn.Conv2d(150, 192, kernel_size=(16, 16), stride=(16, 16))
-
-        self.vit.head = nn.Sequential(
-                                        nn.Dropout(p=0.5),
-                                        nn.Linear(in_features=192, out_features=67, bias=True)
-                                    )
-
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
         # for param in self.model.stages[-2].parameters():
         #     param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(14, stride=1)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -513,12 +502,12 @@ class Mobile_netV2(nn.Module):
         # logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
         # probs = logits_per_image.softmax(dim=1)
 
-        # x = self.model(x_in)
-        # x = x['stage_final']
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.model(x_in)
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # normal_out = self.normal_model(x_in)
         # super_out  = self.super_model(x_in)
@@ -528,7 +517,7 @@ class Mobile_netV2(nn.Module):
         # x3 = self.avgpool(x3)
         # x3 = x3.view(x3.size(0), -1)
 
-        x = self.vit(self.up(self.model(x_in)))
+        # x = self.vit(self.up(self.model(x_in)))
 
         # super_model        = self.super_model(x_in)
         # store_model        = self.store(x_in)
