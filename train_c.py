@@ -223,6 +223,7 @@ def main(args):
             transforms.ToTensor(),
             transforms.RandomErasing(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            # transforms.Normalize((0.48897059, 0.46548275, 0.4294), (0.22861765, 0.22948039, 0.24054667)),
         ])
 
         # class transform_test(object):
@@ -321,12 +322,12 @@ def main(args):
 
         #         return (image_0, image_1)
 
-        trainset = torchvision.datasets.ImageFolder(root='/content/drive/MyDrive/StanfordAction/train/',
+        trainset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/train/',
                                         transform=transform_train)
         train_loader = torch.utils.data.DataLoader(
             trainset, batch_size = BATCH_SIZE, shuffle=True, num_workers=NUM_WORKERS)
 
-        testset = torchvision.datasets.ImageFolder(root='/content/drive/MyDrive/StanfordAction/test/', transform=transform_test)
+        testset = torchvision.datasets.ImageFolder(root='/content/StanfordAction/test/', transform=transform_test)
         test_loader = torch.utils.data.DataLoader(testset, batch_size =  1, shuffle=True, num_workers=NUM_WORKERS)
 
         data_loader={'train':train_loader,'valid':test_loader}
