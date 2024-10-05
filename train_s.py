@@ -53,7 +53,7 @@ from model.DATUNet import DATUNet
 from model.Cross_unet import Cross_unet
 from model.knitt_net import knitt_net
 from model.MVIT import MVIT
-
+from model.SwinUnet import SwinUnet
 # from model.original_UNet import original_UNet
 import utils
 from utils import color
@@ -212,7 +212,11 @@ def main(args):
 
     elif MODEL_NAME=='MVIT':
         model = MVIT().to(DEVICE)
-        
+    
+    elif MODEL_NAME=='SwinUnet':
+        model = SwinUnet().to(DEVICE)
+        model.load_from(pretrained_path='/content/drive/MyDrive/swin_tiny_patch4_window7_224.pth')
+              
     else: 
         raise TypeError('Please enter a valid name for the model type')
 
@@ -567,7 +571,7 @@ def main(args):
                                 pin_memory=PIN_MEMORY,
                                 drop_last=True,
                                 )
-        valid_loader = DataLoader(test_dataset, #valid_dataset,
+        valid_loader = DataLoader(valid_dataset,
                                 batch_size=BATCH_SIZE,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
