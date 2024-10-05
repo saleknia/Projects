@@ -776,7 +776,7 @@ class SwinTransformerSys(nn.Module):
 
 
 class SwinUnet(nn.Module):
-    def __init__(self, config, img_size=224, num_classes=1, zero_head=False, vis=False):
+    def __init__(self, img_size=224, num_classes=1, zero_head=False, vis=False):
         super(SwinUnet, self).__init__()
         self.num_classes = num_classes
         self.zero_head = zero_head
