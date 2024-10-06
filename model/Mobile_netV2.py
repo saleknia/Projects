@@ -241,7 +241,7 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        model = create_seg_model(name="b3", dataset="ade20k", weight_url="/content/drive/MyDrive/b3.pt").backbone
 
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
@@ -251,7 +251,7 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[-4:].parameters():
+        for param in self.model.stages[-1].op_list[-2:].parameters():
             param.requires_grad = True
 
         # for param in self.model.stages[-2].parameters():
@@ -259,7 +259,7 @@ class Mobile_netV2(nn.Module):
 
         self.dropout = nn.Dropout(0.5)
         self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(384, num_classes)
+        self.fc_SEM  = nn.Linear(512, num_classes)
 
         #################################################################################
         #################################################################################
