@@ -263,7 +263,7 @@ def main(args):
         class_weights = []
 
         for subdir in subdirectories:
-            files = os.listdir(os.path.join('/content/MIT-67-home/train/', subdir))
+            files = os.listdir(os.path.join('/content/MIT-67-leisure/train/', subdir))
             class_weights.append(1 / len(files))
 
         sample_weights = [0] * len(trainset)
@@ -278,7 +278,7 @@ def main(args):
 
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=False, num_workers=NUM_WORKERS, sampler=sampler)
 
-        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-home/test/' , transform=transform_test)
+        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-leisure/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
 
         NUM_CLASS = len(trainset.classes)
