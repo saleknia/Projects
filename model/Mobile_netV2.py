@@ -263,19 +263,19 @@ class Mobile_netV2(nn.Module):
         # self.avgpool = nn.AvgPool2d(7, stride=1)
         # self.fc_SEM  = nn.Linear(384, num_classes)
 
-        model = AutoModelForImageClassification.from_pretrained("nvidia/MambaVision-T-1K", trust_remote_code=True)
-        self.model = model
+        # model = AutoModelForImageClassification.from_pretrained("nvidia/MambaVision-T-1K", trust_remote_code=True)
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.model.levels[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.model.levels[-1].parameters():
+        #     param.requires_grad = True
 
-        self.model.head = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=640, out_features=num_classes, bias=True),
-                )
+        # self.model.head = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=640, out_features=num_classes, bias=True),
+        #         )
 
         #################################################################################
         #################################################################################
@@ -321,23 +321,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -518,7 +518,7 @@ class Mobile_netV2(nn.Module):
         # logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
         # probs = logits_per_image.softmax(dim=1)
 
-        x = self.model(x_in)['logits']
+        x = self.model(x_in)#['logits']
         # x = x['stage_final']
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)

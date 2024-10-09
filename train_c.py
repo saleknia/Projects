@@ -70,6 +70,9 @@ from dataset_builder import build_dataset_train, build_dataset_test
 # from testing import inference
 # from testingV2 import inferenceV2 TCIA tester
 import warnings
+
+from torch.utils.data import WeightedRandomSampler
+
 warnings.filterwarnings('ignore')
 
 class collect(nn.Module):
@@ -215,8 +218,8 @@ def main(args):
     elif TASK_NAME=='MIT-67':
 
         transform_train = transforms.Compose([
-            transforms.Resize((224, 224)),
-            # transforms.RandomResizedCrop(224),
+            # transforms.Resize((224, 224)),
+            transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.RandomApply([transforms.ColorJitter(0.4, 0.4, 0.4, 0.1)], p=0.8),
             transforms.RandomGrayscale(p=0.2),
@@ -243,7 +246,7 @@ def main(args):
         #         return sample
 
         transform_test = transforms.Compose([
-            transforms.Resize((512, 512)),
+            transforms.Resize((224, 224)),
             transforms.ToTensor(),
             transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
         ])
@@ -254,10 +257,28 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS)
+        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/train/', transform=transform_train)
 
-        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/' , transform=transform_test)
+        subdirectories = trainset.classes
+        class_weights = []
+
+        for subdir in subdirectories:
+            files = os.listdir(os.path.join('/content/MIT-67-store/train/', subdir))
+            class_weights.append(1 / len(files))
+
+        sample_weights = [0] * len(trainset)
+
+        for idx, (data, label) in enumerate(trainset):
+            class_weight = class_weights[label]
+            sample_weights[idx] = class_weight
+
+        sampler = WeightedRandomSampler(
+            sample_weights, num_samples=len(sample_weights), replacement=True
+        )
+
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
+
+        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
 
         NUM_CLASS = len(trainset.classes)
