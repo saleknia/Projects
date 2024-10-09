@@ -163,7 +163,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
     else:
-        ce_loss = CrossEntropyLoss(label_smoothing=0.0)
+        ce_loss = CrossEntropyLoss(label_smoothing=0.0, weight=torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 / 53.0]).cuda())
 
     # rkd = RKD()
     # disparity_loss = loss_function
@@ -191,12 +191,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         ################################################################
         ################################################################
-        k = int(outputs.shape[0]*0.25)
-        indexes = F.cross_entropy(outputs.clone(), targets.long(), reduce=False, label_smoothing=0.0).topk(k).indices
-        weights = torch.zeros(outputs.shape[0]).cuda()
-        weights[indexes] = 1.0
-        loss_ce = F.cross_entropy(outputs, targets.long(), reduce=False, label_smoothing=0.0) * weights
-        loss_ce = torch.mean(loss_ce)
+        # k = int(outputs.shape[0]*0.4)
+        # indexes = F.cross_entropy(outputs.clone(), targets.long(), reduce=False, label_smoothing=0.0).topk(k).indices
+        # weights = torch.zeros(outputs.shape[0]).cuda()
+        # weights[indexes] = 1.0
+        # loss_ce = F.cross_entropy(outputs, targets.long(), reduce=False, label_smoothing=0.0) * weights
+        # loss_ce = torch.mean(loss_ce)
         ################################################################
         ################################################################
 
@@ -207,7 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
 
-        # loss_ce = ce_loss(outputs, targets.long()) 
+        loss_ce = ce_loss(outputs, targets.long()) 
 
         ####################################################################################################
         ####################################################################################################
