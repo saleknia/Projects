@@ -321,48 +321,48 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        # model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
 
-        self.model = model 
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        ##################################################################################
-        ##################################################################################
-
-        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
-        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
-        
-        # self.head.fc = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=3840, out_features=num_classes, bias=True),
-        #         )
-
-        # self.head.norm = LayerNorm2d((3840,))
+        # self.model = model 
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.head.parameters():
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
+
+        # for param in self.model.stages[-1].parameters():
         #     param.requires_grad = True
 
-        # self.store        = store()
-        # self.home         = home()
-        # self.leisure      = leisure()
-        # self.publicplace  = publicplace()
-        # self.workingplace = workingplace()
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
+
+        ##################################################################################
+        ##################################################################################
+
+        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        
+        self.head.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
+                )
+
+        self.head.norm = LayerNorm2d((3840,))
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.head.parameters():
+            param.requires_grad = True
+
+        self.store        = store()
+        self.home         = home()
+        self.leisure      = leisure()
+        self.publicplace  = publicplace()
+        self.workingplace = workingplace()
 
         ##################################################################################
         ##################################################################################
@@ -463,13 +463,23 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        x = self.model(x_in)#['logits']
+        # x = self.model(x_in)['logits']
         # x = x['stage_final']
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
+        x = self.model(x_in)[0]
+        s = self.store(x)     
+        h = self.home(x)      
+        l = self.leisure(x)   
+        p = self.publicplace(x) 
+        w = self.workingplace(x)
+
+        g = torch.cat([s, h, l, p, w], dim=1)
+
+        x = self.head(g) 
 
         # if (not self.training):
 
