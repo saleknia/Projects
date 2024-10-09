@@ -347,10 +347,10 @@ class Mobile_netV2(nn.Module):
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
 
-        self.head.norm = LayerNorm2d((3840,))
+        # self.head.norm = LayerNorm2d((3840,))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -477,7 +477,7 @@ class Mobile_netV2(nn.Module):
         p = self.publicplace(x) 
         w = self.workingplace(x)
 
-        g = torch.cat([s, h, l, p, w], dim=1)
+        g = s + h + l + p + w
 
         x = self.head(g) 
 
@@ -593,7 +593,7 @@ labels = {
 class_txt = [f'a photo of a {x}.' for x in labels]
 
 class home(nn.Module):
-    def __init__(self, num_classes=14, pretrained=True):
+    def __init__(self, num_classes=15, pretrained=True):
         super(home, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
@@ -623,7 +623,7 @@ class home(nn.Module):
         return x
 
 class leisure(nn.Module):
-    def __init__(self, num_classes=12, pretrained=True):
+    def __init__(self, num_classes=13, pretrained=True):
         super(leisure, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
@@ -653,7 +653,7 @@ class leisure(nn.Module):
         return x
 
 class publicplace(nn.Module):
-    def __init__(self, num_classes=14, pretrained=True):
+    def __init__(self, num_classes=15, pretrained=True):
         super(publicplace, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
@@ -683,7 +683,7 @@ class publicplace(nn.Module):
         return x
 
 class workingplace(nn.Module):
-    def __init__(self, num_classes=15, pretrained=True):
+    def __init__(self, num_classes=16, pretrained=True):
         super(workingplace, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
@@ -713,7 +713,7 @@ class workingplace(nn.Module):
         return x
 
 class store(nn.Module):
-    def __init__(self, num_classes=12, pretrained=True):
+    def __init__(self, num_classes=13, pretrained=True):
         super(store, self).__init__()
 
         model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
