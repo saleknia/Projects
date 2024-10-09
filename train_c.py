@@ -257,28 +257,28 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67-leisure/train/', transform=transform_train)
+        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/train/', transform=transform_train)
 
-        subdirectories = trainset.classes
-        class_weights = []
+        # subdirectories = trainset.classes
+        # class_weights = []
 
-        for subdir in subdirectories:
-            files = os.listdir(os.path.join('/content/MIT-67-leisure/train/', subdir))
-            class_weights.append(1 / len(files))
+        # for subdir in subdirectories:
+        #     files = os.listdir(os.path.join('/content/MIT-67-leisure/train/', subdir))
+        #     class_weights.append(1 / len(files))
 
-        sample_weights = [0] * len(trainset)
+        # sample_weights = [0] * len(trainset)
 
-        for idx, (data, label) in enumerate(trainset):
-            class_weight = class_weights[label]
-            sample_weights[idx] = class_weight
+        # for idx, (data, label) in enumerate(trainset):
+        #     class_weight = class_weights[label]
+        #     sample_weights[idx] = class_weight
 
-        sampler = WeightedRandomSampler(
-            sample_weights, num_samples=len(sample_weights), replacement=True
-        )
+        # sampler = WeightedRandomSampler(
+        #     sample_weights, num_samples=len(sample_weights), replacement=True
+        # )
 
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=False, num_workers=NUM_WORKERS, sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS)
 
-        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-leisure/test/' , transform=transform_test)
+        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
 
         NUM_CLASS = len(trainset.classes)

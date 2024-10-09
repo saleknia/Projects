@@ -191,9 +191,12 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         ################################################################
         ################################################################
-        # weights = F.cross_entropy(outputs_t, targets.long(), reduce=False, label_smoothing=0.0) + 1.0
-        # loss_ce = F.cross_entropy(outputs  , targets.long(), reduce=False, label_smoothing=0.0) * weights
-        # loss_ce = torch.mean(loss_ce)
+        k = int(outputs.shape[0]*0.25)
+        indexes = F.cross_entropy(outputs.clone(), targets.long(), reduce=False, label_smoothing=0.0).topk(k).indices
+        weights = torch.zeros(outputs.shape[0]).cuda()
+        weights[indexes] = 1.0
+        loss_ce = F.cross_entropy(outputs, targets.long(), reduce=False, label_smoothing=0.0) * weights
+        loss_ce = torch.mean(loss_ce)
         ################################################################
         ################################################################
 
@@ -204,7 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
 
-        loss_ce = ce_loss(outputs, targets.long()) 
+        # loss_ce = ce_loss(outputs, targets.long()) 
 
         ####################################################################################################
         ####################################################################################################
