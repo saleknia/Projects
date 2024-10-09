@@ -339,53 +339,30 @@ class Mobile_netV2(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        #################################################################################
-        #################################################################################
-
-        # model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
-
-        # self.model = model 
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=False),
-        #     nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        # )
-
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages[-2].parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
-
         ##################################################################################
         ##################################################################################
 
-        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True)
-        
+        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
         # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
         
         # self.head.fc = nn.Sequential(
         #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        #             nn.Linear(in_features=3840, out_features=num_classes, bias=True),
         #         )
+
+        # self.head.norm = LayerNorm2d((3840,))
 
         # for param in self.model.parameters():
         #     param.requires_grad = False
 
-        # for param in self.model.stages_2.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.model.stages_3.parameters():
-        #     param.requires_grad = True
-
         # for param in self.head.parameters():
         #     param.requires_grad = True
+
+        # self.store        = store()
+        # self.home         = home()
+        # self.leisure      = leisure()
+        # self.publicplace  = publicplace()
+        # self.workingplace = workingplace()
 
         ##################################################################################
         ##################################################################################
@@ -484,39 +461,7 @@ class Mobile_netV2(nn.Module):
         # self.head.norm = LayerNorm2d((3840,))
         # self.head.fc   = nn.Sequential(nn.Dropout(p=0.5, inplace=True) , nn.Linear(in_features=512, out_features=num_classes, bias=True))
 
-        # self.super_model  = super_model()
-        # self.store        = store()
-        # self.home         = home()
-        # self.leisure      = leisure()
-        # self.publicplace  = publicplace()
-        # self.workingplace = workingplace()
-
-        # self.normal_model = normal_model()
-
-
-        # for param in self.features.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.features.stages_3.parameters():
-        #     param.requires_grad = True
-
-        # for param in self.features.stages_2.parameters():
-        #     param.requires_grad = True
-
-        # self.teacher = teacher()
-
     def forward(self, x_in):
-
-        # b, c, w, h = x_in.shape
-
-        # print(x_in.device)
-
-        # image   = Image.open(x_in[0])
-        # inputs  = self.processor(text=self.class_txt, images=image, return_tensors="pt", padding=True)
-        # inputs = inputs.to('cuda')
-        # outputs = self.model(**inputs)
-        # logits_per_image = outputs.logits_per_image  # this is the image-text similarity score
-        # probs = logits_per_image.softmax(dim=1)
 
         x = self.model(x_in)#['logits']
         # x = x['stage_final']
@@ -525,70 +470,6 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        # normal_out = self.normal_model(x_in)
-        # super_out  = self.super_model(x_in)
-
-        # x = torch.mul(normal_out, super_out) + normal_out
-
-        # x3 = self.avgpool(x3)
-        # x3 = x3.view(x3.size(0), -1)
-
-        # x = self.vit(self.up(self.model(x_in)))
-
-        # super_model        = self.super_model(x_in)
-        # store_model        = self.store(x_in)
-        # home_model         = self.home(x_in)
-        # leisure_model      = self.leisure(x_in)
-        # publicplace_model  = self.publicplace(x_in)
-        # workingplace_model = self.workingplace(x_in)
-
-        # global_vec = torch.cat([store_model, home_model, leisure_model, publicplace_model, workingplace_model], dim=0)
-        # x          = torch.mul(super_model, global_vec) 
-
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
-
-        # x0, x1, x2, x3 = self.features(x_in)
-        # x = self.head(x3)
-
-        # x_in = self.features(x_in)[0]
-
-        # g, index = self.expert_g(x_in)
-
-        # w = self.expert_w(x_in)
-        # s = self.expert_s(x_in)
-        # p = self.expert_p(x_in)
-        # l = self.expert_l(x_in)
-        # h = self.expert_h(x_in)
-
-        # hi = index[:, 0]
-        # li = index[:, 1]
-        # pi = index[:, 2]
-        # si = index[:, 3]
-        # wi = index[:, 4]
-
-        # wi = wi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
-        # si = si.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        # pi = pi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        # li = li.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        # hi = hi.unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
-
-        # w = w * wi
-        # s = s * si
-        # p = p * pi
-        # l = l * li
-        # h = h * hi
-
-        # x3 = torch.cat([w, s, p, l, h], dim=1)
-
-        # x3 = w + s + p + l + h + g
-
-        # x  = self.head(x3)
-
-        # features_t = self.teacher(x_in)
-        # features_s = [x2, x3]
 
         # if (not self.training):
 
@@ -727,7 +608,7 @@ class home(nn.Module):
 
     def forward(self, x_in):
 
-        x = (self.model(x_in)).softmax(dim=1)
+        x = self.model.stages[-1](x_in)
 
         return x
 
@@ -757,7 +638,7 @@ class leisure(nn.Module):
 
     def forward(self, x_in):
 
-        x = (self.model(x_in)).softmax(dim=1)
+        x = self.model.stages[-1](x_in)
 
         return x
 
@@ -787,7 +668,7 @@ class publicplace(nn.Module):
 
     def forward(self, x_in):
 
-        x = (self.model(x_in)).softmax(dim=1)
+        x = self.model.stages[-1](x_in)
 
         return x
 
@@ -817,7 +698,7 @@ class workingplace(nn.Module):
 
     def forward(self, x_in):
 
-        x = (self.model(x_in)).softmax(dim=1)
+        x = self.model.stages[-1](x_in)
 
         return x
 
@@ -847,7 +728,7 @@ class store(nn.Module):
 
     def forward(self, x_in):
 
-        x = (self.model(x_in)).softmax(dim=1)
+        x = self.model.stages[-1](x_in)
 
         return x
 
