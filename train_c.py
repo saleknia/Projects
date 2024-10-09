@@ -276,7 +276,7 @@ def main(args):
             sample_weights, num_samples=len(sample_weights), replacement=True
         )
 
-        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS, sampler=sampler)
+        train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=False, num_workers=NUM_WORKERS, sampler=sampler)
 
         testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-store/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
