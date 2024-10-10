@@ -347,10 +347,10 @@ class Mobile_netV2(nn.Module):
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
                 )
 
-        # self.head.norm = LayerNorm2d((3840,))
+        self.head.norm = LayerNorm2d((3840,))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -477,7 +477,7 @@ class Mobile_netV2(nn.Module):
         p = self.publicplace(x) 
         w = self.workingplace(x)
 
-        g = s + h + l + p + w
+        g = torch.cat([s, h, l, p, w], dim=1)
 
         x = self.head(g) 
 
