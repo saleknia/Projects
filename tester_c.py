@@ -39,7 +39,7 @@ def tester(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,log
     loss_total = utils.AverageMeter()
 
     # accuracy   = utils.AverageMeter()
-    metric = MulticlassAccuracy(average="micro", num_classes=num_class).to('cuda')
+    metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
     # accuracy = mAPMeter()
 
     ce_loss = CrossEntropyLoss()
