@@ -347,9 +347,7 @@ class Mobile_netV2(nn.Module):
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=256, bias=True),
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=256, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
                 )
 
         # self.head.norm = LayerNorm2d((3840,))
@@ -621,6 +619,10 @@ class home(nn.Module):
     def forward(self, x_in):
 
         x = self.model.stages[-1](x_in)
+        y = self.model.head(x).softmax(dim=1)
+        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # print(y.shape)
+        x = x * y.expand_as(x)
 
         return x
 
@@ -651,6 +653,10 @@ class leisure(nn.Module):
     def forward(self, x_in):
 
         x = self.model.stages[-1](x_in)
+        y = self.model.head(x).softmax(dim=1)
+        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # print(y.shape)
+        x = x * y.expand_as(x)
 
         return x
 
@@ -681,6 +687,10 @@ class publicplace(nn.Module):
     def forward(self, x_in):
 
         x = self.model.stages[-1](x_in)
+        y = self.model.head(x).softmax(dim=1)
+        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # print(y.shape)
+        x = x * y.expand_as(x)
 
         return x
 
@@ -711,6 +721,10 @@ class workingplace(nn.Module):
     def forward(self, x_in):
 
         x = self.model.stages[-1](x_in)
+        y = self.model.head(x).softmax(dim=1)
+        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # print(y.shape)
+        x = x * y.expand_as(x)
 
         return x
 
@@ -741,6 +755,10 @@ class store(nn.Module):
     def forward(self, x_in):
 
         x = self.model.stages[-1](x_in)
+        y = self.model.head(x).softmax(dim=1)
+        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
+        # print(y.shape)
+        x = x * y.expand_as(x)
 
         return x
 
