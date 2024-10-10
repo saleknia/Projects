@@ -347,7 +347,9 @@ class Mobile_netV2(nn.Module):
         
         self.head.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                    nn.Linear(in_features=768, out_features=256, bias=True),
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=256, out_features=num_classes, bias=True),
                 )
 
         # self.head.norm = LayerNorm2d((3840,))
@@ -438,7 +440,7 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/normal.pth', map_location='cpu')
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/store.pth', map_location='cpu')
         # pretrained_teacher  = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
         # for key in a.keys():
