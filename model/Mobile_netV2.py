@@ -182,8 +182,6 @@ class Mobile_netV2(nn.Module):
 
         self.model = model
 
-        # print(model)
-
         for param in self.model.parameters():
             param.requires_grad = False
 
@@ -431,15 +429,15 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
-        # pretrained_teacher  = loaded_data_teacher['net']
-        # a = pretrained_teacher.copy()
-        # for key in a.keys():
-        #     if 'teacher' in key:
-        #         pretrained_teacher.pop(key)
-        # self.load_state_dict(pretrained_teacher)
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
 
-        # self.obj = object_model()
+        self.obj = object_model()
 
         # self.model.head.fc = nn.Identity()
 
@@ -480,7 +478,7 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         x = self.model(x_in)
-        # y = self.obj(x_in)
+        y = self.obj(x_in)
 
         # s = self.store(x)     
         # h = self.home(x)      
@@ -529,7 +527,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x
         else:
-            return torch.softmax(x, dim=1)# + torch.softmax(y, dim=1)) / 2.0
+            return (torch.softmax(x, dim=1) ) / 2.0
 
 labels = {
             'airport inside': 0,
