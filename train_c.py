@@ -257,13 +257,13 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67-superclass/train/', transform=transform_train)
+        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
 
         # subdirectories = trainset.classes
         # class_weights = []
 
         # for subdir in subdirectories:
-        #     files = os.listdir(os.path.join('/content/MIT-67-superclass/train/', subdir))
+        #     files = os.listdir(os.path.join('/content/MIT-67/train/', subdir))
         #     class_weights.append(1 / len(files))
 
         # sample_weights = [0] * len(trainset)
@@ -278,7 +278,7 @@ def main(args):
 
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS)
 
-        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-superclass/test/' , transform=transform_test)
+        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
 
         NUM_CLASS = len(trainset.classes)
