@@ -148,15 +148,15 @@ class Mobile_netV2(nn.Module):
 
         seg.head.output_ops[0].op_list[0] = nn.Identity()
 
-        self.seg = seg
+        self.model = seg
 
-        for param in self.seg.parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.seg.head.parameters():
+        for param in self.model.head.parameters():
             param.requires_grad = True
 
-        for param in self.seg.backbone.stages[-1].parameters():
+        for param in self.model.backbone.stages[-1].parameters():
             param.requires_grad = True
 
         self.avgpool_0 = nn.AvgPool2d(kernel_size=14, stride=1)
