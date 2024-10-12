@@ -185,9 +185,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
         outputs = model(inputs)
-        KD = (type(outputs)==tuple)
-        if KD:
-            outputs, features_s, features_t = outputs[0], outputs[1], outputs[2]
+        # KD = (type(outputs)==tuple)
+        # if KD:
+        #     outputs, features_s, features_t = outputs[0], outputs[1], outputs[2]
 
         ################################################################
         ################################################################
@@ -206,9 +206,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         
         ####################################################################################################
         ####################################################################################################
-
-        loss_ce = ce_loss(outputs, targets.long()) 
-
+        loss_ce = ce_loss(outputs[0], targets.long()) + ce_loss(outputs[1], targets.long()) 
         ####################################################################################################
         ####################################################################################################
 
@@ -217,7 +215,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = torch.nn.functional.cross_entropy(outputs, targets.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
 
-        predictions = torch.argmax(input=torch.softmax(outputs, dim=1),dim=1).long()
+        predictions = torch.argmax(input=torch.softmax((outputs[0]+outputs[1]) / 2.0, dim=1),dim=1).long()
 
         metric.update(predictions, targets.long())
 

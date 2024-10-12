@@ -141,27 +141,31 @@ class Mobile_netV2(nn.Module):
         #     nn.Linear(in_features=768, out_features=256, bias=True),
         # )
 
-        # seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
+        seg = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt")
 
-        # seg.input_stem.op_list[0].conv.stride  = (1, 1)
-        # seg.input_stem.op_list[0].conv.padding = (0, 0)
+        seg.input_stem.op_list[0].conv.stride  = (1, 1)
+        seg.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # # seg.head.output_ops[0].op_list[0] = nn.Identity()
+        seg.head.output_ops[0].op_list[0] = nn.Identity()
 
-        # self.seg = seg
+        self.seg = seg
 
-        # for param in self.seg.parameters():
-        #     param.requires_grad = False
+        for param in self.seg.parameters():
+            param.requires_grad = False
 
-        # for param in self.seg.head.parameters():
-        #     param.requires_grad = True
+        for param in self.seg.head.parameters():
+            param.requires_grad = True
 
-        # for param in self.seg.backbone.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.seg.backbone.stages[-1].parameters():
+            param.requires_grad = True
 
-        # self.avgpool = nn.AvgPool2d()
-        # self.dropout = nn.Dropout(0.5)
-        # self.fc_SEM  = nn.Sequential(nn.Linear(in_features=2400, out_features=num_classes, bias=True))
+        self.avgpool_0 = nn.AvgPool2d(kernel_size=14, stride=1)
+        self.dropout_0 = nn.Dropout(0.5)
+        self.fc_SEM_0  = nn.Sequential(nn.Linear(in_features=384, out_features=num_classes, bias=True))
+
+        self.avgpool_1 = nn.AvgPool2d(kernel_size=14, stride=14)
+        self.dropout_1 = nn.Dropout(0.5)
+        self.fc_SEM_1  = nn.Sequential(nn.Linear(in_features=1536, out_features=num_classes, bias=True))
 
         #################################################################################
         #################################################################################
@@ -263,19 +267,6 @@ class Mobile_netV2(nn.Module):
         # self.avgpool = nn.AvgPool2d(7, stride=1)
         # self.fc_SEM  = nn.Linear(384, num_classes)
 
-        # model = AutoModelForImageClassification.from_pretrained("nvidia/MambaVision-T-1K", trust_remote_code=True)
-        # self.model = model
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        # for param in self.model.model.levels[-1].parameters():
-        #     param.requires_grad = True
-
-        # self.model.head = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=640, out_features=num_classes, bias=True),
-        #         )
 
         #################################################################################
         #################################################################################
@@ -342,27 +333,27 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
-        self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
         
-        self.head.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
-                )
+        # self.head.fc = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=3840, out_features=num_classes, bias=True),
+        #         )
 
-        self.head.norm = LayerNorm2d((3840,))
+        # self.head.norm = LayerNorm2d((3840,))
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.head.parameters():
-            param.requires_grad = True
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
-        self.store        = store()
-        self.home         = home()
-        self.leisure      = leisure()
-        self.publicplace  = publicplace()
-        self.workingplace = workingplace()
+        # self.store        = store()
+        # self.home         = home()
+        # self.leisure      = leisure()
+        # self.publicplace  = publicplace()
+        # self.workingplace = workingplace()
 
         ##################################################################################
         ##################################################################################
@@ -470,16 +461,30 @@ class Mobile_netV2(nn.Module):
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
 
-        x = self.model(x_in)[0]
-        s = self.store(x)     
-        h = self.home(x)      
-        l = self.leisure(x)   
-        p = self.publicplace(x) 
-        w = self.workingplace(x)
+        x = self.model.backbone(x_in)
+        y = self.head(x)['segout']
 
-        g = torch.cat([s, h, l, p, w], dim=1)
+        x = x['stage_final']
+        x = self.avgpool_0(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout_0(x)
+        x = self.fc_SEM_0(x)
 
-        x = self.head(g) 
+        y = self.avgpool_1(y)
+        y = y.view(y.size(0), -1)
+        y = self.dropout_1(y)
+        y = self.fc_SEM_1(y)
+
+        # x = self.model(x_in)[0]
+        # s = self.store(x)     
+        # h = self.home(x)      
+        # l = self.leisure(x)   
+        # p = self.publicplace(x) 
+        # w = self.workingplace(x)
+
+        # g = torch.cat([s, h, l, p, w], dim=1)
+
+        # x = self.head(g) 
 
         # if (not self.training):
 
@@ -516,9 +521,9 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x
+            return x, y
         else:
-            return torch.softmax(x, dim=1)
+            return (torch.softmax(x, dim=1) + torch.softmax(y, dim=1)) / 2.0
 
 labels = {
             'airport inside': 0,
