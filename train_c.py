@@ -257,13 +257,13 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
+        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67-superclass/train/', transform=transform_train)
 
         # subdirectories = trainset.classes
         # class_weights = []
 
         # for subdir in subdirectories:
-        #     files = os.listdir(os.path.join('/content/MIT-67/train/', subdir))
+        #     files = os.listdir(os.path.join('/content/MIT-67-superclass/train/', subdir))
         #     class_weights.append(1 / len(files))
 
         # sample_weights = [0] * len(trainset)
@@ -278,7 +278,7 @@ def main(args):
 
         train_loader = torch.utils.data.DataLoader(trainset, batch_size = BATCH_SIZE , shuffle=True, num_workers=NUM_WORKERS)
 
-        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67/test/' , transform=transform_test)
+        testset      = torchvision.datasets.ImageFolder(root='/content/MIT-67-superclass/test/' , transform=transform_test)
         test_loader  = torch.utils.data.DataLoader(testset , batch_size = 1          , shuffle=False, num_workers=NUM_WORKERS)
 
         NUM_CLASS = len(trainset.classes)
@@ -682,71 +682,71 @@ def main(args):
     else:
         checkpoint = None
 
-    # if args.train=='True':
-    #     logger.info(50*'*')
-    #     logger.info('Training Phase')
-    #     logger.info(50*'*')
-    #     loss_function = collect(start_epoch=56)
-    #     for epoch in range(start_epoch,end_epoch+1):
-    #         trainer(
-    #             end_epoch=end_epoch,
-    #             epoch_num=epoch,
-    #             model=model,
-    #             teacher_model = teacher_model,
-    #             dataloader=data_loader['train'],
-    #             optimizer=optimizer,
-    #             device=DEVICE,
-    #             ckpt=checkpoint,                
-    #             num_class=NUM_CLASS,
-    #             lr_scheduler=lr_scheduler,
-    #             writer=writer,
-    #             logger=logger,
-    #             loss_function=loss_function)
-            
-    #         if epoch==end_epoch:
-    #             if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-    #                 pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-    #                 loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-    #                 pretrained = loaded_data['net']
-    #                 model2_dict = model.state_dict()
-    #                 state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-    #                 # logger.info(state_dict.keys())
-    #                 model2_dict.update(state_dict)
-    #                 model.load_state_dict(model2_dict)
-
-    #                 acc=loaded_data['acc']
-    #                 # acc_per_class=loaded_data['acc_per_class'].tolist()
-    #                 # acc_per_class=[round(x,2) for x in acc_per_class]
-    #                 best_epoch=loaded_data['best_epoch']
-
-    #                 logger.info(50*'*')
-    #                 logger.info(f'Best Accuracy over training: {acc:.2f}')
-    #                 # logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
-    #                 logger.info(f'Epoch Number: {best_epoch}')
-
-    if args.inference=='True':
+    if args.train=='True':
         logger.info(50*'*')
-        logger.info('Inference Phase')
-        # logger.info(50*'*')
-        # inference(model=model,logger=logger)
-        tester(
-            end_epoch=1,
-            epoch_num=1,
-            # model=copy.deepcopy(model),
-            model=model,
-            dataloader=data_loader['valid'],
-            device=DEVICE,
-            ckpt=None,
-            num_class=NUM_CLASS,
-            writer=writer,
-            logger=logger,
-            optimizer=None,
-            lr_scheduler=None,
-            early_stopping=None)
+        logger.info('Training Phase')
+        logger.info(50*'*')
+        loss_function = collect(start_epoch=56)
+        for epoch in range(start_epoch,end_epoch+1):
+            trainer(
+                end_epoch=end_epoch,
+                epoch_num=epoch,
+                model=model,
+                teacher_model = teacher_model,
+                dataloader=data_loader['train'],
+                optimizer=optimizer,
+                device=DEVICE,
+                ckpt=checkpoint,                
+                num_class=NUM_CLASS,
+                lr_scheduler=lr_scheduler,
+                writer=writer,
+                logger=logger,
+                loss_function=loss_function)
+            
+            if epoch==end_epoch:
+                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
+                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+                    pretrained = loaded_data['net']
+                    model2_dict = model.state_dict()
+                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+                    # logger.info(state_dict.keys())
+                    model2_dict.update(state_dict)
+                    model.load_state_dict(model2_dict)
 
-    logger.info(50*'*')
-    logger.info(50*'*')
-    logger.info('\n')
+                    acc=loaded_data['acc']
+                    # acc_per_class=loaded_data['acc_per_class'].tolist()
+                    # acc_per_class=[round(x,2) for x in acc_per_class]
+                    best_epoch=loaded_data['best_epoch']
+
+                    logger.info(50*'*')
+                    logger.info(f'Best Accuracy over training: {acc:.2f}')
+                    # logger.info(f'Best Accuracy Per Class over training: {acc_per_class}')
+                    logger.info(f'Epoch Number: {best_epoch}')
+
+                    if args.inference=='True':
+                        logger.info(50*'*')
+                        logger.info('Inference Phase')
+                        # logger.info(50*'*')
+                        # inference(model=model,logger=logger)
+                        tester(
+                            end_epoch=1,
+                            epoch_num=1,
+                            # model=copy.deepcopy(model),
+                            model=model,
+                            dataloader=data_loader['valid'],
+                            device=DEVICE,
+                            ckpt=None,
+                            num_class=NUM_CLASS,
+                            writer=writer,
+                            logger=logger,
+                            optimizer=None,
+                            lr_scheduler=None,
+                            early_stopping=None)
+
+                    logger.info(50*'*')
+                    logger.info(50*'*')
+                    logger.info('\n')
 
 
     if tensorboard:
