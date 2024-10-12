@@ -174,24 +174,24 @@ class Mobile_netV2(nn.Module):
         # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
         # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        model      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        # model      = models.__dict__['resnet50'](num_classes=365)
+        # checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        # state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
 
-        model.load_state_dict(state_dict)
+        # model.load_state_dict(state_dict)
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.layer4[-1].parameters():
+        #     param.requires_grad = True
 
-        self.model.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True),
-        )
+        # self.model.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2048, out_features=num_classes, bias=True),
+        # )
 
         # #################################################################################
         # #################################################################################
@@ -312,23 +312,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -429,15 +429,16 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
+        # pretrained_teacher  = loaded_data_teacher['net']
+        # a = pretrained_teacher.copy()
+        # for key in a.keys():
+        #     if 'teacher' in key:
+        #         pretrained_teacher.pop(key)
+        # self.load_state_dict(pretrained_teacher)
 
-        self.obj = object_model()
+        # self.obj = object_model()
+        # self.scene = scene_model()
 
         # self.model.head.fc = nn.Identity()
 
@@ -478,7 +479,7 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         x = self.model(x_in)
-        y = self.obj(x_in)
+        # y = self.obj(x_in)
 
         # s = self.store(x)     
         # h = self.home(x)      
@@ -527,7 +528,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x
         else:
-            return (torch.softmax(x, dim=1) ) / 2.0
+            return (torch.softmax(x, dim=1))
 
 labels = {
             'airport inside': 0,
@@ -605,7 +606,7 @@ class object_model(nn.Module):
     def __init__(self, num_classes=5, pretrained=True):
         super(object_model, self).__init__()
 
-        model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
         self.model = model 
 
@@ -624,6 +625,43 @@ class object_model(nn.Module):
             param.requires_grad = True
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_obj.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+    def forward(self, x_in):
+
+        x = self.model(x_in)
+
+        return x
+
+class scene_model(nn.Module):
+    def __init__(self, num_classes=5, pretrained=True):
+        super(scene_model, self).__init__()
+
+        model      = models.__dict__['resnet50'](num_classes=365)
+        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
+        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+
+        model.load_state_dict(state_dict)
+
+        self.model = model
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        for param in self.model.layer4[-1].parameters():
+            param.requires_grad = True
+
+        self.model.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=2048, out_features=num_classes, bias=True),
+        )
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
