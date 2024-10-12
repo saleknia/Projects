@@ -182,11 +182,13 @@ class Mobile_netV2(nn.Module):
 
         self.model = model
 
+        # print(model)
+
         for param in self.model.parameters():
             param.requires_grad = False
 
-        # for param in self.model.layer4.parameters():
-        #     param.requires_grad = True
+        for param in self.model.layer4[-1].parameters():
+            param.requires_grad = True
 
         self.model.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
@@ -429,13 +431,15 @@ class Mobile_netV2(nn.Module):
         # self.b1 = mvit_tiny()
         # self.b2 = convnext_tiny()
 
-        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best.pth', map_location='cpu')
+        # loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
         # pretrained_teacher  = loaded_data_teacher['net']
         # a = pretrained_teacher.copy()
         # for key in a.keys():
         #     if 'teacher' in key:
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
+
+        # self.obj = object_model()
 
         # self.model.head.fc = nn.Identity()
 
@@ -475,7 +479,9 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        x = self.model(x_in)#[0]
+        x = self.model(x_in)
+        # y = self.obj(x_in)
+
         # s = self.store(x)     
         # h = self.home(x)      
         # l = self.leisure(x)   
@@ -523,7 +529,7 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x
         else:
-            return torch.softmax(x, dim=1) 
+            return torch.softmax(x, dim=1)# + torch.softmax(y, dim=1)) / 2.0
 
 labels = {
             'airport inside': 0,
@@ -597,23 +603,29 @@ labels = {
 
 class_txt = [f'a photo of a {x}.' for x in labels]
 
-class home(nn.Module):
-    def __init__(self, num_classes=15, pretrained=True):
-        super(home, self).__init__()
+class object_model(nn.Module):
+    def __init__(self, num_classes=5, pretrained=True):
+        super(object_model, self).__init__()
 
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
 
         self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
 
         self.model.head.fc = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768, out_features=num_classes, bias=True),
         )
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/home.pth', map_location='cpu')
+        for param in self.model.head.parameters():
+            param.requires_grad = True
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_obj.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -623,11 +635,7 @@ class home(nn.Module):
 
     def forward(self, x_in):
 
-        x = self.model.stages[-1](x_in)
-        y = self.model.head(x).softmax(dim=1)
-        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        # print(y.shape)
-        x = x * y.expand_as(x)
+        x = self.model(x_in)
 
         return x
 
