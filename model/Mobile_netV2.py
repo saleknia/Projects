@@ -462,7 +462,7 @@ class Mobile_netV2(nn.Module):
         # x = self.fc_SEM(x)
 
         x = self.model.backbone(x_in)
-        y = self.head(x)['segout']
+        y = self.model.head(x)['segout']
 
         x = x['stage_final']
         x = self.avgpool_0(x)
