@@ -63,7 +63,7 @@ IMAGE_WIDTH = 224
 PIN_MEMORY = True
 early_stopping = 200
 
-LOAD_MODEL = True
+LOAD_MODEL = False
 CONTINUE = True
 
 # TEACHER = True
