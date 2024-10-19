@@ -65,7 +65,6 @@ from tester_s import tester_s
 from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,CT_1K,TCIA,ISIC2017,ISIC2016,ISIC2018
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd
 from config import *
-from config import CKPT_NAME
 from tabulate import tabulate
 from tensorboardX import SummaryWriter
 from dataset_builder import build_dataset_train, build_dataset_test
@@ -582,7 +581,7 @@ def main(args):
 
     elif TASK_NAME=='BUSI':
         fold_number = str(1)
-        CKPT_NAME = CKPT_NAME + '_fold_' + fold_number
+        # CKPT_NAME = CKPT_NAME + '_fold_' + fold_number
         train_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='train', aug=True)
         valid_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='val'  , aug=False)
         test_dataset  = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/test/images' , label_paths=f'/content/BUSI/fold_{fold_number}/test/masks' , resize=224, phase='val'  , aug=False)
@@ -729,6 +728,8 @@ def worker_init(worker_id):
 #     random.seed(worker_seed)
 
 if __name__ == "__main__":
+
+    print(CKPT_NAME)
     
     deterministic = True
     if not deterministic:
