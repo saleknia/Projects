@@ -56,7 +56,7 @@ from model.Cross_unet import Cross_unet
 from model.MVIT import MVIT
 from model.SwinUnet import SwinUnet
 from model.CENet import CENet
-from model.CMU-Net import CMU-Net
+from model.CMUNet import CMUNet
 # from model.original_UNet import original_UNet
 import utils
 from utils import color

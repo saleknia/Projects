@@ -221,7 +221,7 @@ model_table = tabulate(
                         ['MVIT',34],
                         ['SwinUnet',35],
                         ['CENet', 36],
-                        ['CMU-Net', 37]],
+                        ['CMUNet', 37]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -342,7 +342,7 @@ elif model_id==36:
     MODEL_NAME = 'CENet'
 
 elif model_id==37:
-    MODEL_NAME = 'CMU-Net'
+    MODEL_NAME = 'CMUNet'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
