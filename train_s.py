@@ -631,7 +631,7 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     if COSINE_LR is True:
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*NUM_EPOCHS, eta_min=0.00001, last_epoch=-1, verbose='deprecated')
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*NUM_EPOCHS, eta_min=0.00001, last_epoch=-1, verbose='False')
     else:
         lr_scheduler =  None  
 
