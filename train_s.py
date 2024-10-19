@@ -584,7 +584,7 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='BUSI':
-        fold_number = str(2)
+        fold_number = str(3)
         # CKPT_NAME = CKPT_NAME + '_fold_' + fold_number
         train_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='train', aug=True)
         valid_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='val'  , aug=False)
