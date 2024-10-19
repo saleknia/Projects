@@ -156,6 +156,9 @@ def augment(img_list, hflip=True, rot=True):
     vflip = rot and random.random() < 0.5
     rot90 = rot and random.random() < 0.5
 
+    # print(img_list[0].shape)
+    # print(img_list[1].shape)
+
     def _augment(img):
         if hflip:
             img = img[:, ::-1, :]
@@ -183,6 +186,8 @@ class CreateDataset(data.Dataset):
     def __getitem__(self, index):
 
         img_path = self.paths_imgs[index]
+
+        # print(img_path)
 
         img = read_img(img_path)  # h w c
 
