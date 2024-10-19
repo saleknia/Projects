@@ -728,8 +728,6 @@ def worker_init(worker_id):
 #     random.seed(worker_seed)
 
 if __name__ == "__main__":
-
-    print(CKPT_NAME)
     
     deterministic = True
     if not deterministic:
