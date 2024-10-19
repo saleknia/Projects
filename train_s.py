@@ -250,10 +250,10 @@ def main(args):
 
     # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)   
 
-    if COSINE_LR is True:
-        lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
-    else:
-        lr_scheduler =  None  
+    # if COSINE_LR is True:
+    #     lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
+    # else:
+    #     lr_scheduler =  None  
 
     initial_best_acc = 0
     initial_best_epoch = 1
@@ -630,6 +630,10 @@ def main(args):
         datas, test_loader = build_dataset_test('camvid', NUM_WORKERS)
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
+    if COSINE_LR is True:
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*NUM_EPOCHS, eta_min=0.00001, last_epoch=-1, verbose='deprecated')
+    else:
+        lr_scheduler =  None  
 
     if SAVE_MODEL:
         checkpoint = Save_Checkpoint(CKPT_NAME,current_num_epoch,last_num_epoch,initial_best_acc,initial_best_epoch)

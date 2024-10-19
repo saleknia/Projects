@@ -56,7 +56,7 @@ if log:
 LEARNING_RATE = 1e-4 # 5e-5
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 BATCH_SIZE = 16
-NUM_EPOCHS = 65
+NUM_EPOCHS = 50
 NUM_WORKERS = 4
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -70,7 +70,7 @@ CONTINUE = True
 TEACHER = False
 
 SAVE_MODEL = True
-COSINE_LR = False
+COSINE_LR = True
 DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)

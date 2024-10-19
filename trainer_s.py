@@ -417,6 +417,9 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
         loss.backward()
         optimizer.step()
 
+        if lr_scheduler is not None:
+            lr_scheduler.step()   
+
         loss_total.update(loss)
         loss_ce_total.update(loss_ce)
         loss_dice_total.update(loss_dice)
@@ -450,8 +453,8 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     Dice = Eval.Dice() * 100.0
     Dice_per_class = Dice * 100.0
 
-    if lr_scheduler is not None:
-        lr_scheduler.step()        
+    # if lr_scheduler is not None:
+    #     lr_scheduler.step()        
         
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer)
