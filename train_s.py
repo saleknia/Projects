@@ -223,8 +223,8 @@ def main(args):
     elif MODEL_NAME=='CENet':
         model = CENet().to(DEVICE)
 
-    elif MODEL_NAME=='CMU-Net':
-        model = CMU-Net().to(DEVICE)
+    elif MODEL_NAME=='CMUNet':
+        model = CMUNet().to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
