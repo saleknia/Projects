@@ -456,4 +456,109 @@ def trainer_s(end_epoch,epoch_num,model,dataloader,optimizer,device,ckpt,num_cla
     logger.info(f'Epoch: {epoch_num} ---> Train , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f} , lr = {optimizer.param_groups[0]["lr"]}')
     valid_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer)
 
+import numpy as np
+import torch
+import torch.nn.functional as F
 
+class Evaluator_New(object):
+    ''' For using this evaluator target and prediction
+        dims should be [B,H,W] '''
+    def __init__(self):
+        self.reset()
+
+    def Pixel_Accuracy(self):
+        Acc = torch.tensor(self.acc).mean()
+        return Acc
+
+    def Mean_Intersection_over_Union(self,per_class=False,show=False):
+        IoU = torch.tensor(self.iou).mean()
+        return IoU
+
+    def Dice(self,per_class=False,show=False):
+        Dice = torch.tensor(self.dice).mean()
+        return Dice
+
+    def get_accuracy(self,SR,GT,threshold=0.5):
+        SR = SR > threshold
+        GT = GT == torch.max(GT)
+        corr = torch.sum(SR==GT)
+        tensor_size = SR.size(0)*SR.size(1)*SR.size(2)*SR.size(3)
+        acc = float(corr)/float(tensor_size)
+        return acc
+
+    def get_sensitivity(self,SR,GT,threshold=0.5):
+        # Sensitivity == Recall
+        SE = 0
+        SR = SR > threshold
+        GT = GT == torch.max(GT)
+            # TP : True Positive
+            # FN : False Negative
+        TP = ((SR == 1).byte() + (GT == 1).byte()) == 2
+        FN = ((SR == 0).byte() + (GT == 1).byte()) == 2
+        SE = float(torch.sum(TP))/(float(torch.sum(TP+FN)) + 1e-6)
+        return SE
+
+    def get_specificity(self,SR,GT,threshold=0.5):
+        SP = 0
+        SR = SR > threshold
+        GT = GT == torch.max(GT)
+            # TN : True Negative
+            # FP : False Positive
+        TN = ((SR == 0).byte() + (GT == 0).byte()) == 2
+        FP = ((SR == 1).byte() + (GT == 0).byte()) == 2
+        SP = float(torch.sum(TN))/(float(torch.sum(TN+FP)) + 1e-6)
+        return SP
+
+    def get_precision(self,SR,GT,threshold=0.5):
+        PC = 0
+        SR = SR > threshold
+        GT = GT== torch.max(GT)
+            # TP : True Positive
+            # FP : False Positive
+        TP = ((SR == 1).byte() + (GT == 1).byte()) == 2
+        FP = ((SR == 1).byte() + (GT == 0).byte()) == 2
+        PC = float(torch.sum(TP))/(float(torch.sum(TP+FP)) + 1e-6)
+        return PC
+
+    def iou_score(self,output, target):
+        smooth = 1e-5
+
+        if torch.is_tensor(output):
+            output = torch.sigmoid(output).data.cpu().numpy()
+        if torch.is_tensor(target):
+            target = target.data.cpu().numpy()
+        output_ = output > 0.5
+        target_ = target > 0.5
+        
+        intersection = (output_ & target_).sum()
+        union = (output_ | target_).sum()
+        iou = (intersection + smooth) / (union + smooth)
+        dice = (2* iou) / (iou+1)
+        
+        output_ = torch.tensor(output_)
+        target_ = torch.tensor(target_)
+
+        SE  = self.get_sensitivity(output_,target_,threshold=0.5)
+        PC  = self.get_precision(output_,target_,threshold=0.5)
+        SP  = self.get_specificity(output_,target_,threshold=0.5)
+        ACC = self.get_accuracy(output_,target_,threshold=0.5)
+
+        F1  = 2*SE*PC/(SE+PC + 1e-6)
+
+        return iou, dice, SE, PC, F1, SP, ACC
+
+    def add_batch(self, gt_image, pre_image):
+        gt_image = gt_image.int()
+        pre_image = pre_image.int()
+        
+        for i in range(gt_image.shape[0]):
+            iou, dice, SE, PC, F1, SP, ACC = self.iou_score(pre_image, gt_image)
+            self.acc.append(ACC)
+            self.iou.append(iou)
+            self.dice.append(dice)
+
+    def reset(self):
+        self.acc  = []
+        self.iou  = []
+        self.dice = []
+        

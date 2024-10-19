@@ -584,7 +584,7 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='BUSI':
-        fold_number = str(3)
+        fold_number = fold
         # CKPT_NAME = CKPT_NAME + '_fold_' + fold_number
         train_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='train', aug=True)
         valid_dataset = CreateDataset(img_paths=f'/content/BUSI/fold_{fold_number}/train/images', label_paths=f'/content/BUSI/fold_{fold_number}/train/masks', resize=224, phase='val'  , aug=False)
@@ -718,6 +718,9 @@ def main(args):
 parser = argparse.ArgumentParser()
 parser.add_argument('--inference', type=str,default='False')
 parser.add_argument('--train', type=str,default='True')
+parser.add_argument('--KF', type=str,default='False')
+parser.add_argument('--fold', type=str,default='0')
+
 args = parser.parse_args()
 
 def worker_init(worker_id):
@@ -767,5 +770,11 @@ if __name__ == "__main__":
         cuda_state = torch.load('/content/drive/MyDrive/checkpoint/cuda_state.pth')
         torch.cuda.set_rng_state(cuda_state)
 
+    if args.KF:
+        fold = int(args.fold)
+
     main(args)
+    
+    if args.KF:
+        os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
     
