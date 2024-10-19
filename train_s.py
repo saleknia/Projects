@@ -240,7 +240,9 @@ def main(args):
     logger.info(model_table)
 
     ########################
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999), weight_decay=0)
+
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
     ########################
 
     # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
@@ -631,7 +633,7 @@ def main(args):
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     if COSINE_LR is True:
-        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*NUM_EPOCHS, eta_min=0.00001, last_epoch=-1, verbose='False')
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=len(train_loader)*NUM_EPOCHS, eta_min=0.00001, last_epoch=-1)
     else:
         lr_scheduler =  None  
 
