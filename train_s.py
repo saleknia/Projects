@@ -39,8 +39,8 @@ from model.GT_UNet import GT_U_Net
 from model.ENet import ENet
 from model.DABNet import DABNet
 from model.DABNet_loss import DABNet_loss
-from model.Mobile_netV2 import Mobile_netV2
-from model.Mobile_netV2_loss import Mobile_netV2_loss
+# from model.Mobile_netV2 import Mobile_netV2
+# from model.Mobile_netV2_loss import Mobile_netV2_loss
 from model.ESPNet import ESPNet
 from model.ESPNet_loss import ESPNet_loss
 from model.ENet_loss import ENet_loss
@@ -48,10 +48,10 @@ from model.UCTransNet_GT import UCTransNet_GT
 from model.GT_CTrans import GT_CTrans
 from model.Fast_SCNN import Fast_SCNN
 from model.Fast_SCNN_loss import Fast_SCNN_loss
-from model.TransFuse import TransFuse_S
-from model.DATUNet import DATUNet
+# from model.TransFuse import TransFuse_S
+# from model.DATUNet import DATUNet
 from model.Cross_unet import Cross_unet
-from model.knitt_net import knitt_net
+# from model.knitt_net import knitt_net
 from model.MVIT import MVIT
 from model.SwinUnet import SwinUnet
 from model.CENet import CENet
@@ -243,13 +243,12 @@ def main(args):
     # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999))
     # lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=NUM_EPOCHS, eta_min=1e-6)
 
-    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)
- 
+    # optimizer = optim.SGD(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, momentum=0.9)   
+
     if COSINE_LR is True:
         lr_scheduler = utils.CosineAnnealingWarmRestarts(optimizer, T_0=10, T_mult=1, eta_min=1e-4)
     else:
-        lr_scheduler =  None     
-
+        lr_scheduler =  None  
 
     initial_best_acc = 0
     initial_best_epoch = 1
@@ -259,7 +258,6 @@ def main(args):
         checkpoint_path = '/content/drive/MyDrive/checkpoint/'+CKPT_NAME+'_best.pth'  ###############################
         logger.info('Loading Checkpoint...')
         if os.path.isfile(checkpoint_path):
-
             pretrained_model_path = checkpoint_path
             loaded_data = torch.load(pretrained_model_path, map_location='cuda')
             pretrained = loaded_data['net']
@@ -268,21 +266,6 @@ def main(args):
             # logger.info(state_dict.keys())
             model2_dict.update(state_dict)
             model.load_state_dict(model2_dict)
-
-            # initial_best_acc=loaded_data['best_acc']
-            # loaded_acc=loaded_data['acc']
-            # initial_best_epoch=loaded_data['best_epoch']
-            # last_num_epoch=loaded_data['num_epoch']
-            # current_num_epoch=last_num_epoch+current_num_epoch
-
-            # optimizer.load_state_dict(loaded_data['optimizer'])
-
-            # table = tabulate(
-            #                 tabular_data=[[loaded_acc, initial_best_acc, initial_best_epoch, last_num_epoch]],
-            #                 headers=['Loaded Model Acc', 'Initial Best Acc', 'Best Epoch Number', 'Num Epochs'],
-            #                 tablefmt="fancy_grid"
-            #                 )
-            # logger.info(table)
         else:
             logger.info(f'No Such file : {checkpoint_path}')
         logger.info('\n')
@@ -593,6 +576,39 @@ def main(args):
                                 )
         
 
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
+    elif TASK_NAME=='BUSI':
+
+        train_dataset = CreateDataset(img_paths='/content/BUSI/images', label_paths='/content/BUSI/masks', resize=224, phase='train', aug=True)
+        valid_dataset = CreateDataset(img_paths='/content/BUSI/images', label_paths='/content/BUSI/masks', resize=224, phase='val'  , aug=False)
+        test_dataset  = CreateDataset(img_paths='/content/BUSI/images', label_paths='/content/BUSI/masks', resize=224, phase='val'  , aug=False)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
     elif TASK_NAME=='camvid':

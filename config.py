@@ -43,25 +43,25 @@ if log:
     logger.info(f'Logging Directory: {logging_log}')   
 ##########################################################################
 
-LEARNING_RATE = 0.01
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 40
-NUM_EPOCHS = 40
-NUM_WORKERS = 4
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 224
-PIN_MEMORY = True
-early_stopping = 200
-
-# LEARNING_RATE = 1e-4 # 5e-5
+# LEARNING_RATE = 0.01
 # DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-# BATCH_SIZE = 16
-# NUM_EPOCHS = 30
+# BATCH_SIZE = 40
+# NUM_EPOCHS = 40
 # NUM_WORKERS = 4
 # IMAGE_HEIGHT = 224
 # IMAGE_WIDTH = 224
 # PIN_MEMORY = True
 # early_stopping = 200
+
+LEARNING_RATE = 1e-4 # 5e-5
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+BATCH_SIZE = 16
+NUM_EPOCHS = 30
+NUM_WORKERS = 4
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 224
+PIN_MEMORY = True
+early_stopping = 200
 
 LOAD_MODEL = True
 CONTINUE = True
@@ -75,7 +75,7 @@ DOWNLOAD = False
 
 os.environ['PYTHONHASHSEED'] = str(SEED)
 
-task_ids = ['1','2','3','4','5','6','7','8','9','10','11','12', '13','14','15','16','17']
+task_ids = ['1','2','3','4','5','6','7','8','9','10','11','12', '13','14','15','16','17','18']
 task_table = tabulate(
                     tabular_data=[
                         ['COVID-19', 1],
@@ -94,7 +94,8 @@ task_table = tabulate(
                         ['BU101+' ,14],
                         ['MIT-67' , 15],
                         ['Scene-15' ,16],
-                        ['ISIC-2019',17]],
+                        ['ISIC-2019',17],
+                        ['BUSI',18]],
                     headers=['Task Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -176,6 +177,10 @@ elif task_id==16:
 elif task_id==17:
     NUM_CLASS = 8
     TASK_NAME = 'ISIC-2019'
+
+elif task_id==18:
+    NUM_CLASS = 1
+    TASK_NAME = 'BUSI'
 
 model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33', '34', '35', '36']
 model_table = tabulate(
