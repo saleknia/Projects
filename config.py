@@ -182,7 +182,7 @@ elif task_id==18:
     NUM_CLASS = 1
     TASK_NAME = 'BUSI'
 
-model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33', '34', '35', '36']
+model_ids = ['1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16','17','18','19','20','21','22','23','24','25','26','27','28','29','30','31','32','33', '34', '35', '36', '37']
 model_table = tabulate(
                     tabular_data=[
                         ['UCTransNet', 1],
@@ -220,7 +220,8 @@ model_table = tabulate(
                         ['Knitt_Net',33],
                         ['MVIT',34],
                         ['SwinUnet',35],
-                        ['CENet', 36]],
+                        ['CENet', 36],
+                        ['CMU-Net', 37]],
                     headers=['Model Name', 'ID'],
                     tablefmt="fancy_grid"
                     )
@@ -339,6 +340,9 @@ elif model_id==35:
 
 elif model_id==36:
     MODEL_NAME = 'CENet'
+
+elif model_id==37:
+    MODEL_NAME = 'CMU-Net'
 
 CKPT_NAME = MODEL_NAME + '_' + TASK_NAME
 
