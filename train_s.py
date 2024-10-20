@@ -60,7 +60,7 @@ from model.MVIT import MVIT
 from model.SwinUnet import SwinUnet
 from model.CENet import CENet
 from model.CMUNet import CMUNet
-from HiFormer import HiFormer
+from model.HiFormer import HiFormer
 # from model.original_UNet import original_UNet
 import utils
 from utils import color
