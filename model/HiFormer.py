@@ -8,10 +8,15 @@ import torch.utils.checkpoint as checkpoint
 from timm.models.layers import DropPath, to_2tuple, trunc_normal_
 from timm.models.vision_transformer import _cfg, Mlp, Block
 
+import ml_collections
+import os
+import wget
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+config = get_hiformer_s_configs()
 
 class HiFormer(nn.Module):
-    def __init__(self, config=get_hiformer_s_configs(), img_size=224, in_chans=3, n_classes=1):
+    def __init__(self, config=config, img_size=224, in_chans=3, n_classes=1):
         super().__init__()
         self.img_size = img_size
         self.patch_size = [4, 16]
@@ -866,10 +871,6 @@ class SegmentationHead(nn.Sequential):
         super().__init__(conv2d)
 
 ################################################################################
-
-import ml_collections
-import os
-import wget
 
 
 # HiFormer-S Configs
