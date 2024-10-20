@@ -240,9 +240,9 @@ def main(args):
     logger.info(model_table)
 
     ########################
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999), weight_decay=0)
+    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999), weight_decay=0)
 
-    # optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
+    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.5,0.999), weight_decay=0)
     ########################
 
     # optimizer = torch.optim.AdamW(filter(lambda p: p.requires_grad, model.parameters()), lr=LEARNING_RATE, betas=(0.9,0.999))
