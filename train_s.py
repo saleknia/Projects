@@ -1,3 +1,6 @@
+import sys
+sys.path.insert(0, '/content/UNet_V2/model/HiFormer_models')
+
 # Instaling Libraries
 import os
 import copy
@@ -57,6 +60,7 @@ from model.MVIT import MVIT
 from model.SwinUnet import SwinUnet
 from model.CENet import CENet
 from model.CMUNet import CMUNet
+from HiFormer import HiFormer
 # from model.original_UNet import original_UNet
 import utils
 from utils import color
@@ -225,6 +229,9 @@ def main(args):
 
     elif MODEL_NAME=='CMUNet':
         model = CMUNet().to(DEVICE)
+
+    elif MODEL_NAME=='HiFormer':
+        model = HiFormer().to(DEVICE)
 
     else: 
         raise TypeError('Please enter a valid name for the model type')
