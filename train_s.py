@@ -340,7 +340,7 @@ def main(args):
                                 )
 
         test_loader  = DataLoader(valid_dataset,
-                                batch_size=1,
+                                batch_size=5,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
@@ -613,7 +613,7 @@ def main(args):
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
-                                drop_last=True,
+                                drop_last=False,
                                 )
         test_loader = DataLoader(test_dataset,
                                 batch_size=1,
@@ -649,67 +649,67 @@ def main(args):
     else:
         checkpoint = None
 
-    if args.train=='True':
+    # if args.train=='True':
+    #     logger.info(50*'*')
+    #     logger.info('Training Phase')
+    #     logger.info(50*'*')
+    #     loss_function = prototype_loss()
+    #     for epoch in range(start_epoch,end_epoch+1):
+    #         trainer_s(
+    #             end_epoch=end_epoch,
+    #             epoch_num=epoch,
+    #             model=model,
+    #             dataloader=data_loader,
+    #             optimizer=optimizer,
+    #             device=DEVICE,
+    #             ckpt=checkpoint,                
+    #             num_class=NUM_CLASS,
+    #             lr_scheduler=lr_scheduler,
+    #             writer=writer,
+    #             logger=logger,
+    #             loss_function=loss_function)
+
+    #         if epoch==end_epoch:
+    #             if SAVE_MODEL and 0 < checkpoint.best_accuracy():
+    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
+    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
+    pretrained = loaded_data['net']
+    model2_dict = model.state_dict()
+    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
+    model2_dict.update(state_dict)
+    model.load_state_dict(model2_dict)
+
+    acc=loaded_data['acc']
+    acc_per_class=loaded_data['acc_per_class'].tolist()
+    # acc_per_class=[round(x,2) for x in acc_per_class]
+    best_epoch=loaded_data['best_epoch']
+
+    logger.info(50*'*')
+    logger.info(f'Best Accuracy over training: {acc:.2f}')
+    logger.info(f'Best Accuracy Per Class over training: {acc_per_class:.2f}')
+    logger.info(f'Epoch Number: {best_epoch}')
+
+    if args.inference=='True':
         logger.info(50*'*')
-        logger.info('Training Phase')
+        logger.info('Inference Phase')
         logger.info(50*'*')
-        loss_function = prototype_loss()
-        for epoch in range(start_epoch,end_epoch+1):
-            trainer_s(
-                end_epoch=end_epoch,
-                epoch_num=epoch,
-                model=model,
-                dataloader=data_loader,
-                optimizer=optimizer,
-                device=DEVICE,
-                ckpt=checkpoint,                
-                num_class=NUM_CLASS,
-                lr_scheduler=lr_scheduler,
-                writer=writer,
-                logger=logger,
-                loss_function=loss_function)
+        tester_s(
+            end_epoch=1,
+            epoch_num=1,
+            model=copy.deepcopy(model),
+            dataloader=data_loader,
+            device=DEVICE,
+            ckpt=None,
+            num_class=NUM_CLASS,
+            writer=writer,
+            logger=logger,
+            optimizer=None,
+            lr_scheduler=None,
+            early_stopping=None)
 
-            if epoch==end_epoch:
-                if SAVE_MODEL and 0 < checkpoint.best_accuracy():
-                    pretrained_model_path = '/content/drive/MyDrive/checkpoint/' + CKPT_NAME + '_best.pth'
-                    loaded_data = torch.load(pretrained_model_path, map_location='cuda')
-                    pretrained = loaded_data['net']
-                    model2_dict = model.state_dict()
-                    state_dict = {k:v for k,v in pretrained.items() if ((k in model2_dict.keys()) and (v.shape==model2_dict[k].shape))}
-                    model2_dict.update(state_dict)
-                    model.load_state_dict(model2_dict)
-
-                    acc=loaded_data['acc']
-                    acc_per_class=loaded_data['acc_per_class'].tolist()
-                    # acc_per_class=[round(x,2) for x in acc_per_class]
-                    best_epoch=loaded_data['best_epoch']
-
-                    logger.info(50*'*')
-                    logger.info(f'Best Accuracy over training: {acc:.2f}')
-                    logger.info(f'Best Accuracy Per Class over training: {acc_per_class:.2f}')
-                    logger.info(f'Epoch Number: {best_epoch}')
-
-                    if args.inference=='True':
-                        logger.info(50*'*')
-                        logger.info('Inference Phase')
-                        logger.info(50*'*')
-                        tester_s(
-                            end_epoch=1,
-                            epoch_num=1,
-                            model=copy.deepcopy(model),
-                            dataloader=data_loader,
-                            device=DEVICE,
-                            ckpt=None,
-                            num_class=NUM_CLASS,
-                            writer=writer,
-                            logger=logger,
-                            optimizer=None,
-                            lr_scheduler=None,
-                            early_stopping=None)
-
-                    logger.info(50*'*')
-                    logger.info(50*'*')
-                    logger.info('\n')
+    logger.info(50*'*')
+    logger.info(50*'*')
+    logger.info('\n')
 
 
     # numpy_state = np.random.get_state()
@@ -786,6 +786,6 @@ if __name__ == "__main__":
 
     main(args)
     
-    if args.KF=='True':
-        os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
+    # if args.KF=='True':
+    #     os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
     

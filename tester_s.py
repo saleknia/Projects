@@ -105,23 +105,31 @@ class Evaluator(object):
         Dice = torch.tensor(self.dice).mean()
         return Dice
 
+    def F1(self,per_class=False,show=False):
+        f1 = torch.tensor(self.f1).mean()
+        return f1
+
     def add_batch(self, gt_image, pre_image):
         gt_image = gt_image.int()
         pre_image = pre_image.int()
         
         for i in range(gt_image.shape[0]):
             tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
-            Acc = (tp + tn) / (tp + tn + fp + fn)
-            IoU = (tp) / (tp + fp + fn)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn)
+            Acc  = (tp + tn) / (tp + tn + fp + fn)
+            IoU  = (tp) / ((tp + fp + fn) + 1e-5)
+            Dice =  (2 * tp) / ((2 * tp) + fp + fn + 1e-6)
+            f1   = (tp) / (tp + (0.5 * (fp + fn)) + 1e-6)
+
             self.acc.append(Acc)
             self.iou.append(IoU)
             self.dice.append(Dice)
+            self.f1.append(f1)
 
     def reset(self):
         self.acc = []
         self.iou = []
         self.dice = []
+        self.f1 = []
 
 
 # class Evaluator(object):
@@ -242,6 +250,38 @@ class Evaluator(object):
 #         self.fn = 0
 #         self.tp = 0
 
+def iou_score(output, target):
+    smooth = 1e-5
+
+    if torch.is_tensor(output):
+        output = torch.sigmoid(output).data.cpu().numpy()
+    if torch.is_tensor(target):
+        target = target.data.cpu().numpy()
+    output_ = output > 0.5
+    target_ = target > 0.5
+    intersection = (output_ & target_).sum()
+    union = (output_ | target_).sum()
+    iou = (intersection + smooth) / (union + smooth)
+    dice = (2* iou) / (iou+1)
+    return iou, dice
+
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
 
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
@@ -253,6 +293,9 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     Eval = Evaluator()
     mIOU = 0.0
     Dice = 0.0
+
+    DICE = AverageMeter()
+    MIOU = AverageMeter()
 
     total_batchs = len(dataloader['test'])
     loader = dataloader['test']
@@ -303,7 +346,11 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             # predictions = torch.round(torch.squeeze(outputs, dim=1))    
             # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
-
+            
+            iou,dice = iou_score(torch.squeeze(outputs, dim=1), targets)
+            MIOU.update(iou, inputs.size(0))
+            DICE.update(dice, inputs.size(0))
+            
             # accuracy.update(Eval.Pixel_Accuracy())
 
             print_progress(
@@ -325,6 +372,8 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f}') 
+
+        print('F1: %.4f' % (Eval.F1() * 100.0))
 
 
 import numpy as np
@@ -353,7 +402,7 @@ class Evaluator_New(object):
         SR = SR > threshold
         GT = GT == torch.max(GT)
         corr = torch.sum(SR==GT)
-        tensor_size = SR.size(0)*SR.size(1)*SR.size(2)
+        tensor_size = SR.size(0)*SR.size(1)*SR.size(2)*SR.size(3)
         acc = float(corr)/float(tensor_size)
         return acc
 
@@ -426,7 +475,7 @@ class Evaluator_New(object):
         pre_image = pre_image.int()
         
         for i in range(gt_image.shape[0]):
-            iou, dice, SE, PC, F1, SP, ACC = self.iou_score(pre_image, gt_image)
+            iou, dice, SE, PC, F1, SP, ACC = self.iou_score(pre_image[i], gt_image[i])
             self.acc.append(ACC)
             self.iou.append(iou)
             self.dice.append(dice)
