@@ -727,10 +727,10 @@ def main(args):
     # torch.save(cuda_state, './checkpoint/cuda_state.pth')
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--inference', type=str,default='False')
-parser.add_argument('--train', type=str,default='True')
-parser.add_argument('--KF', type=str,default='False')
-parser.add_argument('--fold', type=str,default='0')
+parser.add_argument('--inference', type=str, default='False')
+parser.add_argument('--train'    , type=str, default='True')
+parser.add_argument('--KF'       , type=str, default='False')
+parser.add_argument('--fold'     , type=str, default='0')
 
 args = parser.parse_args()
 
@@ -781,11 +781,11 @@ if __name__ == "__main__":
         cuda_state = torch.load('/content/drive/MyDrive/checkpoint/cuda_state.pth')
         torch.cuda.set_rng_state(cuda_state)
 
-    if args.KF:
+    if args.KF=='True':
         fold = int(args.fold)
 
     main(args)
     
-    if args.KF:
+    if args.KF=='True':
         os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
     
