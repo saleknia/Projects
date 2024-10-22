@@ -616,7 +616,7 @@ def main(args):
                                 drop_last=False,
                                 )
         test_loader = DataLoader(test_dataset,
-                                batch_size=BATCH_SIZE,
+                                batch_size=1,
                                 shuffle=False,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
@@ -786,6 +786,6 @@ if __name__ == "__main__":
 
     main(args)
     
-    # if args.KF=='True':
-    #     os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
+    if args.KF=='True':
+        os.system(f'mv /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best.pth /content/drive/MyDrive/checkpoint/{CKPT_NAME}_best_fold_{fold}.pth')
     
