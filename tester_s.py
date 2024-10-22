@@ -250,38 +250,6 @@ class Evaluator(object):
 #         self.fn = 0
 #         self.tp = 0
 
-def iou_score(output, target):
-    smooth = 1e-5
-
-    if torch.is_tensor(output):
-        output = torch.sigmoid(output).data.cpu().numpy()
-    if torch.is_tensor(target):
-        target = target.data.cpu().numpy()
-    output_ = output > 0.5
-    target_ = target > 0.5
-    intersection = (output_ & target_).sum()
-    union = (output_ | target_).sum()
-    iou = (intersection + smooth) / (union + smooth)
-    dice = (2* iou) / (iou+1)
-    return iou, dice
-
-class AverageMeter(object):
-    """Computes and stores the average and current value"""
-
-    def __init__(self):
-        self.reset()
-
-    def reset(self):
-        self.val = 0
-        self.avg = 0
-        self.sum = 0
-        self.count = 0
-
-    def update(self, val, n=1):
-        self.val = val
-        self.sum += val * n
-        self.count += n
-        self.avg = self.sum / self.count
 
 def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,logger,optimizer,lr_scheduler,early_stopping):
     model=model.to(device)
@@ -294,9 +262,6 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     mIOU = 0.0
     Dice = 0.0
 
-    DICE = AverageMeter()
-    MIOU = AverageMeter()
-
     total_batchs = len(dataloader['test'])
     loader = dataloader['test']
     # pos_weight = dataloader['pos_weight']
@@ -304,7 +269,6 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
     dice_loss = DiceLoss()
     ce_loss = torch.nn.BCEWithLogitsLoss(pos_weight=None)
     # ce_loss = torch.nn.BCELoss()
-
 
     with torch.no_grad():
         for batch_idx, (inputs, targets) in enumerate(loader):
@@ -346,13 +310,7 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
             # predictions = torch.round(torch.squeeze(outputs, dim=1))    
             # predictions = torch.round(torch.sigmoid(torch.squeeze(outputs, dim=1)))
             Eval.add_batch(gt_image=targets,pre_image=predictions)
-            
-            iou,dice = iou_score(torch.squeeze(outputs, dim=1), targets)
-            MIOU.update(iou, inputs.size(0))
-            DICE.update(dice, inputs.size(0))
-            
-            # accuracy.update(Eval.Pixel_Accuracy())
-
+        
             print_progress(
                 iteration=batch_idx+1,
                 total=total_batchs,
@@ -372,9 +330,6 @@ def tester_s(end_epoch,epoch_num,model,dataloader,device,ckpt,num_class,writer,l
 
 
         logger.info(f'Epoch: {epoch_num} ---> Test , Loss = {loss_total.avg:.4f} , Dice = {Dice:.2f} , IoU = {mIOU:.2f} , Pixel Accuracy = {acc:.2f}') 
-
-        print('F1: %.4f' % (Eval.F1() * 100.0))
-
 
 import numpy as np
 import torch
