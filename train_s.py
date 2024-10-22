@@ -626,6 +626,40 @@ def main(args):
         
         data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
 
+    elif TASK_NAME=='UDIAT':
+        fold_number = fold
+        # CKPT_NAME = CKPT_NAME + '_fold_' + fold_number
+        train_dataset = CreateDataset(img_paths=f'/content/UDIAT/fold_{fold_number}/train/images', label_paths=f'/content/UDIAT/fold_{fold_number}/train/masks', resize=224, phase='train', aug=True)
+        valid_dataset = CreateDataset(img_paths=f'/content/UDIAT/fold_{fold_number}/train/images', label_paths=f'/content/UDIAT/fold_{fold_number}/train/masks', resize=224, phase='val'  , aug=False)
+        test_dataset  = CreateDataset(img_paths=f'/content/UDIAT/fold_{fold_number}/test/images' , label_paths=f'/content/UDIAT/fold_{fold_number}/test/masks' , resize=224, phase='val'  , aug=False)
+
+        train_loader = DataLoader(train_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=True,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=True,
+                                )
+        valid_loader = DataLoader(valid_dataset,
+                                batch_size=BATCH_SIZE,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=False,
+                                )
+        test_loader = DataLoader(test_dataset,
+                                batch_size=1,
+                                shuffle=False,
+                                worker_init_fn=worker_init,
+                                num_workers=NUM_WORKERS,
+                                pin_memory=PIN_MEMORY,
+                                drop_last=False,
+                                )
+        
+        data_loader={'train':train_loader,'valid':valid_loader,'test':test_loader}
+
     elif TASK_NAME=='camvid':
         datas, train_loader, valid_loader = build_dataset_train('camvid', (368,368), BATCH_SIZE, None, False, True, NUM_WORKERS)
 
