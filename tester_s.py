@@ -109,7 +109,7 @@ class Evaluator(object):
         f1 = torch.tensor(self.f1).mean()
         return f1
 
-    def get_JS(SR,GT,threshold=0.5):
+    def get_JS(self, SR,GT,threshold=0.5):
         # JS : Jaccard similarity
         SR = SR > threshold
         GT = GT == torch.max(GT)
@@ -121,7 +121,7 @@ class Evaluator(object):
         
         return JS
 
-    def get_DC(SR,GT,threshold=0.5):
+    def get_DC(self, SR,GT,threshold=0.5):
         # DC : Dice Coefficient
         SR = SR > threshold
         GT = GT == torch.max(GT)
