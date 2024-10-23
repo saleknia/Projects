@@ -34,7 +34,7 @@ class DiceLoss(nn.Module):
         
         return 1 - dice
 
-
+from torchmetrics.classification import Dice as D
 from torchmetrics.classification import BinaryConfusionMatrix
 
 # class Evaluator(object):
@@ -109,6 +109,28 @@ class Evaluator(object):
         f1 = torch.tensor(self.f1).mean()
         return f1
 
+    def get_JS(SR,GT,threshold=0.5):
+        # JS : Jaccard similarity
+        SR = SR > threshold
+        GT = GT == torch.max(GT)
+        
+        Inter = torch.sum((SR+GT)==2)
+        Union = torch.sum((SR+GT)>=1)
+        
+        JS = float(Inter)/(float(Union) + 1e-6)
+        
+        return JS
+
+    def get_DC(SR,GT,threshold=0.5):
+        # DC : Dice Coefficient
+        SR = SR > threshold
+        GT = GT == torch.max(GT)
+
+        Inter = torch.sum((SR+GT)==2)
+        DC = float(2*Inter)/(float(torch.sum(SR)+torch.sum(GT)) + 1e-6)
+
+        return DC
+
     def add_batch(self, gt_image, pre_image):
         gt_image = gt_image.int()
         pre_image = pre_image.int()
@@ -116,9 +138,13 @@ class Evaluator(object):
         for i in range(gt_image.shape[0]):
             tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
             Acc  = (tp + tn) / (tp + tn + fp + fn)
-            IoU  = (tp) / ((tp + fp + fn) + 1e-5)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn + 1e-5)
             f1   = (tp) / (tp + (0.5 * (fp + fn)) + 1e-5)
+
+            # IoU  = (tp) / ((tp + fp + fn) + 1e-5)
+            # Dice = (2 * tp) / ((2 * tp) + fp + fn + 1e-5)
+
+            IoU  = get_JS(pre_image[i], gt_image[i])
+            Dice = get_DC(pre_image[i], gt_image[i])
 
             self.acc.append(Acc)
             self.iou.append(IoU)
