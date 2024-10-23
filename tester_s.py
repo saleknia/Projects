@@ -117,8 +117,8 @@ class Evaluator(object):
             tn, fp, fn, tp = self.metric(pre_image[i].reshape(-1), gt_image[i].reshape(-1)).ravel()
             Acc  = (tp + tn) / (tp + tn + fp + fn)
             IoU  = (tp) / ((tp + fp + fn) + 1e-5)
-            Dice =  (2 * tp) / ((2 * tp) + fp + fn + 1e-6)
-            f1   = (tp) / (tp + (0.5 * (fp + fn)) + 1e-6)
+            Dice =  (2 * tp) / ((2 * tp) + fp + fn + 1e-5)
+            f1   = (tp) / (tp + (0.5 * (fp + fn)) + 1e-5)
 
             self.acc.append(Acc)
             self.iou.append(IoU)

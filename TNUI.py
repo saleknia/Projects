@@ -4,6 +4,7 @@ import torch
 import torch.utils.data as data
 import os
 import random
+from scipy import ndimage
 
 def normalize(img, mean, std, max_pixel_value=255.0):
     mean = np.array(mean, dtype=np.float32)
@@ -109,48 +110,72 @@ def channel_change(img):
 def data_augment(img_list, rot=True, flip=True, blur=True, noise=True, channel_ch=True):
     xb, yb = img_list
     if rot:
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb, yb = rotate(xb, yb, 90)
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb, yb = rotate(xb, yb, 180)
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb, yb = rotate(xb, yb, 270)
     if flip:
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb = cv2.flip(xb, 1)  # flipcode > 0：沿y轴翻转
             yb = cv2.flip(yb, 1)
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb = cv2.flip(xb, 0)  # flipcode > 0：沿x
             yb = cv2.flip(yb, 0)
-        if np.random.random() < 0.25:
+        if np.random.random() < 0.5:
             xb = cv2.flip(xb, -1)  # flipcode > 0：沿x,y
             yb = cv2.flip(yb, -1)
-    if blur:
-        if np.random.random() < 0.25:
-            xb = img_blur(xb)
-    if noise:
-        if np.random.random() < 0.2:
-            xb = add_noise(xb)
 
-    if channel_ch and xb.shape[2] == 3:
-        if np.random.random() < 0.2:
-            xb = channel_change(xb)
+    # if blur:
+    #     if np.random.random() < 0.25:
+    #         xb = img_blur(xb)
+    # if noise:
+    #     if np.random.random() < 0.2:
+    #         xb = add_noise(xb)
+
+    # if channel_ch and xb.shape[2] == 3:
+    #     if np.random.random() < 0.2:
+    #         xb = channel_change(xb)
 
     # if np.random.random() < 0.25:
     #     xb = random_gamma_transform(xb, 1.0)
-    return xb, yb
+
+    return [xb, yb]
 
 #-----------------------------------------------------------------------------------------------------#
 # image processing
 # process on numpy image
 #-----------------------------------------------------------------------------------------------------#
 
+def random_rot_flip(image, label):
+    k = np.random.randint(0, 4)
+    image = np.rot90(image, k)
+    label = np.rot90(label, k)
+    axis = np.random.randint(0, 2)
+    image = np.flip(image, axis=axis).copy()
+    label = np.flip(label, axis=axis).copy()
+    return image, label
+
+def random_rotate(image, label):
+    angle = np.random.randint(-30, 30)
+    image = ndimage.rotate(image, angle, order=0, reshape=False)
+    label = ndimage.rotate(label, angle, order=0, reshape=False)
+    return image, label
+
+def apply_augmentation(image, label):
+    if random.random() > 0.0:
+        image, label = random_rot_flip(image, label)
+    if random.random() > 0.0:
+        image, label = random_rotate(image, label)
+
+    return image, label
 
 def augment(img_list, hflip=True, rot=True):
     """horizontal flip OR rotate (0, 90, 180, 270 degrees)"""
     hflip = hflip and random.random() < 0.5
-    vflip = rot and random.random() < 0.5
-    rot90 = rot and random.random() < 0.5
+    vflip = rot   and random.random() < 0.5
+    rot90 = rot   and random.random() < 0.5
 
     # print(img_list[0].shape)
     # print(img_list[1].shape)
@@ -196,7 +221,8 @@ class CreateDataset(data.Dataset):
 
         if self.phase == 'train':
             if self.aug:
-                img, label= augment([img, np.expand_dims(label, axis=2)], hflip=True, rot=True)
+                img, label = augment([img, np.expand_dims(label, axis=2)], hflip=True, rot=True)
+                # img, label= apply_augmentation(img, np.expand_dims(label, axis=2))
 
                 label = label.squeeze(2) #HW
                 img = img[:, :, [2, 1, 0]] # bgr -> rgb
