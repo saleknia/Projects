@@ -35,15 +35,11 @@ def get_image_paths(dataroot):
 
 def read_img(path):
     img = cv2.imread(path, cv2.IMREAD_UNCHANGED)
-
     img = img.astype(np.float32) / 255.
 
-
-
     if img.ndim == 2:
-        img = np.expand_dims(img, axis=2)
-
-        # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        # img = np.expand_dims(img, axis=2)
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
 
     # some images have 4 channels
     if img.shape[2] > 3:
