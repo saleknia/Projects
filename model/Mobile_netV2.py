@@ -36,9 +36,9 @@ transform_test = transforms.Compose([
     transforms.Resize((384, 384)),
 ])
 from torchvision.transforms import FiveCrop, Lambda
-from efficientvit.seg_model_zoo import create_seg_model
+from efficientvit.seg_model_zoo import create_efficientvit_seg_model
 
-from efficientvit.cls_model_zoo import create_cls_model
+# from efficientvit.cls_model_zoo import create_cls_model
 from timm.layers import LayerNorm2d
 
 from transformers import CLIPProcessor, CLIPModel
@@ -247,8 +247,10 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
-
+        model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
+        model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
+        model = model.backbone
+        
         model.input_stem.op_list[0].conv.stride  = (1, 1)
         model.input_stem.op_list[0].conv.padding = (0, 0)
 

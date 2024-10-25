@@ -14,7 +14,7 @@ from torchvision import models as resnet_model
 from timm.models.layers import to_2tuple, trunc_normal_
 from timm.models.layers import DropPath, to_2tuple
 import ml_collections
-from efficientvit.seg_model_zoo import create_seg_model
+# from efficientvit.seg_model_zoo import create_seg_model
 from .CTrans import ChannelTransformer
 
 def get_CTranS_config():
