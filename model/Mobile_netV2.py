@@ -310,23 +310,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -435,8 +435,13 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        # self.obj = object_model()
-        # self.scene = scene_model()
+        self.obj = obj_model()
+        self.seg = seg_model()
+
+        self.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768+384, out_features=num_classes, bias=True),
+        )
 
         # self.model.head.fc = nn.Identity()
 
@@ -476,8 +481,15 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        x = self.model(x_in)
-        # y = self.obj(x_in)
+        # x = self.model(x_in)
+
+        seg = self.seg(x_in)
+        obj = self.obj(x_in)
+
+        x = torhc.cat([seg, obj], dim=1)
+        x = self.head(x)
+
+
 
         # s = self.store(x)     
         # h = self.home(x)      
@@ -600,9 +612,9 @@ labels = {
 
 class_txt = [f'a photo of a {x}.' for x in labels]
 
-class object_model(nn.Module):
-    def __init__(self, num_classes=5, pretrained=True):
-        super(object_model, self).__init__()
+class obj_model(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(obj_model, self).__init__()
 
         model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
@@ -622,7 +634,10 @@ class object_model(nn.Module):
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_obj.pth', map_location='cpu')
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/obj_best.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -630,36 +645,41 @@ class object_model(nn.Module):
                 pretrained_teacher.pop(key)
         self.load_state_dict(pretrained_teacher)
 
+        self.model.head.fc = nn.Identity()
+
     def forward(self, x_in):
 
         x = self.model(x_in)
-
+        # x = torch.softmax(x, dim=1)
         return x
 
-class scene_model(nn.Module):
-    def __init__(self, num_classes=5, pretrained=True):
-        super(scene_model, self).__init__()
+class seg_model(nn.Module):
+    def __init__(self, num_classes=40, pretrained=True):
+        super(seg_model, self).__init__()
 
-        model      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
+        model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
+        model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
+        model = model.backbone
 
-        model.load_state_dict(state_dict)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
         self.model = model
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.layer4[-1].parameters():
+        for param in self.model.stages[-1].parameters():
             param.requires_grad = True
 
-        self.model.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=num_classes, bias=True),
-        )
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=14)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/best_scene.pth', map_location='cpu')
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/seg_best.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -669,7 +689,13 @@ class scene_model(nn.Module):
 
     def forward(self, x_in):
 
-        x = self.model(x_in)
+        x = self.model(x_in) 
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        # x = self.dropout(x)
+        # x = self.fc_SEM(x)
+        # x = torch.softmax(x, dim=1)
 
         return x
 
