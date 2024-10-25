@@ -247,26 +247,22 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
+        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
 
-        # model.input_stem.op_list[0].conv.stride  = (1, 1)
-        # model.input_stem.op_list[0].conv.padding = (0, 0)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.stages[-2].parameters():
-        #     param.requires_grad = True
-
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(7, stride=1)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
-
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(7, stride=1)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -312,23 +308,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
+        # model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -457,12 +453,12 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        # x = self.model(x_in)['logits']
-        # x = x['stage_final']
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.model(x_in) # ['logits']
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model.backbone(x_in)
         # y = self.model.head(x)['segout']
@@ -478,7 +474,7 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        x = self.model(x_in)
+        # x = self.model(x_in)
         # y = self.obj(x_in)
 
         # s = self.store(x)     
