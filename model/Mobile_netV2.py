@@ -438,7 +438,7 @@ class Mobile_netV2(nn.Module):
         self.obj = obj_model()
         self.seg = seg_model()
 
-        self.head.fc = nn.Sequential(
+        self.head = nn.Sequential(
             nn.Dropout(p=0.5, inplace=True),
             nn.Linear(in_features=768+384, out_features=num_classes, bias=True),
         )
@@ -486,7 +486,7 @@ class Mobile_netV2(nn.Module):
         seg = self.seg(x_in)
         obj = self.obj(x_in)
 
-        x = torhc.cat([seg, obj], dim=1)
+        x = torch.cat([seg, obj], dim=1)
         x = self.head(x)
 
 
