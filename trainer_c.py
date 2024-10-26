@@ -207,7 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
         if KD:
-            loss_ce = ce_loss(outputs, targets.long()) + ce_loss(out_cg, torch.tensor([convert[x] for x in targets.long()]).cuda().long()) 
+            loss_ce = (ce_loss(outputs, targets.long()) * 1.0) + (ce_loss(out_cg, torch.tensor([convert[x] for x in targets.long()]).cuda().long()) * 1.0)
         else:
             loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################

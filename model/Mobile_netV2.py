@@ -343,9 +343,9 @@ class Mobile_netV2(nn.Module):
 
         self.head_cg.fc = nn.Sequential(
                     nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=3840, out_features=5, bias=True),
+                    nn.Linear(in_features=768, out_features=5, bias=True),
                 )
-        self.head_cg.norm = LayerNorm2d((3840,))
+        self.head_cg.norm = LayerNorm2d((768,))
 
         for param in self.model.parameters():
             param.requires_grad = False
@@ -361,6 +361,7 @@ class Mobile_netV2(nn.Module):
         self.leisure      = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         self.publicplace  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
 
         ##################################################################################
         ##################################################################################
@@ -505,10 +506,12 @@ class Mobile_netV2(nn.Module):
         l = self.leisure(x)   
         p = self.publicplace(x) 
         w = self.workingplace(x)
+        
+        c = self.choose(x)
 
         g = torch.cat([s, h, l, p, w], dim=1)
 
-        cg = self.head_cg(g) 
+        cg = self.head_cg(c) 
 
         sw = s * cg.softmax(dim=1)[:,0:1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
         hw = h * cg.softmax(dim=1)[:,1:2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
