@@ -510,11 +510,11 @@ class Mobile_netV2(nn.Module):
 
         cg = self.head_cg(g) 
 
-        sw = s * cg.softmax(dim=1)[:,0].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        hw = h * cg.softmax(dim=1)[:,1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
-        lw = l * cg.softmax(dim=1)[:,2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        pw = p * cg.softmax(dim=1)[:,3].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        ww = w * cg.softmax(dim=1)[:,4].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        sw = s * cg.softmax(dim=1)[:,0:1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        hw = h * cg.softmax(dim=1)[:,1:2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
+        lw = l * cg.softmax(dim=1)[:,2:3].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        pw = p * cg.softmax(dim=1)[:,3:4].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        ww = w * cg.softmax(dim=1)[:,4: ].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
 
         gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
         fg = self.head_fg(gw) 

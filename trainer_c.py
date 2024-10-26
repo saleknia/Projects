@@ -187,7 +187,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         outputs = model(inputs)
         KD = (type(outputs)==tuple)
         if KD:
-            out_fg, out_cg = outputs
+            outputs, out_cg = outputs
 
         ################################################################
         ################################################################
@@ -207,7 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
         if KD:
-            loss_ce = ce_loss(out_fg, targets.long()) + ce_loss(out_cg, torch.tensor([convert[x] for x in targets]).cuda().long()) 
+            loss_ce = ce_loss(outputs, targets.long()) + ce_loss(out_cg, torch.tensor([convert[x] for x in targets.long()]).cuda().long()) 
         else:
             loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################
