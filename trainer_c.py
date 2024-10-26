@@ -18,7 +18,7 @@ import os
 import numpy as np
 from torchnet.meter import mAPMeter
 from torcheval.metrics import MulticlassAccuracy
-
+convert = [2, 4, 3, 0, 3, 1, 1, 0, 3, 3, 3, 1, 2, 4, 2, 1, 0, 4, 3, 1, 0, 4, 1, 2, 3, 0, 3, 1, 4, 0, 3, 3, 4, 2, 2, 0, 4, 1, 4, 0, 2, 1, 1, 2, 0, 4, 3, 2, 1, 4, 4, 1, 2, 2, 3, 4, 0, 1, 4, 2, 0, 2, 4, 0, 2, 4, 1]
 warnings.filterwarnings("ignore")
 
 general_labels = np.load('/content/UNet_V2/labels.npy')
@@ -157,8 +157,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
     loss_disparity_total = utils.AverageMeter()
 
     # accuracy = utils.AverageMeter()
-    # metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
-    accuracy = mAPMeter()
+    metric = MulticlassAccuracy(average="macro", num_classes=num_class).to('cuda')
+    # accuracy = mAPMeter()
 
     if teacher_model is not None:
         ce_loss = CrossEntropyLoss(reduce=False, label_smoothing=0.0)
@@ -181,13 +181,13 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         inputs, targets = inputs.to(device), targets.to(device)
 
         targets = targets.float()
-
+        
         # with torch.autocast(device_type=device, dtype=torch.float16):
 
         outputs = model(inputs)
-        # KD = (type(outputs)==tuple)
-        # if KD:
-        #     outputs, features_s, features_t = outputs[0], outputs[1], outputs[2]
+        KD = (type(outputs)==tuple)
+        if KD:
+            out_fg, out_cg = outputs
 
         ################################################################
         ################################################################
@@ -206,7 +206,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         
         ####################################################################################################
         ####################################################################################################
-        loss_ce = ce_loss(outputs, targets.long()) 
+        if KD:
+            loss_ce = ce_loss(out_fg, targets.long()) + ce_loss(out_cg, torch.tensor([convert[x] for x in targets]).cuda().long()) 
+        else:
+            loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################
         ####################################################################################################
 
@@ -217,9 +220,9 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         predictions = torch.argmax(input=torch.softmax(outputs, dim=1),dim=1).long()
 
-        # metric.update(predictions, targets.long())
+        metric.update(predictions, targets.long())
 
-        accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
+        # accuracy.add(torch.softmax(outputs.clone().detach(), dim=1), torch.nn.functional.one_hot(targets.long(), num_classes=num_class))
 
         # accuracy.update(torch.sum(targets==predictions)/torch.sum(targets==targets))
 
@@ -259,7 +262,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss = loss_ce + loss_disparity
         ###############################################
 
-        lr_ = 0.001 * (1.0 - iter_num / max_iterations) ** 0.9     
+        lr_ = 0.01 * (1.0 - iter_num / max_iterations) ** 0.9     
         for param_group in optimizer.param_groups:
             param_group['lr'] = lr_
         iter_num = iter_num + 1   
@@ -293,15 +296,15 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
             iteration=batch_idx+1,
             total=total_batchs,
             prefix=f'Train {epoch_num} Batch {batch_idx+1}/{total_batchs} ',
-            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * metric.compute():.4f}',   
-            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
+            suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * metric.compute():.4f}',   
+            # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.value().item():.4f}',                 
             # suffix=f'CE_loss = {loss_ce_total.avg:.4f} , disparity_loss = {loss_disparity_total.avg:.4f} , Accuracy = {100 * accuracy.avg:.4f}',   
             bar_length=45
         )  
 
-    # acc = 100 * metric.compute()
+    acc = 100 * metric.compute()
 
-    acc = 100*accuracy.value().item()
+    # acc = 100*accuracy.value().item()
 
     # acc = 100*accuracy.avg
     

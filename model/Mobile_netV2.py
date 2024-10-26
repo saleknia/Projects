@@ -331,50 +331,56 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        # self.model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
-        # self.head  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
-        
-        # self.head.fc = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=3840, out_features=num_classes, bias=True),
-        #         )
+        self.model   = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        self.head_fg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        self.head_cg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
 
-        # self.head.norm = LayerNorm2d((3840,))
+        self.head_fg.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
+                )
+        self.head_fg.norm = LayerNorm2d((3840,))
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        self.head_cg.fc = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=3840, out_features=5, bias=True),
+                )
+        self.head_cg.norm = LayerNorm2d((3840,))
 
-        # for param in self.head.parameters():
-        #     param.requires_grad = True
-
-        # self.store        = store()
-        # self.home         = home()
-        # self.leisure      = leisure()
-        # self.publicplace  = publicplace()
-        # self.workingplace = workingplace()
-
-        ##################################################################################
-        ##################################################################################
-
-        self.features = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True, features_only=True)
-        self.head     = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True).head
-
-        for param in self.features.parameters():
+        for param in self.model.parameters():
             param.requires_grad = False
-
-        for param in self.features.stages_3.parameters():
-            param.requires_grad = True
-
-        for param in self.features.stages_2.parameters():
-            param.requires_grad = True
-
-        self.head.classifier[4] = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2560, out_features=num_classes, bias=True),
-        )
 
         for param in self.head.parameters():
             param.requires_grad = True
+
+        self.store        = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.home         = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.leisure      = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.publicplace  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+
+        ##################################################################################
+        ##################################################################################
+
+        # self.features = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True, features_only=True)
+        # self.head     = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True).head
+
+        # for param in self.features.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.features.stages_3.parameters():
+        #     param.requires_grad = True
+
+        # for param in self.features.stages_2.parameters():
+        #     param.requires_grad = True
+
+        # self.head.classifier[4] = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=2560, out_features=num_classes, bias=True),
+        # )
+
+        # for param in self.head.parameters():
+        #     param.requires_grad = True
 
         #################################################################################
         #################################################################################
@@ -489,20 +495,26 @@ class Mobile_netV2(nn.Module):
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
 
-        x0, x1, x2, x3 = self.features(x_in)
-        x = self.head(x3)
+        x = self.model(x_in)
 
+        s = self.store(x)     
+        h = self.home(x)      
+        l = self.leisure(x)   
+        p = self.publicplace(x) 
+        w = self.workingplace(x)
 
+        g = torch.cat([s, h, l, p, w], dim=1)
 
-        # s = self.store(x)     
-        # h = self.home(x)      
-        # l = self.leisure(x)   
-        # p = self.publicplace(x) 
-        # w = self.workingplace(x)
+        cg = self.head_cg(g) 
 
-        # g = torch.cat([s, h, l, p, w], dim=1)
+        sw = s * cg.softmax(dim=1)[:,0]
+        hw = h * cg.softmax(dim=1)[:,1]
+        lw = l * cg.softmax(dim=1)[:,2]
+        pw = p * cg.softmax(dim=1)[:,3]
+        ww = w * cg.softmax(dim=1)[:,4]
 
-        # x = self.head(g) 
+        gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
+        fg = self.head_fg(gw) 
 
         # if (not self.training):
 
@@ -539,9 +551,9 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x
+            return fg, cg
         else:
-            return (torch.softmax(x, dim=1))
+            return (torch.softmax(fg, dim=1))
 
 labels = {
             'airport inside': 0,
