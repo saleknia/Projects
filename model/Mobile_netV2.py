@@ -489,7 +489,7 @@ class Mobile_netV2(nn.Module):
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
 
-        x0, x1, x2, x3 = self.features(x)
+        x0, x1, x2, x3 = self.features(x_in)
         x = self.head(x3)
 
 
