@@ -350,7 +350,10 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.head.parameters():
+        for param in self.head_fg.parameters():
+            param.requires_grad = True
+
+        for param in self.head_cg.parameters():
             param.requires_grad = True
 
         self.store        = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
@@ -495,7 +498,7 @@ class Mobile_netV2(nn.Module):
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
 
-        x = self.model(x_in)
+        x = self.model(x_in)[0]
 
         s = self.store(x)     
         h = self.home(x)      
@@ -507,11 +510,11 @@ class Mobile_netV2(nn.Module):
 
         cg = self.head_cg(g) 
 
-        sw = s * cg.softmax(dim=1)[:,0]
-        hw = h * cg.softmax(dim=1)[:,1]
-        lw = l * cg.softmax(dim=1)[:,2]
-        pw = p * cg.softmax(dim=1)[:,3]
-        ww = w * cg.softmax(dim=1)[:,4]
+        sw = s * cg.softmax(dim=1)[:,0].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        hw = h * cg.softmax(dim=1)[:,1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
+        lw = l * cg.softmax(dim=1)[:,2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        pw = p * cg.softmax(dim=1)[:,3].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        ww = w * cg.softmax(dim=1)[:,4].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
 
         gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
         fg = self.head_fg(gw) 
