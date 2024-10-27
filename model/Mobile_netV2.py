@@ -534,7 +534,7 @@ class Mobile_netV2(nn.Module):
         # gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
         # fg = self.head_fg(gw) 
 
-        x = self.head(self.model(x))
+        x = self.head(self.model(x_in))
 
         # if (not self.training):
 
