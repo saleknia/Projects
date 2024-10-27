@@ -331,37 +331,47 @@ class Mobile_netV2(nn.Module):
         ##################################################################################
         ##################################################################################
 
-        self.model   = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
-        self.head_fg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
-        self.head_cg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        # self.model   = timm.create_model('convnext_tiny.fb_in1k', pretrained=True, features_only=True, out_indices=[2])
+        # self.head_fg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
+        # self.head_cg = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).head 
 
-        self.head_fg.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=3840, out_features=num_classes, bias=True),
-                )
-        self.head_fg.norm = LayerNorm2d((3840,))
+        # self.head_fg.fc = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=3840, out_features=num_classes, bias=True),
+        #         )
+        # self.head_fg.norm = LayerNorm2d((3840,))
 
-        self.head_cg.fc = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=5, bias=True),
-                )
-        self.head_cg.norm = LayerNorm2d((768,))
+        # self.head_cg.fc = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=768, out_features=5, bias=True),
+        #         )
+        # self.head_cg.norm = LayerNorm2d((768,))
+
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
+
+        # for param in self.head_fg.parameters():
+        #     param.requires_grad = True
+
+        # for param in self.head_cg.parameters():
+        #     param.requires_grad = True
+
+        # self.store        = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        # self.home         = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        # self.leisure      = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        # self.publicplace  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        # self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        # self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+
+        self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
 
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.head_fg.parameters():
-            param.requires_grad = True
-
-        for param in self.head_cg.parameters():
-            param.requires_grad = True
-
-        self.store        = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
-        self.home         = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
-        self.leisure      = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
-        self.publicplace  = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
-        self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
-        self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
+        self.head = nn.Sequential(
+                    nn.Dropout(p=0.5, inplace=True),
+                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                )
 
         ##################################################################################
         ##################################################################################
@@ -499,30 +509,32 @@ class Mobile_netV2(nn.Module):
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
 
-        x = self.model(x_in)[0]
+        # x = self.model(x_in)[0]
 
-        s = self.store(x)     
-        h = self.home(x)      
-        l = self.leisure(x)   
-        p = self.publicplace(x) 
-        w = self.workingplace(x)
+        # s = self.store(x)     
+        # h = self.home(x)      
+        # l = self.leisure(x)   
+        # p = self.publicplace(x) 
+        # w = self.workingplace(x)
 
-        c = self.choose(x)
+        # c = self.choose(x)
 
-        g = torch.cat([s, h, l, p, w], dim=1)
+        # g = torch.cat([s, h, l, p, w], dim=1)
 
-        cg = self.head_cg(c) 
+        # cg = self.head_cg(c) 
 
-        rg = cg.clone().detach()
+        # rg = cg.clone().detach()
 
-        sw = s * rg.softmax(dim=1)[:,0:1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
-        hw = h * rg.softmax(dim=1)[:,1:2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
-        lw = l * rg.softmax(dim=1)[:,2:3].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
-        pw = p * rg.softmax(dim=1)[:,3:4].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
-        ww = w * rg.softmax(dim=1)[:,4: ].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
+        # sw = s * rg.softmax(dim=1)[:,0:1].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(s)
+        # hw = h * rg.softmax(dim=1)[:,1:2].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(h)
+        # lw = l * rg.softmax(dim=1)[:,2:3].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(l)
+        # pw = p * rg.softmax(dim=1)[:,3:4].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(p)
+        # ww = w * rg.softmax(dim=1)[:,4: ].unsqueeze(dim=2).unsqueeze(dim=3).expand_as(w)
 
-        gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
-        fg = self.head_fg(gw) 
+        # gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
+        # fg = self.head_fg(gw) 
+
+        x = self.head(self.model(x))
 
         # if (not self.training):
 
@@ -559,9 +571,9 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return fg, cg
+            return x
         else:
-            return (torch.softmax(fg, dim=1))
+            return torch.softmax(x, dim=1)
 
 labels = {
             'airport inside': 0,
