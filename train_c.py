@@ -257,7 +257,7 @@ def main(args):
         # testset = torchvision.datasets.ImageFolder(root='/content/MIT-67-seg/test/', transform=transform_test)
         # test_loader = torch.utils.data.DataLoader(testset  , batch_size = 1         , shuffle=True, num_workers=NUM_WORKERS)
 
-        trainset     = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
+        trainset = torchvision.datasets.ImageFolder(root='/content/MIT-67/train/', transform=transform_train)
 
         # subdirectories = trainset.classes
         # class_weights = []
