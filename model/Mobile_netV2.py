@@ -247,24 +247,24 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
-        # model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
-        # model = model.backbone
+        model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
+        model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
+        model = model.backbone
 
         # model.input_stem.op_list[0].conv.stride  = (1, 1)
         # model.input_stem.op_list[0].conv.padding = (0, 0)
 
-        # self.model = model
+        self.model = model
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.stages[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.stages[-1].parameters():
+            param.requires_grad = True
 
-        # self.dropout = nn.Dropout(0.5)
-        # self.avgpool = nn.AvgPool2d(14, stride=14)
-        # self.fc_SEM  = nn.Linear(384, num_classes)
+        self.dropout = nn.Dropout(0.5)
+        self.avgpool = nn.AvgPool2d(14, stride=14)
+        self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -363,18 +363,18 @@ class Mobile_netV2(nn.Module):
         # self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         # self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
 
-        self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+        # self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        # for param in self.model.blocks[-1].parameters():
-        #     param.requires_grad = True
+        # # for param in self.model.blocks[-1].parameters():
+        # #     param.requires_grad = True
 
-        self.head = nn.Sequential(
-                    nn.Dropout(p=0.5, inplace=True),
-                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
-                )
+        # self.head = nn.Sequential(
+        #             nn.Dropout(p=0.5, inplace=True),
+        #             nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        #         )
 
         ##################################################################################
         ##################################################################################
@@ -486,12 +486,12 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        # x = self.model(x_in) # ['logits']
-        # x = x['stage_final']
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
+        x = self.model(x_in) # ['logits']
+        x = x['stage_final']
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.dropout(x)
+        x = self.fc_SEM(x)
 
         # x = self.model.backbone(x_in)
         # y = self.model.head(x)['segout']
@@ -537,7 +537,7 @@ class Mobile_netV2(nn.Module):
         # gw = torch.cat([sw, hw, lw, pw, ww], dim=1)
         # fg = self.head_fg(gw) 
 
-        x = self.head(self.model(x_in))
+        # x = self.head(self.model(x_in))
 
         # if (not self.training):
 
