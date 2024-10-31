@@ -253,6 +253,8 @@ class Mobile_netV2(nn.Module):
 
         # model.input_stem.op_list[0].conv.stride  = (1, 1)
         # model.input_stem.op_list[0].conv.padding = (0, 0)
+        
+        model.stages[-1].op_list[0].main.depth_conv.conv.stride = (1, 1) 
 
         self.model = model
 
