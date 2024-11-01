@@ -247,8 +247,8 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
-        model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
+        model = create_efficientvit_seg_model(name="efficientvit-seg-b3-ade20k", pretrained=False)
+        model.load_state_dict(torch.load('/content/efficientvit_seg_b3_ade20k.pt')['state_dict'])
         model = model.backbone
 
         model.input_stem.op_list[0].conv.stride  = (1, 1)
@@ -264,11 +264,11 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.stages[-1].op_list[-4:].parameters():
         #     param.requires_grad = True
 
-        self.head = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
+        self.head = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True).head
         self.head.classifier[3] = nn.Identity()
         self.head.classifier[4] = nn.Sequential(
                                                 nn.Dropout(p=0.5, inplace=True),
-                                                nn.Linear(in_features=2560, out_features=num_classes, bias=True)
+                                                nn.Linear(in_features=3200, out_features=num_classes, bias=True)
                                                 )
 
         # self.dropout = nn.Dropout(0.5)
