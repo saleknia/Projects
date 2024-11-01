@@ -500,7 +500,7 @@ class Mobile_netV2(nn.Module):
         x = self.model(x_in) # ['logits']
         x = x['stage_final']
         x = x.permute((0, 2, 3, 1))
-        x = x.view(40, 196, 384)
+        x = x.view(x.size(0), 196, 384)
         x = self.Bi_RNN(x)
 
         # x = self.model.backbone(x_in)
