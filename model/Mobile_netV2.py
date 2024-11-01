@@ -265,8 +265,11 @@ class Mobile_netV2(nn.Module):
         #     param.requires_grad = True
 
         self.head = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
-        self.head.classifier[3].p = 0.5
-        self.head.classifier[4].out_features = num_classes
+        self.head.classifier[3] = nn.Identity()
+        self.head.classifier[4] = nn.Sequential(
+                                                nn.Dropout(p=0.5, inplace=True),
+                                                nn.Linear(in_features=2560, out_features=num_classes, bias=True)
+                                                )
 
         # self.dropout = nn.Dropout(0.5)
         # self.avgpool = nn.AvgPool2d(14, stride=14)
