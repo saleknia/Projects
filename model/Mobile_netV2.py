@@ -247,29 +247,36 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = create_efficientvit_seg_model(name="efficientvit-seg-b3-ade20k", pretrained=False)
-        model.load_state_dict(torch.load('/content/efficientvit_seg_b3_ade20k.pt')['state_dict'])
-        model = model.backbone
+        # model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
+        # model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
+        # model = model.backbone
 
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
+        # model.input_stem.op_list[0].conv.stride  = (1, 1)
+        # model.input_stem.op_list[0].conv.padding = (0, 0)
 
         # model.stages[-1].op_list[0].main.depth_conv.conv.stride = (1, 1) 
 
-        self.model = model
+        # self.model = model
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.stages[-1].op_list[-4:].parameters():
         #     param.requires_grad = True
 
-        self.head = timm.create_model('timm/efficientvit_b3.r224_in1k', pretrained=True).head
-        self.head.classifier[3] = nn.Identity()
-        self.head.classifier[4] = nn.Sequential(
-                                                nn.Dropout(p=0.5, inplace=True),
-                                                nn.Linear(in_features=3200, out_features=num_classes, bias=True)
-                                                )
+        # for param in self.model.stages[-1].op_list[-4:].parameters():
+        #     param.requires_grad = True
+
+        # self.head = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
+
+        # for param in self.head.parameters():
+        #     param.requires_grad = False
+
+        # self.head.classifier[3] = nn.Identity()
+        # self.head.classifier[4] = nn.Sequential(
+        #                                         nn.Dropout(p=0.5, inplace=True),
+        #                                         nn.Linear(in_features=2560, out_features=num_classes, bias=True)
+        #                                         )
 
         # self.dropout = nn.Dropout(0.5)
         # self.avgpool = nn.AvgPool2d(14, stride=14)
@@ -319,23 +326,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
         # for param in self.model.stages[-1].parameters():
         #     param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -495,13 +502,13 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        x = self.model(x_in) # ['logits']
-        x = x['stage_final']
+        # x = self.model(x_in) # ['logits']
+        # x = x['stage_final']
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
-        x = self.head(x)
+        # x = self.head(x)
 
         # x = self.model.backbone(x_in)
         # y = self.model.head(x)['segout']
@@ -517,7 +524,7 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        # x = self.model(x_in)
+        x = self.model(x_in)
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
