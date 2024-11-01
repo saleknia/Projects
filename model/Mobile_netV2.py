@@ -525,7 +525,7 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         # x = self.model(x_in)
-        y = self.head(self.dino(x_in))
+        x = self.head(self.dino(x_in))
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
