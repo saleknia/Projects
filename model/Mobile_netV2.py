@@ -251,8 +251,8 @@ class Mobile_netV2(nn.Module):
         model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
         model = model.backbone
 
-        # model.input_stem.op_list[0].conv.stride  = (1, 1)
-        # model.input_stem.op_list[0].conv.padding = (0, 0)
+        model.input_stem.op_list[0].conv.stride  = (1, 1)
+        model.input_stem.op_list[0].conv.padding = (0, 0)
 
         # model.stages[-1].op_list[0].main.depth_conv.conv.stride = (1, 1) 
 
@@ -265,7 +265,7 @@ class Mobile_netV2(nn.Module):
             param.requires_grad = True
 
         self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(7, stride=7)
+        self.avgpool = nn.AvgPool2d(14, stride=14)
         self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
