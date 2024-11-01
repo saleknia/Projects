@@ -207,7 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
         if KD:
-            loss_ce = (ce_loss(outputs, targets.long()) * 1.0) + (ce_loss(out_cg, torch.tensor([convert[x] for x in targets.long()]).cuda().long()) * 1.0)
+            loss_ce = (ce_loss(outputs, targets.long()) * 1.0) + (ce_loss(out_cg, targets.long()) * 1.0)
         else:
             loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################
@@ -218,7 +218,10 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         # loss_ce = torch.nn.functional.cross_entropy(outputs, targets.long(), weight=None, size_average=None, ignore_index=- 100, reduce=None, reduction='mean', label_smoothing=0.0)
         # loss_disparity = 1.0 * (importance_maps_distillation(s=x2, t=x2_t) + importance_maps_distillation(s=x3, t=x3_t)) 
 
-        predictions = torch.argmax(input=torch.softmax(outputs, dim=1),dim=1).long()
+        if KD:
+            predictions = torch.argmax(input=torch.softmax(outputs, dim=1)+torch.softmax(out_cg, dim=1),dim=1).long()
+        else:
+            predictions = torch.argmax(input=torch.softmax(outputs, dim=1),dim=1).long()
 
         metric.update(predictions, targets.long())
 

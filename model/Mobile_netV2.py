@@ -379,18 +379,18 @@ class Mobile_netV2(nn.Module):
         # self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         # self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
 
-        # self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+        self.dino = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.dino.parameters():
+            param.requires_grad = False
 
-        # # for param in self.model.blocks[-1].parameters():
-        # #     param.requires_grad = True
+        # for param in self.model.blocks[-1].parameters():
+        #     param.requires_grad = True
 
-        # self.head = nn.Sequential(
-        #             nn.Dropout(p=0.5, inplace=True),
-        #             nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        #         )
+        self.dino.head = nn.Sequential(
+                                        nn.Dropout(p=0.5, inplace=True),
+                                        nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                                    )
 
         ##################################################################################
         ##################################################################################
@@ -491,7 +491,7 @@ class Mobile_netV2(nn.Module):
 
         # self.count = 0.0
         # self.batch = 0.0
-        # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
+        # self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))]) hub
         #################################
         #################################
 
@@ -525,6 +525,7 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         x = self.model(x_in)
+        y = self.dino.head(self.dino(x_in))
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
@@ -591,9 +592,9 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x
+            return x, y
         else:
-            return torch.softmax(x, dim=1)
+            return (torch.softmax(x, dim=1) + torch.softmax(xy, dim=1)) / 2.0
 
 import torch.nn as nn
 class Bi_RNN(nn.Module):
