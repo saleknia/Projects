@@ -261,14 +261,15 @@ class Mobile_netV2(nn.Module):
         for param in self.model.parameters():
             param.requires_grad = False
 
-        for param in self.model.stages[-1].op_list[-3:].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].op_list[-4:].parameters():
+        #     param.requires_grad = True
 
-        self.Bi_RNN = Bi_RNN(input_dim=384, hidden_dim=192, batch_size=40, output_dim=67, num_layers=2, rnn_type='LSTM')
+        self.head = timm.create_model('timm/efficientvit_b2.r224_in1k', pretrained=True).head
+        self.head.classifier[3].p = 0.5
 
         # self.dropout = nn.Dropout(0.5)
         # self.avgpool = nn.AvgPool2d(14, stride=14)
-        # self.fc_SEM  = nn.Linear(3456, num_classes)
+        # self.fc_SEM  = nn.Linear(384, num_classes)
 
         #################################################################################
         #################################################################################
@@ -490,18 +491,13 @@ class Mobile_netV2(nn.Module):
 
     def forward(self, x_in):
 
-        # x = self.model(x_in) # ['logits']
-        # x = x['stage_final']
+        x = self.model(x_in) # ['logits']
+        x = x['stage_final']
         # x = self.avgpool(x)
         # x = x.view(x.size(0), -1)
         # x = self.dropout(x)
         # x = self.fc_SEM(x)
-
-        x = self.model(x_in) # ['logits']
-        x = x['stage_final']
-        x = x.permute((0, 2, 3, 1))
-        x = x.view(x.size(0), 196, 384)
-        x = self.Bi_RNN(x)
+        x = self.head(x)
 
         # x = self.model.backbone(x_in)
         # y = self.model.head(x)['segout']
