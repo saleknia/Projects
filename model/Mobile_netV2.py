@@ -499,8 +499,8 @@ class Mobile_netV2(nn.Module):
 
         x = self.model(x_in) # ['logits']
         x = x['stage_final']
-        x = x.permute(0, 2, 3, 1)
-        x = x.respahe(40, 196, 384)
+        x = x.permute((0, 2, 3, 1))
+        x = x.view(40, 196, 384)
         x = self.Bi_RNN(x)
 
         # x = self.model.backbone(x_in)
@@ -605,10 +605,10 @@ class Bi_RNN(nn.Module):
         self.lstm = eval('nn.' + rnn_type)(self.input_dim, self.hidden_dim, self.num_layers, batch_first=True, bidirectional=True)
 
         # Define the output layer
-        self.linear = nn.Linear(self.hidden_dim * 2, output_dim)
+        # self.linear = nn.Linear(self.hidden_dim * 2, output_dim)
 
         self.linear = nn.Sequential(
-                                    nn.Dropout(p=0.5, inplace=True),
+                                    nn.Dropout(p=0.5, inplace=False),
                                     nn.Linear(self.hidden_dim * 2, output_dim),
                                 )
 
