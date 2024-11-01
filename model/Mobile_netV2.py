@@ -326,23 +326,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
+        # model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        # for param in self.model.stages[-1].parameters():
+        # # for param in self.model.stages[-1].parameters():
+        # #     param.requires_grad = True
+
+        # for param in self.model.head.parameters():
         #     param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -387,10 +387,10 @@ class Mobile_netV2(nn.Module):
         # for param in self.model.blocks[-1].parameters():
         #     param.requires_grad = True
 
-        self.dino.head = nn.Sequential(
-                                        nn.Dropout(p=0.5, inplace=True),
-                                        nn.Linear(in_features=768, out_features=num_classes, bias=True),
-                                    )
+        self.head = nn.Sequential(
+                                    nn.Dropout(p=0.5, inplace=True),
+                                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                                )
 
         ##################################################################################
         ##################################################################################
@@ -524,8 +524,8 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        x = self.model(x_in)
-        y = self.dino.head(self.dino(x_in))
+        # x = self.model(x_in)
+        y = self.head(self.dino(x_in))
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
@@ -592,9 +592,9 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x, y
+            return x
         else:
-            return (torch.softmax(x, dim=1) + torch.softmax(xy, dim=1)) / 2.0
+            return torch.softmax(x, dim=1) # (torch.softmax(x, dim=1) + torch.softmax(y, dim=1)) / 2.0
 
 import torch.nn as nn
 class Bi_RNN(nn.Module):
