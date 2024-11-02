@@ -479,8 +479,8 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        # self.obj = obj_model()
-        # self.seg = seg_model()
+        self.dino   = dino()
+        self.dino_d = dino_d()
 
         # self.head = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -527,8 +527,10 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         # x = self.model(x_in)
-        t = teacher(x_in)
-        x = self.head(self.model(x_in))
+        # t = teacher(x_in)
+        # x = self.head(self.model(x_in))
+
+        x = (self.dino(x_in) + self.dino_d(x_in)) / 2.0
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
@@ -612,6 +614,38 @@ class dino(nn.Module):
                                 )
 
         loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/dino.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x_in):
+
+        x = self.head(self.model(x_in))
+
+        if self.training:
+            return torch.softmax(x, dim=1) 
+        else:
+            return torch.softmax(x, dim=1) 
+
+class dino_d(nn.Module):
+
+    def __init__(self, num_classes=67):
+        super(dino_d, self).__init__()
+        
+        self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+
+        self.head = nn.Sequential(
+                                    nn.Dropout(p=0.5, inplace=True),
+                                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                                )
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/dino_d.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
