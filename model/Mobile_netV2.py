@@ -528,7 +528,7 @@ class Mobile_netV2(nn.Module):
 
         # x = self.model(x_in)
 
-        t = teacher(x_in)
+        # t = teacher(x_in)
         x = self.head(self.model(x_in))
 
         # x = (self.dino(x_in) + self.dino_d(x_in)) / 2.0
@@ -600,7 +600,7 @@ class Mobile_netV2(nn.Module):
         # return x
 
         if self.training:
-            return x, t
+            return x#, t
         else:
             return torch.softmax(x, dim=1) 
 
