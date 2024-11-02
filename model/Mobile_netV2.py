@@ -326,23 +326,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        # model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
+        model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
 
-        # self.model = model 
+        self.model = model 
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # self.model.head.fc = nn.Sequential(
-        #     nn.Dropout(p=0.5, inplace=True),
-        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        # )
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
 
-        # # for param in self.model.stages[-1].parameters():
-        # #     param.requires_grad = True
+        for param in self.model.stages[-1].blocks[-1].parameters():
+            param.requires_grad = True
 
-        # for param in self.model.head.parameters():
-        #     param.requires_grad = True
+        for param in self.model.head.parameters():
+            param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -379,18 +379,18 @@ class Mobile_netV2(nn.Module):
         # self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         # self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
 
-        self.dino = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+        # self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
 
-        for param in self.dino.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
         # for param in self.model.blocks[-1].parameters():
         #     param.requires_grad = True
 
-        self.head = nn.Sequential(
-                                    nn.Dropout(p=0.5, inplace=True),
-                                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
-                                )
+        # self.head = nn.Sequential(
+        #                             nn.Dropout(p=0.5, inplace=True),
+        #                             nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        #                         )
 
         ##################################################################################
         ##################################################################################
@@ -524,8 +524,8 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        # x = self.model(x_in)
-        x = self.head(self.dino(x_in))
+        x = self.model(x_in)
+        # x = self.head(self.model(x_in))
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
@@ -594,7 +594,31 @@ class Mobile_netV2(nn.Module):
         if self.training:
             return x
         else:
-            return torch.softmax(x, dim=1) # (torch.softmax(x, dim=1) + torch.softmax(y, dim=1)) / 2.0
+            return torch.softmax(x, dim=1) 
+
+class dino(nn.Module):
+
+    def __init__(self, input_dim, hidden_dim, batch_size, output_dim=11, num_layers=2, rnn_type='LSTM'):
+        super(dino, self).__init__()
+        
+        self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+
+        self.head = nn.Sequential(
+                                    nn.Dropout(p=0.5, inplace=True),
+                                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                                )
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x_in):
+
+        x = self.head(self.model(x_in))
+
+        if self.training:
+            return torch.softmax(x, dim=1) 
+        else:
+            return torch.softmax(x, dim=1) 
 
 import torch.nn as nn
 class Bi_RNN(nn.Module):
@@ -711,491 +735,3 @@ labels = {
  }
 
 class_txt = [f'a photo of a {x}.' for x in labels]
-
-class obj_model(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(obj_model, self).__init__()
-
-        model = timm.create_model('timm/convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/obj_best.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-        self.model.head.fc = nn.Identity()
-
-    def forward(self, x_in):
-
-        x = self.model(x_in)
-        # x = torch.softmax(x, dim=1)
-        return x
-
-class seg_model(nn.Module):
-    def __init__(self, num_classes=40, pretrained=True):
-        super(seg_model, self).__init__()
-
-        model = create_efficientvit_seg_model(name="efficientvit-seg-b2-ade20k", pretrained=False)
-        model.load_state_dict(torch.load('/content/efficientvit_seg_b2_ade20k.pt')['state_dict'])
-        model = model.backbone
-
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
-
-        self.model = model
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=14)
-        self.fc_SEM  = nn.Linear(384, num_classes)
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/seg_best.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x = self.model(x_in) 
-        x = x['stage_final']
-        x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
-        # x = torch.softmax(x, dim=1)
-
-        return x
-
-class leisure(nn.Module):
-    def __init__(self, num_classes=13, pretrained=True):
-        super(leisure, self).__init__()
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/leisure.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x = self.model.stages[-1](x_in)
-        y = self.model.head(x).softmax(dim=1)
-        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        # print(y.shape)
-        x = x * y.expand_as(x)
-
-        return x
-
-class publicplace(nn.Module):
-    def __init__(self, num_classes=15, pretrained=True):
-        super(publicplace, self).__init__()
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/publicplace.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x = self.model.stages[-1](x_in)
-        y = self.model.head(x).softmax(dim=1)
-        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        # print(y.shape)
-        x = x * y.expand_as(x)
-
-        return x
-
-class workingplace(nn.Module):
-    def __init__(self, num_classes=16, pretrained=True):
-        super(workingplace, self).__init__()
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/workingplace.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x = self.model.stages[-1](x_in)
-        y = self.model.head(x).softmax(dim=1)
-        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        # print(y.shape)
-        x = x * y.expand_as(x)
-
-        return x
-
-class store(nn.Module):
-    def __init__(self, num_classes=13, pretrained=True):
-        super(store, self).__init__()
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/store.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        x = self.model.stages[-1](x_in)
-        y = self.model.head(x).softmax(dim=1)
-        y = (1.0 - y[:, -1]).unsqueeze(dim=1).unsqueeze(dim=2).unsqueeze(dim=3)
-        # print(y.shape)
-        x = x * y.expand_as(x)
-
-        return x
-
-class super_model(nn.Module):
-    def __init__(self, num_classes=5, pretrained=True):
-        super(super_model, self).__init__()
-
-        model = timm.create_model('convnext_tiny.fb_in1k', pretrained=True)
-
-        self.model = model 
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/super.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-    def forward(self, x_in):
-
-        y = (self.model(x_in)).softmax(dim=1)
-        
-        x = torch.ones(1, 67).cuda()
-
-        x[:, 0 :12] = torch.mul(x[:, 0 :12], y[:,0:1].expand_as(x[:, 0 :12]))
-        x[:, 12:26] = torch.mul(x[:, 12:26], y[:,1:2].expand_as(x[:, 12:26]))
-        x[:, 26:38] = torch.mul(x[:, 26:38], y[:,2:3].expand_as(x[:, 26:38]))
-        x[:, 38:52] = torch.mul(x[:, 38:52], y[:,3:4].expand_as(x[:, 38:52]))
-        x[:, 52:67] = torch.mul(x[:, 52:67], y[:,4:5].expand_as(x[:, 52:67]))
-
-        return x
-
-
-
-alpha = 0.0
-
-class teacher_ensemble(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(teacher_ensemble, self).__init__()
-
-        self.maxvit = maxvit_model()
-        self.scene  = scene()
-        self.seg    = seg()
-
-    def forward(self, x0):
-
-        # b, c, w, h = x0.shape
-
-        a = self.maxvit(x0)
-        b = self.scene(x0)
-        c = self.seg(x0) 
-
-        x = (a + b + c) / 3.0
-
-        return x
-
-class scene(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(scene, self).__init__()
-       
-        model      = models.__dict__['resnet50'](num_classes=365)
-        checkpoint = torch.load('/content/resnet50_places365.pth.tar', map_location='cpu')
-        state_dict = {str.replace(k,'module.',''): v for k,v in checkpoint['state_dict'].items()}
-
-        model.load_state_dict(state_dict)
-
-        self.model = model
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.layer4[-1].parameters():
-            param.requires_grad = True
-
-        self.model.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=2048, out_features=67, bias=True),
-        )
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/scene.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
-
-    def forward(self, x_in):
-        # b, c, w, h = x0.shape
-
-        # x = self.model(x0)
-
-        if (not self.training):
-
-            x0, x1 = x_in[0], x_in[1]
-            
-            x = self.model(x0)
-            x = torch.softmax(x, dim=1)
-
-            if (x.max() < alpha):
-
-                y = self.transform(x1)
-                ncrops, bs, c, h, w = y.size()
-                x = self.model(y.view(-1, c, h, w))
-
-                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
-                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
-
-                # x = torch.softmax(x, dim=1)
-                # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                # x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
-        
-        else:
-            b, c, w, h = x_in.shape
-            x = self.model(x_in)
-
-        return x # torch.softmax(x, dim=1)
-
-
-class seg(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(seg, self).__init__()
-       
-        model = create_seg_model(name="b2", dataset="ade20k", weight_url="/content/drive/MyDrive/b2.pt").backbone
-
-        model.input_stem.op_list[0].conv.stride  = (1, 1)
-        model.input_stem.op_list[0].conv.padding = (0, 0)
-
-        self.model = model
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        self.dropout = nn.Dropout(0.5)
-        self.avgpool = nn.AvgPool2d(14, stride=1)
-        self.fc_SEM  = nn.Linear(384, num_classes)
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/seg.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
-
-    def forward(self, x_in):
-        # b, c, w, h = x0.shape
-
-        # x = self.model(x0)
-        # x = x['stage_final']
-        # x = self.avgpool(x)
-        # x = x.view(x.size(0), -1)
-        # x = self.dropout(x)
-        # x = self.fc_SEM(x)
-
-        if (not self.training):
-
-            x0, x1 = x_in[0], x_in[1]
-                
-            x = self.model(x0)
-            x = x['stage_final']
-            x = self.avgpool(x)
-            x = x.view(x.size(0), -1)
-            x = self.dropout(x)
-            x = self.fc_SEM(x)
-            x = torch.softmax(x, dim=1)
-
-            if (x.max() < alpha):
-
-                y = self.transform(x1)
-                ncrops, bs, c, h, w = y.size()
-
-                x = self.model(y.view(-1, c, h, w))
-                x = x['stage_final']
-                x = self.avgpool(x)
-                x = x.view(x.size(0), -1)
-                x = self.dropout(x)
-                x = self.fc_SEM(x)
-
-                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
-                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
-
-                # x = torch.softmax(x, dim=1)
-                # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                # x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
-        
-        else:
-            b, c, w, h = x_in.shape
-            x = self.model(x_in)
-
-        return x # torch.softmax(x, dim=1)
-
-class maxvit_model(nn.Module):
-    def __init__(self, num_classes=67, pretrained=True):
-        super(maxvit_model, self).__init__()
-
-        model = timm.create_model('timm/maxvit_tiny_tf_224.in1k', pretrained=True)
-
-        self.model = model 
-
-        for param in self.model.parameters():
-            param.requires_grad = False
-
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=False),
-            nn.Linear(in_features=512, out_features=num_classes, bias=True),
-        )
-
-        for param in self.model.stages[-1].parameters():
-            param.requires_grad = True
-
-        for param in self.model.head.parameters():
-            param.requires_grad = True
-
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/max.pth', map_location='cpu')
-        pretrained_teacher  = loaded_data_teacher['net']
-        a = pretrained_teacher.copy()
-        for key in a.keys():
-            if 'teacher' in key:
-                pretrained_teacher.pop(key)
-        self.load_state_dict(pretrained_teacher)
-
-        self.transform = torchvision.transforms.Compose([FiveCrop(224), Lambda(lambda crops: torch.stack([crop for crop in crops]))])
-        
-    def forward(self, x_in):
-        # b, c, w, h = x0.shape
-
-        if (not self.training):
-
-            x0, x1 = x_in[0], x_in[1]
-            
-            x = self.model(x0)
-            x = torch.softmax(x, dim=1)
-
-            if (x.max() < alpha):
-
-                y = self.transform(x1)
-                ncrops, bs, c, h, w = y.size()
-                x = self.model(y.view(-1, c, h, w))
-                
-                x = torch.softmax(x.mean(0, keepdim=True), dim=1)
-                # x = torch.softmax(x, dim=1).mean(0, keepdim=True)
-
-                # x = torch.softmax(x, dim=1)
-                # a, b, c = torch.topk(x.max(dim=1).values, 3).indices
-                # x = ((x[a] + x[b] + x[c]) / 3.0).unsqueeze(dim=0)
-        
-        else:
-            b, c, w, h = x_in.shape
-            x = self.model(x_in)
-
-        return x # torch.softmax(x, dim=1)
