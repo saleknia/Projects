@@ -328,23 +328,23 @@ class Mobile_netV2(nn.Module):
         #################################################################################
         #################################################################################
 
-        model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
+        # model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
 
-        self.model = model 
+        # self.model = model 
 
-        for param in self.model.parameters():
-            param.requires_grad = False
+        # for param in self.model.parameters():
+        #     param.requires_grad = False
 
-        self.model.head.fc = nn.Sequential(
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        )
+        # self.model.head.fc = nn.Sequential(
+        #     nn.Dropout(p=0.5, inplace=True),
+        #     nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        # )
 
-        for param in self.model.stages[-1].blocks[-1].parameters():
-            param.requires_grad = True
+        # for param in self.model.stages[-1].blocks[-1].parameters():
+        #     param.requires_grad = True
 
-        for param in self.model.head.parameters():
-            param.requires_grad = True
+        # for param in self.model.head.parameters():
+        #     param.requires_grad = True
 
         ##################################################################################
         ##################################################################################
@@ -381,18 +381,18 @@ class Mobile_netV2(nn.Module):
         # self.workingplace = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
         # self.choose       = timm.create_model('convnext_tiny.fb_in1k', pretrained=True).stages[-1]
 
-        # self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
+        self.model = torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')
 
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
+        for param in self.model.parameters():
+            param.requires_grad = False
 
-        # for param in self.model.blocks[-1].parameters():
-        #     param.requires_grad = True
+        for param in self.model.blocks[-1].parameters():
+            param.requires_grad = True
 
-        # self.head = nn.Sequential(
-        #                             nn.Dropout(p=0.5, inplace=True),
-        #                             nn.Linear(in_features=768, out_features=num_classes, bias=True),
-        #                         )
+        self.head = nn.Sequential(
+                                    nn.Dropout(p=0.5, inplace=True),
+                                    nn.Linear(in_features=768, out_features=num_classes, bias=True),
+                                )
 
         ##################################################################################
         ##################################################################################
@@ -526,10 +526,10 @@ class Mobile_netV2(nn.Module):
         # y = self.dropout_1(y)
         # y = self.fc_SEM_1(y)
 
-        x = self.model(x_in)
+        # x = self.model(x_in)
 
         # t = teacher(x_in)
-        # x = self.head(self.model(x_in))
+        x = self.head(self.model(x_in))
 
         # x = (self.dino(x_in) + self.dino_d(x_in)) / 2.0
 
@@ -668,10 +668,10 @@ class dino_d(nn.Module):
         else:
             return torch.softmax(x, dim=1) 
 
-class convnext(nn.Module):
+class convnext_tiny(nn.Module):
 
     def __init__(self, num_classes=67):
-        super(convnext, self).__init__()
+        super(convnext_tiny, self).__init__()
         
         model = timm.create_model('timm/convnext_tiny.fb_in22k', pretrained=True)
 
@@ -685,7 +685,7 @@ class convnext(nn.Module):
             nn.Linear(in_features=768, out_features=num_classes, bias=True),
         )
 
-        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/convnext.pth', map_location='cpu')
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/convnext_tiny.pth', map_location='cpu')
         pretrained_teacher  = loaded_data_teacher['net']
         a = pretrained_teacher.copy()
         for key in a.keys():
@@ -704,6 +704,44 @@ class convnext(nn.Module):
             return torch.softmax(x, dim=1) 
         else:
             return torch.softmax(x, dim=1) 
+
+class convnext_small(nn.Module):
+
+    def __init__(self, num_classes=67):
+        super(convnext_small, self).__init__()
+        
+        model = timm.create_model('timm/convnext_small.fb_in22k', pretrained=True)
+
+        self.model = model 
+
+        for param in self.model.parameters():
+            param.requires_grad = False
+
+        self.model.head.fc = nn.Sequential(
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(in_features=768, out_features=num_classes, bias=True),
+        )
+
+        loaded_data_teacher = torch.load('/content/drive/MyDrive/checkpoint/convnext_small.pth', map_location='cpu')
+        pretrained_teacher  = loaded_data_teacher['net']
+        a = pretrained_teacher.copy()
+        for key in a.keys():
+            if 'teacher' in key:
+                pretrained_teacher.pop(key)
+        self.load_state_dict(pretrained_teacher)
+
+        for param in self.parameters():
+            param.requires_grad = False
+
+    def forward(self, x_in):
+
+        x = self.model(x_in)
+
+        if self.training:
+            return torch.softmax(x, dim=1) 
+        else:
+            return torch.softmax(x, dim=1)
+
 teacher = dino().cuda()
 import torch.nn as nn
 class Bi_RNN(nn.Module):
