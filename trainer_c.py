@@ -207,8 +207,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
         if KD:
-            T = 1.0
-            loss_ce = (ce_loss(outputs, targets.long())) + (F.kl_div(F.log_softmax(outputs/T, dim=1),F.softmax(outputs_t/T, dim=1),reduction='batchmean') * T * T)
+            loss_ce = ce_loss(outputs, outputs_t) 
         else:
             loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################
