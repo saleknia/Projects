@@ -479,8 +479,8 @@ class Mobile_netV2(nn.Module):
         #         pretrained_teacher.pop(key)
         # self.load_state_dict(pretrained_teacher)
 
-        self.dino   = dino()
-        self.dino_d = dino_d()
+        # self.dino   = dino()
+        # self.dino_d = dino_d()
 
         # self.head = nn.Sequential(
         #     nn.Dropout(p=0.5, inplace=True),
@@ -527,10 +527,13 @@ class Mobile_netV2(nn.Module):
         # y = self.fc_SEM_1(y)
 
         # x = self.model(x_in)
-        # t = teacher(x_in)
-        # x = self.head(self.model(x_in))
 
-        x = (self.dino(x_in) + self.dino_d(x_in)) / 2.0
+        t = teacher(x_in)
+        x = self.head(self.model(x_in))
+
+        # x = (self.dino(x_in) + self.dino_d(x_in)) / 2.0
+
+        # x = self.dino_d(x_in)
 
         # seg = self.seg(x_in)
         # obj = self.obj(x_in)
@@ -701,7 +704,7 @@ class convnext(nn.Module):
             return torch.softmax(x, dim=1) 
         else:
             return torch.softmax(x, dim=1) 
-teacher = convnext().cuda()
+teacher = dino().cuda()
 import torch.nn as nn
 class Bi_RNN(nn.Module):
 

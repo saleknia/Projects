@@ -207,7 +207,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         ####################################################################################################
         ####################################################################################################
         if KD:
-            loss_ce = ce_loss(outputs, outputs_t) 
+            oh_targets = torch.nn.functional.one_hot(targets.long(), num_classes=num_class)
+            loss_ce    = ce_loss(outputs, (outputs_t + oh_targets) / 2.0) 
         else:
             loss_ce = ce_loss(outputs, targets.long()) 
         ####################################################################################################
