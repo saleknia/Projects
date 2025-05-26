@@ -781,7 +781,7 @@ class Synapse_dataset(Dataset):
         # print(type(sample['image']))
         # print(type(sample['label']))
 
-        sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_transform(sample['label'])
+        # sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_transform(sample['label'])
         # sample['image'] = self.img_transform(sample['image'])
 
         image,mask = sample['image'],sample['label'] 
