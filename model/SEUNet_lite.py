@@ -104,7 +104,7 @@ class SEUNet_lite(nn.Module):
 
     def forward(self, x):
         b, c, h, w = x.shape
-        # x = torch.cat([x, x, x], dim=1)
+        x = torch.cat([x, x, x], dim=1)
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)
         e0 = self.firstrelu(e0)
@@ -114,53 +114,12 @@ class SEUNet_lite(nn.Module):
         e2 = self.encoder2(e1)
         e3 = self.encoder3(e2)
         e4 = self.encoder4(e3)
-
         
-        w = self.up3_1(e4, e3) 
-        w = self.up2_1(w , e2) 
-        w = self.up1_1(w , e1) 
+        w = self.up3(e4, e3) 
+        w = self.up2(w , e2) 
+        w = self.up1(w , e1) 
 
         w = self.final_conv(w)
         w = self.final_up(w)
 
         return w
-
-from torchvision import models as resnet_model
-import torchvision
-import torch.nn as nn
-import torch
-import torch.nn.functional as F
-from torch.nn import Softmax
-import einops
-import timm
-
-import numpy as np
-import torch
-from torch import nn
-from torch.nn import init
-
-class SEUNet(nn.Module):
-    def __init__(self, n_channels=1, n_classes=9):
-        '''
-        n_channels : number of channels of the input.
-                        By default 3, because we have RGB images
-        n_labels : number of channels of the ouput.
-                      By default 3 (2 labels + 1 for the background)
-        '''
-        super().__init__()
-        self.n_channels = n_channels
-        self.n_classes = n_classes
-
-        resnet = resnet_model.resnet34(pretrained=True)
-
-        self.model = resnet
-        self.model.fc = nn.Sequential(nn.Dropout(p=0.5, inplace=True),nn.Linear(in_features=512, out_features=9, bias=True))
-
-    def forward(self, x):
-        
-        b, c, h, w = x.shape
-
-        x = self.model(x)
-
-        return x
-        

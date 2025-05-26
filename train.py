@@ -41,7 +41,7 @@ from model.Fast_SCNN import Fast_SCNN
 from model.Fast_SCNN_loss import Fast_SCNN_loss
 from model.ESPNet import ESPNet
 from model.ESPNet_loss import ESPNet_loss
-from model.SEUNet_loss import SEUNet_loss
+from model.SEUNet_lite import SEUNet_lite
 from model.DABNet import DABNet
 from model.DABNet_loss import DABNet_loss
 from model.ENet_loss import ENet_loss
@@ -160,8 +160,8 @@ def main(args):
     elif MODEL_NAME == 'DABNet_loss':
         model = DABNet_loss(num_classes=NUM_CLASS).to(DEVICE)
 
-    elif MODEL_NAME =='SEUNet_loss':
-        model = SEUNet_loss(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
+    elif MODEL_NAME =='SEUNet_lite':
+        model = SEUNet_lite(n_channels=1, n_classes=NUM_CLASS).to(DEVICE)
 
     elif MODEL_NAME =='MVIT':
         model = MVIT(n_classes=NUM_CLASS).to(DEVICE)
