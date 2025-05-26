@@ -501,6 +501,7 @@ class ValGenerator(object):
         image, label = sample['image'], sample['label']
         # image, label = F.to_pil_image(image), F.to_pil_image(label)
         # x, y = image.size
+        x, y = image.shape
         if x != self.output_size[0] or y != self.output_size[1]:
             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=3)  # why not 3?
             label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
