@@ -584,7 +584,7 @@ class Evaluator(object):
 
     def Mean_Intersection_over_Union(self,per_class=False,show=False):
         numerator = np.diag(self.confusion_matrix) 
-        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix))
+        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0)-np.diag(self.confusion_matrix) + 1e-6)
         if show:
             # print('Intersection Pixels: ',numerator)
             # print('Union Pixels: ',denominator)
@@ -601,7 +601,7 @@ class Evaluator(object):
 
     def Dice(self,per_class=False,show=False):
         numerator = 2*np.diag(self.confusion_matrix) 
-        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0))
+        denominator = (np.sum(self.confusion_matrix,axis=1) + np.sum(self.confusion_matrix, axis=0) + 1e-6)
         if show:
             # print('Intersection Pixels: ',numerator)
             # print('Union Pixels: ',denominator)

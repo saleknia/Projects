@@ -7,19 +7,6 @@ from torch.nn import Softmax
 import einops
 import timm
 
-class LayerNormProxy(nn.Module):
-    
-    def __init__(self, dim):
-        
-        super().__init__()
-        self.norm = nn.LayerNorm(dim)
-
-    def forward(self, x):
-
-        x = einops.rearrange(x, 'b c h w -> b h w c')
-        x = self.norm(x)
-        return einops.rearrange(x, 'b h w c -> b c h w')
-
 class ConvBatchNorm(nn.Module):
     """(convolution => [BN] => ReLU)"""
 
@@ -103,7 +90,7 @@ class SEUNet_lite(nn.Module):
         self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
     def forward(self, x):
-        b, c, h, w = x.shape
+        # b, c, h, w = x.shape
         x = torch.cat([x, x, x], dim=1)
         e0 = self.firstconv(x)
         e0 = self.firstbn(e0)

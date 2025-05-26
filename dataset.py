@@ -446,28 +446,52 @@ def crop_image(img,label,tol=0):
     label = zoom(label, (256.0 / label.shape[0], 256.0 / label.shape[1]), order=0)
     return image, label
 
+# class RandomGenerator(object):
+#     def __init__(self, output_size):
+#         self.output_size = output_size
+
+#     def __call__(self, sample):
+#         image, label = sample['image'], sample['label']
+#         print(np.unique(label))
+#         image, label = F.to_pil_image(image), F.to_pil_image(label)
+#         print(np.unique(label))
+
+#         x, y = image.size
+#         if random.random() > 0.5:
+#             image, label = random_rot_flip(image, label)
+#         elif random.random() > 0.5:
+#             image, label = random_rotate(image, label)
+
+
+#         if x != self.output_size[0] or y != self.output_size[1]:
+#             image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
+#             label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
+
+#         # image = F.to_tensor(image)
+#         # label = to_long_tensor(label)
+#         sample = {'image': image, 'label': label}
+#         return sample
+
 class RandomGenerator(object):
     def __init__(self, output_size):
         self.output_size = output_size
 
     def __call__(self, sample):
         image, label = sample['image'], sample['label']
-        image, label = F.to_pil_image(image), F.to_pil_image(label)
-        x, y = image.size
+
         if random.random() > 0.5:
             image, label = random_rot_flip(image, label)
         elif random.random() > 0.5:
             image, label = random_rotate(image, label)
-
-
+        x, y = image.shape
         if x != self.output_size[0] or y != self.output_size[1]:
-            image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=0)  # why not 3?
+            image = zoom(image, (self.output_size[0] / x, self.output_size[1] / y), order=3)  # why not 3?
             label = zoom(label, (self.output_size[0] / x, self.output_size[1] / y), order=0)
-
-        # image = F.to_tensor(image)
-        # label = to_long_tensor(label)
-        sample = {'image': image, 'label': label}
+        image = torch.from_numpy(image.astype(np.float32)).unsqueeze(0)
+        label = torch.from_numpy(label.astype(np.float32))
+        sample = {'image': image, 'label': label.long()}
         return sample
+
 
 class ValGenerator(object):
     def __init__(self, output_size):
@@ -687,8 +711,8 @@ class Synapse_dataset(Dataset):
 
         if split=='train':
             self.img_transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),])
+                transforms.ToTensor(),])
+                # transforms.ColorJitter (brightness=0.3, contrast=0.3, saturation=0.3, hue=0.3),])
         else:
             self.img_transform = transforms.Compose([transforms.ToTensor(),])
 
@@ -743,9 +767,14 @@ class Synapse_dataset(Dataset):
 
         sample = {'image': image, 'label': mask}
 
+        # print(np.unique(mask))
+
         # Data Augmentation
         if self.joint_transform:
             sample = self.transform(sample) 
+        
+        # print(np.unique(sample['label']))
+   
         # else:
             # sample['image'],sample['label'] = self.transform(sample['image'],sample['label'])
         
@@ -753,6 +782,7 @@ class Synapse_dataset(Dataset):
         # print(type(sample['label']))
 
         sample['image'],sample['label'] = self.img_transform(sample['image']), self.gt_transform(sample['label'])
+        # sample['image'] = self.img_transform(sample['image'])
 
         image,mask = sample['image'],sample['label'] 
 
