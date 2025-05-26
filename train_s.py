@@ -317,7 +317,7 @@ def main(args):
         # valid_dataset=Synapse_dataset(split='val',index=index[2000:],joint_transform=val_tf)
 
         train_dataset=Synapse_dataset(split='train', joint_transform=train_tf)
-        valid_dataset=Synapse_dataset(split='val', joint_transform=val_tf)
+        valid_dataset=Synapse_dataset(split='val'  , joint_transform=val_tf)
 
         # g = torch.Generator()
         # g.manual_seed(0)

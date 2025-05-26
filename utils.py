@@ -26,6 +26,8 @@ from torch import nn
 from torch.nn import functional as F
 from sklearn.metrics import roc_auc_score,jaccard_score
 
+# DiceLoss
+# Evaluator
 # disparity
 
 def dice_iou(gt_image, pre_image):

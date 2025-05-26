@@ -20,7 +20,7 @@ from PIL import Image
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
-from mit_semseg.models import ModelBuilder
+# from mit_semseg.models import ModelBuilder
 
 
 
@@ -422,7 +422,7 @@ class Mobile_netV2_dense(nn.Module):
 
 
 
-from mit_semseg.models import ModelBuilder
+# from mit_semseg.models import ModelBuilder
 
 class Mobile_netV2_seg(nn.Module):
     def __init__(self, num_classes=40, pretrained=True):

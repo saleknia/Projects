@@ -20,35 +20,35 @@ import torchvision.transforms.functional as TF
 from torch.utils.data import random_split
 from tqdm.notebook import tqdm
 import torch.optim as optim
-from models.UNet import UNet
-from models.UNet_loss import UNet_loss
-from models.UNet_plus import NestedUNet
-from models.UNet_plus_loss import NestedUNet_loss
-from models.att_unet import AttentionUNet
-from models.att_unet_loss import AttentionUNet_loss
-from models.multi_res_unet import MultiResUnet
-from models.U import U
-from models.U_loss import U_loss
-from models.ERFNet import ERFNet
-from models.ERFNet_loss import ERFNet_loss
-from models.multi_res_unet_loss import MultiResUnet_loss
-from models.UCTransNet import UCTransNet
-from models.GT_UNet import GT_U_Net
-from models.ENet import ENet
-from models.Mobile_netV2 import Mobile_netV2
-from models.Mobile_netV2_loss import Mobile_netV2_loss
-from models.Fast_SCNN import Fast_SCNN
-from models.Fast_SCNN_loss import Fast_SCNN_loss
-from models.ESPNet import ESPNet
-from models.ESPNet_loss import ESPNet_loss
-from models.SEUNet import SEUNet
-from models.DABNet import DABNet
-from models.DABNet_loss import DABNet_loss
-from models.ENet_loss import ENet_loss
-from models.UCTransNet_GT import UCTransNet_GT
-from models.GT_CTrans import GT_CTrans
-from models.MVIT import MVIT
-# from models.original_UNet import original_UNet
+from model.UNet import UNet
+from model.UNet_loss import UNet_loss
+from model.UNet_plus import NestedUNet
+from model.UNet_plus_loss import NestedUNet_loss
+from model.att_unet import AttentionUNet
+from model.att_unet_loss import AttentionUNet_loss
+from model.multi_res_unet import MultiResUnet
+from model.U import U
+from model.U_loss import U_loss
+from model.ERFNet import ERFNet
+from model.ERFNet_loss import ERFNet_loss
+from model.multi_res_unet_loss import MultiResUnet_loss
+from model.UCTransNet import UCTransNet
+from model.GT_UNet import GT_U_Net
+from model.ENet import ENet
+from model.Mobile_netV2 import Mobile_netV2
+from model.Mobile_netV2_loss import Mobile_netV2_loss
+from model.Fast_SCNN import Fast_SCNN
+from model.Fast_SCNN_loss import Fast_SCNN_loss
+from model.ESPNet import ESPNet
+from model.ESPNet_loss import ESPNet_loss
+# from model.SEUNet import SEUNet
+from model.DABNet import DABNet
+from model.DABNet_loss import DABNet_loss
+from model.ENet_loss import ENet_loss
+from model.UCTransNet_GT import UCTransNet_GT
+from model.GT_CTrans import GT_CTrans
+from model.MVIT import MVIT
+# from model.original_UNet import original_UNet
 import utils
 from utils import color
 from utils import Save_Checkpoint
@@ -58,7 +58,7 @@ from dataset import COVID_19,Synapse_dataset,RandomGenerator,ValGenerator,ACDC,C
 from utils import DiceLoss,atten_loss,prototype_loss,prototype_loss_kd,proto
 from config import *
 from tabulate import tabulate
-from tensorboardX import SummaryWriter
+# from tensorboardX import SummaryWriter
 # from testing import inference
 # from testingV2 import inferenceV2
 import warnings

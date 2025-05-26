@@ -25,26 +25,26 @@ import timm
 from .wideresnet import *
 from .wideresnet import recursion_change_bn
 
-from pyts.image import GramianAngularField as GAF
-from pyts.preprocessing import MinMaxScaler as scaler
-from pyts.image import MarkovTransitionField as MTF
-from mit_semseg.models import ModelBuilder
-from pyts.image import RecurrencePlot
+# from pyts.image import GramianAngularField as GAF
+# from pyts.preprocessing import MinMaxScaler as scaler
+# from pyts.image import MarkovTransitionField as MTF
+# from mit_semseg.models import ModelBuilder
+# from pyts.image import RecurrencePlot
 
 from torchvision import transforms
 transform_test = transforms.Compose([
     transforms.Resize((384, 384)),
 ])
 from torchvision.transforms import FiveCrop, Lambda
-from efficientvit.seg_model_zoo import create_efficientvit_seg_model
+# from efficientvit.seg_model_zoo import create_efficientvit_seg_model
 
 # from efficientvit.cls_model_zoo import create_cls_model
-from timm.layers import LayerNorm2d
+# from timm.layers import LayerNorm2d
 
-from transformers import CLIPProcessor, CLIPModel
-from PIL import Image
+# from transformers import CLIPProcessor, CLIPModel
+# from PIL import Image
 
-from transformers import AutoModelForImageClassification
+# from transformers import AutoModelForImageClassification
 
 
 
@@ -742,7 +742,7 @@ class convnext_small(nn.Module):
         else:
             return torch.softmax(x, dim=1)
 
-teacher = convnext_small().cuda()
+# teacher = convnext_small().cuda()
 import torch.nn as nn
 class Bi_RNN(nn.Module):
 
