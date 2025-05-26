@@ -93,7 +93,7 @@ class SEUNet_lite(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128)
         self.up1 = UpBlock(in_channels=128, out_channels=64 )
 
-        self.final_conv = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_conv = nn.Conv2d(64, 64, 1, padding=0)
         self.final_up   = nn.Upsample(scale_factor=4)
 
         # self.final_conv1_1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
