@@ -159,7 +159,7 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
 
         # targets = targets[:, 0, :, :]
 
-        print(torch.unique(targets))
+        # print(torch.unique(targets))
 
         # with torch.autocast(device_type=device, dtype=torch.float16):
         outputs = model(inputs)
