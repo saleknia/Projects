@@ -43,14 +43,14 @@ if log:
     logger.info(f'Logging Directory: {logging_log}')   
 ##########################################################################
 
-LEARNING_RATE = 0.001
-DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-BATCH_SIZE = 16
-NUM_EPOCHS = 1
-NUM_WORKERS = 4
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 224
-PIN_MEMORY = True
+LEARNING_RATE  = 0.001
+DEVICE         = "cuda" if torch.cuda.is_available() else "cpu"
+BATCH_SIZE     = 16
+NUM_EPOCHS     = 30
+NUM_WORKERS    = 4
+IMAGE_HEIGHT   = 224
+IMAGE_WIDTH    = 224
+PIN_MEMORY     = True
 early_stopping = 200
 
 # LEARNING_RATE = 1e-4 # 5e-5

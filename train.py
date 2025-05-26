@@ -295,15 +295,15 @@ def main(args):
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
-                                drop_last=True,
+                                drop_last=False,
                                 )
         valid_loader = DataLoader(valid_dataset,
-                                batch_size=1,
+                                batch_size=BATCH_SIZE,
                                 shuffle=True,
                                 worker_init_fn=worker_init,
                                 num_workers=NUM_WORKERS,
                                 pin_memory=PIN_MEMORY,
-                                drop_last=True,
+                                drop_last=False,
                                 )
 
         data_loader={'train':train_loader,'valid':valid_loader}
