@@ -427,3 +427,97 @@ No Such file : /content/drive/MyDrive/checkpoint/SEUNet_lite_Synapse_last.pth
 **************************************************
 Training Phase
 **************************************************
+Logging Directory: ./logs/logging
+╒══════════════════╤═════════════════════╕
+│ Hyperparameter   │ Value               │
+╞══════════════════╪═════════════════════╡
+│ Learning Rate    │ 0.001               │
+├──────────────────┼─────────────────────┤
+│ Num Classes      │ 9                   │
+├──────────────────┼─────────────────────┤
+│ Device           │ cuda                │
+├──────────────────┼─────────────────────┤
+│ Batch Size       │ 16                  │
+├──────────────────┼─────────────────────┤
+│ COSINE LR        │ False               │
+├──────────────────┼─────────────────────┤
+│ Num Epochs       │ 30                  │
+├──────────────────┼─────────────────────┤
+│ Num Workers      │ 4                   │
+├──────────────────┼─────────────────────┤
+│ Image Height     │ 224                 │
+├──────────────────┼─────────────────────┤
+│ Image Width      │ 224                 │
+├──────────────────┼─────────────────────┤
+│ Pin Memory       │ True                │
+├──────────────────┼─────────────────────┤
+│ Early Stopping   │ 200                 │
+├──────────────────┼─────────────────────┤
+│ Load Model       │ True                │
+├──────────────────┼─────────────────────┤
+│ Save Model       │ True                │
+├──────────────────┼─────────────────────┤
+│ Download Dataset │ False               │
+├──────────────────┼─────────────────────┤
+│ Model Name       │ SEUNet_lite         │
+├──────────────────┼─────────────────────┤
+│ Seed             │ 666                 │
+├──────────────────┼─────────────────────┤
+│ Task Name        │ Synapse             │
+├──────────────────┼─────────────────────┤
+│ GPU              │ Tesla T4            │
+├──────────────────┼─────────────────────┤
+│ Torch            │ 2.6.0+cu124         │
+├──────────────────┼─────────────────────┤
+│ Torchvision      │ 0.21.0+cu124        │
+├──────────────────┼─────────────────────┤
+│ Checkpoint Name  │ SEUNet_lite_Synapse │
+╘══════════════════╧═════════════════════╛
+╒═════════════════╤═══════════════╤══════════╕
+│ Builded Model   │ #Parameters   │ Device   │
+╞═════════════════╪═══════════════╪══════════╡
+│ SEUNet_lite     │ 24.30 M       │ cuda     │
+╘═════════════════╧═══════════════╧══════════╛
+Loading Checkpoint...
+No Such file : /content/drive/MyDrive/checkpoint/SEUNet_lite_Synapse_last.pth
+
+
+**************************************************
+Training Phase
+**************************************************
+Epoch: 1 ---> Train , Loss: 1.4516 , mIoU: 0.11 , Dice: 0.22 , Pixel Accuracy: 83.74, lr: 0.0009701675047885294
+Epoch: 2 ---> Train , Loss: 0.8634 , mIoU: 37.49 , Dice: 54.54 , Pixel Accuracy: 99.85, lr: 0.0009400138260917118
+Epoch: 3 ---> Train , Loss: 0.8255 , mIoU: 51.15 , Dice: 67.69 , Pixel Accuracy: 99.90, lr: 0.0009097522669940902
+Epoch: 4 ---> Train , Loss: 0.8151 , mIoU: 56.06 , Dice: 71.84 , Pixel Accuracy: 99.91, lr: 0.0008793784234213704
+Epoch: 5 ---> Train , Loss: 0.8114 , mIoU: 57.61 , Dice: 73.11 , Pixel Accuracy: 99.91, lr: 0.0008488875347496879
+Epoch: 6 ---> Train , Loss: 0.8058 , mIoU: 62.14 , Dice: 76.65 , Pixel Accuracy: 99.93, lr: 0.0008182744394741182
+Epoch: 7 ---> Train , Loss: 0.8044 , mIoU: 63.06 , Dice: 77.35 , Pixel Accuracy: 99.93, lr: 0.0007875335232805024
+Epoch: 8 ---> Train , Loss: 0.8036 , mIoU: 63.28 , Dice: 77.51 , Pixel Accuracy: 99.93, lr: 0.0007566586578301527
+Epoch: 9 ---> Train , Loss: 0.7576 , mIoU: 63.61 , Dice: 77.76 , Pixel Accuracy: 99.93, lr: 0.0007256431280964387
+Epoch: 10 ---> Train , Loss: 0.0864 , mIoU: 63.52 , Dice: 77.69 , Pixel Accuracy: 99.93, lr: 0.0006944795454618077
+Epoch: 11 ---> Train , Loss: 0.0229 , mIoU: 65.89 , Dice: 79.44 , Pixel Accuracy: 99.93, lr: 0.0006631597429284864
+Epoch: 12 ---> Train , Loss: 0.0239 , mIoU: 64.42 , Dice: 78.36 , Pixel Accuracy: 99.94, lr: 0.0006316746476194647
+Epoch: 13 ---> Train , Loss: 0.0216 , mIoU: 67.39 , Dice: 80.52 , Pixel Accuracy: 99.94, lr: 0.000600014124102932
+Epoch: 14 ---> Train , Loss: 0.0207 , mIoU: 68.18 , Dice: 81.08 , Pixel Accuracy: 99.94, lr: 0.0005681667797392139
+Epoch: 15 ---> Train , Loss: 0.0201 , mIoU: 69.07 , Dice: 81.70 , Pixel Accuracy: 99.94, lr: 0.0005361197198722494
+Epoch: 16 ---> Train , Loss: 0.0197 , mIoU: 69.49 , Dice: 82.00 , Pixel Accuracy: 99.94, lr: 0.0005038582357000198
+Epoch: 17 ---> Train , Loss: 0.0201 , mIoU: 68.97 , Dice: 81.63 , Pixel Accuracy: 99.94, lr: 0.00047136540011991453
+Epoch: 18 ---> Train , Loss: 0.0201 , mIoU: 69.07 , Dice: 81.70 , Pixel Accuracy: 99.94, lr: 0.0004386215351504312
+Epoch: 19 ---> Train , Loss: 0.0197 , mIoU: 69.61 , Dice: 82.08 , Pixel Accuracy: 99.94, lr: 0.00040560349584250127
+Epoch: 20 ---> Train , Loss: 0.0189 , mIoU: 70.55 , Dice: 82.73 , Pixel Accuracy: 99.94, lr: 0.0003722836846951121
+Epoch: 21 ---> Train , Loss: 0.0185 , mIoU: 71.13 , Dice: 83.13 , Pixel Accuracy: 99.95, lr: 0.00033862865744034473
+Epoch: 22 ---> Train , Loss: 0.0189 , mIoU: 70.58 , Dice: 82.75 , Pixel Accuracy: 99.95, lr: 0.0003045970852783668
+Epoch: 23 ---> Train , Loss: 0.0186 , mIoU: 71.08 , Dice: 83.10 , Pixel Accuracy: 99.95, lr: 0.00027013665612513884
+Epoch: 24 ---> Train , Loss: 0.0181 , mIoU: 71.50 , Dice: 83.38 , Pixel Accuracy: 99.95, lr: 0.00023517912514877404
+Epoch: 25 ---> Train , Loss: 0.0180 , mIoU: 71.28 , Dice: 83.23 , Pixel Accuracy: 99.95, lr: 0.00019963189790162352
+Epoch: 26 ---> Train , Loss: 0.0181 , mIoU: 71.49 , Dice: 83.37 , Pixel Accuracy: 99.95, lr: 0.00016336247750362284
+Epoch: 27 ---> Train , Loss: 0.0178 , mIoU: 71.83 , Dice: 83.61 , Pixel Accuracy: 99.95, lr: 0.0001261661875929281
+Epoch: 28 ---> Train , Loss: 0.0177 , mIoU: 71.94 , Dice: 83.68 , Pixel Accuracy: 99.95, lr: 8.76862475289789e-05
+Epoch: 29 ---> Train , Loss: 0.0177 , mIoU: 71.86 , Dice: 83.63 , Pixel Accuracy: 99.95, lr: 4.714254379744861e-05
+Epoch: 30 ---> Train , Loss: 0.0176 , mIoU: 72.09 , Dice: 83.78 , Pixel Accuracy: 99.95, lr: 5.555199921088418e-07
+**************************************************
+Best Accuracy over training: 83.78
+Best Accuracy Per Class over training: [83.78, nan, nan, nan, nan, nan, nan, nan]
+Epoch Number: 30
+**************************************************
+Inference Phase

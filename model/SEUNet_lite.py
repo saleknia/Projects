@@ -93,14 +93,14 @@ class SEUNet_lite(nn.Module):
         self.up2 = UpBlock(in_channels=256, out_channels=128)
         self.up1 = UpBlock(in_channels=128, out_channels=64 )
 
-        self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
-        self.final_up   = nn.Upsample(scale_factor=4)
+        # self.final_conv = nn.Conv2d(64, n_classes, 1, padding=0)
+        # self.final_up   = nn.Upsample(scale_factor=4)
 
-        # self.final_conv1_1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
-        # self.final_relu1_1 = nn.ReLU(inplace=True)
-        # self.final_conv2_1 = nn.Conv2d(32, 32, 3, padding=1)
-        # self.final_relu2_1 = nn.ReLU(inplace=True)
-        # self.final_conv3_1 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
+        self.final_conv1 = nn.ConvTranspose2d(64, 32, 4, 2, 1)
+        self.final_relu1 = nn.ReLU(inplace=True)
+        self.final_conv2 = nn.Conv2d(32, 32, 3, padding=1)
+        self.final_relu2 = nn.ReLU(inplace=True)
+        self.final_conv3 = nn.ConvTranspose2d(32, n_classes, kernel_size=2, stride=2)
 
     def forward(self, x):
         b, c, h, w = x.shape
@@ -119,7 +119,13 @@ class SEUNet_lite(nn.Module):
         w = self.up2(w , e2) 
         w = self.up1(w , e1) 
 
-        w = self.final_conv(w)
-        w = self.final_up(w)
+        # w = self.final_conv(w)
+        # w = self.final_up(w)
+
+        w = self.final_conv1(w)
+        w = self.final_relu1(w)
+        w = self.final_conv2(w)
+        w = self.final_relu2(w)
+        w = self.final_conv3(w)
 
         return w
