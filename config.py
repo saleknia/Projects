@@ -70,7 +70,7 @@ CONTINUE = True
 # TEACHER = True
 TEACHER = False
 
-SAVE_MODEL = False
+SAVE_MODEL = True
 COSINE_LR = False
 DOWNLOAD = False
 

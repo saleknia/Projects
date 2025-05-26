@@ -186,8 +186,8 @@ def trainer(end_epoch,epoch_num,model,teacher_model,dataloader,optimizer,device,
         loss_disparity = 0.0
 
         ###############################################
-        alpha = 0.5
-        beta  = 0.5
+        alpha = 1.0
+        beta  = 1.0
         theta = 0.0
 
         loss = alpha * loss_dice + beta * loss_ce + theta * loss_disparity
